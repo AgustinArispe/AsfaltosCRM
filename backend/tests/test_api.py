@@ -106,6 +106,8 @@ def test_customer_crud_search_and_soft_delete(api_client: TestClient) -> None:
     detail = api_client.get(f"/api/customers/{customer_id}")
     assert detail.status_code == 200
     assert "opportunities" not in detail.json()
+    assert detail.json()["created_at"]
+    assert "created_at" not in listing.json()["items"][0]
 
     updated = api_client.patch(
         f"/api/customers/{customer_id}",

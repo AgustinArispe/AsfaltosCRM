@@ -1,6 +1,11 @@
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.common import PaginatedResponse
-from app.schemas.customer import CustomerCreate, CustomerSummary, CustomerUpdate
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerDetail,
+    CustomerSummary,
+    CustomerUpdate,
+)
 from app.schemas.opportunity import (
     AssigneeUpdate,
     LoseOpportunityRequest,
@@ -18,6 +23,7 @@ from app.schemas.user import PasswordUpdate, UserCreate, UserResponse, UserUpdat
 __all__ = [
     "AssigneeUpdate",
     "CustomerCreate",
+    "CustomerDetail",
     "CustomerSummary",
     "CustomerUpdate",
     "LoginRequest",

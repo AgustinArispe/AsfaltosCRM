@@ -17,6 +17,34 @@ export type ApiSession = {
 
 const PIPELINE_PAGE_SIZE = 100
 
+export async function listCustomerOpportunities(
+  customerId: number,
+  session: ApiSession,
+): Promise<OpportunitySummary[]> {
+  const items: OpportunitySummary[] = []
+  let page = 1
+  let total = 0
+
+  do {
+    const query = new URLSearchParams({
+      customer_id: String(customerId),
+      page: String(page),
+      page_size: String(PIPELINE_PAGE_SIZE),
+    })
+    const response = await apiRequest<PaginatedResponse<OpportunitySummary>>(
+      `/opportunities?${query}`,
+      session,
+    )
+    items.push(...response.items)
+    total = response.total
+    page += 1
+
+    if (response.items.length === 0) break
+  } while (items.length < total)
+
+  return items
+}
+
 export function getOpportunityDetail(
   opportunityId: number,
   session: ApiSession,

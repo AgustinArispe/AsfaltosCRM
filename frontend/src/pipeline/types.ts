@@ -1,3 +1,5 @@
+import type { CustomerSummary } from '../customers/types'
+
 export type LeadSource = 'WEB' | 'WHATSAPP'
 
 export type OpportunityStatus =
@@ -22,15 +24,7 @@ export type Product = {
   is_active: boolean
 }
 
-export type OpportunityCustomer = {
-  id: number
-  name: string
-  company: string | null
-  email: string | null
-  phone: string | null
-  province: string | null
-  legendary_historical_override: boolean
-}
+export type OpportunityCustomer = CustomerSummary
 
 export type OpportunityUser = {
   id: number

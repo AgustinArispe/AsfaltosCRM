@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
@@ -48,3 +49,7 @@ class CustomerSummary(BaseModel):
     phone: str | None
     province: str | None
     legendary_historical_override: bool
+
+
+class CustomerDetail(CustomerSummary):
+    created_at: datetime

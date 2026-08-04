@@ -1,0 +1,279 @@
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+
+import type { UserRole } from '../auth/types'
+import { InlineFeedback } from '../shared/InlineFeedback'
+import { Modal } from '../shared/Modal'
+import type {
+  CustomerFormValues,
+  CustomerSummary,
+  CustomerWritePayload,
+} from './types'
+
+const EMPTY_VALUES: CustomerFormValues = {
+  name: '',
+  company: '',
+  email: '',
+  phone: '',
+  province: '',
+  legendary_historical_override: false,
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function valuesFromCustomer(customer: CustomerSummary | null): CustomerFormValues {
+  if (!customer) return EMPTY_VALUES
+  return {
+    name: customer.name,
+    company: customer.company ?? '',
+    email: customer.email ?? '',
+    phone: customer.phone ?? '',
+    province: customer.province ?? '',
+    legendary_historical_override: customer.legendary_historical_override,
+  }
+}
+
+function nullableTrimmed(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed || null
+}
+
+export function CustomerFormModal({
+  isOpen,
+  customer,
+  role,
+  onClose,
+  onSubmit,
+}: {
+  isOpen: boolean
+  customer: CustomerSummary | null
+  role: UserRole
+  onClose: () => void
+  onSubmit: (payload: CustomerWritePayload) => Promise<void>
+}) {
+  const [values, setValues] = useState<CustomerFormValues>(EMPTY_VALUES)
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string
+    email?: string
+  }>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const formId = useId()
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const emailInputRef = useRef<HTMLInputElement>(null)
+  const isEditing = customer !== null
+
+  useEffect(() => {
+    if (!isOpen) return
+    setValues(valuesFromCustomer(customer))
+    setFieldErrors({})
+    setSubmitError(null)
+    setIsSubmitting(false)
+  }, [customer, isOpen])
+
+  const updateValue = <Key extends keyof CustomerFormValues>(
+    key: Key,
+    value: CustomerFormValues[Key],
+  ) => {
+    setValues((current) => ({ ...current, [key]: value }))
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nextErrors: { name?: string; email?: string } = {}
+    if (!values.name.trim()) nextErrors.name = 'Ingresá el nombre del cliente.'
+    if (values.email.trim() && !EMAIL_PATTERN.test(values.email.trim())) {
+      nextErrors.email = 'Ingresá un email válido.'
+    }
+    setFieldErrors(nextErrors)
+    setSubmitError(null)
+
+    if (Object.keys(nextErrors).length > 0) {
+      if (nextErrors.name) nameInputRef.current?.focus()
+      else emailInputRef.current?.focus()
+      return
+    }
+
+    const payload: CustomerWritePayload = {
+      name: values.name.trim(),
+      company: nullableTrimmed(values.company),
+      email: nullableTrimmed(values.email),
+      phone: nullableTrimmed(values.phone),
+      province: nullableTrimmed(values.province),
+    }
+    if (role === 'SUPERVISOR') {
+      payload.legendary_historical_override =
+        values.legendary_historical_override
+    }
+
+    setIsSubmitting(true)
+    try {
+      await onSubmit(payload)
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : 'No pudimos guardar el cliente.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const inputClasses =
+    'mt-1.5 min-h-11 w-full border border-slate-300 bg-white px-3 py-2 text-base text-slate-950 outline-none transition-colors duration-150 placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 disabled:bg-slate-100 disabled:text-slate-500 motion-reduce:transition-none'
+
+  return (
+    <Modal
+      closeDisabled={isSubmitting}
+      description={
+        isEditing
+          ? 'Actualizá los datos comerciales del cliente.'
+          : 'Registrá la información disponible. Solo el nombre es obligatorio.'
+      }
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Editar cliente' : 'Nuevo cliente'}
+    >
+      <form id={formId} noValidate onSubmit={handleSubmit}>
+        <div className="max-h-[65dvh] space-y-4 overflow-y-auto px-5 py-5">
+          {submitError ? <InlineFeedback message={submitError} /> : null}
+
+          <div>
+            <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-name`}>
+              Nombre <span aria-hidden="true">*</span>
+            </label>
+            <input
+              aria-describedby={fieldErrors.name ? `${formId}-name-error` : undefined}
+              aria-invalid={Boolean(fieldErrors.name)}
+              autoComplete="name"
+              autoFocus
+              className={inputClasses}
+              data-modal-initial-focus
+              disabled={isSubmitting}
+              id={`${formId}-name`}
+              onChange={(event) => updateValue('name', event.target.value)}
+              ref={nameInputRef}
+              type="text"
+              value={values.name}
+            />
+            {fieldErrors.name ? (
+              <p className="mt-1.5 text-sm font-medium text-red-700" id={`${formId}-name-error`}>
+                {fieldErrors.name}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-company`}>
+                Empresa
+              </label>
+              <input
+                autoComplete="organization"
+                className={inputClasses}
+                disabled={isSubmitting}
+                id={`${formId}-company`}
+                onChange={(event) => updateValue('company', event.target.value)}
+                type="text"
+                value={values.company}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-email`}>
+                Email
+              </label>
+              <input
+                aria-describedby={fieldErrors.email ? `${formId}-email-error` : undefined}
+                aria-invalid={Boolean(fieldErrors.email)}
+                autoComplete="email"
+                className={inputClasses}
+                disabled={isSubmitting}
+                id={`${formId}-email`}
+                inputMode="email"
+                onChange={(event) => updateValue('email', event.target.value)}
+                ref={emailInputRef}
+                type="email"
+                value={values.email}
+              />
+              {fieldErrors.email ? (
+                <p className="mt-1.5 text-sm font-medium text-red-700" id={`${formId}-email-error`}>
+                  {fieldErrors.email}
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-phone`}>
+                Teléfono
+              </label>
+              <input
+                autoComplete="tel"
+                className={inputClasses}
+                disabled={isSubmitting}
+                id={`${formId}-phone`}
+                inputMode="tel"
+                onChange={(event) => updateValue('phone', event.target.value)}
+                type="tel"
+                value={values.phone}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-province`}>
+                Provincia
+              </label>
+              <input
+                autoComplete="address-level1"
+                className={inputClasses}
+                disabled={isSubmitting}
+                id={`${formId}-province`}
+                onChange={(event) => updateValue('province', event.target.value)}
+                type="text"
+                value={values.province}
+              />
+            </div>
+          </div>
+
+          {role === 'SUPERVISOR' ? (
+            <label className="flex min-h-11 items-start gap-3 border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800">
+              <input
+                checked={values.legendary_historical_override}
+                className="mt-0.5 size-4 accent-amber-600 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                disabled={isSubmitting}
+                onChange={(event) =>
+                  updateValue(
+                    'legendary_historical_override',
+                    event.target.checked,
+                  )
+                }
+                type="checkbox"
+              />
+              <span>
+                <span className="font-semibold">Legendario histórico</span>
+                <span className="mt-0.5 block text-xs leading-5 text-slate-600">
+                  FAA reconoció esta relación comercial como histórica antes del CRM.
+                </span>
+              </span>
+            </label>
+          ) : null}
+        </div>
+
+        <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
+          <button
+            className="min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isSubmitting}
+            onClick={onClose}
+            type="button"
+          >
+            Cancelar
+          </button>
+          <button
+            className="min-h-11 bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 outline-none transition-colors duration-150 hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-50 motion-reduce:transition-none"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear cliente'}
+          </button>
+        </footer>
+      </form>
+    </Modal>
+  )
+}

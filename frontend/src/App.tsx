@@ -1,12 +1,17 @@
 import { useAuth } from './auth/AuthContext'
 import { AppShell } from './layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
+import { CustomerDetailPage } from './pages/CustomerDetailPage'
+import { CustomersPage } from './pages/CustomersPage'
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { getNavigationItem } from './routing/navigation'
 import { Redirect, usePathname } from './routing/router'
-import { matchOpportunityDetailRoute } from './routing/routes'
+import {
+  matchCustomerDetailRoute,
+  matchOpportunityDetailRoute,
+} from './routing/routes'
 import { LoadingState } from './shared/LoadingState'
 
 function RoutedApp() {
@@ -36,6 +41,15 @@ function RoutedApp() {
     )
   }
 
+  const customerDetailRoute = matchCustomerDetailRoute(pathname)
+  if (customerDetailRoute) {
+    return (
+      <AppShell activeNavigationPath="/customers" pageTitle="Ficha de cliente">
+        <CustomerDetailPage customerId={customerDetailRoute.customerId} />
+      </AppShell>
+    )
+  }
+
   const navigationItem = getNavigationItem(pathname)
   if (!navigationItem) {
     return <Redirect to="/pipeline" />
@@ -47,8 +61,8 @@ function RoutedApp() {
 
   return (
     <AppShell pageTitle={navigationItem.label}>
-      {pathname === '/pipeline' ? (
-        <PipelinePage />
+      {pathname === '/pipeline' ? <PipelinePage /> : pathname === '/customers' ? (
+        <CustomersPage />
       ) : (
         <PlaceholderPage
           description={navigationItem.description}

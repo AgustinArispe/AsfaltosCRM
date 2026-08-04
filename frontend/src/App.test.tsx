@@ -5,6 +5,7 @@ import App from './App'
 import { AuthProvider } from './auth/AuthContext'
 import { SESSION_TOKEN_KEY } from './auth/session-storage'
 import type { AuthUser } from './auth/types'
+import type { CustomerDetail } from './customers/types'
 import type {
   OpportunityDetail,
   OpportunitySummary,
@@ -67,6 +68,11 @@ const opportunityDetail: OpportunityDetail = {
   ],
   loss_reason: null,
   updated_at: '2026-08-04T12:00:00Z',
+}
+
+const customerDetail: CustomerDetail = {
+  ...opportunitySummary.customer,
+  created_at: '2026-08-04T12:00:00Z',
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -311,6 +317,25 @@ describe('authenticated frontend', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
+  })
+
+  it('opens the dynamic customer detail route and keeps Customers active', async () => {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url = new URL(String(input), 'http://localhost')
+        if (url.pathname === '/api/auth/me') return jsonResponse(200, supervisor)
+        if (url.pathname === '/api/customers/70') return jsonResponse(200, customerDetail)
+        if (url.pathname === '/api/opportunities') return jsonResponse(200, emptyOpportunityPage)
+        throw new Error(`Unexpected request: ${url.pathname}`)
+      }),
+    )
+    renderApp('/customers/70')
+
+    expect(await screen.findByRole('heading', { name: 'Cliente navegación' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ficha de cliente', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Clientes' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('logs out, clears storage, and returns to login', async () => {

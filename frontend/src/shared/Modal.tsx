@@ -31,10 +31,17 @@ export function Modal({
     const dialog = dialogRef.current
     if (!dialog) return
 
+    let focusTimeoutId: number | undefined
+
     if (isOpen && !dialog.open) {
       previousFocusRef.current = document.activeElement as HTMLElement | null
       dialog.showModal()
-      return
+      focusTimeoutId = window.setTimeout(() => {
+        dialog
+          .querySelector<HTMLElement>('[data-modal-initial-focus]')
+          ?.focus()
+      }, 0)
+      return () => window.clearTimeout(focusTimeoutId)
     }
 
     if (!isOpen && dialog.open) {

@@ -6,6 +6,7 @@ from app.api.dependencies import CurrentUser, DatabaseSession, Pagination, Super
 from app.models import UserRole
 from app.schemas import (
     CustomerCreate,
+    CustomerDetail,
     CustomerSummary,
     CustomerUpdate,
     PaginatedResponse,
@@ -67,16 +68,16 @@ def list_customers(
 
 @router.get(
     "/{customer_id}",
-    response_model=CustomerSummary,
+    response_model=CustomerDetail,
     summary="Get customer",
 )
 def get_customer(
     customer_id: int,
     session: DatabaseSession,
     _current_user: CurrentUser,
-) -> CustomerSummary:
+) -> CustomerDetail:
     customer = CustomerService(session).get_customer(customer_id)
-    return CustomerSummary.model_validate(customer)
+    return CustomerDetail.model_validate(customer)
 
 
 @router.patch(

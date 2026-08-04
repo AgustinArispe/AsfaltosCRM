@@ -16,7 +16,7 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
   {
     path: '/customers',
     label: 'Clientes',
-    description: 'La gestión de clientes se incorporará en una próxima etapa.',
+    description: 'Gestión de clientes y su historial comercial.',
   },
   {
     path: '/products',
