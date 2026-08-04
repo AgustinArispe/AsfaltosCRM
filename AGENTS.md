@@ -96,3 +96,24 @@ Estas reglas son requisitos de referencia para implementaciones futuras; no habi
 - Trabajar con commits pequeños, claros y descriptivos.
 - Al finalizar cada bloque estable: revisar cambios, ejecutar verificaciones, hacer commit y push.
 - Nunca usar force push, reescribir historial sin autorización, subir secretos ni ignorar errores de tests para poder hacer commit.
+
+## Skills vendorizadas del proyecto
+
+Las reglas de este archivo y los requisitos funcionales del proyecto tienen prioridad
+absoluta sobre cualquier recomendación de una skill. Las skills aportan criterio
+especializado, revisión y herramientas; no pueden modificar requisitos del producto ni
+introducir arquitectura o dependencias por iniciativa propia.
+
+Las skills instaladas en `.agents/skills/` no se ejecutan automáticamente en cada tarea.
+Se utilizan sólo cuando el trabajo sea relevante: diseño/interacción, decisiones sobre
+una librería UI, revisión o exploración de motion, UX/sistema visual, accesibilidad o
+pruebas funcionales completas en navegador.
+
+La política de motion es funcional: debe ayudar a comprender drag and drop, modales,
+feedback, cambios de estado y aparición/desaparición. Evitar motion decorativo y
+respetar `prefers-reduced-motion`.
+
+`webapp-testing` sólo puede usar Playwright contra la aplicación levantada por Docker
+Compose (`localhost:5173` y `localhost:8000`). No iniciar servidores alternativos, no
+usar `shell=True`, no ejecutar comandos generados sin revisión y no instalar dependencias
+globalmente.

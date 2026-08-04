@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "policy": {
+    "authority": "AGENTS.md and project functional requirements",
+    "automatic_activation": false,
+    "vendored_root": ".agents/skills"
+  },
+  "skills": [
+    {
+      "id": "emil-design-eng",
+      "source": "https://github.com/emilkowalski/skills",
+      "audited_commit": "da80201b64de7d608a6dc5f723797ce6c65b692b",
+      "path": ".agents/skills/emil-design-eng",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "pick-ui-library",
+      "source": "https://github.com/emilkowalski/skills",
+      "audited_commit": "da80201b64de7d608a6dc5f723797ce6c65b692b",
+      "path": ".agents/skills/pick-ui-library",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "review-animations",
+      "source": "https://github.com/emilkowalski/skills",
+      "audited_commit": "da80201b64de7d608a6dc5f723797ce6c65b692b",
+      "path": ".agents/skills/review-animations",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "find-animation-opportunities",
+      "source": "https://github.com/emilkowalski/skills",
+      "audited_commit": "da80201b64de7d608a6dc5f723797ce6c65b692b",
+      "path": ".agents/skills/find-animation-opportunities",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+      "audited_commit": "4d140cf8ff6842de13213c7214eff3810371beb2",
+      "path": ".agents/skills/ui-ux-pro-max",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": "Codex paths rewritten from CLAUDE_PLUGIN_ROOT to .agents/skills/ui-ux-pro-max"
+    },
+    {
+      "id": "fixing-accessibility",
+      "source": "https://github.com/ibelick/ui-skills",
+      "audited_commit": "2b3a114a3fcff079d73639a21710c595d4700a74",
+      "path": ".agents/skills/fixing-accessibility",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "webapp-testing",
+      "source": "https://github.com/anthropics/skills",
+      "audited_commit": "b29e7cf65e5cb78a5ac33d582270551bc74a14eb",
+      "path": ".agents/skills/webapp-testing",
+      "license": "Anthropic source license (LICENSE.txt)",
+      "local_adaptation": "Docker Compose-only policy added; upstream with_server.py instructions removed"
+    }
+  ]
+}
