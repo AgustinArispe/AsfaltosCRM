@@ -1,6 +1,7 @@
 import { useAuth } from './auth/AuthContext'
 import { AppShell } from './layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
+import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { getNavigationItem } from './routing/navigation'
 import { Redirect, usePathname } from './routing/router'
@@ -33,10 +34,14 @@ function RoutedApp() {
 
   return (
     <AppShell pageTitle={navigationItem.label}>
-      <PlaceholderPage
-        description={navigationItem.description}
-        title={navigationItem.label}
-      />
+      {pathname === '/pipeline' ? (
+        <PipelinePage />
+      ) : (
+        <PlaceholderPage
+          description={navigationItem.description}
+          title={navigationItem.label}
+        />
+      )}
     </AppShell>
   )
 }

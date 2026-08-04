@@ -86,6 +86,19 @@ iniciar, valida el token mediante `GET /api/auth/me`; una respuesta `401` limpia
 sesión local. Esta decisión es deliberada para el MVP actual, cuya API entrega Bearer
 tokens y todavía no implementa cookies HttpOnly ni refresh tokens.
 
+## Pipeline frontend
+
+El Kanban consulta por separado las cuatro etapas visibles (`NUEVA`, `COTIZADA`,
+`NEGOCIACION` y `GANADA`) con páginas de hasta 100 oportunidades. Si una etapa supera
+ese tamaño, el cliente continúa solicitando páginas hasta completar el `total`; de esta
+forma no se truncan oportunidades ni se cargan las oportunidades `PERDIDA` que no
+pertenecen al tablero principal.
+
+Las tarjetas pueden avanzar mediante drag and drop o mediante su botón `Mover a`, que
+ofrece la misma operación para teclado y tecnologías de asistencia. Las transiciones
+simples usan actualización optimista con reversión ante error. La cotización espera la
+selección de productos y la confirmación del backend antes de cambiar de columna.
+
 ## Migraciones
 
 Alembic incluye una migración inicial (`0001_initial_schema`) que establece el historial de migraciones antes de incorporar las entidades del CRM. Se aplica automáticamente al arrancar el backend.

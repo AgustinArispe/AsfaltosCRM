@@ -24,6 +24,13 @@ const seller: AuthUser = {
   role: 'VENDEDOR',
 }
 
+const emptyOpportunityPage = {
+  items: [],
+  page: 1,
+  page_size: 100,
+  total: 0,
+}
+
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -42,7 +49,10 @@ function renderApp(pathname = '/login') {
 
 function mockRestoredSession(user: AuthUser, token = 'stored-token') {
   window.sessionStorage.setItem(SESSION_TOKEN_KEY, token)
-  const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, user))
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(200, user))
+    .mockResolvedValue(jsonResponse(200, emptyOpportunityPage))
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
@@ -92,6 +102,7 @@ describe('authenticated frontend', () => {
       .fn()
       .mockReturnValueOnce(pendingLogin)
       .mockResolvedValueOnce(jsonResponse(200, supervisor))
+      .mockResolvedValue(jsonResponse(200, emptyOpportunityPage))
     vi.stubGlobal('fetch', fetchMock)
     renderApp()
 
@@ -115,7 +126,6 @@ describe('authenticated frontend', () => {
     ).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBe('new-token')
-    expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/login')
 
     const meRequest = fetchMock.mock.calls[1]?.[1] as RequestInit
