@@ -1,0 +1,92 @@
+# Asfaltos CRM
+
+Base técnica del CRM web de Fábrica Argentina de Asfaltos. En esta etapa no hay funcionalidades de negocio: el proyecto deja listos React, FastAPI, PostgreSQL, SQLAlchemy, Alembic y Docker Compose.
+
+## Requisitos
+
+- Docker Desktop con Docker Compose v2 o superior.
+- Git.
+
+No hace falta instalar Python, Node ni dependencias del proyecto en la máquina: se ejecutan dentro de contenedores.
+
+## Inicio desde cero
+
+```bash
+git clone https://github.com/Bkzj/AsfaltosCRM.git
+cd AsfaltosCRM
+cp .env.example .env
+docker compose up --build
+```
+
+Al iniciar, el servicio `backend` espera que PostgreSQL esté saludable y ejecuta `alembic upgrade head` antes de levantar FastAPI.
+
+Abrir:
+
+- Frontend: http://localhost:5173
+- API: http://localhost:8000
+- Documentación interactiva de la API: http://localhost:8000/docs
+- Health check de API y base de datos: http://localhost:8000/health
+
+El frontend consulta `/api/health`, que Vite redirige internamente al backend. Por eso la pantalla inicial confirma que React puede comunicarse con FastAPI y PostgreSQL.
+
+Para detener los servicios:
+
+```bash
+docker compose down
+```
+
+Los datos de PostgreSQL persisten en el volumen `postgres_data`. Para eliminar también esos datos de desarrollo, ejecutar explícitamente:
+
+```bash
+docker compose down -v
+```
+
+## Variables de entorno
+
+Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archivo `.env` está excluido de Git y no debe subirse. En particular, reemplazar `POSTGRES_PASSWORD` por una contraseña segura fuera del entorno local.
+
+| Variable | Descripción | Valor de desarrollo |
+| --- | --- | --- |
+| `POSTGRES_DB` | Nombre de la base de datos | `asfaltos_crm` |
+| `POSTGRES_USER` | Usuario de PostgreSQL | `asfaltos` |
+| `POSTGRES_PASSWORD` | Contraseña local de PostgreSQL | `change_me` |
+| `POSTGRES_PORT` | Puerto de PostgreSQL publicado en el host | `5432` |
+| `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
+| `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
+
+## Migraciones
+
+Alembic incluye una migración inicial (`0001_initial_schema`) que establece el historial de migraciones antes de incorporar las entidades del CRM. Se aplica automáticamente al arrancar el backend.
+
+Comandos útiles:
+
+```bash
+# Ver la revisión aplicada
+docker compose exec backend alembic current
+
+# Aplicar migraciones pendientes
+docker compose exec backend alembic upgrade head
+
+# Crear una nueva migración cuando existan modelos SQLAlchemy
+docker compose exec backend alembic revision --autogenerate -m "describe change"
+```
+
+## Estructura
+
+```text
+.
+├── backend/          # FastAPI, SQLAlchemy y Alembic
+├── frontend/         # React + TypeScript (Vite)
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+## Verificación
+
+Docker Compose incluye health checks para PostgreSQL, backend y frontend. Consultar el estado con:
+
+```bash
+docker compose ps
+curl http://localhost:8000/health
+```
