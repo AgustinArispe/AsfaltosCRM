@@ -4,6 +4,7 @@ from alembic import context
 
 from app.core.config import get_database_url
 from app.db.base import Base
+import app.models  # noqa: F401  # Registers all models in Base.metadata.
 
 config = context.config
 
