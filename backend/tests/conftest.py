@@ -5,8 +5,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db_session
+from app.core.security import create_access_token, hash_password
 from app.db.session import engine
 from app.main import app
+from app.models import User, UserRole
+
+
+TEST_SUPERVISOR_PASSWORD = "supervisor-test-password"
 
 
 @pytest.fixture
@@ -28,17 +33,36 @@ def db_session() -> Iterator[Session]:
 
 
 @pytest.fixture
-def api_client(db_session: Session) -> Iterator[TestClient]:
+def supervisor_user(db_session: Session) -> User:
+    user = User(
+        full_name="Supervisor de tests",
+        email="supervisor-tests@faa.test",
+        password_hash=hash_password(TEST_SUPERVISOR_PASSWORD),
+        role=UserRole.SUPERVISOR,
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture
+def api_client(
+    db_session: Session,
+    supervisor_user: User,
+) -> Iterator[TestClient]:
     def override_db_session() -> Iterator[Session]:
         try:
             yield db_session
         finally:
             if db_session.in_transaction():
-                db_session.rollback()
+                db_session.commit()
 
     app.dependency_overrides[get_db_session] = override_db_session
     try:
         with TestClient(app) as client:
+            client.headers["Authorization"] = (
+                f"Bearer {create_access_token(supervisor_user.id)}"
+            )
             yield client
     finally:
         app.dependency_overrides.clear()

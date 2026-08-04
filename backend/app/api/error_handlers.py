@@ -2,6 +2,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from app.services import (
+    AuthenticationError,
     ClosedOpportunityError,
     DeletedCustomerError,
     DomainError,
@@ -12,10 +13,13 @@ from app.services import (
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
+    PermissionDeniedError,
 )
 
 
 DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
+    (AuthenticationError, status.HTTP_401_UNAUTHORIZED),
+    (PermissionDeniedError, status.HTTP_403_FORBIDDEN),
     (EntityNotFoundError, status.HTTP_404_NOT_FOUND),
     (DeletedCustomerError, status.HTTP_409_CONFLICT),
     (DuplicateEntityError, status.HTTP_409_CONFLICT),
@@ -34,7 +38,13 @@ async def domain_error_handler(_: Request, error: DomainError) -> JSONResponse:
         if isinstance(error, error_type):
             response_status = mapped_status
             break
+    headers = (
+        {"WWW-Authenticate": "Bearer"}
+        if isinstance(error, AuthenticationError)
+        else None
+    )
     return JSONResponse(
         status_code=response_status,
         content={"detail": str(error)},
+        headers=headers,
     )

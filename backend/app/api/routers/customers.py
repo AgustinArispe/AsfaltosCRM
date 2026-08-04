@@ -2,7 +2,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.api.dependencies import DatabaseSession, Pagination
+from app.api.dependencies import CurrentUser, DatabaseSession, Pagination, SupervisorUser
+from app.models import UserRole
 from app.schemas import (
     CustomerCreate,
     CustomerSummary,
@@ -10,6 +11,7 @@ from app.schemas import (
     PaginatedResponse,
 )
 from app.services.customer_service import CustomerService
+from app.services.errors import PermissionDeniedError
 
 
 router = APIRouter(prefix="/customers", tags=["customers"])
@@ -24,7 +26,15 @@ router = APIRouter(prefix="/customers", tags=["customers"])
 def create_customer(
     payload: CustomerCreate,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> CustomerSummary:
+    if (
+        current_user.role is UserRole.VENDEDOR
+        and "legendary_historical_override" in payload.model_fields_set
+    ):
+        raise PermissionDeniedError(
+            "Only supervisors can set the legendary historical override"
+        )
     customer = CustomerService(session).create_customer(**payload.model_dump())
     return CustomerSummary.model_validate(customer)
 
@@ -37,6 +47,7 @@ def create_customer(
 def list_customers(
     session: DatabaseSession,
     pagination: Pagination,
+    _current_user: CurrentUser,
     search: Annotated[str | None, Query(max_length=200)] = None,
     include_deleted: bool = False,
 ) -> PaginatedResponse[CustomerSummary]:
@@ -59,7 +70,11 @@ def list_customers(
     response_model=CustomerSummary,
     summary="Get customer",
 )
-def get_customer(customer_id: int, session: DatabaseSession) -> CustomerSummary:
+def get_customer(
+    customer_id: int,
+    session: DatabaseSession,
+    _current_user: CurrentUser,
+) -> CustomerSummary:
     customer = CustomerService(session).get_customer(customer_id)
     return CustomerSummary.model_validate(customer)
 
@@ -73,7 +88,15 @@ def update_customer(
     customer_id: int,
     payload: CustomerUpdate,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> CustomerSummary:
+    if (
+        current_user.role is UserRole.VENDEDOR
+        and "legendary_historical_override" in payload.model_fields_set
+    ):
+        raise PermissionDeniedError(
+            "Only supervisors can change the legendary historical override"
+        )
     customer = CustomerService(session).update_customer(
         customer_id,
         payload.model_dump(exclude_unset=True),
@@ -87,6 +110,10 @@ def update_customer(
     summary="Soft-delete customer",
     description="Idempotent: an already deleted customer also returns 204.",
 )
-def delete_customer(customer_id: int, session: DatabaseSession) -> Response:
+def delete_customer(
+    customer_id: int,
+    session: DatabaseSession,
+    _supervisor: SupervisorUser,
+) -> Response:
     CustomerService(session).soft_delete_customer(customer_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

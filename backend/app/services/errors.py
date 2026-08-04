@@ -5,6 +5,14 @@ class DomainError(Exception):
     """Base class for business-rule failures independent of HTTP."""
 
 
+class AuthenticationError(DomainError):
+    pass
+
+
+class PermissionDeniedError(DomainError):
+    pass
+
+
 class EntityNotFoundError(DomainError):
     def __init__(self, entity_name: str, entity_id: int) -> None:
         self.entity_name = entity_name

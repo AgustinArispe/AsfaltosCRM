@@ -2,8 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Query, status
 
-from app.api.dependencies import DatabaseSession, Pagination
-from app.models import LeadSource, OpportunityStatus
+from app.api.dependencies import (
+    CurrentUser,
+    DatabaseSession,
+    Pagination,
+    SupervisorUser,
+)
+from app.models import LeadSource, OpportunityStatus, UserRole
 from app.schemas import (
     AssigneeUpdate,
     LoseOpportunityRequest,
@@ -16,6 +21,7 @@ from app.schemas import (
     StatusChangeRequest,
 )
 from app.services import OpportunityService, QuoteProductInput
+from app.services.errors import PermissionDeniedError
 from app.services.opportunity_query_service import OpportunityQueryService
 
 
@@ -46,11 +52,20 @@ def _detail(session: DatabaseSession, opportunity_id: int) -> OpportunityDetail:
 def create_opportunity(
     payload: OpportunityCreate,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> OpportunityDetail:
+    if (
+        current_user.role is UserRole.VENDEDOR
+        and payload.assigned_user_id is not None
+    ):
+        raise PermissionDeniedError(
+            "Only supervisors can assign opportunity owners"
+        )
     opportunity = OpportunityService(session).create_opportunity(
         customer_id=payload.customer_id,
         source=payload.source,
         assigned_user_id=payload.assigned_user_id,
+        changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity.id)
 
@@ -63,6 +78,7 @@ def create_opportunity(
 def list_opportunities(
     session: DatabaseSession,
     pagination: Pagination,
+    _current_user: CurrentUser,
     status_filter: Annotated[OpportunityStatus | None, Query(alias="status")] = None,
     customer_id: Annotated[int | None, Query(gt=0)] = None,
     assigned_user_id: Annotated[int | None, Query(gt=0)] = None,
@@ -95,6 +111,7 @@ def list_opportunities(
 def get_opportunity(
     opportunity_id: int,
     session: DatabaseSession,
+    _current_user: CurrentUser,
 ) -> OpportunityDetail:
     return _detail(session, opportunity_id)
 
@@ -108,11 +125,12 @@ def quote_opportunity(
     opportunity_id: int,
     payload: QuoteRequest,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> OpportunityDetail:
     OpportunityService(session).quote_opportunity(
         opportunity_id,
         _quote_inputs(payload),
-        changed_by_user_id=payload.changed_by_user_id,
+        changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
 
@@ -125,11 +143,12 @@ def quote_opportunity(
 def move_to_negotiation(
     opportunity_id: int,
     session: DatabaseSession,
+    current_user: CurrentUser,
     payload: Annotated[StatusChangeRequest | None, Body()] = None,
 ) -> OpportunityDetail:
     OpportunityService(session).move_to_negotiation(
         opportunity_id,
-        changed_by_user_id=payload.changed_by_user_id if payload else None,
+        changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
 
@@ -142,11 +161,12 @@ def move_to_negotiation(
 def mark_as_won(
     opportunity_id: int,
     session: DatabaseSession,
+    current_user: CurrentUser,
     payload: Annotated[StatusChangeRequest | None, Body()] = None,
 ) -> OpportunityDetail:
     OpportunityService(session).mark_as_won(
         opportunity_id,
-        changed_by_user_id=payload.changed_by_user_id if payload else None,
+        changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
 
@@ -160,11 +180,12 @@ def mark_as_lost(
     opportunity_id: int,
     payload: LoseOpportunityRequest,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> OpportunityDetail:
     OpportunityService(session).mark_as_lost(
         opportunity_id,
         payload.loss_reason,
-        changed_by_user_id=payload.changed_by_user_id,
+        changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
 
@@ -178,6 +199,7 @@ def update_quote_products(
     opportunity_id: int,
     payload: QuoteProductsUpdate,
     session: DatabaseSession,
+    _current_user: CurrentUser,
 ) -> OpportunityDetail:
     OpportunityService(session).update_quote_products(
         opportunity_id,
@@ -195,6 +217,7 @@ def update_assignee(
     opportunity_id: int,
     payload: AssigneeUpdate,
     session: DatabaseSession,
+    _supervisor: SupervisorUser,
 ) -> OpportunityDetail:
     OpportunityService(session).assign_user(
         opportunity_id,

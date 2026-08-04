@@ -1,6 +1,7 @@
 # Asfaltos CRM
 
-Base técnica del CRM web de Fábrica Argentina de Asfaltos. En esta etapa no hay funcionalidades de negocio: el proyecto deja listos React, TypeScript, Tailwind CSS, FastAPI, PostgreSQL, SQLAlchemy, Alembic y Docker Compose.
+CRM web de Fábrica Argentina de Asfaltos, construido con React, TypeScript,
+Tailwind CSS, FastAPI, PostgreSQL, SQLAlchemy, Alembic y Docker Compose.
 
 ## Requisitos
 
@@ -51,8 +52,32 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `POSTGRES_USER` | Usuario de PostgreSQL | `asfaltos` |
 | `POSTGRES_PASSWORD` | Contraseña local de PostgreSQL | `change_me` |
 | `POSTGRES_PORT` | Puerto de PostgreSQL publicado en el host | `5432` |
+| `JWT_SECRET` | Secreto de al menos 32 caracteres para firmar tokens JWT | reemplazar el ejemplo |
+| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del access token en minutos | `60` |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
 | `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
+
+Generar un secreto de desarrollo con una herramienta segura, por ejemplo
+`openssl rand -hex 32`. No versionar el valor resultante.
+
+## Primer supervisor y autenticación
+
+El CRM no ofrece registro público. Para crear el primer supervisor, ejecutar el
+comando idempotente dentro del contenedor backend; la contraseña se solicita de forma
+interactiva y no queda escrita en el comando:
+
+```bash
+docker compose exec backend python -m app.scripts.create_supervisor \
+  --email supervisor@faa.com.ar \
+  --full-name "Supervisor FAA"
+```
+
+Si ese email ya corresponde a un supervisor, el comando termina correctamente sin
+crear otro usuario. Si pertenece a un vendedor, se detiene sin modificarlo.
+
+Luego se puede iniciar sesión con `POST /api/auth/login`, copiar el `access_token` y
+usarlo como Bearer token desde el botón **Authorize** de Swagger en `/docs`. Los tokens
+expiran y cada request vuelve a comprobar que el usuario continúe activo.
 
 ## Migraciones
 

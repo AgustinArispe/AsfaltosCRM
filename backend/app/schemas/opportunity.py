@@ -30,7 +30,6 @@ class QuoteProductRequest(StrictRequestModel):
 
 class QuoteRequest(StrictRequestModel):
     products: list[QuoteProductRequest] = Field(min_length=1)
-    changed_by_user_id: PositiveId | None = None
 
 
 class QuoteProductsUpdate(StrictRequestModel):
@@ -38,7 +37,7 @@ class QuoteProductsUpdate(StrictRequestModel):
 
 
 class StatusChangeRequest(StrictRequestModel):
-    changed_by_user_id: PositiveId | None = None
+    pass
 
 
 class LoseOpportunityRequest(StatusChangeRequest):

@@ -60,14 +60,10 @@ def quote_opportunity(
     client: TestClient,
     opportunity_id: int,
     product_id: int,
-    *,
-    changed_by_user_id: int | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
         "products": [{"product_id": product_id, "quantity_kg": 2500}]
     }
-    if changed_by_user_id is not None:
-        payload["changed_by_user_id"] = changed_by_user_id
     response = client.post(
         f"/api/opportunities/{opportunity_id}/quote",
         json=payload,
@@ -282,11 +278,9 @@ def test_opportunity_list_and_filters(
 
 def test_complete_won_flow_and_detail_history(
     api_client: TestClient,
-    db_session: Session,
+    supervisor_user: User,
 ) -> None:
-    actor = make_user()
-    persist(db_session, actor)
-    actor_id = actor.id
+    actor_id = supervisor_user.id
     customer = create_customer(api_client, "Cliente ganado")
     product = create_product(api_client, "Producto ganado")
     opportunity = create_opportunity(api_client, customer["id"])
@@ -296,15 +290,14 @@ def test_complete_won_flow_and_detail_history(
         api_client,
         opportunity_id,
         product["id"],
-        changed_by_user_id=actor_id,
     )
     negotiation = api_client.post(
         f"/api/opportunities/{opportunity_id}/move-to-negotiation",
-        json={"changed_by_user_id": actor_id},
+        json={},
     )
     won = api_client.post(
         f"/api/opportunities/{opportunity_id}/win",
-        json={"changed_by_user_id": actor_id},
+        json={},
     )
     detail = api_client.get(f"/api/opportunities/{opportunity_id}")
 

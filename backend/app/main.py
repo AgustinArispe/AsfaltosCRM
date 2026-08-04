@@ -6,20 +6,25 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api import api_router
 from app.api.error_handlers import domain_error_handler
+from app.core.config import get_jwt_secret
 from app.db.session import engine
 from app.services import DomainError
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    get_jwt_secret()
     yield
     engine.dispose()
 
 
 app = FastAPI(
     title="Asfaltos CRM API",
-    version="0.2.0",
-    description="REST API for FAA customers, products, and commercial opportunities.",
+    version="0.3.0",
+    description=(
+        "Authenticated REST API for FAA customers, products, users, and "
+        "commercial opportunities."
+    ),
     lifespan=lifespan,
 )
 app.add_exception_handler(DomainError, domain_error_handler)
