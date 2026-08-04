@@ -21,7 +21,7 @@ export default function App() {
 
   return (
     <main>
-      <section aria-labelledby="project-title">
+      <section aria-labelledby="project-title" className="rounded-xl">
         <p className="eyebrow">Base técnica</p>
         <h1 id="project-title">Fábrica Argentina de Asfaltos</h1>
         <p>CRM en preparación.</p>

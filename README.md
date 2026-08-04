@@ -1,6 +1,6 @@
 # Asfaltos CRM
 
-Base técnica del CRM web de Fábrica Argentina de Asfaltos. En esta etapa no hay funcionalidades de negocio: el proyecto deja listos React, FastAPI, PostgreSQL, SQLAlchemy, Alembic y Docker Compose.
+Base técnica del CRM web de Fábrica Argentina de Asfaltos. En esta etapa no hay funcionalidades de negocio: el proyecto deja listos React, TypeScript, Tailwind CSS, FastAPI, PostgreSQL, SQLAlchemy, Alembic y Docker Compose.
 
 ## Requisitos
 
@@ -12,7 +12,7 @@ No hace falta instalar Python, Node ni dependencias del proyecto en la máquina:
 ## Inicio desde cero
 
 ```bash
-git clone https://github.com/Bkzj/AsfaltosCRM.git
+git clone https://github.com/AgustinArispe/AsfaltosCRM.git
 cd AsfaltosCRM
 cp .env.example .env
 docker compose up --build
@@ -76,9 +76,10 @@ docker compose exec backend alembic revision --autogenerate -m "describe change"
 ```text
 .
 ├── backend/          # FastAPI, SQLAlchemy y Alembic
-├── frontend/         # React + TypeScript (Vite)
+├── frontend/         # React + TypeScript + Tailwind CSS (Vite)
 ├── docker-compose.yml
 ├── .env.example
+├── AGENTS.md         # Reglas permanentes para el desarrollo
 └── README.md
 ```
 
