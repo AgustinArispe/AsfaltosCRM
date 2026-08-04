@@ -1,10 +1,12 @@
 import { useAuth } from './auth/AuthContext'
 import { AppShell } from './layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
+import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { getNavigationItem } from './routing/navigation'
 import { Redirect, usePathname } from './routing/router'
+import { matchOpportunityDetailRoute } from './routing/routes'
 import { LoadingState } from './shared/LoadingState'
 
 function RoutedApp() {
@@ -21,6 +23,17 @@ function RoutedApp() {
 
   if (pathname === '/' || pathname === '/login') {
     return <Redirect to="/pipeline" />
+  }
+
+  const opportunityDetailRoute = matchOpportunityDetailRoute(pathname)
+  if (opportunityDetailRoute) {
+    return (
+      <AppShell activeNavigationPath="/pipeline" pageTitle="Detalle de oportunidad">
+        <OpportunityDetailPage
+          opportunityId={opportunityDetailRoute.opportunityId}
+        />
+      </AppShell>
+    )
   }
 
   const navigationItem = getNavigationItem(pathname)

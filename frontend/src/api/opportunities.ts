@@ -2,6 +2,7 @@ import { apiRequest } from './client'
 import { PIPELINE_STAGES } from '../pipeline/config'
 import type {
   LossReason,
+  OpportunityDetail,
   OpportunitySummary,
   PaginatedResponse,
   PipelineStatus,
@@ -15,6 +16,16 @@ export type ApiSession = {
 }
 
 const PIPELINE_PAGE_SIZE = 100
+
+export function getOpportunityDetail(
+  opportunityId: number,
+  session: ApiSession,
+) {
+  return apiRequest<OpportunityDetail>(
+    `/opportunities/${opportunityId}`,
+    session,
+  )
+}
 
 async function listOpportunityStage(
   stage: PipelineStatus,

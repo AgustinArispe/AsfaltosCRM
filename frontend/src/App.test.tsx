@@ -5,6 +5,10 @@ import App from './App'
 import { AuthProvider } from './auth/AuthContext'
 import { SESSION_TOKEN_KEY } from './auth/session-storage'
 import type { AuthUser } from './auth/types'
+import type {
+  OpportunityDetail,
+  OpportunitySummary,
+} from './pipeline/types'
 
 const supervisor: AuthUser = {
   id: 1,
@@ -29,6 +33,40 @@ const emptyOpportunityPage = {
   page: 1,
   page_size: 100,
   total: 0,
+}
+
+const opportunitySummary: OpportunitySummary = {
+  id: 77,
+  status: 'NUEVA',
+  source: 'WEB',
+  current_status_entered_at: '2026-08-04T12:00:00Z',
+  customer: {
+    id: 70,
+    name: 'Cliente navegación',
+    company: 'Navegación SA',
+    email: 'ventas@navegacion.test',
+    phone: '1122334455',
+    province: 'Buenos Aires',
+    legendary_historical_override: false,
+  },
+  assigned_user: null,
+  products: [],
+  created_at: '2026-08-04T12:00:00Z',
+}
+
+const opportunityDetail: OpportunityDetail = {
+  ...opportunitySummary,
+  history: [
+    {
+      id: 1,
+      from_status: null,
+      to_status: 'NUEVA',
+      changed_at: '2026-08-04T12:00:00Z',
+      changed_by_user_id: supervisor.id,
+    },
+  ],
+  loss_reason: null,
+  updated_at: '2026-08-04T12:00:00Z',
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -212,6 +250,56 @@ describe('authenticated frontend', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
+  })
+
+  it('opens a dynamic opportunity detail route from the pipeline and returns', async () => {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL): Promise<Response> => {
+        const url = new URL(String(input), 'http://localhost')
+        if (url.pathname === '/api/auth/me') {
+          return jsonResponse(200, supervisor)
+        }
+        if (url.pathname === '/api/opportunities/77') {
+          return jsonResponse(200, opportunityDetail)
+        }
+        if (url.pathname === '/api/opportunities') {
+          const status = url.searchParams.get('status')
+          return jsonResponse(200, {
+            ...emptyOpportunityPage,
+            items: status === 'NUEVA' ? [opportunitySummary] : [],
+            total: status === 'NUEVA' ? 1 : 0,
+          })
+        }
+        throw new Error(`Unexpected request: ${url.pathname}`)
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    renderApp('/pipeline')
+
+    const detailLink = await screen.findByRole('link', {
+      name: 'Ver detalle de la oportunidad de Cliente navegación',
+    })
+    fireEvent.click(detailLink)
+
+    expect(window.location.pathname).toBe('/opportunities/77')
+    expect(
+      await screen.findByRole('heading', { name: 'Cliente navegación' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Detalle de oportunidad', level: 1 }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'Volver al Pipeline' }))
+
+    expect(window.location.pathname).toBe('/pipeline')
+    expect(
+      await screen.findByRole('heading', { name: 'Nuevos' }),
+    ).toBeInTheDocument()
   })
 
   it('hides Users and redirects its route for sellers', async () => {

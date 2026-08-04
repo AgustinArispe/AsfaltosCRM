@@ -54,6 +54,20 @@ export type OpportunitySummary = {
   created_at: string
 }
 
+export type OpportunityStatusHistory = {
+  id: number
+  from_status: OpportunityStatus | null
+  to_status: OpportunityStatus
+  changed_at: string
+  changed_by_user_id: number | null
+}
+
+export type OpportunityDetail = OpportunitySummary & {
+  history: OpportunityStatusHistory[]
+  loss_reason: LossReason | null
+  updated_at: string
+}
+
 export type PaginatedResponse<T> = {
   items: T[]
   page: number

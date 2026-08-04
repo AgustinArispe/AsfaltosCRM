@@ -1,7 +1,8 @@
 import { useDraggable } from '@dnd-kit/react'
 
+import { AppLink } from '../routing/router'
+import { formatQuantityKg, formatTimeInStage } from '../shared/formatters'
 import { SOURCE_LABELS, STAGE_BY_STATUS } from './config'
-import { formatQuantityKg, formatTimeInStage } from './formatters'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
 export type PipelineDragData = {
@@ -116,28 +117,41 @@ export function OpportunityCard({
         )}
       </div>
 
-      {nextStatus ? (
-        <div className="mt-2.5 grid grid-cols-[minmax(0,1fr)_auto] gap-1.5 border-t border-slate-100 pt-2.5">
-          <button
-            aria-label={`Mover a ${nextStage?.singularLabel}`}
-            className="min-h-11 border border-slate-300 px-2.5 py-1.5 text-left text-xs font-semibold text-slate-700 outline-none transition-colors duration-150 hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-wait disabled:opacity-50 motion-reduce:transition-none"
-            disabled={isBusy}
-            onClick={() => onMove(opportunity.id, nextStatus)}
-            type="button"
-          >
-            {isBusy ? 'Actualizando…' : `Mover → ${nextStage?.singularLabel}`}
-          </button>
-          <button
-            aria-label="Marcar como perdida"
-            className="min-h-11 px-2.5 py-1.5 text-left text-xs font-medium text-red-700 outline-none transition-colors duration-150 hover:bg-red-50 hover:text-red-900 focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
-            disabled={isBusy}
-            onClick={() => onLose(opportunity.id)}
-            type="button"
-          >
-            Marcar perdida
-          </button>
-        </div>
-      ) : null}
+      <div className="mt-2.5 space-y-1.5 border-t border-slate-100 pt-2.5">
+        <AppLink
+          aria-label={`Ver detalle de la oportunidad de ${opportunity.customer.name}`}
+          className="flex min-h-11 items-center justify-between border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none transition-colors duration-150 hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 motion-reduce:transition-none"
+          to={`/opportunities/${opportunity.id}`}
+        >
+          Ver detalle
+          <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 20 20">
+            <path d="m7 4 6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+          </svg>
+        </AppLink>
+
+        {nextStatus ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5">
+            <button
+              aria-label={`Mover a ${nextStage?.singularLabel}`}
+              className="min-h-11 border border-slate-300 px-2.5 py-1.5 text-left text-xs font-semibold text-slate-700 outline-none transition-colors duration-150 hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-wait disabled:opacity-50 motion-reduce:transition-none"
+              disabled={isBusy}
+              onClick={() => onMove(opportunity.id, nextStatus)}
+              type="button"
+            >
+              {isBusy ? 'Actualizando…' : `Mover → ${nextStage?.singularLabel}`}
+            </button>
+            <button
+              aria-label="Marcar como perdida"
+              className="min-h-11 px-2.5 py-1.5 text-left text-xs font-medium text-red-700 outline-none transition-colors duration-150 hover:bg-red-50 hover:text-red-900 focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+              disabled={isBusy}
+              onClick={() => onLose(opportunity.id)}
+              type="button"
+            >
+              Marcar perdida
+            </button>
+          </div>
+        ) : null}
+      </div>
     </article>
   )
 }

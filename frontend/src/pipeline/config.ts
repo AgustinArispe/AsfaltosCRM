@@ -1,6 +1,7 @@
 import type {
   LeadSource,
   LossReason,
+  OpportunityStatus,
   PipelineStatus,
 } from './types'
 
@@ -56,15 +57,45 @@ export const STAGE_BY_STATUS = new Map(
   PIPELINE_STAGES.map((stage) => [stage.status, stage]),
 )
 
+export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
+  NUEVA: 'Nueva',
+  COTIZADA: 'Cotizada',
+  NEGOCIACION: 'Negociación',
+  GANADA: 'Ganada',
+  PERDIDA: 'Perdida',
+}
+
+export const OPPORTUNITY_STATUS_BADGE_CLASSES: Record<
+  OpportunityStatus,
+  string
+> = {
+  NUEVA: 'border-sky-200 bg-sky-50 text-sky-800',
+  COTIZADA: 'border-amber-200 bg-amber-50 text-amber-900',
+  NEGOCIACION: 'border-violet-200 bg-violet-50 text-violet-800',
+  GANADA: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  PERDIDA: 'border-red-200 bg-red-50 text-red-800',
+}
+
+export const LOSS_REASON_LABELS: Record<LossReason, string> = {
+  PRECIO: 'Precio',
+  SIN_RESPUESTA: 'Sin respuesta',
+  COMPETENCIA: 'Competencia',
+  PROYECTO_CANCELADO: 'Proyecto cancelado',
+  OTRO: 'Otro',
+}
+
 export const LOSS_REASON_OPTIONS: readonly {
   value: LossReason
   label: string
 }[] = [
-  { value: 'PRECIO', label: 'Precio' },
-  { value: 'SIN_RESPUESTA', label: 'Sin respuesta' },
-  { value: 'COMPETENCIA', label: 'Competencia' },
-  { value: 'PROYECTO_CANCELADO', label: 'Proyecto cancelado' },
-  { value: 'OTRO', label: 'Otro' },
+  { value: 'PRECIO', label: LOSS_REASON_LABELS.PRECIO },
+  { value: 'SIN_RESPUESTA', label: LOSS_REASON_LABELS.SIN_RESPUESTA },
+  { value: 'COMPETENCIA', label: LOSS_REASON_LABELS.COMPETENCIA },
+  {
+    value: 'PROYECTO_CANCELADO',
+    label: LOSS_REASON_LABELS.PROYECTO_CANCELADO,
+  },
+  { value: 'OTRO', label: LOSS_REASON_LABELS.OTRO },
 ] as const
 
 export const SOURCE_LABELS: Record<LeadSource, string> = {

@@ -12,9 +12,11 @@ const ROLE_LABELS = {
 
 export function AppShell({
   pageTitle,
+  activeNavigationPath,
   children,
 }: {
   pageTitle: string
+  activeNavigationPath?: string
   children: ReactNode
 }) {
   const { user, logout } = useAuth()
@@ -45,7 +47,7 @@ export function AppShell({
         <nav className="overflow-x-auto px-3 py-2 lg:flex-1 lg:overflow-visible lg:px-4 lg:py-5" aria-label="Navegación principal">
           <ul className="flex min-w-max gap-1 lg:min-w-0 lg:flex-col">
             {navigation.map((item) => {
-              const isActive = pathname === item.path
+              const isActive = (activeNavigationPath ?? pathname) === item.path
               return (
                 <li key={item.path}>
                   <AppLink
