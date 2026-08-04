@@ -4,7 +4,10 @@ from fastapi import FastAPI, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api import api_router
+from app.api.error_handlers import domain_error_handler
 from app.db.session import engine
+from app.services import DomainError
 
 
 @asynccontextmanager
@@ -15,9 +18,12 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Asfaltos CRM API",
-    version="0.1.0",
+    version="0.2.0",
+    description="REST API for FAA customers, products, and commercial opportunities.",
     lifespan=lifespan,
 )
+app.add_exception_handler(DomainError, domain_error_handler)
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/health", tags=["health"])

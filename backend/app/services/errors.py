@@ -12,6 +12,13 @@ class EntityNotFoundError(DomainError):
         super().__init__(f"{entity_name} with id {entity_id} was not found")
 
 
+class DuplicateEntityError(DomainError):
+    def __init__(self, entity_name: str, field_name: str) -> None:
+        self.entity_name = entity_name
+        self.field_name = field_name
+        super().__init__(f"{entity_name} with that {field_name} already exists")
+
+
 class DeletedCustomerError(DomainError):
     def __init__(self, customer_id: int) -> None:
         self.customer_id = customer_id

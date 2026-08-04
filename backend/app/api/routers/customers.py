@@ -1,0 +1,92 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Query, Response, status
+
+from app.api.dependencies import DatabaseSession, Pagination
+from app.schemas import (
+    CustomerCreate,
+    CustomerSummary,
+    CustomerUpdate,
+    PaginatedResponse,
+)
+from app.services.customer_service import CustomerService
+
+
+router = APIRouter(prefix="/customers", tags=["customers"])
+
+
+@router.post(
+    "",
+    response_model=CustomerSummary,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create customer",
+)
+def create_customer(
+    payload: CustomerCreate,
+    session: DatabaseSession,
+) -> CustomerSummary:
+    customer = CustomerService(session).create_customer(**payload.model_dump())
+    return CustomerSummary.model_validate(customer)
+
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[CustomerSummary],
+    summary="List customers",
+)
+def list_customers(
+    session: DatabaseSession,
+    pagination: Pagination,
+    search: Annotated[str | None, Query(max_length=200)] = None,
+    include_deleted: bool = False,
+) -> PaginatedResponse[CustomerSummary]:
+    customers, total = CustomerService(session).list_customers(
+        page=pagination.page,
+        page_size=pagination.page_size,
+        search=search,
+        include_deleted=include_deleted,
+    )
+    return PaginatedResponse(
+        items=[CustomerSummary.model_validate(customer) for customer in customers],
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total=total,
+    )
+
+
+@router.get(
+    "/{customer_id}",
+    response_model=CustomerSummary,
+    summary="Get customer",
+)
+def get_customer(customer_id: int, session: DatabaseSession) -> CustomerSummary:
+    customer = CustomerService(session).get_customer(customer_id)
+    return CustomerSummary.model_validate(customer)
+
+
+@router.patch(
+    "/{customer_id}",
+    response_model=CustomerSummary,
+    summary="Update customer",
+)
+def update_customer(
+    customer_id: int,
+    payload: CustomerUpdate,
+    session: DatabaseSession,
+) -> CustomerSummary:
+    customer = CustomerService(session).update_customer(
+        customer_id,
+        payload.model_dump(exclude_unset=True),
+    )
+    return CustomerSummary.model_validate(customer)
+
+
+@router.delete(
+    "/{customer_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Soft-delete customer",
+    description="Idempotent: an already deleted customer also returns 204.",
+)
+def delete_customer(customer_id: int, session: DatabaseSession) -> Response:
+    CustomerService(session).soft_delete_customer(customer_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

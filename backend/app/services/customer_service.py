@@ -1,0 +1,133 @@
+from datetime import UTC, datetime
+
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session
+
+from app.models import Customer
+from app.services.errors import DeletedCustomerError, EntityNotFoundError
+
+
+CUSTOMER_UPDATE_FIELDS = frozenset(
+    {
+        "name",
+        "company",
+        "email",
+        "phone",
+        "province",
+        "legendary_historical_override",
+    }
+)
+
+
+class CustomerService:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def create_customer(
+        self,
+        *,
+        name: str,
+        company: str | None,
+        email: str | None,
+        phone: str | None,
+        province: str | None,
+        legendary_historical_override: bool,
+    ) -> Customer:
+        with self._session.begin():
+            customer = Customer(
+                name=name,
+                company=company,
+                email=email,
+                phone=phone,
+                province=province,
+                legendary_historical_override=legendary_historical_override,
+            )
+            self._session.add(customer)
+            self._session.flush()
+        return customer
+
+    def list_customers(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+        include_deleted: bool,
+    ) -> tuple[list[Customer], int]:
+        filters = []
+        if not include_deleted:
+            filters.append(Customer.deleted_at.is_(None))
+        if search:
+            pattern = f"%{search.strip()}%"
+            filters.append(
+                or_(
+                    Customer.name.ilike(pattern),
+                    Customer.company.ilike(pattern),
+                    Customer.email.ilike(pattern),
+                    Customer.phone.ilike(pattern),
+                )
+            )
+
+        total = self._session.scalar(
+            select(func.count()).select_from(Customer).where(*filters)
+        )
+        customers = list(
+            self._session.scalars(
+                select(Customer)
+                .where(*filters)
+                .order_by(Customer.id)
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
+        )
+        return customers, total or 0
+
+    def get_customer(self, customer_id: int) -> Customer:
+        customer = self._session.scalar(
+            select(Customer).where(
+                Customer.id == customer_id,
+                Customer.deleted_at.is_(None),
+            )
+        )
+        if customer is None:
+            raise EntityNotFoundError("Customer", customer_id)
+        return customer
+
+    def update_customer(
+        self,
+        customer_id: int,
+        updates: dict[str, str | bool | None],
+    ) -> Customer:
+        with self._session.begin():
+            customer = self._session.scalar(
+                select(Customer)
+                .where(Customer.id == customer_id)
+                .with_for_update()
+            )
+            if customer is None:
+                raise EntityNotFoundError("Customer", customer_id)
+            if customer.deleted_at is not None:
+                raise DeletedCustomerError(customer_id)
+
+            for field_name, value in updates.items():
+                if field_name in CUSTOMER_UPDATE_FIELDS:
+                    setattr(customer, field_name, value)
+            if updates:
+                customer.updated_at = datetime.now(UTC)
+            self._session.flush()
+        return customer
+
+    def soft_delete_customer(self, customer_id: int) -> None:
+        with self._session.begin():
+            customer = self._session.scalar(
+                select(Customer)
+                .where(Customer.id == customer_id)
+                .with_for_update()
+            )
+            if customer is None:
+                raise EntityNotFoundError("Customer", customer_id)
+            if customer.deleted_at is None:
+                deleted_at = datetime.now(UTC)
+                customer.deleted_at = deleted_at
+                customer.updated_at = deleted_at
+                self._session.flush()
