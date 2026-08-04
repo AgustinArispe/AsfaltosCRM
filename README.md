@@ -28,7 +28,7 @@ Abrir:
 - Documentación interactiva de la API: http://localhost:8000/docs
 - Health check de API y base de datos: http://localhost:8000/health
 
-El frontend consulta `/api/health`, que Vite redirige internamente al backend. Por eso la pantalla inicial confirma que React puede comunicarse con FastAPI y PostgreSQL.
+El frontend utiliza `/api` como base y Vite redirige esas solicitudes internamente al backend durante el desarrollo.
 
 Para detener los servicios:
 
@@ -56,6 +56,7 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del access token en minutos | `60` |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
 | `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
+| `VITE_API_BASE_URL` | Base pública usada por el cliente HTTP del frontend | `/api` |
 
 Generar un secreto de desarrollo con una herramienta segura, por ejemplo
 `openssl rand -hex 32`. No versionar el valor resultante.
@@ -78,6 +79,12 @@ crear otro usuario. Si pertenece a un vendedor, se detiene sin modificarlo.
 Luego se puede iniciar sesión con `POST /api/auth/login`, copiar el `access_token` y
 usarlo como Bearer token desde el botón **Authorize** de Swagger en `/docs`. Los tokens
 expiran y cada request vuelve a comprobar que el usuario continúe activo.
+
+El frontend guarda el access token en `sessionStorage`: la sesión sobrevive a una
+recarga de la pestaña, pero no se conserva al cerrar esa sesión del navegador. Al
+iniciar, valida el token mediante `GET /api/auth/me`; una respuesta `401` limpia la
+sesión local. Esta decisión es deliberada para el MVP actual, cuya API entrega Bearer
+tokens y todavía no implementa cookies HttpOnly ni refresh tokens.
 
 ## Migraciones
 
