@@ -29,6 +29,10 @@ class LossReason(StrEnum):
     OTRO = "OTRO"
 
 
+class NotificationType(StrEnum):
+    OPPORTUNITY_STALE = "OPPORTUNITY_STALE"
+
+
 def _values(enum_class: type[Enum]) -> list[str]:
     return [member.value for member in enum_class]
 
@@ -54,6 +58,12 @@ OPPORTUNITY_STATUS_DB_ENUM = SQLAlchemyEnum(
 LOSS_REASON_DB_ENUM = SQLAlchemyEnum(
     LossReason,
     name="loss_reason_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+NOTIFICATION_TYPE_DB_ENUM = SQLAlchemyEnum(
+    NotificationType,
+    name="notification_type_enum",
     values_callable=_values,
     validate_strings=True,
 )

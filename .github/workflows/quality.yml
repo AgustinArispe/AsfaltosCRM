@@ -24,6 +24,7 @@ jobs:
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
       ALLOWED_HOSTS: localhost,testserver
       WEB_INTAKE_SIGNING_SECRET: ci-only-intake-secret-with-thirty-two-characters
+      STALE_OPPORTUNITY_DAYS: "14"
     services:
       postgres:
         image: postgres:17-alpine

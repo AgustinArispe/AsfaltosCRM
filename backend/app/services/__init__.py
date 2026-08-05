@@ -21,6 +21,7 @@ from app.services.lead_intake_service import (
     LeadIntakeResult,
     LeadIntakeService,
 )
+from app.services.notification_service import NotificationService
 from app.services.opportunity_service import OpportunityService, QuoteProductInput
 
 __all__ = [
@@ -42,6 +43,7 @@ __all__ = [
     "LeadIntakeInput",
     "LeadIntakeResult",
     "LeadIntakeService",
+    "NotificationService",
     "OpportunityService",
     "PermissionDeniedError",
     "QuoteProductInput",

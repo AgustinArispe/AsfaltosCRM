@@ -7,6 +7,11 @@ from app.schemas.customer import (
     CustomerUpdate,
 )
 from app.schemas.lead_intake import WebLeadIntakeRequest, WebLeadIntakeResponse
+from app.schemas.notification import (
+    NotificationActionRequest,
+    NotificationReadAllResponse,
+    NotificationResponse,
+)
 from app.schemas.opportunity import (
     AssigneeUpdate,
     LoseOpportunityRequest,
@@ -29,6 +34,9 @@ __all__ = [
     "CustomerUpdate",
     "LoginRequest",
     "LoseOpportunityRequest",
+    "NotificationActionRequest",
+    "NotificationReadAllResponse",
+    "NotificationResponse",
     "OpportunityCreate",
     "OpportunityDetail",
     "OpportunitySummary",

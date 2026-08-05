@@ -1,6 +1,13 @@
 from app.models.customer import Customer
-from app.models.enums import LeadSource, LossReason, OpportunityStatus, UserRole
+from app.models.enums import (
+    LeadSource,
+    LossReason,
+    NotificationType,
+    OpportunityStatus,
+    UserRole,
+)
 from app.models.lead_intake import LeadIntake
+from app.models.notification import Notification
 from app.models.opportunity import Opportunity
 from app.models.opportunity_product import OpportunityProduct
 from app.models.opportunity_status_history import OpportunityStatusHistory
@@ -12,6 +19,8 @@ __all__ = [
     "LeadIntake",
     "LeadSource",
     "LossReason",
+    "Notification",
+    "NotificationType",
     "Opportunity",
     "OpportunityProduct",
     "OpportunityStatus",

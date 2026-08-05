@@ -50,6 +50,18 @@ def get_access_token_expire_minutes() -> int:
 
 
 @lru_cache
+def get_stale_opportunity_days() -> int:
+    raw_value = getenv("STALE_OPPORTUNITY_DAYS", "14")
+    try:
+        days = int(raw_value)
+    except ValueError as error:
+        raise RuntimeError("STALE_OPPORTUNITY_DAYS must be an integer") from error
+    if days <= 0:
+        raise RuntimeError("STALE_OPPORTUNITY_DAYS must be greater than zero")
+    return days
+
+
+@lru_cache
 def get_allowed_hosts() -> list[str]:
     raw_value = getenv("ALLOWED_HOSTS", ",".join(DEFAULT_ALLOWED_HOSTS))
     allowed_hosts = [host.strip() for host in raw_value.split(",") if host.strip()]

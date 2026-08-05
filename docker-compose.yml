@@ -25,6 +25,7 @@ services:
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend,testserver}
       WEB_INTAKE_SIGNING_SECRET: ${WEB_INTAKE_SIGNING_SECRET:?WEB_INTAKE_SIGNING_SECRET is required}
+      STALE_OPPORTUNITY_DAYS: ${STALE_OPPORTUNITY_DAYS:-14}
     command: >
       /bin/sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:

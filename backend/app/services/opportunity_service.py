@@ -26,6 +26,7 @@ from app.services.errors import (
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
 )
+from app.services.notification_service import NotificationService
 
 TERMINAL_STATUSES = frozenset({OpportunityStatus.GANADA, OpportunityStatus.PERDIDA})
 
@@ -244,6 +245,23 @@ class OpportunityService:
 
         return opportunity
 
+    def soft_delete_opportunity(self, opportunity_id: int) -> Opportunity:
+        """Soft-delete a duplicate/error and resolve its active notifications."""
+        with self._session.begin():
+            opportunity = self._get_any_opportunity_for_update(opportunity_id)
+            deleted_at = datetime.now(UTC)
+            if opportunity.deleted_at is None:
+                opportunity.deleted_at = deleted_at
+                opportunity.updated_at = deleted_at
+            NotificationService(
+                self._session
+            ).resolve_stale_for_opportunity_in_transaction(
+                opportunity.id,
+                resolved_at=deleted_at,
+            )
+            self._session.flush()
+        return opportunity
+
     def _get_available_customer(self, customer_id: int) -> Customer:
         customer = self._session.scalar(
             select(Customer).where(Customer.id == customer_id).with_for_update()
@@ -261,6 +279,16 @@ class OpportunityService:
                 Opportunity.id == opportunity_id,
                 Opportunity.deleted_at.is_(None),
             )
+            .with_for_update()
+        )
+        if opportunity is None:
+            raise EntityNotFoundError("Opportunity", opportunity_id)
+        return opportunity
+
+    def _get_any_opportunity_for_update(self, opportunity_id: int) -> Opportunity:
+        opportunity = self._session.scalar(
+            select(Opportunity)
+            .where(Opportunity.id == opportunity_id)
             .with_for_update()
         )
         if opportunity is None:
@@ -425,6 +453,10 @@ class OpportunityService:
         opportunity.loss_reason = loss_reason
         opportunity.current_status_entered_at = changed_at
         opportunity.updated_at = changed_at
+        NotificationService(self._session).resolve_stale_for_opportunity_in_transaction(
+            opportunity.id,
+            resolved_at=changed_at,
+        )
         self._add_history(
             opportunity=opportunity,
             from_status=from_status,

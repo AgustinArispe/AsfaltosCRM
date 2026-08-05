@@ -56,6 +56,7 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del access token en minutos | `60` |
 | `ALLOWED_HOSTS` | Hosts HTTP aceptados por FastAPI, separados por comas y sin comodines | `localhost,127.0.0.1,backend,testserver` |
 | `WEB_INTAKE_SIGNING_SECRET` | Secreto HMAC exclusivo del servidor que envía leads Web; mínimo 32 caracteres | reemplazar el ejemplo |
+| `STALE_OPPORTUNITY_DAYS` | Días sin cambio de etapa antes de crear una notificación interna | `14` |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
 | `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
 | `VITE_API_BASE_URL` | Base pública usada por el cliente HTTP del frontend | `/api` |
@@ -96,6 +97,24 @@ el ID con otros datos devuelve conflicto. `WEB_INTAKE_SIGNING_SECRET` debe exist
 en el servidor que integra el formulario y en el backend del CRM; nunca debe incluirse
 en JavaScript, WordPress público ni el repositorio. El rate limiting debe configurarse
 en el reverse proxy o la plataforma de despliegue, no en memoria dentro de FastAPI.
+
+## Notificaciones internas
+
+Una notificación `OPPORTUNITY_STALE` avisa que una oportunidad abierta (`NUEVA`,
+`COTIZADA` o `NEGOCIACION`) lleva al menos `STALE_OPPORTUNITY_DAYS` sin cambiar de
+etapa. Los avisos son globales para el equipo: la lectura es compartida, mientras que
+`resolved_at` se registra automáticamente cuando la oportunidad avanza, se pierde, se
+gana o se elimina lógicamente. El historial resuelto se conserva.
+
+La generación es idempotente y se ejecuta manualmente con:
+
+```bash
+docker compose exec backend python -m app.scripts.generate_notifications
+```
+
+En producción este comando debe programarse periódicamente mediante cron o el
+scheduler de la plataforma. El backend no depende de navegación del usuario y no
+incorpora un scheduler residente, Celery ni Redis.
 
 ## Primer supervisor y autenticación
 

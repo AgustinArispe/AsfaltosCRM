@@ -11,6 +11,7 @@ from app.api.error_handlers import domain_error_handler
 from app.core.config import (
     get_allowed_hosts,
     get_jwt_secret,
+    get_stale_opportunity_days,
     get_web_intake_signing_secret,
 )
 from app.db.session import engine
@@ -21,6 +22,7 @@ from app.services import DomainError
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     get_jwt_secret()
     get_web_intake_signing_secret()
+    get_stale_opportunity_days()
     yield
     engine.dispose()
 
