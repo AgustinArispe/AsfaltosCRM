@@ -118,7 +118,7 @@ def test_user_rejects_unknown_role(db_session: Session) -> None:
             full_name="Usuario inválido",
             email="invalid-role@faa.test",
             password_hash="hashed-password",
-            role="ADMIN",  # type: ignore[arg-type]
+            role="ADMIN",
         )
     )
 

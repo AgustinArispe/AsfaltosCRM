@@ -2,13 +2,13 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 from fastapi.testclient import TestClient
+from httpx2 import Response
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import JWT_ALGORITHM, get_jwt_secret
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models import OpportunityStatusHistory, User, UserRole
-
 
 SUPERVISOR_PASSWORD = "supervisor-test-password"
 VENDOR_PASSWORD = "vendor-test-password"
@@ -38,7 +38,7 @@ def authenticate_as(client: TestClient, user: User) -> None:
     client.headers["Authorization"] = f"Bearer {create_access_token(user.id)}"
 
 
-def login(client: TestClient, email: str, password: str):
+def login(client: TestClient, email: str, password: str) -> Response:
     return client.post(
         "/api/auth/login",
         json={"email": email, "password": password},
@@ -70,9 +70,7 @@ def test_login_me_and_invalid_credentials(
     assert successful.json()["token_type"] == "bearer"
     assert successful.json()["expires_in"] == 3600
 
-    api_client.headers["Authorization"] = (
-        f"Bearer {successful.json()['access_token']}"
-    )
+    api_client.headers["Authorization"] = f"Bearer {successful.json()['access_token']}"
     me = api_client.get("/api/auth/me")
     assert me.status_code == 200
     assert me.json()["id"] == supervisor_user.id
@@ -91,9 +89,11 @@ def test_login_me_and_invalid_credentials(
     )
     assert wrong_password.status_code == 401
     assert missing_email.status_code == 401
-    assert wrong_password.json() == missing_email.json() == {
-        "detail": "Invalid email or password"
-    }
+    assert (
+        wrong_password.json()
+        == missing_email.json()
+        == {"detail": "Invalid email or password"}
+    )
 
 
 def test_inactive_user_and_invalid_tokens_are_rejected(
@@ -118,14 +118,11 @@ def test_inactive_user_and_invalid_tokens_are_rejected(
     assert api_client.get("/health").status_code == 200
 
     db_session.execute(
-        update(User)
-        .where(User.id == supervisor_user.id)
-        .values(is_active=False)
+        update(User).where(User.id == supervisor_user.id).values(is_active=False)
     )
     db_session.commit()
     assert (
-        login(api_client, supervisor_user.email, SUPERVISOR_PASSWORD).status_code
-        == 401
+        login(api_client, supervisor_user.email, SUPERVISOR_PASSWORD).status_code == 401
     )
     api_client.headers["Authorization"] = (
         f"Bearer {create_access_token(supervisor_user.id)}"
@@ -198,14 +195,18 @@ def test_supervisor_manages_users_and_passwords(
     assert duplicate.status_code == 409
     assert api_client.get(f"/api/users/{user_id}").status_code == 200
     assert any(user["id"] == user_id for user in api_client.get("/api/users").json())
-    assert login(api_client, "vendor.users@faa.test", VENDOR_PASSWORD).status_code == 200
+    assert (
+        login(api_client, "vendor.users@faa.test", VENDOR_PASSWORD).status_code == 200
+    )
 
     changed_password = api_client.put(
         f"/api/users/{user_id}/password",
         json={"password": "replacement-password"},
     )
     assert changed_password.status_code == 200
-    assert login(api_client, "vendor.users@faa.test", VENDOR_PASSWORD).status_code == 401
+    assert (
+        login(api_client, "vendor.users@faa.test", VENDOR_PASSWORD).status_code == 401
+    )
     assert (
         login(api_client, "vendor.users@faa.test", "replacement-password").status_code
         == 200
@@ -316,8 +317,7 @@ def test_product_permissions_by_role(
         == 403
     )
     assert (
-        api_client.post("/api/products", json={"name": "Prohibido"}).status_code
-        == 403
+        api_client.post("/api/products", json={"name": "Prohibido"}).status_code == 403
     )
     assert (
         api_client.patch(
@@ -359,9 +359,7 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
     spoofed_actor = api_client.post(
         f"/api/opportunities/{opportunity_id}/quote",
         json={
-            "products": [
-                {"product_id": product.json()["id"], "quantity_kg": 1000}
-            ],
+            "products": [{"product_id": product.json()["id"], "quantity_kg": 1000}],
             "changed_by_user_id": supervisor_user.id,
         },
     )
@@ -369,11 +367,7 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
 
     quoted = api_client.post(
         f"/api/opportunities/{opportunity_id}/quote",
-        json={
-            "products": [
-                {"product_id": product.json()["id"], "quantity_kg": 1000}
-            ]
-        },
+        json={"products": [{"product_id": product.json()["id"], "quantity_kg": 1000}]},
     )
     assert quoted.status_code == 200
     negotiation = api_client.post(

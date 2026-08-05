@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import event, func, select
+from sqlalchemy import event, func, inspect, select
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 
@@ -81,7 +81,7 @@ def create_new_opportunity(
     changed_by_user_id: int | None = None,
 ) -> tuple[OpportunityService, Opportunity]:
     persisted_customer = customer or make_customer()
-    if persisted_customer.id is None:
+    if inspect(persisted_customer).transient:
         persist(db_session, persisted_customer)
     service = OpportunityService(db_session)
     opportunity = service.create_opportunity(
@@ -173,9 +173,7 @@ def test_create_opportunity_starts_new_and_records_history(
 
 def test_create_opportunity_rejects_missing_customer(db_session: Session) -> None:
     service = OpportunityService(db_session)
-    count_before = db_session.scalar(
-        select(func.count()).select_from(Opportunity)
-    )
+    count_before = db_session.scalar(select(func.count()).select_from(Opportunity))
     db_session.rollback()
 
     with pytest.raises(EntityNotFoundError):

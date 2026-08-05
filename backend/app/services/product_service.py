@@ -8,7 +8,6 @@ from app.db.integrity import violates_constraint
 from app.models import Product
 from app.services.errors import DuplicateEntityError, EntityNotFoundError
 
-
 PRODUCT_UPDATE_FIELDS = frozenset({"name", "is_active"})
 
 
@@ -49,9 +48,7 @@ class ProductService:
         try:
             with self._session.begin():
                 product = self._session.scalar(
-                    select(Product)
-                    .where(Product.id == product_id)
-                    .with_for_update()
+                    select(Product).where(Product.id == product_id).with_for_update()
                 )
                 if product is None:
                     raise EntityNotFoundError("Product", product_id)

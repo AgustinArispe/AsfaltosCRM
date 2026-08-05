@@ -4,7 +4,6 @@ from app.api.dependencies import DatabaseSession, SupervisorUser
 from app.schemas import PasswordUpdate, UserCreate, UserResponse, UserUpdate
 from app.services.user_service import UserService
 
-
 router = APIRouter(prefix="/users", tags=["users"])
 
 

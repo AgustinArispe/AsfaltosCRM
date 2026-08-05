@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 
 from app.schemas.common import EmailInput, StrictRequestModel
 
-
 NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 OptionalNonBlankString = NonBlankString | None
 

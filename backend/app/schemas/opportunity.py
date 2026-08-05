@@ -9,7 +9,6 @@ from app.schemas.common import StrictRequestModel
 from app.schemas.customer import CustomerSummary
 from app.schemas.product import ProductResponse
 
-
 PositiveId = Annotated[int, Field(gt=0)]
 PositiveQuantity = Annotated[
     Decimal,

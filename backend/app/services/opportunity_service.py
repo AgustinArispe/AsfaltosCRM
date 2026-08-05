@@ -27,10 +27,7 @@ from app.services.errors import (
     InvalidStateTransitionError,
 )
 
-
-TERMINAL_STATUSES = frozenset(
-    {OpportunityStatus.GANADA, OpportunityStatus.PERDIDA}
-)
+TERMINAL_STATUSES = frozenset({OpportunityStatus.GANADA, OpportunityStatus.PERDIDA})
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,9 +226,7 @@ class OpportunityService:
 
     def _get_available_customer(self, customer_id: int) -> Customer:
         customer = self._session.scalar(
-            select(Customer)
-            .where(Customer.id == customer_id)
-            .with_for_update()
+            select(Customer).where(Customer.id == customer_id).with_for_update()
         )
         if customer is None:
             raise EntityNotFoundError("Customer", customer_id)
@@ -278,9 +273,7 @@ class OpportunityService:
         existing_product_ids: frozenset[int],
     ) -> dict[int, Decimal]:
         if not products:
-            raise InvalidQuoteProductsError(
-                "A quote requires at least one product"
-            )
+            raise InvalidQuoteProductsError("A quote requires at least one product")
 
         quantities_by_product: dict[int, Decimal] = {}
         for item in products:

@@ -1,7 +1,6 @@
 from functools import lru_cache
 from os import getenv
 
-
 JWT_ALGORITHM = "HS256"
 DEFAULT_ALLOWED_HOSTS = ("localhost", "127.0.0.1", "backend", "testserver")
 
@@ -34,18 +33,14 @@ def get_access_token_expire_minutes() -> int:
             "JWT_ACCESS_TOKEN_EXPIRE_MINUTES must be an integer"
         ) from error
     if minutes <= 0:
-        raise RuntimeError(
-            "JWT_ACCESS_TOKEN_EXPIRE_MINUTES must be greater than zero"
-        )
+        raise RuntimeError("JWT_ACCESS_TOKEN_EXPIRE_MINUTES must be greater than zero")
     return minutes
 
 
 @lru_cache
 def get_allowed_hosts() -> list[str]:
     raw_value = getenv("ALLOWED_HOSTS", ",".join(DEFAULT_ALLOWED_HOSTS))
-    allowed_hosts = [
-        host.strip() for host in raw_value.split(",") if host.strip()
-    ]
+    allowed_hosts = [host.strip() for host in raw_value.split(",") if host.strip()]
     if not allowed_hosts:
         raise RuntimeError("ALLOWED_HOSTS must contain at least one host")
     if "*" in allowed_hosts:

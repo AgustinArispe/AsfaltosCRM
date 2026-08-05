@@ -5,7 +5,6 @@ from app.core.security import DUMMY_PASSWORD_HASH, verify_password
 from app.models import User
 from app.services.errors import AuthenticationError
 
-
 INVALID_CREDENTIALS_MESSAGE = "Invalid email or password"
 
 

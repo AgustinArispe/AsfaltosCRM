@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import event, select
+from sqlalchemy import event
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -200,11 +200,7 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
     )
     changed_quantity = api_client.put(
         f"/api/opportunities/{quoted_opportunity['id']}/quote-products",
-        json={
-            "products": [
-                {"product_id": product["id"], "quantity_kg": "750.000"}
-            ]
-        },
+        json={"products": [{"product_id": product["id"], "quantity_kg": "750.000"}]},
     )
     assert changed_quantity.status_code == 200
 
@@ -246,9 +242,7 @@ def test_inactive_assignee_remains_visible_but_cannot_be_assigned_again(
             "assigned_user_id": user["id"],
         },
     ).json()
-    api_client.headers["Authorization"] = (
-        f"Bearer {create_access_token(user['id'])}"
-    )
+    api_client.headers["Authorization"] = f"Bearer {create_access_token(user['id'])}"
     actor_opportunity = api_client.post(
         "/api/opportunities",
         json={"customer_id": customer["id"], "source": "WHATSAPP"},
@@ -407,9 +401,7 @@ def test_default_orders_are_deterministic(db_session: Session) -> None:
     ]
     db_session.add_all(opportunities)
     db_session.commit()
-    listed, opportunity_total = OpportunityQueryService(
-        db_session
-    ).list_opportunities(
+    listed, opportunity_total = OpportunityQueryService(db_session).list_opportunities(
         page=1,
         page_size=20,
         status=None,

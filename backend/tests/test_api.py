@@ -4,7 +4,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, Opportunity, Product, User, UserRole
+from app.models import Customer, Opportunity, User, UserRole
+from app.schemas import CustomerSummary, OpportunityDetail, ProductResponse
 
 
 def persist(db_session: Session, *entities: object) -> None:
@@ -26,19 +27,19 @@ def make_user(
     )
 
 
-def create_customer(client: TestClient, name: str = "Cliente API") -> dict[str, object]:
+def create_customer(client: TestClient, name: str = "Cliente API") -> CustomerSummary:
     response = client.post(
         "/api/customers",
         json={"name": name, "company": "Constructora API"},
     )
     assert response.status_code == 201
-    return response.json()
+    return CustomerSummary.model_validate(response.json())
 
 
-def create_product(client: TestClient, name: str = "Producto API") -> dict[str, object]:
+def create_product(client: TestClient, name: str = "Producto API") -> ProductResponse:
     response = client.post("/api/products", json={"name": name})
     assert response.status_code == 201
-    return response.json()
+    return ProductResponse.model_validate(response.json())
 
 
 def create_opportunity(
@@ -47,20 +48,20 @@ def create_opportunity(
     *,
     source: str = "WEB",
     assigned_user_id: int | None = None,
-) -> dict[str, object]:
+) -> OpportunityDetail:
     payload: dict[str, object] = {"customer_id": customer_id, "source": source}
     if assigned_user_id is not None:
         payload["assigned_user_id"] = assigned_user_id
     response = client.post("/api/opportunities", json=payload)
     assert response.status_code == 201
-    return response.json()
+    return OpportunityDetail.model_validate(response.json(), by_name=True)
 
 
 def quote_opportunity(
     client: TestClient,
     opportunity_id: int,
     product_id: int,
-) -> dict[str, object]:
+) -> OpportunityDetail:
     payload: dict[str, object] = {
         "products": [{"product_id": product_id, "quantity_kg": 2500}]
     }
@@ -69,7 +70,7 @@ def quote_opportunity(
         json=payload,
     )
     assert response.status_code == 200
-    return response.json()
+    return OpportunityDetail.model_validate(response.json(), by_name=True)
 
 
 def test_customer_crud_search_and_soft_delete(api_client: TestClient) -> None:
@@ -170,8 +171,7 @@ def test_customer_pagination_limits(api_client: TestClient) -> None:
     assert len(page.json()["items"]) == 1
     assert api_client.get("/api/customers", params={"page": 0}).status_code == 422
     assert (
-        api_client.get("/api/customers", params={"page_size": 101}).status_code
-        == 422
+        api_client.get("/api/customers", params={"page_size": 101}).status_code == 422
     )
 
 
@@ -186,7 +186,7 @@ def test_products_create_unique_list_and_deactivate(api_client: TestClient) -> N
     assert duplicate.status_code == 409
 
     update = api_client.patch(
-        f"/api/products/{first['id']}",
+        f"/api/products/{first.id}",
         json={"name": "SuperPhalt actualizado", "is_active": False},
     )
     assert update.status_code == 200
@@ -199,15 +199,17 @@ def test_products_create_unique_list_and_deactivate(api_client: TestClient) -> N
     )
     active_ids = {product["id"] for product in active.json()}
     all_product_ids = {product["id"] for product in all_products.json()}
-    assert first["id"] not in active_ids
-    assert second["id"] in active_ids
-    assert {first["id"], second["id"]} <= all_product_ids
+    assert first.id not in active_ids
+    assert second.id in active_ids
+    assert {first.id, second.id} <= all_product_ids
 
 
 def test_product_validation_and_not_found(api_client: TestClient) -> None:
     assert api_client.post("/api/products", json={"name": ""}).status_code == 422
     assert (
-        api_client.patch("/api/products/999999999", json={"is_active": False}).status_code
+        api_client.patch(
+            "/api/products/999999999", json={"is_active": False}
+        ).status_code
         == 404
     )
 
@@ -222,17 +224,18 @@ def test_opportunity_create_detail_assignee_and_history(
 
     opportunity = create_opportunity(
         api_client,
-        customer["id"],
+        customer.id,
         source="WHATSAPP",
         assigned_user_id=user.id,
     )
 
-    assert opportunity["status"] == "NUEVA"
-    assert opportunity["assigned_user"]["id"] == user.id
-    assert opportunity["products"] == []
-    assert opportunity["history"][0]["from_status"] is None
-    assert opportunity["history"][0]["to_status"] == "NUEVA"
-    assert api_client.get(f"/api/opportunities/{opportunity['id']}").status_code == 200
+    assert opportunity.status == "NUEVA"
+    assert opportunity.assigned_user is not None
+    assert opportunity.assigned_user.id == user.id
+    assert opportunity.products == []
+    assert opportunity.history[0].from_status is None
+    assert opportunity.history[0].to_status == "NUEVA"
+    assert api_client.get(f"/api/opportunities/{opportunity.id}").status_code == 200
 
 
 def test_opportunity_create_rejects_missing_customer_and_inactive_assignee(
@@ -251,7 +254,7 @@ def test_opportunity_create_rejects_missing_customer_and_inactive_assignee(
     inactive_user = api_client.post(
         "/api/opportunities",
         json={
-            "customer_id": customer["id"],
+            "customer_id": customer.id,
             "source": "WEB",
             "assigned_user_id": user.id,
         },
@@ -269,17 +272,17 @@ def test_opportunity_list_and_filters(
     second_customer = create_customer(api_client, "Cliente filtros 2")
     first = create_opportunity(
         api_client,
-        first_customer["id"],
+        first_customer.id,
         source="WEB",
         assigned_user_id=user.id,
     )
-    create_opportunity(api_client, second_customer["id"], source="WHATSAPP")
+    create_opportunity(api_client, second_customer.id, source="WHATSAPP")
 
     response = api_client.get(
         "/api/opportunities",
         params={
             "status": "NUEVA",
-            "customer_id": first_customer["id"],
+            "customer_id": first_customer.id,
             "assigned_user_id": user.id,
             "source": "WEB",
             "page": 1,
@@ -289,7 +292,7 @@ def test_opportunity_list_and_filters(
 
     assert response.status_code == 200
     assert response.json()["total"] == 1
-    assert response.json()["items"][0]["id"] == first["id"]
+    assert response.json()["items"][0]["id"] == first.id
 
 
 def test_complete_won_flow_and_detail_history(
@@ -299,13 +302,13 @@ def test_complete_won_flow_and_detail_history(
     actor_id = supervisor_user.id
     customer = create_customer(api_client, "Cliente ganado")
     product = create_product(api_client, "Producto ganado")
-    opportunity = create_opportunity(api_client, customer["id"])
-    opportunity_id = opportunity["id"]
+    opportunity = create_opportunity(api_client, customer.id)
+    opportunity_id = opportunity.id
 
     quoted = quote_opportunity(
         api_client,
         opportunity_id,
-        product["id"],
+        product.id,
     )
     negotiation = api_client.post(
         f"/api/opportunities/{opportunity_id}/move-to-negotiation",
@@ -317,7 +320,7 @@ def test_complete_won_flow_and_detail_history(
     )
     detail = api_client.get(f"/api/opportunities/{opportunity_id}")
 
-    assert quoted["status"] == "COTIZADA"
+    assert quoted.status == "COTIZADA"
     assert negotiation.status_code == 200
     assert negotiation.json()["status"] == "NEGOCIACION"
     assert won.status_code == 200
@@ -336,10 +339,10 @@ def test_complete_won_flow_and_detail_history(
 
 def test_lost_opportunity_flow(api_client: TestClient) -> None:
     customer = create_customer(api_client, "Cliente perdido")
-    opportunity = create_opportunity(api_client, customer["id"])
+    opportunity = create_opportunity(api_client, customer.id)
 
     response = api_client.post(
-        f"/api/opportunities/{opportunity['id']}/lose",
+        f"/api/opportunities/{opportunity.id}/lose",
         json={"loss_reason": "PRECIO"},
     )
 
@@ -360,29 +363,25 @@ def test_update_quote_products_and_unassign_user(
     second_product = create_product(api_client, "Producto edición 2")
     opportunity = create_opportunity(
         api_client,
-        customer["id"],
+        customer.id,
         assigned_user_id=user.id,
     )
-    quote_opportunity(api_client, opportunity["id"], first_product["id"])
+    quote_opportunity(api_client, opportunity.id, first_product.id)
 
     update = api_client.put(
-        f"/api/opportunities/{opportunity['id']}/quote-products",
+        f"/api/opportunities/{opportunity.id}/quote-products",
         json={
-            "products": [
-                {"product_id": second_product["id"], "quantity_kg": "875.500"}
-            ]
+            "products": [{"product_id": second_product.id, "quantity_kg": "875.500"}]
         },
     )
     unassigned = api_client.put(
-        f"/api/opportunities/{opportunity['id']}/assignee",
+        f"/api/opportunities/{opportunity.id}/assignee",
         json={"assigned_user_id": None},
     )
 
     assert update.status_code == 200
-    assert update.json()["products"][0]["product"]["id"] == second_product["id"]
-    assert Decimal(update.json()["products"][0]["quantity_kg"]) == Decimal(
-        "875.500"
-    )
+    assert update.json()["products"][0]["product"]["id"] == second_product.id
+    assert Decimal(update.json()["products"][0]["quantity_kg"]) == Decimal("875.500")
     assert len(update.json()["history"]) == 2
     assert unassigned.status_code == 200
     assert unassigned.json()["assigned_user"] is None
@@ -394,24 +393,18 @@ def test_opportunity_domain_and_product_errors_are_translated(
     customer = create_customer(api_client, "Cliente errores")
     inactive_product = create_product(api_client, "Producto inactivo API")
     api_client.patch(
-        f"/api/products/{inactive_product['id']}",
+        f"/api/products/{inactive_product.id}",
         json={"is_active": False},
     )
-    opportunity = create_opportunity(api_client, customer["id"])
+    opportunity = create_opportunity(api_client, customer.id)
 
-    invalid_transition = api_client.post(
-        f"/api/opportunities/{opportunity['id']}/win"
-    )
+    invalid_transition = api_client.post(f"/api/opportunities/{opportunity.id}/win")
     inactive_quote = api_client.post(
-        f"/api/opportunities/{opportunity['id']}/quote",
-        json={
-            "products": [
-                {"product_id": inactive_product["id"], "quantity_kg": 100}
-            ]
-        },
+        f"/api/opportunities/{opportunity.id}/quote",
+        json={"products": [{"product_id": inactive_product.id, "quantity_kg": 100}]},
     )
     empty_quote = api_client.post(
-        f"/api/opportunities/{opportunity['id']}/quote",
+        f"/api/opportunities/{opportunity.id}/quote",
         json={"products": []},
     )
 
@@ -440,13 +433,13 @@ def test_soft_deleted_records_remain_persisted_but_hidden(
     db_session: Session,
 ) -> None:
     customer = create_customer(api_client, "Cliente histórico")
-    opportunity = create_opportunity(api_client, customer["id"])
+    opportunity = create_opportunity(api_client, customer.id)
 
-    assert api_client.delete(f"/api/customers/{customer['id']}").status_code == 204
+    assert api_client.delete(f"/api/customers/{customer.id}").status_code == 204
 
-    persisted_customer = db_session.get(Customer, customer["id"])
+    persisted_customer = db_session.get(Customer, customer.id)
     persisted_opportunity = db_session.scalar(
-        select(Opportunity).where(Opportunity.id == opportunity["id"])
+        select(Opportunity).where(Opportunity.id == opportunity.id)
     )
     assert persisted_customer is not None
     assert persisted_customer.deleted_at is not None

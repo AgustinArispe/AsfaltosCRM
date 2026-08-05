@@ -1,5 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.sql.base import ExecutableOption
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import (
     LeadSource,
@@ -24,7 +26,7 @@ class OpportunityQueryService:
         assigned_user_id: int | None,
         source: LeadSource | None,
     ) -> tuple[list[Opportunity], int]:
-        filters = [Opportunity.deleted_at.is_(None)]
+        filters: list[ColumnElement[bool]] = [Opportunity.deleted_at.is_(None)]
         if status is not None:
             filters.append(Opportunity.status == status)
         if customer_id is not None:
@@ -64,7 +66,7 @@ class OpportunityQueryService:
         return opportunity
 
     @staticmethod
-    def _summary_load_options() -> tuple[object, ...]:
+    def _summary_load_options() -> tuple[ExecutableOption, ...]:
         return (
             joinedload(Opportunity.customer),
             joinedload(Opportunity.assigned_user),

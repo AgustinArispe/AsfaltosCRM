@@ -40,6 +40,52 @@ Stack obligatorio: FastAPI, SQLAlchemy, Alembic y PostgreSQL.
 - Usar enums, constantes o tipos de dominio para estados, roles y valores importantes; evitar strings mágicos.
 - Todo cambio de esquema de PostgreSQL debe incorporarse mediante una migración Alembic. Nunca modificar manualmente una base existente para evitar una migración.
 
+### Strict Python Engineering
+
+El backend se trata como una codebase fuertemente tipada aunque Python sea dinámico
+en runtime.
+
+- Todo código Python nuevo, incluidas funciones y métodos privados, debe declarar tipos
+  completos para parámetros y retorno.
+- `mypy --strict backend/app backend/tests` es un gate obligatorio. No debilitar la
+  configuración de mypy para hacer pasar código nuevo.
+- `Any` está prohibido salvo que una integración externa realmente lo imponga. En ese
+  caso, aislar la falta de typing en el boundary más pequeño posible y justificarla
+  localmente.
+- No usar `# type: ignore` genérico. Todo ignore debe incluir un código específico
+  cuando sea posible y un comentario si la causa no es evidente.
+- SQLAlchemy debe usar el estilo tipado 2.x: `Mapped[...]`, `mapped_column(...)` y
+  relaciones con tipos explícitos.
+- Los schemas Pydantic deben ser explícitos y rechazar campos extra en requests cuando
+  corresponda.
+- No usar diccionarios mágicos como contratos conocidos. Preferir DTOs tipados,
+  dataclasses, `TypedDict`, `Protocol` o modelos Pydantic según el boundary.
+- Usar enums para roles, estados, orígenes y motivos; no comparar con strings mágicos
+  cuando existe un enum de dominio.
+- Las cantidades de negocio usan `Decimal` de extremo a extremo; no convertirlas a
+  `float` dentro del dominio.
+- Todo `datetime` de aplicación debe ser timezone-aware. Persistir en UTC y convertir
+  únicamente en los boundaries de presentación.
+- Ruff es el linter y formatter oficial. Todo Python debe pasar `ruff check` y
+  `ruff format --check`; no incorporar Black ni otro formatter duplicado.
+- Toda lógica de negocio nueva o modificada debe tener tests adecuados.
+- Todos los gates de CI deben pasar antes de considerar terminada una tarea, hacer
+  commit o ejecutar push.
+- No debilitar reglas de mypy o Ruff para ocultar errores introducidos por código
+  nuevo.
+
+Anti-patrones explícitamente prohibidos:
+
+- `# type: ignore` sin código o motivo.
+- `cast(Any, ...)` para silenciar al type checker.
+- `dict[str, object]` para evitar diseñar un DTO cuando la estructura es conocida.
+- `def function(*args, **kwargs)` salvo wrappers o genéricos realmente necesarios y
+  correctamente tipados.
+- `return None` desde una función declarada para devolver una entidad, salvo que
+  `None` sea parte explícita del contrato.
+- Desactivar `strict`, agregar exclusiones amplias o ignorar diagnósticos para obtener
+  un resultado artificial de cero errores.
+
 ## Reglas de negocio conocidas
 
 Estas reglas son requisitos de referencia para implementaciones futuras; no habilitan funcionalidades no solicitadas en la tarea actual.
@@ -87,7 +133,11 @@ Estas reglas son requisitos de referencia para implementaciones futuras; no habi
 
 - El proyecto debe seguir funcionando con `docker compose up --build`.
 - Incorporar dependencias en los manifests y Dockerfiles correspondientes; no depender de instalaciones globales de la máquina.
-- Antes de terminar una tarea, verificar TypeScript, el build del frontend, el backend, los tests existentes, las migraciones cuando corresponda y Docker Compose.
+- Antes de terminar una tarea, deben pasar Ruff lint, Ruff format check, mypy strict,
+  tests y coverage del backend, compileall, Alembic check/current, tests y build del
+  frontend, TypeScript, npm audit y los health checks de Docker Compose.
+- No considerar terminada una tarea ni hacer commit/push si falla cualquiera de los
+  gates obligatorios. CI es la autoridad final para push y pull request.
 - Cuando se incorpore lógica de negocio importante, agregar tests adecuados.
 
 ## Git

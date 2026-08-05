@@ -10,7 +10,6 @@ from app.db.session import engine
 from app.main import app
 from app.models import User, UserRole
 
-
 TEST_SUPERVISOR_PASSWORD = "supervisor-test-password"
 
 

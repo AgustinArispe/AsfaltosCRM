@@ -1,0 +1,92 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-quality:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+psycopg://asfaltos:ci_password@localhost:5432/asfaltos_crm
+      JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      ALLOWED_HOSTS: localhost,testserver
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: asfaltos_crm
+          POSTGRES_USER: asfaltos
+          POSTGRES_PASSWORD: ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U asfaltos -d asfaltos_crm"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      - name: Install backend dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Apply database migrations
+        run: alembic upgrade head
+      - name: Ruff lint
+        run: ruff check app tests
+      - name: Ruff format check
+        run: ruff format --check app tests
+      - name: Mypy strict
+        run: mypy --strict app tests
+      - name: Backend tests and coverage
+        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=93
+      - name: Python bytecode compilation
+        run: python -m compileall -q app tests
+      - name: Verify Alembic model state
+        run: alembic check
+      - name: Verify Alembic head
+        run: alembic current
+
+  frontend-quality:
+    name: Frontend quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Frontend tests
+        run: npm test
+      - name: TypeScript and Vite build
+        run: npm run build
+      - name: Dependency audit
+        run: npm audit --audit-level=high

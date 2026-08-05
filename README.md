@@ -137,3 +137,47 @@ Docker Compose incluye health checks para PostgreSQL, backend y frontend. Consul
 docker compose ps
 curl http://localhost:8000/health
 ```
+
+### Calidad del backend
+
+Las dependencias de runtime viven en `backend/requirements.txt` y las herramientas de
+desarrollo reproducibles en `backend/requirements-dev.txt`. El backend usa Ruff como
+linter y formatter, mypy strict como type checker y pytest con coverage mínimo de 93%.
+La medición base al adoptar el gate fue 93,56%.
+
+```bash
+# Lint
+docker compose exec backend ruff check app tests
+
+# Verificar formato (o aplicar con: ruff format app tests)
+docker compose exec backend ruff format --check app tests
+
+# Tipado estricto de aplicación y tests
+docker compose exec backend mypy --strict app tests
+
+# Tests y coverage
+docker compose exec backend pytest \
+  --cov=app --cov-report=term-missing --cov-fail-under=93
+
+# Compilación y consistencia de migraciones
+docker compose exec backend python -m compileall -q app tests
+docker compose exec backend alembic check
+docker compose exec backend alembic current
+```
+
+La suite completa de calidad también exige `npm test`, `npm run build` y
+`npm audit --audit-level=high` dentro de `frontend`. GitHub Actions ejecuta todos estos
+gates en cada push y pull request.
+
+### Pre-commit
+
+Pre-commit ejecuta Ruff lint, Ruff format check y mypy strict. La suite completa de
+pytest permanece en CI porque requiere PostgreSQL y no debe volver lentos los commits.
+Para instalarlo sin dependencias globales, usar un entorno virtual local:
+
+```bash
+python3.13 -m venv .venv
+.venv/bin/pip install -r backend/requirements-dev.txt
+.venv/bin/pre-commit install
+.venv/bin/pre-commit run --all-files
+```

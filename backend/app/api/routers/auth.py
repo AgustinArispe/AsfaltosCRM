@@ -6,7 +6,6 @@ from app.core.security import create_access_token
 from app.schemas import LoginRequest, TokenResponse, UserResponse
 from app.services.auth_service import AuthService
 
-
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 

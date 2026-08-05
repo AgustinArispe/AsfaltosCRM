@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from pydantic import Field, SecretStr
 
 from app.schemas.common import EmailInput, StrictRequestModel
+
 PasswordInput = Annotated[SecretStr, Field(min_length=8, max_length=128)]
 LoginPasswordInput = Annotated[SecretStr, Field(min_length=1, max_length=128)]
 

@@ -9,7 +9,6 @@ from app.db.integrity import violates_constraint
 from app.models import User, UserRole
 from app.services.errors import DuplicateEntityError, EntityNotFoundError
 
-
 USER_UPDATE_FIELDS = frozenset({"full_name", "email", "role", "is_active"})
 
 
@@ -18,7 +17,9 @@ class UserService:
         self._session = session
 
     def list_users(self) -> list[User]:
-        return list(self._session.scalars(select(User).order_by(User.full_name, User.id)))
+        return list(
+            self._session.scalars(select(User).order_by(User.full_name, User.id))
+        )
 
     def get_user(self, user_id: int) -> User:
         user = self._session.get(User, user_id)

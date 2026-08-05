@@ -6,7 +6,6 @@ from app.schemas import ProductCreate, ProductResponse, ProductUpdate
 from app.services.errors import PermissionDeniedError
 from app.services.product_service import ProductService
 
-
 router = APIRouter(prefix="/products", tags=["products"])
 
 
@@ -17,12 +16,8 @@ def list_products(
     include_inactive: bool = False,
 ) -> list[ProductResponse]:
     if include_inactive and current_user.role is UserRole.VENDEDOR:
-        raise PermissionDeniedError(
-            "Only supervisors can list inactive products"
-        )
-    products = ProductService(session).list_products(
-        include_inactive=include_inactive
-    )
+        raise PermissionDeniedError("Only supervisors can list inactive products")
+    products = ProductService(session).list_products(include_inactive=include_inactive)
     return [ProductResponse.model_validate(product) for product in products]
 
 

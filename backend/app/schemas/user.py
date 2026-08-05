@@ -25,7 +25,10 @@ class UserUpdate(StrictRequestModel):
     @model_validator(mode="after")
     def reject_null_fields(self) -> Self:
         for field_name in ("full_name", "email", "role", "is_active"):
-            if field_name in self.model_fields_set and getattr(self, field_name) is None:
+            if (
+                field_name in self.model_fields_set
+                and getattr(self, field_name) is None
+            ):
                 raise ValueError(f"{field_name} cannot be null")
         return self
 

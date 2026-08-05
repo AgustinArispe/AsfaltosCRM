@@ -27,9 +27,7 @@ def main() -> int:
     with SessionLocal() as session:
         with session.begin():
             existing_user = session.scalar(
-                select(User).where(
-                    func.lower(func.btrim(User.email)) == email
-                )
+                select(User).where(func.lower(func.btrim(User.email)) == email)
             )
             if existing_user is not None:
                 existing_role = existing_user.role
@@ -42,9 +40,7 @@ def main() -> int:
             print(f"Supervisor already exists with id {existing_id}")
             return 0
         if existing_role is not None:
-            raise SystemExit(
-                "A non-supervisor user already exists with that email"
-            )
+            raise SystemExit("A non-supervisor user already exists with that email")
 
         password = getpass("Password: ")
         confirmation = getpass("Confirm password: ")

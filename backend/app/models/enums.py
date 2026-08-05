@@ -1,19 +1,19 @@
-from enum import Enum
+from enum import Enum, StrEnum
 
 from sqlalchemy import Enum as SQLAlchemyEnum
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     SUPERVISOR = "SUPERVISOR"
     VENDEDOR = "VENDEDOR"
 
 
-class LeadSource(str, Enum):
+class LeadSource(StrEnum):
     WEB = "WEB"
     WHATSAPP = "WHATSAPP"
 
 
-class OpportunityStatus(str, Enum):
+class OpportunityStatus(StrEnum):
     NUEVA = "NUEVA"
     COTIZADA = "COTIZADA"
     NEGOCIACION = "NEGOCIACION"
@@ -21,7 +21,7 @@ class OpportunityStatus(str, Enum):
     PERDIDA = "PERDIDA"
 
 
-class LossReason(str, Enum):
+class LossReason(StrEnum):
     PRECIO = "PRECIO"
     SIN_RESPUESTA = "SIN_RESPUESTA"
     COMPETENCIA = "COMPETENCIA"

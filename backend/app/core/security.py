@@ -11,7 +11,6 @@ from app.core.config import (
     get_jwt_secret,
 )
 
-
 _password_hash = PasswordHash.recommended()
 DUMMY_PASSWORD_HASH = _password_hash.hash("not-a-real-user-password")
 
@@ -54,6 +53,8 @@ def decode_access_token(token: str) -> int:
         options={"require": ["sub", "exp"]},
     )
     subject = payload.get("sub")
+    if not isinstance(subject, str):
+        raise InvalidTokenError("Token subject must be a user id")
     try:
         user_id = int(subject)
     except (TypeError, ValueError) as error:

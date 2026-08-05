@@ -24,11 +24,12 @@ from app.services import OpportunityService, QuoteProductInput
 from app.services.errors import PermissionDeniedError
 from app.services.opportunity_query_service import OpportunityQueryService
 
-
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 
 
-def _quote_inputs(payload: QuoteRequest | QuoteProductsUpdate) -> list[QuoteProductInput]:
+def _quote_inputs(
+    payload: QuoteRequest | QuoteProductsUpdate,
+) -> list[QuoteProductInput]:
     return [
         QuoteProductInput(
             product_id=product.product_id,
@@ -54,13 +55,8 @@ def create_opportunity(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> OpportunityDetail:
-    if (
-        current_user.role is UserRole.VENDEDOR
-        and payload.assigned_user_id is not None
-    ):
-        raise PermissionDeniedError(
-            "Only supervisors can assign opportunity owners"
-        )
+    if current_user.role is UserRole.VENDEDOR and payload.assigned_user_id is not None:
+        raise PermissionDeniedError("Only supervisors can assign opportunity owners")
     opportunity = OpportunityService(session).create_opportunity(
         customer_id=payload.customer_id,
         source=payload.source,
@@ -144,7 +140,7 @@ def move_to_negotiation(
     opportunity_id: int,
     session: DatabaseSession,
     current_user: CurrentUser,
-    payload: Annotated[StatusChangeRequest | None, Body()] = None,
+    _payload: Annotated[StatusChangeRequest | None, Body()] = None,
 ) -> OpportunityDetail:
     OpportunityService(session).move_to_negotiation(
         opportunity_id,
@@ -162,7 +158,7 @@ def mark_as_won(
     opportunity_id: int,
     session: DatabaseSession,
     current_user: CurrentUser,
-    payload: Annotated[StatusChangeRequest | None, Body()] = None,
+    _payload: Annotated[StatusChangeRequest | None, Body()] = None,
 ) -> OpportunityDetail:
     OpportunityService(session).mark_as_won(
         opportunity_id,

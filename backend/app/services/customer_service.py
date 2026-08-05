@@ -2,10 +2,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import Customer
 from app.services.errors import DeletedCustomerError, EntityNotFoundError
-
 
 CUSTOMER_UPDATE_FIELDS = frozenset(
     {
@@ -54,7 +54,7 @@ class CustomerService:
         search: str | None,
         include_deleted: bool,
     ) -> tuple[list[Customer], int]:
-        filters = []
+        filters: list[ColumnElement[bool]] = []
         if not include_deleted:
             filters.append(Customer.deleted_at.is_(None))
         if search:
@@ -103,9 +103,7 @@ class CustomerService:
     ) -> Customer:
         with self._session.begin():
             customer = self._session.scalar(
-                select(Customer)
-                .where(Customer.id == customer_id)
-                .with_for_update()
+                select(Customer).where(Customer.id == customer_id).with_for_update()
             )
             if customer is None:
                 raise EntityNotFoundError("Customer", customer_id)
@@ -123,9 +121,7 @@ class CustomerService:
     def soft_delete_customer(self, customer_id: int) -> None:
         with self._session.begin():
             customer = self._session.scalar(
-                select(Customer)
-                .where(Customer.id == customer_id)
-                .with_for_update()
+                select(Customer).where(Customer.id == customer_id).with_for_update()
             )
             if customer is None:
                 raise EntityNotFoundError("Customer", customer_id)

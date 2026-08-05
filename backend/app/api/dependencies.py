@@ -12,7 +12,6 @@ from app.db.session import SessionLocal
 from app.models import User, UserRole
 from app.services import AuthenticationError, PermissionDeniedError
 
-
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
 

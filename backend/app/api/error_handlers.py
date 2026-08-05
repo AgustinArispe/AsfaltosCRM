@@ -16,7 +16,6 @@ from app.services import (
     PermissionDeniedError,
 )
 
-
 DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (AuthenticationError, status.HTTP_401_UNAUTHORIZED),
     (PermissionDeniedError, status.HTTP_403_FORBIDDEN),
@@ -32,7 +31,9 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
 )
 
 
-async def domain_error_handler(_: Request, error: DomainError) -> JSONResponse:
+async def domain_error_handler(_: Request, error: Exception) -> JSONResponse:
+    if not isinstance(error, DomainError):
+        raise TypeError("domain_error_handler requires a DomainError")
     response_status = status.HTTP_400_BAD_REQUEST
     for error_type, mapped_status in DOMAIN_ERROR_STATUS:
         if isinstance(error, error_type):

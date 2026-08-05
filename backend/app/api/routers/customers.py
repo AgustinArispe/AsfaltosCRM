@@ -2,7 +2,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.api.dependencies import CurrentUser, DatabaseSession, Pagination, SupervisorUser
+from app.api.dependencies import (
+    CurrentUser,
+    DatabaseSession,
+    Pagination,
+    SupervisorUser,
+)
 from app.models import UserRole
 from app.schemas import (
     CustomerCreate,
@@ -13,7 +18,6 @@ from app.schemas import (
 )
 from app.services.customer_service import CustomerService
 from app.services.errors import PermissionDeniedError
-
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 

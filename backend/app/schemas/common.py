@@ -1,9 +1,6 @@
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
-
-
-ResponseItem = TypeVar("ResponseItem")
 
 
 def validate_email_format(value: str) -> str:
@@ -38,7 +35,7 @@ class StrictRequestModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class PaginatedResponse(BaseModel, Generic[ResponseItem]):
+class PaginatedResponse[ResponseItem](BaseModel):
     items: list[ResponseItem]
     page: int
     page_size: int
