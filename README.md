@@ -116,6 +116,22 @@ En producción este comando debe programarse periódicamente mediante cron o el
 scheduler de la plataforma. El backend no depende de navegación del usuario y no
 incorpora un scheduler residente, Celery ni Redis.
 
+## Métricas comerciales
+
+Los endpoints autenticados `/api/metrics/overview`, `/products`, `/sources`,
+`/provinces`, `/timeline` y `/pipeline` calculan agregados directamente en PostgreSQL.
+Los primeros cinco reciben `from` y `to` timezone-aware y usan un período semiabierto
+`[from, to)`; `source`, `product_id` y `province` son filtros opcionales compartidos.
+
+Las altas y el volumen cotizado se atribuyen a `opportunity.created_at`. Las ganancias,
+pérdidas y sus kilogramos se atribuyen a la entrada al estado terminal mediante
+`current_status_entered_at`. La conversión por oportunidades es
+`ganadas / (ganadas + perdidas)` y la de volumen es
+`kg ganados / (kg ganados + kg perdidos)`; ambas devuelven `null` cuando no existe
+denominador. `/pipeline` es un snapshot actual sin período y `/timeline` devuelve todos
+los buckets, incluidos los vacíos, según el calendario
+`America/Argentina/Buenos_Aires`.
+
 ## Primer supervisor y autenticación
 
 El CRM no ofrece registro público. Para crear el primer supervisor, ejecutar el

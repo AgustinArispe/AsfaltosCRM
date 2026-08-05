@@ -7,6 +7,14 @@ from app.schemas.customer import (
     CustomerUpdate,
 )
 from app.schemas.lead_intake import WebLeadIntakeRequest, WebLeadIntakeResponse
+from app.schemas.metrics import (
+    MetricsOverviewResponse,
+    PipelineMetricsResponse,
+    ProductMetricsResponse,
+    ProvinceMetricsResponse,
+    SourceMetricsResponse,
+    TimelineMetricsResponse,
+)
 from app.schemas.notification import (
     NotificationActionRequest,
     NotificationReadAllResponse,
@@ -34,6 +42,7 @@ __all__ = [
     "CustomerUpdate",
     "LoginRequest",
     "LoseOpportunityRequest",
+    "MetricsOverviewResponse",
     "NotificationActionRequest",
     "NotificationReadAllResponse",
     "NotificationResponse",
@@ -42,13 +51,18 @@ __all__ = [
     "OpportunitySummary",
     "PaginatedResponse",
     "PasswordUpdate",
+    "PipelineMetricsResponse",
     "ProductCreate",
+    "ProductMetricsResponse",
     "ProductResponse",
     "ProductUpdate",
+    "ProvinceMetricsResponse",
     "QuoteProductRequest",
     "QuoteProductsUpdate",
     "QuoteRequest",
+    "SourceMetricsResponse",
     "StatusChangeRequest",
+    "TimelineMetricsResponse",
     "TokenResponse",
     "UserCreate",
     "UserResponse",
