@@ -6,6 +6,7 @@ import { CustomersPage } from './pages/CustomersPage'
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ProductsPage } from './pages/ProductsPage'
 import { getNavigationItem } from './routing/navigation'
 import { Redirect, usePathname } from './routing/router'
 import {
@@ -59,16 +60,23 @@ function RoutedApp() {
     return <Redirect to="/pipeline" />
   }
 
+  const pageContent =
+    pathname === '/pipeline' ? (
+      <PipelinePage />
+    ) : pathname === '/customers' ? (
+      <CustomersPage />
+    ) : pathname === '/products' ? (
+      <ProductsPage />
+    ) : (
+      <PlaceholderPage
+        description={navigationItem.description}
+        title={navigationItem.label}
+      />
+    )
+
   return (
     <AppShell pageTitle={navigationItem.label}>
-      {pathname === '/pipeline' ? <PipelinePage /> : pathname === '/customers' ? (
-        <CustomersPage />
-      ) : (
-        <PlaceholderPage
-          description={navigationItem.description}
-          title={navigationItem.label}
-        />
-      )}
+      {pageContent}
     </AppShell>
   )
 }

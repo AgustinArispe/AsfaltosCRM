@@ -355,6 +355,41 @@ describe('PipelinePage', () => {
     expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
   })
 
+  it('excludes inactive products from a new quote', async () => {
+    const opportunity = makeOpportunity('NUEVA')
+    mockApi({
+      opportunities: [opportunity],
+      products: [
+        ...activeProducts,
+        { id: 12, name: 'Producto inactivo', is_active: false },
+      ],
+    })
+    render(<PipelinePage />)
+    await waitForPipeline()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mover a Cotizada' }))
+    const productSelect = await screen.findByLabelText('Producto')
+    expect(within(productSelect).getByRole('option', { name: 'SuperPhalt' })).toBeInTheDocument()
+    expect(within(productSelect).queryByRole('option', { name: 'Producto inactivo' })).not.toBeInTheDocument()
+  })
+
+  it('keeps rendering an inactive product already present in commercial history', async () => {
+    const opportunity = makeOpportunity('COTIZADA')
+    opportunity.products = [
+      {
+        product: { id: 12, name: 'Producto histórico', is_active: false },
+        quantity_kg: '750.000',
+      },
+    ]
+    mockApi({ opportunities: [opportunity] })
+    const { container } = render(<PipelinePage />)
+    await waitForPipeline()
+
+    const quotedStage = getStage(container, 'COTIZADA')
+    expect(within(quotedStage).getByText('Producto histórico')).toBeInTheDocument()
+    expect(within(quotedStage).getByText('750 kg')).toBeInTheDocument()
+  })
+
   it('moves COTIZADA to NEGOCIACION optimistically and confirms the API result', async () => {
     const opportunity = makeOpportunity('COTIZADA')
     mockApi({

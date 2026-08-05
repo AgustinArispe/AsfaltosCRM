@@ -21,7 +21,7 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
   {
     path: '/products',
     label: 'Productos',
-    description: 'El catálogo de productos se incorporará en una próxima etapa.',
+    description: 'Catálogo de productos disponibles para cotizaciones.',
   },
   {
     path: '/users',

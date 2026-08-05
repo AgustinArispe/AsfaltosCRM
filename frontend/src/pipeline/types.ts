@@ -1,4 +1,5 @@
 import type { CustomerSummary } from '../customers/types'
+import type { Product as ProductModel } from '../products/types'
 
 export type LeadSource = 'WEB' | 'WHATSAPP'
 
@@ -18,11 +19,7 @@ export type LossReason =
   | 'PROYECTO_CANCELADO'
   | 'OTRO'
 
-export type Product = {
-  id: number
-  name: string
-  is_active: boolean
-}
+export type Product = ProductModel
 
 export type OpportunityCustomer = CustomerSummary
 
