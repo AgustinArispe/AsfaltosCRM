@@ -75,7 +75,10 @@ class CustomerService:
             self._session.scalars(
                 select(Customer)
                 .where(*filters)
-                .order_by(Customer.id)
+                .order_by(
+                    func.lower(func.btrim(Customer.name)),
+                    Customer.id,
+                )
                 .offset((page - 1) * page_size)
                 .limit(page_size)
             )

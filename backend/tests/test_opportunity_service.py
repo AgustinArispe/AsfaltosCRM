@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import event, select
+from sqlalchemy import event, func, select
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 
@@ -173,6 +173,10 @@ def test_create_opportunity_starts_new_and_records_history(
 
 def test_create_opportunity_rejects_missing_customer(db_session: Session) -> None:
     service = OpportunityService(db_session)
+    count_before = db_session.scalar(
+        select(func.count()).select_from(Opportunity)
+    )
+    db_session.rollback()
 
     with pytest.raises(EntityNotFoundError):
         service.create_opportunity(
@@ -180,7 +184,8 @@ def test_create_opportunity_rejects_missing_customer(db_session: Session) -> Non
             source=LeadSource.WEB,
         )
 
-    assert db_session.scalar(select(Opportunity.id)) is None
+    count_after = db_session.scalar(select(func.count()).select_from(Opportunity))
+    assert count_after == count_before
 
 
 def test_create_opportunity_rejects_deleted_customer(db_session: Session) -> None:

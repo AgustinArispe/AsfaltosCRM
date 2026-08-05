@@ -3,7 +3,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 
-from app.schemas.common import StrictRequestModel
+from app.schemas.common import EmailInput, StrictRequestModel
 
 
 NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -13,7 +13,7 @@ OptionalNonBlankString = NonBlankString | None
 class CustomerCreate(StrictRequestModel):
     name: NonBlankString
     company: OptionalNonBlankString = None
-    email: OptionalNonBlankString = None
+    email: EmailInput | None = None
     phone: OptionalNonBlankString = None
     province: OptionalNonBlankString = None
     legendary_historical_override: bool = False
@@ -22,7 +22,7 @@ class CustomerCreate(StrictRequestModel):
 class CustomerUpdate(StrictRequestModel):
     name: NonBlankString | None = None
     company: OptionalNonBlankString = None
-    email: OptionalNonBlankString = None
+    email: EmailInput | None = None
     phone: OptionalNonBlankString = None
     province: OptionalNonBlankString = None
     legendary_historical_override: bool | None = None

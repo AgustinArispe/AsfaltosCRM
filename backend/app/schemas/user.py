@@ -4,8 +4,8 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.models import UserRole
-from app.schemas.auth import EmailInput, PasswordInput
-from app.schemas.common import StrictRequestModel
+from app.schemas.auth import PasswordInput
+from app.schemas.common import EmailInput, StrictRequestModel
 from app.schemas.customer import NonBlankString
 
 

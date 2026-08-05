@@ -1,9 +1,11 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
+import jwt
 from fastapi.testclient import TestClient
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import JWT_ALGORITHM, get_jwt_secret
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models import OpportunityStatusHistory, User, UserRole
 
@@ -129,6 +131,41 @@ def test_inactive_user_and_invalid_tokens_are_rejected(
         f"Bearer {create_access_token(supervisor_user.id)}"
     )
     assert api_client.get("/api/auth/me").status_code == 401
+
+
+def test_jwt_requires_expiration_positive_subject_and_fixed_algorithm(
+    api_client: TestClient,
+    supervisor_user: User,
+) -> None:
+    expires_at = datetime.now(UTC) + timedelta(minutes=5)
+    invalid_tokens = [
+        jwt.encode(
+            {"sub": str(supervisor_user.id)},
+            get_jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        ),
+        jwt.encode(
+            {"sub": "0", "exp": expires_at},
+            get_jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        ),
+        jwt.encode(
+            {"sub": "not-an-id", "exp": expires_at},
+            get_jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        ),
+        jwt.encode(
+            {"sub": str(supervisor_user.id), "exp": expires_at},
+            key="",
+            algorithm="none",
+        ),
+    ]
+
+    for token in invalid_tokens:
+        api_client.headers["Authorization"] = f"Bearer {token}"
+        response = api_client.get("/api/auth/me")
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Could not validate credentials"}
 
 
 def test_supervisor_manages_users_and_passwords(

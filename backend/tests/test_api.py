@@ -78,7 +78,7 @@ def test_customer_crud_search_and_soft_delete(api_client: TestClient) -> None:
         json={
             "name": "Constructora Austral",
             "company": "Austral SA",
-            "email": "ventas@austral.test",
+            "email": "hardening-crud-unique@austral.test",
             "phone": "1122334455",
             "province": "Buenos Aires",
             "legendary_historical_override": True,
@@ -95,7 +95,11 @@ def test_customer_crud_search_and_soft_delete(api_client: TestClient) -> None:
 
     listing = api_client.get(
         "/api/customers",
-        params={"search": "austral", "page": 1, "page_size": 1},
+        params={
+            "search": "hardening-crud-unique@austral.test",
+            "page": 1,
+            "page_size": 1,
+        },
     )
     assert listing.status_code == 200
     assert listing.json()["total"] == 1
@@ -122,13 +126,19 @@ def test_customer_crud_search_and_soft_delete(api_client: TestClient) -> None:
     assert deleted.status_code == 204
     assert repeated_delete.status_code == 204
 
-    active_listing = api_client.get("/api/customers")
+    active_listing = api_client.get(
+        "/api/customers",
+        params={"search": "hardening-crud-unique@austral.test"},
+    )
     all_listing = api_client.get(
         "/api/customers",
-        params={"include_deleted": True},
+        params={
+            "include_deleted": True,
+            "search": "hardening-crud-unique@austral.test",
+        },
     )
-    assert active_listing.json()["total"] == 1
-    assert all_listing.json()["total"] == 2
+    assert active_listing.json()["total"] == 0
+    assert all_listing.json()["total"] == 1
     assert api_client.get(f"/api/customers/{customer_id}").status_code == 404
 
 
@@ -145,11 +155,15 @@ def test_customer_request_validation_and_forbidden_internal_fields(
 
 def test_customer_pagination_limits(api_client: TestClient) -> None:
     for index in range(3):
-        create_customer(api_client, name=f"Cliente paginado {index}")
+        create_customer(api_client, name=f"Hardening paginado {index}")
 
     page = api_client.get(
         "/api/customers",
-        params={"page": 2, "page_size": 2},
+        params={
+            "page": 2,
+            "page_size": 2,
+            "search": "Hardening paginado",
+        },
     )
     assert page.status_code == 200
     assert page.json()["total"] == 3
@@ -183,11 +197,11 @@ def test_products_create_unique_list_and_deactivate(api_client: TestClient) -> N
         "/api/products",
         params={"include_inactive": True},
     )
-    assert [product["id"] for product in active.json()] == [second["id"]]
-    assert {product["id"] for product in all_products.json()} == {
-        first["id"],
-        second["id"],
-    }
+    active_ids = {product["id"] for product in active.json()}
+    all_product_ids = {product["id"] for product in all_products.json()}
+    assert first["id"] not in active_ids
+    assert second["id"] in active_ids
+    assert {first["id"], second["id"]} <= all_product_ids
 
 
 def test_product_validation_and_not_found(api_client: TestClient) -> None:

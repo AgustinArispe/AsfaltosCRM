@@ -3,10 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import api_router
 from app.api.error_handlers import domain_error_handler
-from app.core.config import get_jwt_secret
+from app.core.config import get_allowed_hosts, get_jwt_secret
 from app.db.session import engine
 from app.services import DomainError
 
@@ -28,6 +29,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_exception_handler(DomainError, domain_error_handler)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=get_allowed_hosts(),
+)
 app.include_router(api_router, prefix="/api")
 
 

@@ -24,11 +24,11 @@ from app.models.enums import (
     LossReason,
     OpportunityStatus,
 )
+from app.models.opportunity_status_history import OpportunityStatusHistory
 
 if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.opportunity_product import OpportunityProduct
-    from app.models.opportunity_status_history import OpportunityStatusHistory
     from app.models.user import User
 
 
@@ -133,5 +133,8 @@ class Opportunity(TimestampMixin, Base):
     status_history: Mapped[list[OpportunityStatusHistory]] = relationship(
         back_populates="opportunity",
         passive_deletes=True,
-        order_by="OpportunityStatusHistory.changed_at",
+        order_by=lambda: (
+            OpportunityStatusHistory.changed_at,
+            OpportunityStatusHistory.id,
+        ),
     )

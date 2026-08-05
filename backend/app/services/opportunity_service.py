@@ -260,8 +260,8 @@ class OpportunityService:
             raise InactiveUserError(user_id)
 
     def _validate_history_user(self, user_id: int | None) -> None:
-        if user_id is not None:
-            self._get_user_for_update(user_id)
+        if user_id is not None and self._session.get(User, user_id) is None:
+            raise EntityNotFoundError("User", user_id)
 
     def _get_user_for_update(self, user_id: int) -> User:
         user = self._session.scalar(

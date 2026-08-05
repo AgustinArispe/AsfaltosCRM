@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.db.integrity import violates_constraint
 from app.models import User, UserRole
 from app.services.errors import DuplicateEntityError, EntityNotFoundError
 
@@ -45,6 +46,8 @@ class UserService:
                 self._session.add(user)
                 self._session.flush()
         except IntegrityError as error:
+            if not violates_constraint(error, "uq_users_email_normalized"):
+                raise
             raise DuplicateEntityError("User", "email") from error
         return user
 
@@ -71,6 +74,8 @@ class UserService:
                     user.updated_at = datetime.now(UTC)
                 self._session.flush()
         except IntegrityError as error:
+            if not violates_constraint(error, "uq_users_email_normalized"):
+                raise
             raise DuplicateEntityError("User", "email") from error
         return user
 

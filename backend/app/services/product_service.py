@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.db.integrity import violates_constraint
 from app.models import Product
 from app.services.errors import DuplicateEntityError, EntityNotFoundError
 
@@ -19,7 +20,14 @@ class ProductService:
         statement = select(Product)
         if not include_inactive:
             statement = statement.where(Product.is_active.is_(True))
-        return list(self._session.scalars(statement.order_by(Product.name, Product.id)))
+        return list(
+            self._session.scalars(
+                statement.order_by(
+                    func.lower(func.btrim(Product.name)),
+                    Product.id,
+                )
+            )
+        )
 
     def create_product(self, *, name: str) -> Product:
         try:
@@ -28,6 +36,8 @@ class ProductService:
                 self._session.add(product)
                 self._session.flush()
         except IntegrityError as error:
+            if not violates_constraint(error, "uq_products_name_normalized"):
+                raise
             raise DuplicateEntityError("Product", "name") from error
         return product
 
@@ -53,5 +63,7 @@ class ProductService:
                     product.updated_at = datetime.now(UTC)
                 self._session.flush()
         except IntegrityError as error:
+            if not violates_constraint(error, "uq_products_name_normalized"):
+                raise
             raise DuplicateEntityError("Product", "name") from error
         return product

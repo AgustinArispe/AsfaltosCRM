@@ -54,6 +54,7 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `POSTGRES_PORT` | Puerto de PostgreSQL publicado en el host | `5432` |
 | `JWT_SECRET` | Secreto de al menos 32 caracteres para firmar tokens JWT | reemplazar el ejemplo |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del access token en minutos | `60` |
+| `ALLOWED_HOSTS` | Hosts HTTP aceptados por FastAPI, separados por comas y sin comodines | `localhost,127.0.0.1,backend,testserver` |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
 | `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
 | `VITE_API_BASE_URL` | Base pública usada por el cliente HTTP del frontend | `/api` |
