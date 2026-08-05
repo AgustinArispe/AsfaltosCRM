@@ -47,7 +47,7 @@ class Customer(TimestampMixin, Base):
         ),
         Index(
             "ix_customers_phone_normalized",
-            func.btrim(text("phone")),
+            text("regexp_replace(phone, '[[:space:]()-]', '', 'g')"),
             postgresql_where=text("deleted_at IS NULL AND phone IS NOT NULL"),
         ),
     )

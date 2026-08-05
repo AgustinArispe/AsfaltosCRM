@@ -23,6 +23,7 @@ jobs:
       JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
       ALLOWED_HOSTS: localhost,testserver
+      WEB_INTAKE_SIGNING_SECRET: ci-only-intake-secret-with-thirty-two-characters
     services:
       postgres:
         image: postgres:17-alpine

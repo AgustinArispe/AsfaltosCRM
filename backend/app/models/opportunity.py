@@ -28,6 +28,7 @@ from app.models.opportunity_status_history import OpportunityStatusHistory
 
 if TYPE_CHECKING:
     from app.models.customer import Customer
+    from app.models.lead_intake import LeadIntake
     from app.models.opportunity_product import OpportunityProduct
     from app.models.user import User
 
@@ -137,4 +138,9 @@ class Opportunity(TimestampMixin, Base):
             OpportunityStatusHistory.changed_at,
             OpportunityStatusHistory.id,
         ),
+    )
+    lead_intake: Mapped[LeadIntake | None] = relationship(
+        back_populates="opportunity",
+        passive_deletes=True,
+        uselist=False,
     )

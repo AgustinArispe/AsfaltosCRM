@@ -24,6 +24,18 @@ def get_jwt_secret() -> str:
 
 
 @lru_cache
+def get_web_intake_signing_secret() -> str:
+    signing_secret = getenv("WEB_INTAKE_SIGNING_SECRET")
+    if not signing_secret:
+        raise RuntimeError("WEB_INTAKE_SIGNING_SECRET environment variable is required")
+    if len(signing_secret) < 32:
+        raise RuntimeError(
+            "WEB_INTAKE_SIGNING_SECRET must contain at least 32 characters"
+        )
+    return signing_secret
+
+
+@lru_cache
 def get_access_token_expire_minutes() -> int:
     raw_value = getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60")
     try:

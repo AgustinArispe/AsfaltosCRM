@@ -8,7 +8,11 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import api_router
 from app.api.error_handlers import domain_error_handler
-from app.core.config import get_allowed_hosts, get_jwt_secret
+from app.core.config import (
+    get_allowed_hosts,
+    get_jwt_secret,
+    get_web_intake_signing_secret,
+)
 from app.db.session import engine
 from app.services import DomainError
 
@@ -16,6 +20,7 @@ from app.services import DomainError
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     get_jwt_secret()
+    get_web_intake_signing_secret()
     yield
     engine.dispose()
 

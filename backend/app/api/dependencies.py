@@ -2,11 +2,12 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends, Query
+from fastapi import Depends, Header, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
+from app.core.intake_security import verify_web_intake_signature
 from app.core.security import decode_access_token
 from app.db.session import SessionLocal
 from app.models import User, UserRole
@@ -80,3 +81,15 @@ def require_supervisor(
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 SupervisorUser = Annotated[User, Depends(require_supervisor)]
+
+
+async def verify_web_intake_request(
+    request: Request,
+    timestamp: Annotated[str | None, Header(alias="X-FAA-Intake-Timestamp")] = None,
+    signature: Annotated[str | None, Header(alias="X-FAA-Intake-Signature")] = None,
+) -> None:
+    raw_body = await request.body()
+    verify_web_intake_signature(timestamp, signature, raw_body)
+
+
+VerifiedWebIntake = Annotated[None, Depends(verify_web_intake_request)]

@@ -57,28 +57,48 @@ class OpportunityService:
         changed_by_user_id: int | None = None,
     ) -> Opportunity:
         with self._session.begin():
-            self._get_available_customer(customer_id)
-            self._validate_assigned_user(assigned_user_id)
-            self._validate_history_user(changed_by_user_id)
-
-            opportunity = Opportunity(
+            return self.create_opportunity_in_transaction(
                 customer_id=customer_id,
-                assigned_user_id=assigned_user_id,
                 source=source,
-                status=OpportunityStatus.NUEVA,
-                loss_reason=None,
-            )
-            self._session.add(opportunity)
-            self._session.flush()
-            self._add_history(
-                opportunity=opportunity,
-                from_status=None,
-                to_status=OpportunityStatus.NUEVA,
-                changed_at=opportunity.current_status_entered_at,
+                assigned_user_id=assigned_user_id,
                 changed_by_user_id=changed_by_user_id,
             )
-            self._session.flush()
 
+    def create_opportunity_in_transaction(
+        self,
+        *,
+        customer_id: int,
+        source: LeadSource,
+        assigned_user_id: int | None = None,
+        changed_by_user_id: int | None = None,
+    ) -> Opportunity:
+        """Create NUEVA plus its history inside a caller-owned transaction.
+
+        This explicit composable operation never begins or commits a transaction. It
+        exists for application services, such as Lead Intake, that must combine the
+        opportunity creation with other writes atomically.
+        """
+        self._get_available_customer(customer_id)
+        self._validate_assigned_user(assigned_user_id)
+        self._validate_history_user(changed_by_user_id)
+
+        opportunity = Opportunity(
+            customer_id=customer_id,
+            assigned_user_id=assigned_user_id,
+            source=source,
+            status=OpportunityStatus.NUEVA,
+            loss_reason=None,
+        )
+        self._session.add(opportunity)
+        self._session.flush()
+        self._add_history(
+            opportunity=opportunity,
+            from_status=None,
+            to_status=OpportunityStatus.NUEVA,
+            changed_at=opportunity.current_status_entered_at,
+            changed_by_user_id=changed_by_user_id,
+        )
+        self._session.flush()
         return opportunity
 
     def quote_opportunity(

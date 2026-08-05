@@ -6,6 +6,7 @@ from app.schemas.customer import (
     CustomerSummary,
     CustomerUpdate,
 )
+from app.schemas.lead_intake import WebLeadIntakeRequest, WebLeadIntakeResponse
 from app.schemas.opportunity import (
     AssigneeUpdate,
     LoseOpportunityRequest,
@@ -44,4 +45,6 @@ __all__ = [
     "UserCreate",
     "UserResponse",
     "UserUpdate",
+    "WebLeadIntakeRequest",
+    "WebLeadIntakeResponse",
 ]

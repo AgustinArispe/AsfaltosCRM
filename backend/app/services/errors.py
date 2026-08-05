@@ -13,6 +13,22 @@ class PermissionDeniedError(DomainError):
     pass
 
 
+class IntakeAuthenticationError(DomainError):
+    """Raised when an external intake request cannot be authenticated."""
+
+
+class CustomerIdentityConflictError(DomainError):
+    """Raised when intake identity signals resolve ambiguously."""
+
+
+class LeadIntakeIdempotencyConflictError(DomainError):
+    """Raised when an external ID is replayed with a different payload."""
+
+
+class InvalidLeadIntakeError(DomainError):
+    """Raised when an intake DTO violates its application contract."""
+
+
 class EntityNotFoundError(DomainError):
     def __init__(self, entity_name: str, entity_id: int) -> None:
         self.entity_name = entity_name

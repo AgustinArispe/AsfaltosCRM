@@ -4,30 +4,38 @@ from fastapi.responses import JSONResponse
 from app.services import (
     AuthenticationError,
     ClosedOpportunityError,
+    CustomerIdentityConflictError,
     DeletedCustomerError,
     DomainError,
     DuplicateEntityError,
     EntityNotFoundError,
     InactiveProductError,
     InactiveUserError,
+    IntakeAuthenticationError,
+    InvalidLeadIntakeError,
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
+    LeadIntakeIdempotencyConflictError,
     PermissionDeniedError,
 )
 
 DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (AuthenticationError, status.HTTP_401_UNAUTHORIZED),
+    (IntakeAuthenticationError, status.HTTP_401_UNAUTHORIZED),
     (PermissionDeniedError, status.HTTP_403_FORBIDDEN),
     (EntityNotFoundError, status.HTTP_404_NOT_FOUND),
     (DeletedCustomerError, status.HTTP_409_CONFLICT),
     (DuplicateEntityError, status.HTTP_409_CONFLICT),
+    (CustomerIdentityConflictError, status.HTTP_409_CONFLICT),
+    (LeadIntakeIdempotencyConflictError, status.HTTP_409_CONFLICT),
     (InactiveUserError, status.HTTP_409_CONFLICT),
     (InactiveProductError, status.HTTP_409_CONFLICT),
     (InvalidStateTransitionError, status.HTTP_409_CONFLICT),
     (ClosedOpportunityError, status.HTTP_409_CONFLICT),
     (InvalidQuoteProductsError, status.HTTP_422_UNPROCESSABLE_CONTENT),
     (InvalidLossReasonError, status.HTTP_422_UNPROCESSABLE_CONTENT),
+    (InvalidLeadIntakeError, status.HTTP_422_UNPROCESSABLE_CONTENT),
 )
 
 

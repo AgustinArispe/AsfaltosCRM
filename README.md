@@ -55,12 +55,47 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `JWT_SECRET` | Secreto de al menos 32 caracteres para firmar tokens JWT | reemplazar el ejemplo |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del access token en minutos | `60` |
 | `ALLOWED_HOSTS` | Hosts HTTP aceptados por FastAPI, separados por comas y sin comodines | `localhost,127.0.0.1,backend,testserver` |
+| `WEB_INTAKE_SIGNING_SECRET` | Secreto HMAC exclusivo del servidor que envía leads Web; mínimo 32 caracteres | reemplazar el ejemplo |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
 | `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
 | `VITE_API_BASE_URL` | Base pública usada por el cliente HTTP del frontend | `/api` |
 
 Generar un secreto de desarrollo con una herramienta segura, por ejemplo
 `openssl rand -hex 32`. No versionar el valor resultante.
+
+## Lead Intake Web
+
+`POST /api/intake/web` es la única puerta de entrada actual para formularios Web.
+Identifica o crea el cliente de forma conservadora y registra atómicamente una
+oportunidad `NUEVA`, su historial inicial y el snapshot inmutable del envío. No usa el
+JWT de usuarios del CRM: la integración debe ejecutarse entre servidores y firmar cada
+body exacto con HMAC-SHA256.
+
+Los headers requeridos son `X-FAA-Intake-Timestamp` (Unix timestamp en segundos) y
+`X-FAA-Intake-Signature`. La entrada firmada es la concatenación exacta:
+
+```text
+{timestamp}\nPOST\n/api/intake/web\n{raw_body}
+```
+
+La firma se envía como `sha256={hex_digest}`. Por ejemplo, desde un backend Python:
+
+```python
+import hashlib
+import hmac
+
+signed = timestamp.encode() + b"\nPOST\n/api/intake/web\n" + raw_body
+signature = "sha256=" + hmac.new(
+    signing_secret.encode(), signed, hashlib.sha256
+).hexdigest()
+```
+
+El timestamp se acepta durante cinco minutos. `external_submission_id` es obligatorio:
+un replay con el mismo snapshot devuelve el resultado original, mientras que reutilizar
+el ID con otros datos devuelve conflicto. `WEB_INTAKE_SIGNING_SECRET` debe existir solo
+en el servidor que integra el formulario y en el backend del CRM; nunca debe incluirse
+en JavaScript, WordPress público ni el repositorio. El rate limiting debe configurarse
+en el reverse proxy o la plataforma de despliegue, no en memoria dentro de FastAPI.
 
 ## Primer supervisor y autenticación
 
