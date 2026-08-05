@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Brand } from '../shared/Brand'
+import { Button } from '../shared/Button'
 
 type LoginError = 'invalid' | 'unexpected' | null
 
@@ -41,31 +42,24 @@ export function LoginPage() {
   const errorMessage = error ? ERROR_MESSAGES[error] : null
 
   return (
-    <main className="grid min-h-dvh bg-slate-50 text-slate-900 lg:grid-cols-[minmax(19rem,0.72fr)_minmax(28rem,1fr)]">
-      <section className="hidden border-r border-slate-800 bg-slate-950 px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between" aria-label="Identidad FAA">
+    <main className="grid min-h-dvh bg-slate-100 text-slate-900 lg:grid-cols-[18rem_minmax(28rem,1fr)]">
+      <section className="hidden border-r border-slate-700 bg-slate-800 px-7 py-7 text-white lg:flex lg:flex-col lg:justify-between" aria-label="Identidad FAA">
         <Brand inverse />
-        <div className="max-w-sm border-l-2 border-amber-400 pl-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-400">
-            Acceso interno
-          </p>
-          <p className="mt-4 text-2xl font-semibold leading-tight tracking-tight">
-            Gestión comercial clara, rápida y centralizada.
-          </p>
-        </div>
-        <p className="text-xs text-slate-500">Fábrica Argentina de Asfaltos</p>
+        <p className="border-l-2 border-slate-500 pl-4 text-sm leading-6 text-slate-300">
+          Acceso interno al sistema de gestión comercial.
+        </p>
+        <p className="text-xs text-slate-400">Fábrica Argentina de Asfaltos</p>
       </section>
 
       <section className="flex items-center justify-center px-5 py-10 sm:px-8" aria-labelledby="login-title">
-        <div className="w-full max-w-sm">
+        <div className="ui-panel w-full max-w-sm px-5 py-6 sm:px-6">
           <div className="mb-10 lg:hidden">
             <Brand />
           </div>
 
-          <div className="mb-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-              CRM de FAA
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950" id="login-title">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">CRM de FAA</p>
+            <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-slate-950" id="login-title">
               Ingresar al sistema
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -75,7 +69,7 @@ export function LoginPage() {
 
           <form aria-busy={isSubmitting} className="space-y-5" onSubmit={handleSubmit}>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-800" htmlFor="email">
+              <label className="ui-label" htmlFor="email">
                 Email
               </label>
               <input
@@ -83,7 +77,7 @@ export function LoginPage() {
                 aria-invalid={Boolean(errorMessage)}
                 autoComplete="username"
                 autoFocus
-                className="min-h-11 w-full border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-950 outline-none transition-colors duration-150 placeholder:text-slate-400 hover:border-slate-400 focus:border-amber-600 focus:ring-2 focus:ring-amber-200 disabled:cursor-not-allowed disabled:bg-slate-100 motion-reduce:transition-none"
+                className="ui-field text-base"
                 disabled={isSubmitting}
                 id="email"
                 name="email"
@@ -96,14 +90,14 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-800" htmlFor="password">
+              <label className="ui-label" htmlFor="password">
                 Contraseña
               </label>
               <input
                 aria-describedby={errorMessage ? 'login-error' : undefined}
                 aria-invalid={Boolean(errorMessage)}
                 autoComplete="current-password"
-                className="min-h-11 w-full border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-950 outline-none transition-colors duration-150 hover:border-slate-400 focus:border-amber-600 focus:ring-2 focus:ring-amber-200 disabled:cursor-not-allowed disabled:bg-slate-100 motion-reduce:transition-none"
+                className="ui-field text-base"
                 disabled={isSubmitting}
                 id="password"
                 minLength={1}
@@ -116,15 +110,16 @@ export function LoginPage() {
             </div>
 
             {errorMessage ? (
-              <p className="border-l-2 border-red-600 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-800" id="login-error" role="alert">
+              <p className="rounded-[4px] border border-rose-200 border-l-2 border-l-rose-500 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-800" id="login-error" role="alert">
                 {errorMessage}
               </p>
             ) : null}
 
-            <button
-              className="flex min-h-11 w-full items-center justify-center gap-2 bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 outline-none transition-colors duration-150 hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:bg-amber-300 disabled:text-slate-600 motion-reduce:transition-none"
+            <Button
+              className="w-full"
               disabled={isSubmitting}
               type="submit"
+              variant="primary"
             >
               {isSubmitting ? (
                 <>
@@ -134,7 +129,7 @@ export function LoginPage() {
               ) : (
                 'Ingresar'
               )}
-            </button>
+            </Button>
           </form>
         </div>
       </section>

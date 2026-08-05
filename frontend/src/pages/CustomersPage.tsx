@@ -18,6 +18,7 @@ import type {
 } from '../customers/types'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
+import { Button } from '../shared/Button'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300
@@ -130,24 +131,20 @@ export function CustomersPage() {
           <h2 className="text-base font-semibold text-slate-950" id="customers-workspace-title">
             Cartera de clientes
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-0.5 text-sm text-slate-600">
             Consultá y mantené actualizados los datos comerciales de FAA.
           </p>
         </div>
-        <button
-          className="min-h-11 bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 outline-none transition-colors duration-150 hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
-          onClick={openCreate}
-          type="button"
-        >
+        <Button onClick={openCreate} variant="primary">
           Nuevo cliente
-        </button>
+        </Button>
       </div>
 
-      <div className="mt-5 border border-slate-200 bg-white p-4">
-        <label className="text-sm font-semibold text-slate-800" htmlFor="customer-search">
+      <div className="ui-panel mt-4 p-3.5">
+        <label className="ui-label" htmlFor="customer-search">
           Buscar clientes
         </label>
-        <div className="mt-1.5 flex max-w-2xl items-center border border-slate-300 bg-white focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30">
+        <div className="flex max-w-2xl items-center rounded-[4px] border border-slate-300 bg-white focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-slate-500/20">
           <svg aria-hidden="true" className="ml-3 size-4 shrink-0 text-slate-500" fill="none" viewBox="0 0 20 20">
             <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.7" />
             <path d="m12.5 12.5 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
@@ -165,20 +162,16 @@ export function CustomersPage() {
 
       <div className="mt-4">
         {loadError ? (
-          <div className="border border-slate-200 bg-white px-5 py-6">
+          <div className="ui-panel px-5 py-6">
             <InlineFeedback message={loadError} />
-            <button
-              className="mt-4 min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500"
-              onClick={() => setReloadKey((current) => current + 1)}
-              type="button"
-            >
+            <Button className="mt-4" onClick={() => setReloadKey((current) => current + 1)}>
               Reintentar
-            </button>
+            </Button>
           </div>
         ) : isLoading ? (
           <LoadingState label="Cargando clientes…" />
         ) : customers.length === 0 ? (
-          <div className="border border-slate-200 bg-white px-5 py-10 text-center">
+          <div className="ui-panel px-5 py-9 text-center">
             <h3 className="text-base font-semibold text-slate-950">
               {search ? 'No encontramos clientes' : 'Todavía no hay clientes'}
             </h3>
@@ -198,31 +191,29 @@ export function CustomersPage() {
             />
             <nav
               aria-label="Paginación de clientes"
-              className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-4 py-3"
+              className="ui-panel mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"
             >
               <p className="text-sm text-slate-600">
                 {total} {total === 1 ? 'cliente' : 'clientes'}
               </p>
               <div className="flex items-center gap-3">
-                <button
-                  className="min-h-11 border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+                <Button
                   disabled={page <= 1 || isLoading}
                   onClick={() => setPage((current) => current - 1)}
-                  type="button"
+                  size="compact"
                 >
                   Anterior
-                </button>
+                </Button>
                 <span className="text-sm font-medium tabular-nums text-slate-700">
                   Página {page} de {totalPages}
                 </span>
-                <button
-                  className="min-h-11 border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+                <Button
                   disabled={page >= totalPages || isLoading}
                   onClick={() => setPage((current) => current + 1)}
-                  type="button"
+                  size="compact"
                 >
                   Siguiente
-                </button>
+                </Button>
               </div>
             </nav>
           </>

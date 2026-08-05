@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import type { UserRole } from '../auth/types'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
+import { Button } from '../shared/Button'
 import type {
   CustomerFormValues,
   CustomerSummary,
@@ -119,8 +120,7 @@ export function CustomerFormModal({
     }
   }
 
-  const inputClasses =
-    'mt-1.5 min-h-11 w-full border border-slate-300 bg-white px-3 py-2 text-base text-slate-950 outline-none transition-colors duration-150 placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 disabled:bg-slate-100 disabled:text-slate-500 motion-reduce:transition-none'
+  const inputClasses = 'ui-field text-base'
 
   return (
     <Modal
@@ -139,7 +139,7 @@ export function CustomerFormModal({
           {submitError ? <InlineFeedback message={submitError} /> : null}
 
           <div>
-            <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-name`}>
+            <label className="ui-label" htmlFor={`${formId}-name`}>
               Nombre <span aria-hidden="true">*</span>
             </label>
             <input
@@ -165,7 +165,7 @@ export function CustomerFormModal({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-company`}>
+              <label className="ui-label" htmlFor={`${formId}-company`}>
                 Empresa
               </label>
               <input
@@ -179,7 +179,7 @@ export function CustomerFormModal({
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-email`}>
+              <label className="ui-label" htmlFor={`${formId}-email`}>
                 Email
               </label>
               <input
@@ -202,7 +202,7 @@ export function CustomerFormModal({
               ) : null}
             </div>
             <div>
-              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-phone`}>
+              <label className="ui-label" htmlFor={`${formId}-phone`}>
                 Teléfono
               </label>
               <input
@@ -217,7 +217,7 @@ export function CustomerFormModal({
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-province`}>
+              <label className="ui-label" htmlFor={`${formId}-province`}>
                 Provincia
               </label>
               <input
@@ -233,10 +233,10 @@ export function CustomerFormModal({
           </div>
 
           {role === 'SUPERVISOR' ? (
-            <label className="flex min-h-11 items-start gap-3 border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800">
+            <label className="flex min-h-11 items-start gap-3 rounded-[4px] border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800">
               <input
                 checked={values.legendary_historical_override}
-                className="mt-0.5 size-4 accent-amber-600 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                className="mt-0.5 size-4 accent-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
                 disabled={isSubmitting}
                 onChange={(event) =>
                   updateValue(
@@ -257,21 +257,19 @@ export function CustomerFormModal({
         </div>
 
         <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <button
-            className="min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
             disabled={isSubmitting}
             onClick={onClose}
-            type="button"
           >
             Cancelar
-          </button>
-          <button
-            className="min-h-11 bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 outline-none transition-colors duration-150 hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-50 motion-reduce:transition-none"
+          </Button>
+          <Button
             disabled={isSubmitting}
             type="submit"
+            variant="primary"
           >
             {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear cliente'}
-          </button>
+          </Button>
         </footer>
       </form>
     </Modal>

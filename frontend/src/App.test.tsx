@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App'
@@ -258,7 +258,7 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
   })
 
-  it('opens a dynamic opportunity detail route from the pipeline and returns', async () => {
+  it('opens the pipeline drawer, restores focus, and keeps the deep-link route', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL): Promise<Response> => {
@@ -283,14 +283,29 @@ describe('authenticated frontend', () => {
     vi.stubGlobal('fetch', fetchMock)
     renderApp('/pipeline')
 
-    const detailLink = await screen.findByRole('link', {
-      name: 'Ver detalle de la oportunidad de Cliente navegación',
+    const cardButton = await screen.findByRole('button', {
+      name: /Abrir detalle de la oportunidad de Cliente navegación/,
     })
-    fireEvent.click(detailLink)
+    cardButton.focus()
+    fireEvent.click(cardButton)
 
-    expect(window.location.pathname).toBe('/opportunities/77')
+    expect(window.location.pathname).toBe('/pipeline')
+    const drawer = await screen.findByRole('dialog', {
+      name: 'Detalle de oportunidad',
+    })
     expect(
-      await screen.findByRole('heading', { name: 'Cliente navegación' }),
+      within(drawer).getByRole('heading', { name: 'Navegación SA' }),
+    ).toBeInTheDocument()
+    fireEvent(drawer, new Event('cancel', { cancelable: true }))
+    await waitFor(() => expect(cardButton).toHaveFocus())
+
+    act(() => {
+      window.history.pushState(null, '', '/opportunities/77')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Navegación SA' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'Detalle de oportunidad', level: 1 }),

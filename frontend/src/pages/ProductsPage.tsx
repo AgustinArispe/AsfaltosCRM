@@ -14,6 +14,7 @@ import { ProductTable } from '../products/ProductTable'
 import type { Product } from '../products/types'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
+import { Button } from '../shared/Button'
 
 function sortProducts(products: Product[]): Product[] {
   return [...products].sort((first, second) =>
@@ -171,25 +172,21 @@ export function ProductsPage() {
           <h2 className="text-base font-semibold text-slate-950" id="products-workspace-title">
             Catálogo de productos
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-0.5 text-sm text-slate-600">
             {canManage
               ? 'Administrá los productos disponibles para cotizaciones.'
               : 'Consultá los productos activos disponibles para nuevas cotizaciones.'}
           </p>
         </div>
         {canManage ? (
-          <button
-            className="min-h-11 bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 outline-none transition-colors duration-150 hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
-            onClick={openCreate}
-            type="button"
-          >
+          <Button onClick={openCreate} variant="primary">
             Nuevo producto
-          </button>
+          </Button>
         ) : null}
       </div>
 
       {!isLoading && !loadError ? (
-        <p className="mt-5 border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">
+        <p className="ui-panel mt-4 px-4 py-2.5 text-sm text-slate-700" role="status">
           <span className="font-semibold tabular-nums text-slate-950">{products.length}</span>{' '}
           {products.length === 1 ? 'producto' : 'productos'}
           {canManage ? (
@@ -214,20 +211,16 @@ export function ProductsPage() {
 
       <div className="mt-4">
         {loadError ? (
-          <div className="border border-slate-200 bg-white px-5 py-6">
+          <div className="ui-panel px-5 py-6">
             <InlineFeedback message={loadError} />
-            <button
-              className="mt-4 min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500"
-              onClick={() => setReloadKey((current) => current + 1)}
-              type="button"
-            >
+            <Button className="mt-4" onClick={() => setReloadKey((current) => current + 1)}>
               Reintentar
-            </button>
+            </Button>
           </div>
         ) : isLoading ? (
           <LoadingState label="Cargando productos…" />
         ) : products.length === 0 ? (
-          <div className="border border-slate-200 bg-white px-5 py-10 text-center">
+          <div className="ui-panel px-5 py-9 text-center">
             <h3 className="text-base font-semibold text-slate-950">
               No hay productos disponibles
             </h3>

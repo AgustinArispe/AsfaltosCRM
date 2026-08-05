@@ -9,13 +9,13 @@ export function PipelineColumn({
   opportunities,
   busyOpportunityIds,
   onMove,
-  onLose,
+  onOpenDetail,
 }: {
   stage: PipelineStage
   opportunities: (OpportunitySummary & { status: PipelineStatus })[]
   busyOpportunityIds: ReadonlySet<number>
   onMove: (opportunityId: number, targetStatus: PipelineStatus) => void
-  onLose: (opportunityId: number) => void
+  onOpenDetail: (opportunityId: number) => void
 }) {
   const { ref, isDropTarget } = useDroppable({
     id: stage.status,
@@ -27,20 +27,20 @@ export function PipelineColumn({
     <section
       aria-labelledby={headingId}
       className={[
-        'flex min-h-[28rem] min-w-0 flex-col border border-t-2 border-slate-200 bg-slate-50',
+        'flex min-h-[28rem] min-w-0 flex-col rounded-[6px] border border-t-2 border-slate-200 bg-slate-50/80',
         stage.accentClassName,
-        isDropTarget ? 'ring-2 ring-amber-500 ring-offset-2' : '',
+        isDropTarget ? 'ring-2 ring-slate-500 ring-offset-2' : '',
       ].join(' ')}
       data-stage={stage.status}
       ref={ref}
     >
-      <header className="flex min-h-12 items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2.5">
+      <header className="flex min-h-12 items-center justify-between gap-3 rounded-t-[4px] border-b border-slate-200 bg-white px-3 py-2.5">
         <h2 className="text-sm font-semibold text-slate-900" id={headingId}>
           {stage.label}
         </h2>
         <span
           aria-label={`${opportunities.length} ${opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}`}
-          className={`min-w-7 px-2 py-0.5 text-center text-xs font-bold tabular-nums ${stage.countClassName}`}
+          className={`min-w-7 rounded-full border px-2 py-0.5 text-center text-xs font-semibold tabular-nums ${stage.countClassName}`}
         >
           {opportunities.length}
         </span>
@@ -52,8 +52,8 @@ export function PipelineColumn({
             <OpportunityCard
               isBusy={busyOpportunityIds.has(opportunity.id)}
               key={opportunity.id}
-              onLose={onLose}
               onMove={onMove}
+              onOpenDetail={onOpenDetail}
               opportunity={opportunity}
             />
           ))

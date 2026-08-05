@@ -1,13 +1,14 @@
 import type { UserRole } from '../auth/types'
 import { AppLink } from '../routing/router'
 import { LegendaryBadge } from './LegendaryBadge'
+import { Button } from '../shared/Button'
 import type { CustomerSummary } from './types'
 
 function phoneHref(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, '')}`
 }
 function MissingValue() {
-  return <span className="text-slate-400">—</span>
+  return <span className="text-slate-500">—</span>
 }
 
 export function CustomerTable({
@@ -24,14 +25,14 @@ export function CustomerTable({
   return (
     <div
       aria-label="Listado de clientes. Desplazá horizontalmente para ver todas las columnas."
-      className="overflow-x-auto border border-slate-200 bg-white focus-visible:ring-2 focus-visible:ring-amber-500"
+      className="ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500"
       role="region"
       tabIndex={0}
     >
       <table className="w-full min-w-[68rem] border-collapse text-left text-sm">
         <caption className="sr-only">Clientes activos del CRM</caption>
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+          <tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600">
             <th className="px-4 py-3 font-semibold" scope="col">Nombre</th>
             <th className="px-4 py-3 font-semibold" scope="col">Empresa</th>
             <th className="px-4 py-3 font-semibold" scope="col">Email</th>
@@ -46,7 +47,7 @@ export function CustomerTable({
             <tr className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70" key={customer.id}>
               <th className="px-4 py-3 font-semibold text-slate-950" scope="row">
                 <AppLink
-                  className="inline-flex min-h-11 items-center underline decoration-slate-300 underline-offset-4 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-amber-500"
+                  className="inline-flex min-h-11 items-center underline decoration-slate-300 underline-offset-4 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500"
                   to={`/customers/${customer.id}`}
                 >
                   {customer.name}
@@ -58,7 +59,7 @@ export function CustomerTable({
               <td className="max-w-60 px-4 py-3">
                 {customer.email ? (
                   <a
-                    className="break-all text-slate-700 underline decoration-slate-300 underline-offset-2 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-amber-500"
+                    className="break-all text-slate-700 underline decoration-slate-300 underline-offset-2 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500"
                     href={`mailto:${customer.email}`}
                   >
                     {customer.email}
@@ -68,7 +69,7 @@ export function CustomerTable({
               <td className="px-4 py-3">
                 {customer.phone ? (
                   <a
-                    className="text-slate-700 underline decoration-slate-300 underline-offset-2 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-amber-500"
+                    className="text-slate-700 underline decoration-slate-300 underline-offset-2 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500"
                     href={phoneHref(customer.phone)}
                   >
                     {customer.phone}
@@ -83,23 +84,23 @@ export function CustomerTable({
               </td>
               <td className="px-4 py-3">
                 <div className="flex min-w-max justify-end gap-2">
-                  <button
+                  <Button
                     aria-label={`Editar a ${customer.name}`}
-                    className="min-h-11 border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-amber-500"
                     onClick={() => onEdit(customer)}
-                    type="button"
+                    size="compact"
                   >
                     Editar
-                  </button>
+                  </Button>
                   {role === 'SUPERVISOR' ? (
-                    <button
+                    <Button
                       aria-label={`Eliminar a ${customer.name}`}
-                      className="min-h-11 border border-red-200 px-3 py-2 text-sm font-semibold text-red-800 outline-none hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-600"
+                      className="text-rose-700 hover:bg-rose-50 hover:text-rose-900"
                       onClick={() => onDelete(customer)}
-                      type="button"
+                      size="compact"
+                      variant="ghost"
                     >
                       Eliminar
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </td>

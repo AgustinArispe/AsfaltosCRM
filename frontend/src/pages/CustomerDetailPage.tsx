@@ -10,19 +10,21 @@ import { useAuth } from '../auth/AuthContext'
 import { LegendaryBadge } from '../customers/LegendaryBadge'
 import type { CustomerDetail } from '../customers/types'
 import {
-  OPPORTUNITY_STATUS_BADGE_CLASSES,
   OPPORTUNITY_STATUS_LABELS,
+  OPPORTUNITY_STATUS_TONES,
   SOURCE_LABELS,
 } from '../pipeline/config'
 import type { OpportunitySummary } from '../pipeline/types'
 import { AppLink } from '../routing/router'
 import { formatDateTime, formatQuantityKg } from '../shared/formatters'
 import { LoadingState } from '../shared/LoadingState'
+import { Badge } from '../shared/Badge'
+import { Button } from '../shared/Button'
 
 function BackToCustomersLink() {
   return (
     <AppLink
-      className="inline-flex min-h-11 items-center gap-2 px-1 text-sm font-semibold text-slate-700 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-amber-500"
+      className="ui-pressable inline-flex min-h-11 items-center gap-2 rounded-[4px] px-2 text-sm font-semibold text-slate-600 outline-none hover:bg-white hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500"
       to="/customers"
     >
       <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 20 20">
@@ -43,7 +45,7 @@ function DetailError({
   return (
     <section aria-labelledby="customer-detail-error" className="max-w-3xl">
       <BackToCustomersLink />
-      <div className="mt-4 border border-slate-200 bg-white px-5 py-6">
+      <div className="ui-panel mt-3 px-5 py-6">
         <h2 className="text-lg font-semibold text-slate-950" id="customer-detail-error">
           {notFound ? 'Cliente no encontrado' : 'No pudimos cargar el cliente'}
         </h2>
@@ -53,13 +55,12 @@ function DetailError({
             : 'Revisá tu conexión e intentá nuevamente.'}
         </p>
         {!notFound ? (
-          <button
-            className="mt-4 min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500"
+          <Button
+            className="mt-4"
             onClick={onRetry}
-            type="button"
           >
             Reintentar
-          </button>
+          </Button>
         ) : null}
       </div>
     </section>
@@ -94,7 +95,7 @@ function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySu
   return (
     <div
       aria-label="Oportunidades del cliente. Desplazá horizontalmente para ver todas las columnas."
-      className="mt-4 overflow-x-auto focus-visible:ring-2 focus-visible:ring-amber-500"
+      className="mt-4 overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500"
       role="region"
       tabIndex={0}
     >
@@ -114,9 +115,9 @@ function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySu
           {opportunities.map((opportunity) => (
             <tr className="border-b border-slate-100 last:border-b-0" key={opportunity.id}>
               <td className="py-3 pr-4">
-                <span className={`inline-flex border px-2.5 py-1 text-xs font-bold ${OPPORTUNITY_STATUS_BADGE_CLASSES[opportunity.status]}`}>
+                <Badge tone={OPPORTUNITY_STATUS_TONES[opportunity.status]}>
                   {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
-                </span>
+                </Badge>
               </td>
               <td className="px-4 py-3 text-slate-700">{SOURCE_LABELS[opportunity.source]}</td>
               <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDateTime(opportunity.created_at)}</td>
@@ -125,7 +126,7 @@ function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySu
               <td className="py-3 pl-4 text-right">
                 <AppLink
                   aria-label={`Ver detalle de oportunidad ${opportunity.id}`}
-                  className="inline-flex min-h-11 items-center px-2 font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-amber-500"
+                  className="inline-flex min-h-11 items-center px-2 font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500"
                   to={`/opportunities/${opportunity.id}`}
                 >
                   Ver detalle
@@ -198,7 +199,7 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
     <article aria-labelledby="customer-name" className="mx-auto max-w-6xl">
       <BackToCustomersLink />
 
-      <header className="mt-3 border border-slate-200 bg-white px-5 py-5 sm:px-6">
+      <header className="ui-panel mt-3 px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Cliente #{customer.id}</p>
@@ -219,19 +220,19 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
         </div>
       </header>
 
-      <section aria-labelledby="customer-contact-title" className="mt-4 border border-slate-200 bg-white px-5 py-5 sm:px-6">
+      <section aria-labelledby="customer-contact-title" className="ui-panel mt-4 px-5 py-5 sm:px-6">
         <h3 className="text-base font-semibold text-slate-950" id="customer-contact-title">Información de contacto</h3>
         <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</dt>
             <dd className="mt-1 break-words text-sm text-slate-900">
-              {customer.email ? <a className="underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-amber-500" href={`mailto:${customer.email}`}>{customer.email}</a> : 'No informado'}
+              {customer.email ? <a className="underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500" href={`mailto:${customer.email}`}>{customer.email}</a> : 'No informado'}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Teléfono</dt>
             <dd className="mt-1 text-sm text-slate-900">
-              {customer.phone ? <a className="underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-amber-500" href={`tel:${customer.phone.replace(/[^\d+]/g, '')}`}>{customer.phone}</a> : 'No informado'}
+              {customer.phone ? <a className="underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500" href={`tel:${customer.phone.replace(/[^\d+]/g, '')}`}>{customer.phone}</a> : 'No informado'}
             </dd>
           </div>
           <div>
@@ -241,7 +242,7 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
         </dl>
       </section>
 
-      <section aria-labelledby="customer-opportunities-title" className="mt-4 border border-slate-200 bg-white px-5 py-5 sm:px-6">
+      <section aria-labelledby="customer-opportunities-title" className="ui-panel mt-4 px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="text-base font-semibold text-slate-950" id="customer-opportunities-title">Oportunidades</h3>
           <p className="text-sm text-slate-600">{opportunities.length} {opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}</p>

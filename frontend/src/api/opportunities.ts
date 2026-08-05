@@ -105,6 +105,17 @@ export function quoteOpportunity(
   )
 }
 
+export function updateOpportunityQuoteProducts(
+  opportunityId: number,
+  products: QuoteProductInput[],
+  session: ApiSession,
+) {
+  return apiRequest<OpportunitySummary>(
+    `/opportunities/${opportunityId}/quote-products`,
+    { ...session, method: 'PUT', body: { products } },
+  )
+}
+
 export function moveOpportunityToNegotiation(
   opportunityId: number,
   session: ApiSession,

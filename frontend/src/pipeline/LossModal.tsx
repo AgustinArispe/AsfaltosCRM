@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { Modal } from '../shared/Modal'
+import { Button } from '../shared/Button'
 import { LOSS_REASON_OPTIONS } from './config'
 import type { LossReason, OpportunitySummary } from './types'
 
@@ -60,14 +61,15 @@ export function LossModal({
       <form aria-busy={isSubmitting} onSubmit={handleSubmit}>
         <div className="space-y-4 px-5 py-5">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-800" htmlFor="loss-reason">
+            <label className="ui-label" htmlFor="loss-reason">
               Motivo
             </label>
             <select
               aria-describedby={error ? 'loss-reason-error' : undefined}
               aria-invalid={Boolean(error)}
               autoFocus
-              className="min-h-11 w-full border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-red-600 focus:ring-2 focus:ring-red-200"
+              className="ui-field text-base"
+              data-modal-initial-focus
               disabled={isSubmitting}
               id="loss-reason"
               onChange={(event) => {
@@ -92,21 +94,19 @@ export function LossModal({
         </div>
 
         <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
-          <button
-            className="min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40"
+          <Button
             disabled={isSubmitting}
             onClick={onClose}
-            type="button"
           >
             Cancelar
-          </button>
-          <button
-            className="min-h-11 bg-red-700 px-4 py-2 text-sm font-bold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:bg-red-300"
+          </Button>
+          <Button
             disabled={isSubmitting}
             type="submit"
+            variant="danger"
           >
             {isSubmitting ? 'Guardando…' : 'Confirmar pérdida'}
-          </button>
+          </Button>
         </footer>
       </form>
     </Modal>

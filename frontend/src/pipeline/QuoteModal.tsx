@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
+import { Button } from '../shared/Button'
 import type {
   OpportunitySummary,
   Product,
@@ -20,6 +21,15 @@ function initialLine(): QuoteLine {
   return { key: 0, productId: '', quantity: '' }
 }
 
+function initialLines(opportunity: OpportunitySummary | null): QuoteLine[] {
+  if (!opportunity || opportunity.products.length === 0) return [initialLine()]
+  return opportunity.products.map((quotedProduct, index) => ({
+    key: index,
+    productId: String(quotedProduct.product.id),
+    quantity: quotedProduct.quantity_kg,
+  }))
+}
+
 export function QuoteModal({
   opportunity,
   products,
@@ -28,6 +38,7 @@ export function QuoteModal({
   onRetryProducts,
   onClose,
   onConfirm,
+  mode = 'create',
 }: {
   opportunity: OpportunitySummary | null
   products: Product[] | null
@@ -36,20 +47,22 @@ export function QuoteModal({
   onRetryProducts: () => void
   onClose: () => void
   onConfirm: (products: QuoteProductInput[]) => Promise<void>
+  mode?: 'create' | 'edit'
 }) {
-  const [lines, setLines] = useState<QuoteLine[]>([initialLine()])
+  const [lines, setLines] = useState<QuoteLine[]>(() => initialLines(opportunity))
   const [lineErrors, setLineErrors] = useState<LineErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const nextKeyRef = useRef(1)
 
   useEffect(() => {
-    setLines([initialLine()])
+    const nextLines = initialLines(opportunity)
+    setLines(nextLines)
     setLineErrors({})
     setSubmitError(null)
     setIsSubmitting(false)
-    nextKeyRef.current = 1
-  }, [opportunity?.id])
+    nextKeyRef.current = nextLines.length
+  }, [opportunity?.id, mode])
 
   const updateLine = (
     key: number,
@@ -141,8 +154,15 @@ export function QuoteModal({
   const selectedProductIds = new Set(
     lines.map((line) => line.productId).filter(Boolean),
   )
+  const existingProducts = opportunity?.products.map((item) => item.product) ?? []
+  const availableProducts = [
+    ...(products ?? []),
+    ...existingProducts.filter(
+      (existing) => !products?.some((product) => product.id === existing.id),
+    ),
+  ]
   const allProductsSelected = Boolean(
-    products && products.length > 0 && selectedProductIds.size >= products.length,
+    products && products.length > 0 && selectedProductIds.size >= availableProducts.length,
   )
 
   return (
@@ -155,20 +175,18 @@ export function QuoteModal({
       }
       isOpen={Boolean(opportunity)}
       onClose={onClose}
-      title="Cotizar oportunidad"
+      title={mode === 'edit' ? 'Editar cotización' : 'Cotizar oportunidad'}
     >
       {isLoadingProducts || (!products && !productsError) ? (
         <LoadingState label="Cargando productos…" />
       ) : productsError ? (
         <div className="space-y-3 px-5 py-5">
           <p className="text-sm text-red-800" role="alert">{productsError}</p>
-          <button
-            className="min-h-11 border border-slate-300 px-3 py-2 text-sm font-semibold outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500"
+          <Button
             onClick={onRetryProducts}
-            type="button"
           >
             Reintentar
-          </button>
+          </Button>
         </div>
       ) : products?.length === 0 ? (
         <p className="px-5 py-6 text-sm text-slate-600" role="status">
@@ -183,36 +201,37 @@ export function QuoteModal({
               const quantityErrorId = `quote-quantity-${line.key}-error`
 
               return (
-                <fieldset className="border border-slate-200 bg-slate-50 p-3" key={line.key}>
+                <fieldset className="rounded-[4px] border border-slate-200 bg-slate-50 p-3" key={line.key}>
                   <legend className="px-1 text-xs font-semibold text-slate-600">
                     Producto {index + 1}
                   </legend>
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-800" htmlFor={`quote-product-${line.key}`}>
+                      <label className="ui-label" htmlFor={`quote-product-${line.key}`}>
                         Producto
                       </label>
                       <select
                         aria-describedby={errors?.product ? productErrorId : undefined}
                         aria-invalid={Boolean(errors?.product)}
                         autoFocus={index === 0}
-                        className="min-h-11 w-full border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+                        className="ui-field text-base"
                         disabled={isSubmitting}
                         id={`quote-product-${line.key}`}
                         onChange={(event) => updateLine(line.key, 'productId', event.target.value)}
                         value={line.productId}
                       >
                         <option value="">Seleccionar</option>
-                        {products?.map((product) => (
+                        {availableProducts.map((product) => (
                           <option
                             disabled={
-                              selectedProductIds.has(String(product.id)) &&
-                              line.productId !== String(product.id)
+                              (!product.is_active && line.productId !== String(product.id)) ||
+                              (selectedProductIds.has(String(product.id)) &&
+                                line.productId !== String(product.id))
                             }
                             key={product.id}
                             value={product.id}
                           >
-                            {product.name}
+                            {product.name}{!product.is_active ? ' (inactivo)' : ''}
                           </option>
                         ))}
                       </select>
@@ -224,13 +243,13 @@ export function QuoteModal({
                     </div>
 
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-800" htmlFor={`quote-quantity-${line.key}`}>
+                      <label className="ui-label" htmlFor={`quote-quantity-${line.key}`}>
                         Cantidad (kg)
                       </label>
                       <input
                         aria-describedby={errors?.quantity ? quantityErrorId : undefined}
                         aria-invalid={Boolean(errors?.quantity)}
-                        className="min-h-11 w-full border border-slate-300 bg-white px-3 py-2 text-base tabular-nums outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+                        className="ui-field text-base tabular-nums"
                         disabled={isSubmitting}
                         id={`quote-quantity-${line.key}`}
                         inputMode="decimal"
@@ -247,29 +266,27 @@ export function QuoteModal({
                       ) : null}
                     </div>
 
-                    <button
+                    <Button
                       aria-label={`Quitar producto ${index + 1}`}
-                      className="min-h-11 px-3 py-2 text-sm font-medium text-red-700 outline-none hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                       disabled={lines.length === 1 || isSubmitting}
                       onClick={() => removeLine(line.key)}
-                      type="button"
+                      variant="ghost"
                     >
                       Quitar
-                    </button>
+                    </Button>
                   </div>
                 </fieldset>
               )
             })}
 
-            <button
-              className="min-h-11 border border-dashed border-slate-400 px-3 py-2 text-sm font-semibold text-slate-700 outline-none hover:border-slate-600 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-45"
+            <Button
+              className="border-dashed"
               disabled={allProductsSelected || isSubmitting}
               onClick={addLine}
               title={allProductsSelected ? 'Todos los productos activos ya fueron agregados' : undefined}
-              type="button"
             >
               + Agregar producto
-            </button>
+            </Button>
 
             {submitError ? (
               <p className="border-l-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-medium text-red-800" role="alert">
@@ -279,21 +296,23 @@ export function QuoteModal({
           </div>
 
           <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
-            <button
-              className="min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40"
+            <Button
               disabled={isSubmitting}
               onClick={onClose}
-              type="button"
             >
               Cancelar
-            </button>
-            <button
-              className="min-h-11 bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 outline-none hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:bg-amber-300 disabled:text-slate-600"
+            </Button>
+            <Button
               disabled={isSubmitting}
               type="submit"
+              variant="primary"
             >
-              {isSubmitting ? 'Guardando…' : 'Confirmar cotización'}
-            </button>
+              {isSubmitting
+                ? 'Guardando…'
+                : mode === 'edit'
+                  ? 'Guardar cambios'
+                  : 'Confirmar cotización'}
+            </Button>
           </footer>
         </form>
       )}

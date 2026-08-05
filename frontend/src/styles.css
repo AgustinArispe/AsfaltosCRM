@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  color: #0f172a;
-  background: #f1f5f9;
+  --surface-canvas: #f4f6f8;
+  --surface-panel: #ffffff;
+  --surface-subtle: #f8fafc;
+  --border-b2: #d8dee6;
+  --border-b2-strong: #c5cdd8;
+  --text-primary: #172033;
+  --text-secondary: #5b6778;
+  --accent-primary: #294d72;
+  --focus-ring: #4b7198;
+  --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  color: var(--text-primary);
+  background: var(--surface-canvas);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -15,7 +26,7 @@
 
 html {
   min-width: 320px;
-  background: #f1f5f9;
+  background: var(--surface-canvas);
 }
 
 body {
@@ -25,7 +36,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -35,8 +48,100 @@ a {
 }
 
 ::selection {
-  color: #0f172a;
-  background: #fcd34d;
+  color: #172033;
+  background: #d8e3ee;
+}
+
+.ui-panel {
+  border: 1px solid var(--border-b2);
+  border-radius: 0.375rem;
+  background: var(--surface-panel);
+}
+
+.ui-field {
+  min-height: 2.75rem;
+  width: 100%;
+  border: 1px solid var(--border-b2-strong);
+  border-radius: 0.25rem;
+  background: #fff;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-primary);
+  outline: none;
+  transition:
+    border-color 140ms var(--ease-out-ui),
+    box-shadow 140ms var(--ease-out-ui);
+}
+
+.ui-field:focus {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px rgb(75 113 152 / 18%);
+}
+
+.ui-field:disabled {
+  cursor: not-allowed;
+  background: #f1f3f6;
+  color: #697586;
+}
+
+.ui-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: #344054;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+.drawer-dialog {
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.drawer-dialog::backdrop {
+  background: rgb(15 23 42 / 42%);
+}
+
+.drawer-panel {
+  margin-left: auto;
+  width: min(42rem, 100%);
+  height: 100%;
+  background: var(--surface-canvas);
+  box-shadow: -8px 0 24px rgb(15 23 42 / 12%);
+  transform: translateX(0);
+  transition: transform 240ms var(--ease-drawer);
+}
+
+@starting-style {
+  .drawer-dialog[open] .drawer-panel {
+    transform: translateX(100%);
+  }
+}
+
+.drawer-dialog[data-closing='true'] .drawer-panel {
+  transform: translateX(100%);
+  transition-duration: 160ms;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-pressable {
+    transition:
+      transform 120ms var(--ease-out-ui),
+      background-color 140ms var(--ease-out-ui),
+      border-color 140ms var(--ease-out-ui),
+      color 140ms var(--ease-out-ui);
+  }
+
+  .ui-pressable:active:not(:disabled) {
+    transform: scale(0.98);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -44,5 +149,14 @@ a {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+  }
+
+  .drawer-panel {
+    transform: none !important;
+    transition: opacity 120ms linear;
+  }
+
+  .ui-pressable {
+    transition-property: background-color, border-color, color;
   }
 }

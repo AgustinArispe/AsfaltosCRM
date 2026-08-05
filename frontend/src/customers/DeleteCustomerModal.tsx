@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
+import { Button } from '../shared/Button'
 import type { CustomerSummary } from './types'
 
 export function DeleteCustomerModal({
@@ -51,24 +52,21 @@ export function DeleteCustomerModal({
         </p>
       </div>
       <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
-        <button
+        <Button
           autoFocus
-          className="min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
           data-modal-initial-focus
           disabled={isDeleting}
           onClick={onClose}
-          type="button"
         >
           Cancelar
-        </button>
-        <button
-          className="min-h-11 bg-red-700 px-4 py-2 text-sm font-bold text-white outline-none hover:bg-red-600 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-50"
+        </Button>
+        <Button
           disabled={isDeleting}
           onClick={() => void handleConfirm()}
-          type="button"
+          variant="danger"
         >
           {isDeleting ? 'Eliminando…' : 'Eliminar cliente'}
-        </button>
+        </Button>
       </footer>
     </Modal>
   )

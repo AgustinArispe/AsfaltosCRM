@@ -6,7 +6,7 @@ export function PlaceholderPage({
   description: string
 }) {
   return (
-    <section className="max-w-3xl border-t-2 border-amber-500 bg-white px-5 py-6 shadow-[0_1px_2px_rgb(15_23_42_/_0.06)] sm:px-6" aria-labelledby="placeholder-title">
+    <section className="ui-panel max-w-3xl border-t-2 border-t-slate-400 px-5 py-6 sm:px-6" aria-labelledby="placeholder-title">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
         {title}
       </p>

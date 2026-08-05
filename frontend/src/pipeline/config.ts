@@ -4,6 +4,7 @@ import type {
   OpportunityStatus,
   PipelineStatus,
 } from './types'
+import type { BadgeTone } from '../shared/Badge'
 
 export type PipelineStage = {
   status: PipelineStatus
@@ -12,6 +13,7 @@ export type PipelineStage = {
   nextStatus: PipelineStatus | null
   accentClassName: string
   countClassName: string
+  cardAccentClassName: string
 }
 
 export const PIPELINE_STAGES: readonly PipelineStage[] = [
@@ -20,24 +22,27 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     label: 'Nuevos',
     singularLabel: 'Nueva',
     nextStatus: 'COTIZADA',
-    accentClassName: 'border-t-sky-500',
-    countClassName: 'bg-sky-100 text-sky-800',
+    accentClassName: 'border-t-slate-400',
+    countClassName: 'border-slate-200 bg-slate-100 text-slate-700',
+    cardAccentClassName: 'border-l-slate-400',
   },
   {
     status: 'COTIZADA',
     label: 'Cotizados',
     singularLabel: 'Cotizada',
     nextStatus: 'NEGOCIACION',
-    accentClassName: 'border-t-amber-500',
-    countClassName: 'bg-amber-100 text-amber-900',
+    accentClassName: 'border-t-blue-400',
+    countClassName: 'border-blue-200 bg-blue-50 text-blue-800',
+    cardAccentClassName: 'border-l-blue-400',
   },
   {
     status: 'NEGOCIACION',
     label: 'Negociación',
     singularLabel: 'Negociación',
     nextStatus: 'GANADA',
-    accentClassName: 'border-t-violet-500',
-    countClassName: 'bg-violet-100 text-violet-800',
+    accentClassName: 'border-t-amber-500',
+    countClassName: 'border-amber-200 bg-amber-50 text-amber-900',
+    cardAccentClassName: 'border-l-amber-500',
   },
   {
     status: 'GANADA',
@@ -45,7 +50,8 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     singularLabel: 'Ganada',
     nextStatus: null,
     accentClassName: 'border-t-emerald-600',
-    countClassName: 'bg-emerald-100 text-emerald-800',
+    countClassName: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    cardAccentClassName: 'border-l-emerald-600',
   },
 ] as const
 
@@ -65,15 +71,12 @@ export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   PERDIDA: 'Perdida',
 }
 
-export const OPPORTUNITY_STATUS_BADGE_CLASSES: Record<
-  OpportunityStatus,
-  string
-> = {
-  NUEVA: 'border-sky-200 bg-sky-50 text-sky-800',
-  COTIZADA: 'border-amber-200 bg-amber-50 text-amber-900',
-  NEGOCIACION: 'border-violet-200 bg-violet-50 text-violet-800',
-  GANADA: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  PERDIDA: 'border-red-200 bg-red-50 text-red-800',
+export const OPPORTUNITY_STATUS_TONES: Record<OpportunityStatus, BadgeTone> = {
+  NUEVA: 'new',
+  COTIZADA: 'quoted',
+  NEGOCIACION: 'negotiation',
+  GANADA: 'won',
+  PERDIDA: 'lost',
 }
 
 export const LOSS_REASON_LABELS: Record<LossReason, string> = {

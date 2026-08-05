@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
+import { Button } from '../shared/Button'
 import type { Product } from './types'
 
 export function ProductFormModal({
@@ -73,7 +74,7 @@ export function ProductFormModal({
         <div className="space-y-4 px-5 py-5">
           {submitError ? <InlineFeedback message={submitError} /> : null}
           <div>
-            <label className="text-sm font-semibold text-slate-800" htmlFor={`${formId}-name`}>
+            <label className="ui-label" htmlFor={`${formId}-name`}>
               Nombre <span aria-hidden="true">*</span>
             </label>
             <input
@@ -81,7 +82,7 @@ export function ProductFormModal({
               aria-invalid={Boolean(nameError)}
               autoComplete="off"
               autoFocus
-              className="mt-1.5 min-h-11 w-full border border-slate-300 bg-white px-3 py-2 text-base text-slate-950 outline-none transition-colors duration-150 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 disabled:bg-slate-100 disabled:text-slate-500 motion-reduce:transition-none"
+              className="ui-field text-base"
               data-modal-initial-focus
               disabled={isSubmitting}
               id={`${formId}-name`}
@@ -99,21 +100,19 @@ export function ProductFormModal({
         </div>
 
         <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <button
-            className="min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
             disabled={isSubmitting}
             onClick={onClose}
-            type="button"
           >
             Cancelar
-          </button>
-          <button
-            className="min-h-11 bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 outline-none transition-colors duration-150 hover:bg-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-50 motion-reduce:transition-none"
+          </Button>
+          <Button
             disabled={isSubmitting}
             type="submit"
+            variant="primary"
           >
             {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear producto'}
-          </button>
+          </Button>
         </footer>
       </form>
     </Modal>

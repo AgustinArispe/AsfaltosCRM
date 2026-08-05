@@ -5,6 +5,7 @@ import {
   loseOpportunity,
   moveOpportunityToNegotiation,
   quoteOpportunity,
+  updateOpportunityQuoteProducts,
   winOpportunity,
   type ApiSession,
 } from '../api/opportunities'
@@ -14,16 +15,19 @@ import { canMoveTo, STAGE_BY_STATUS } from '../pipeline/config'
 import { pipelineErrorMessage } from '../pipeline/errors'
 import { LossModal } from '../pipeline/LossModal'
 import { PipelineBoard } from '../pipeline/PipelineBoard'
+import { OpportunityDrawer } from '../pipeline/OpportunityDrawer'
 import { QuoteModal } from '../pipeline/QuoteModal'
 import type {
   LossReason,
   OpportunitySummary,
+  OpportunityDetail,
   PipelineStatus,
   Product,
   QuoteProductInput,
 } from '../pipeline/types'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
+import { Button } from '../shared/Button'
 
 function replaceOpportunity(
   opportunities: OpportunitySummary[],
@@ -47,6 +51,9 @@ export function PipelinePage() {
   const [quoteOpportunityId, setQuoteOpportunityId] = useState<number | null>(
     null,
   )
+  const [quoteMode, setQuoteMode] = useState<'create' | 'edit'>('create')
+  const [quoteOpportunitySnapshot, setQuoteOpportunitySnapshot] =
+    useState<OpportunitySummary | null>(null)
   const [lossOpportunityId, setLossOpportunityId] = useState<number | null>(
     null,
   )
@@ -54,6 +61,9 @@ export function PipelinePage() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [productsError, setProductsError] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<number | null>(null)
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
+  const [detailReloadKey, setDetailReloadKey] = useState(0)
 
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -105,6 +115,19 @@ export function PipelinePage() {
 
   const openQuoteModal = (opportunityId: number) => {
     setOperationError(null)
+    setQuoteMode('create')
+    setQuoteOpportunitySnapshot(null)
+    setQuoteOpportunityId(opportunityId)
+    if (!products && !isLoadingProducts) void loadProducts()
+  }
+
+  const openEditQuoteModal = (
+    opportunityId: number,
+    detail: OpportunityDetail,
+  ) => {
+    setOperationError(null)
+    setQuoteMode('edit')
+    setQuoteOpportunitySnapshot(detail)
     setQuoteOpportunityId(opportunityId)
     if (!products && !isLoadingProducts) void loadProducts()
   }
@@ -150,6 +173,7 @@ export function PipelinePage() {
       setAnnouncement(
         `${opportunity.customer.name} pasó a ${STAGE_BY_STATUS.get(targetStatus)?.singularLabel}.`,
       )
+      setDetailReloadKey((current) => current + 1)
     } catch (error) {
       setOpportunities((current) => replaceOpportunity(current, opportunity))
       setOperationError(pipelineErrorMessage(error, 'transition'))
@@ -166,16 +190,25 @@ export function PipelinePage() {
 
     setOpportunityBusy(opportunity.id, true)
     try {
-      const updatedOpportunity = await quoteOpportunity(
-        opportunity.id,
-        quoteProducts,
-        apiSession,
-      )
+      const updatedOpportunity =
+        quoteMode === 'edit'
+          ? await updateOpportunityQuoteProducts(
+              opportunity.id,
+              quoteProducts,
+              apiSession,
+            )
+          : await quoteOpportunity(opportunity.id, quoteProducts, apiSession)
       setOpportunities((current) =>
         replaceOpportunity(current, updatedOpportunity),
       )
       setQuoteOpportunityId(null)
-      setAnnouncement(`${opportunity.customer.name} pasó a Cotizada.`)
+      setQuoteOpportunitySnapshot(null)
+      setAnnouncement(
+        quoteMode === 'edit'
+          ? `Se actualizó la cotización de ${opportunity.customer.name}.`
+          : `${opportunity.customer.name} pasó a Cotizada.`,
+      )
+      setDetailReloadKey((current) => current + 1)
     } catch (error) {
       throw new Error(pipelineErrorMessage(error, 'quote'))
     } finally {
@@ -186,6 +219,11 @@ export function PipelinePage() {
   const openLossModal = (opportunityId: number) => {
     setOperationError(null)
     setLossOpportunityId(opportunityId)
+  }
+
+  const openOpportunityDetail = (opportunityId: number) => {
+    setSelectedOpportunityId(opportunityId)
+    setIsDetailDrawerOpen(true)
   }
 
   const handleLoss = async (lossReason: LossReason) => {
@@ -201,6 +239,8 @@ export function PipelinePage() {
         current.filter((item) => item.id !== opportunity.id),
       )
       setLossOpportunityId(null)
+      setSelectedOpportunityId(null)
+      setIsDetailDrawerOpen(false)
       setAnnouncement(
         `${opportunity.customer.name} fue marcada como perdida y se quitó del pipeline.`,
       )
@@ -211,9 +251,9 @@ export function PipelinePage() {
     }
   }
 
-  const quotedOpportunity = quoteOpportunityId
-    ? findOpportunity(quoteOpportunityId)
-    : null
+  const quotedOpportunity =
+    quoteOpportunitySnapshot ??
+    (quoteOpportunityId ? findOpportunity(quoteOpportunityId) : null)
   const lostOpportunity = lossOpportunityId
     ? findOpportunity(lossOpportunityId)
     : null
@@ -225,18 +265,16 @@ export function PipelinePage() {
           <h2 className="text-base font-semibold text-slate-950" id="pipeline-workspace-title">
             Tablero comercial
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Arrastrá cada oportunidad a su siguiente etapa o usá su acción “Mover a”.
+          <p className="mt-0.5 text-sm text-slate-600">
+            Arrastrá una tarjeta para avanzar o abrila para ver el detalle.
           </p>
         </div>
-        <button
-          className="min-h-11 border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 outline-none transition-colors duration-150 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-wait disabled:opacity-50 motion-reduce:transition-none"
+        <Button
           disabled={isLoading || busyOpportunityIds.size > 0}
           onClick={() => setReloadKey((current) => current + 1)}
-          type="button"
         >
           {isLoading ? 'Actualizando…' : 'Actualizar'}
-        </button>
+        </Button>
       </div>
 
       {operationError ? (
@@ -251,23 +289,22 @@ export function PipelinePage() {
       {isLoading ? (
         <LoadingState label="Cargando pipeline…" />
       ) : loadError ? (
-        <div className="border border-slate-200 bg-white px-5 py-6">
+        <div className="ui-panel px-5 py-6">
           <InlineFeedback message={loadError} />
-          <button
-            className="mt-4 min-h-11 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-amber-500"
+          <Button
+            className="mt-4"
             onClick={() => setReloadKey((current) => current + 1)}
-            type="button"
           >
             Reintentar
-          </button>
+          </Button>
         </div>
       ) : (
         <PipelineBoard
           busyOpportunityIds={busyOpportunityIds}
-          onLose={openLossModal}
           onMove={(opportunityId, targetStatus) => {
             void handleMove(opportunityId, targetStatus)
           }}
+          onOpenDetail={openOpportunityDetail}
           opportunities={opportunities}
         />
       )}
@@ -278,7 +315,11 @@ export function PipelinePage() {
 
       <QuoteModal
         isLoadingProducts={isLoadingProducts}
-        onClose={() => setQuoteOpportunityId(null)}
+        mode={quoteMode}
+        onClose={() => {
+          setQuoteOpportunityId(null)
+          setQuoteOpportunitySnapshot(null)
+        }}
         onConfirm={handleQuote}
         onRetryProducts={() => void loadProducts()}
         opportunity={quotedOpportunity}
@@ -289,6 +330,23 @@ export function PipelinePage() {
         onClose={() => setLossOpportunityId(null)}
         onConfirm={handleLoss}
         opportunity={lostOpportunity}
+      />
+      <OpportunityDrawer
+        isOpen={isDetailDrawerOpen}
+        isBusy={
+          selectedOpportunityId !== null &&
+          busyOpportunityIds.has(selectedOpportunityId)
+        }
+        onAfterClose={() => setSelectedOpportunityId(null)}
+        onClose={() => setIsDetailDrawerOpen(false)}
+        onEditQuote={openEditQuoteModal}
+        onLose={openLossModal}
+        onMove={(opportunityId, targetStatus) => {
+          void handleMove(opportunityId, targetStatus)
+        }}
+        onQuote={openQuoteModal}
+        opportunityId={selectedOpportunityId}
+        reloadKey={detailReloadKey}
       />
     </section>
   )

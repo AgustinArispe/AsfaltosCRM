@@ -114,9 +114,9 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
 
     expect(
-      await screen.findByRole('heading', { name: 'Constructora del Sur' }),
+      await screen.findByRole('heading', { name: 'Del Sur SA' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Del Sur SA')).toBeInTheDocument()
+    expect(screen.getByText('Contacto: Constructora del Sur')).toBeInTheDocument()
     expect(screen.getByText('ventas@delsur.test')).toBeInTheDocument()
     expect(screen.getByText('+54 11 4444-5555')).toBeInTheDocument()
     expect(screen.getByText('Buenos Aires')).toBeInTheDocument()
@@ -230,7 +230,7 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
 
     expect(
-      await screen.findByRole('heading', { name: 'Constructora del Sur' }),
+      await screen.findByRole('heading', { name: 'Del Sur SA' }),
     ).toBeInTheDocument()
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
   })

@@ -13,19 +13,30 @@ import type { OpportunitySummary, PipelineStatus } from './types'
 
 const PIPELINE_SENSORS = [
   PointerSensor,
-  KeyboardSensor.configure({ offset: { x: 280, y: 10 } }),
+  KeyboardSensor.configure({
+    offset: { x: 280, y: 10 },
+    keyboardCodes: {
+      start: ['Space'],
+      cancel: ['Escape'],
+      end: ['Space', 'Enter', 'Tab'],
+      up: ['ArrowUp'],
+      down: ['ArrowDown'],
+      left: ['ArrowLeft'],
+      right: ['ArrowRight'],
+    },
+  }),
 ]
 
 export function PipelineBoard({
   opportunities,
   busyOpportunityIds,
   onMove,
-  onLose,
+  onOpenDetail,
 }: {
   opportunities: OpportunitySummary[]
   busyOpportunityIds: ReadonlySet<number>
   onMove: (opportunityId: number, targetStatus: PipelineStatus) => void
-  onLose: (opportunityId: number) => void
+  onOpenDetail: (opportunityId: number) => void
 }) {
   const visibleOpportunities = opportunities.filter(
     (opportunity): opportunity is OpportunitySummary & { status: PipelineStatus } =>
@@ -53,17 +64,17 @@ export function PipelineBoard({
     <DragDropProvider onDragEnd={handleDragEnd} sensors={PIPELINE_SENSORS}>
       <div
         aria-label="Etapas del pipeline. Desplazamiento horizontal disponible en pantallas pequeñas."
-        className="max-w-full overflow-x-auto overscroll-x-contain pb-3"
+        className="max-w-full overflow-x-auto overscroll-x-contain pb-2 outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
         role="region"
         tabIndex={0}
       >
-        <div className="grid min-w-[70rem] grid-cols-4 gap-3">
+        <div className="grid min-w-[68rem] grid-cols-4 gap-2.5">
           {PIPELINE_STAGES.map((stage) => (
             <PipelineColumn
               busyOpportunityIds={busyOpportunityIds}
               key={stage.status}
-              onLose={onLose}
               onMove={onMove}
+              onOpenDetail={onOpenDetail}
               opportunities={visibleOpportunities.filter(
                 (opportunity) => opportunity.status === stage.status,
               )}
@@ -75,7 +86,7 @@ export function PipelineBoard({
 
       <DragOverlay dropAnimation={null}>
         {(source) => (
-          <div className="w-64 border border-amber-500 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-xl">
+          <div className="w-64 rounded-[5px] border border-slate-400 bg-white px-3 py-3 text-sm font-semibold text-slate-950 shadow-lg">
             {(source.data as PipelineDragData | undefined)?.customerName ??
               'Oportunidad'}
           </div>
