@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,10 +11,11 @@ from app.models import WhatsAppAttachment, WhatsAppStorageStatus
 from app.services.errors import EntityNotFoundError, InvalidWhatsAppMessageError
 from app.services.whatsapp_projection_service import later_datetime
 from app.whatsapp import (
+    MediaPutRequest,
     MediaStorage,
     MediaStorageError,
     ProviderMediaReference,
-    StoreMediaRequest,
+    WhatsAppMediaPolicy,
     WhatsAppProvider,
     WhatsAppProviderError,
 )
@@ -32,10 +34,12 @@ class WhatsAppMediaService:
         session: Session,
         provider: WhatsAppProvider,
         storage: MediaStorage,
+        media_policy: WhatsAppMediaPolicy,
     ) -> None:
         self._session = session
         self._provider = provider
         self._storage = storage
+        self._media_policy = media_policy
 
     def download(
         self,
@@ -64,14 +68,23 @@ class WhatsAppMediaService:
                 mime_type=attachment.mime_type,
                 filename=attachment.filename,
             )
+            attachment_media_type = attachment.media_type
 
         try:
             payload = self._provider.download_media(reference)
-            stored = self._storage.store(
-                StoreMediaRequest(
-                    content=payload.content,
-                    mime_type=payload.mime_type,
-                    filename=payload.filename,
+            validated = self._media_policy.validate(
+                media_type=attachment_media_type,
+                content=payload.content,
+                declared_mime_type=payload.mime_type,
+                filename=payload.filename,
+            )
+            stored = self._storage.put(
+                MediaPutRequest(
+                    media_ref=uuid4(),
+                    content=validated.content,
+                    media_type=validated.media_type,
+                    mime_type=validated.mime_type,
+                    filename=validated.filename,
                 )
             )
         except WhatsAppProviderError as error:
@@ -89,6 +102,8 @@ class WhatsAppMediaService:
 
         with self._session.begin():
             attachment = self._attachment_for_update(attachment_id)
+            if attachment.storage_status is WhatsAppStorageStatus.AVAILABLE:
+                return self._result(attachment)
             attachment.storage_key = stored.storage_key
             attachment.storage_status = WhatsAppStorageStatus.AVAILABLE
             attachment.storage_error = None
@@ -102,6 +117,28 @@ class WhatsAppMediaService:
             self._session.flush()
             return self._result(attachment)
 
+    def mark_storage_failed(
+        self,
+        attachment_id: int,
+        safe_message: str,
+        *,
+        expected_storage_key: str,
+        now: datetime | None = None,
+    ) -> StoredAttachmentResult:
+        failed_at = self._aware_utc(now or datetime.now(UTC))
+        with self._session.begin():
+            attachment = self._attachment_for_update(attachment_id)
+            if attachment.storage_key != expected_storage_key:
+                return self._result(attachment)
+            attachment.storage_status = WhatsAppStorageStatus.FAILED
+            attachment.storage_error = safe_message.strip() or "Media storage failed"
+            attachment.updated_at = later_datetime(
+                attachment.updated_at,
+                failed_at,
+            )
+            self._session.flush()
+            return self._result(attachment)
+
     def _mark_failed(
         self,
         attachment_id: int,
@@ -111,6 +148,8 @@ class WhatsAppMediaService:
     ) -> StoredAttachmentResult:
         with self._session.begin():
             attachment = self._attachment_for_update(attachment_id)
+            if attachment.storage_status is WhatsAppStorageStatus.AVAILABLE:
+                return self._result(attachment)
             attachment.storage_status = WhatsAppStorageStatus.FAILED
             attachment.storage_error = safe_message.strip() or "Media storage failed"
             attachment.updated_at = later_datetime(

@@ -27,13 +27,18 @@ services:
       WEB_INTAKE_SIGNING_SECRET: ${WEB_INTAKE_SIGNING_SECRET:?WEB_INTAKE_SIGNING_SECRET is required}
       STALE_OPPORTUNITY_DAYS: ${STALE_OPPORTUNITY_DAYS:-14}
       WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-fake}
-      WHATSAPP_MEDIA_MAX_BYTES: ${WHATSAPP_MEDIA_MAX_BYTES:-16777216}
+      WHATSAPP_MEDIA_STORAGE: ${WHATSAPP_MEDIA_STORAGE:-filesystem}
+      WHATSAPP_MEDIA_STORAGE_ROOT: ${WHATSAPP_MEDIA_STORAGE_ROOT:-/var/lib/asfaltos-crm/whatsapp-media}
+      WHATSAPP_IMAGE_MAX_BYTES: ${WHATSAPP_IMAGE_MAX_BYTES:-16777216}
+      WHATSAPP_DOCUMENT_MAX_BYTES: ${WHATSAPP_DOCUMENT_MAX_BYTES:-16777216}
       WHATSAPP_IMAGE_MIME_TYPES: ${WHATSAPP_IMAGE_MIME_TYPES:-image/jpeg,image/png,image/webp}
       WHATSAPP_DOCUMENT_MIME_TYPES: ${WHATSAPP_DOCUMENT_MIME_TYPES:-application/pdf}
     command: >
       /bin/sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "${BACKEND_PORT}:8000"
+    volumes:
+      - whatsapp_media:/var/lib/asfaltos-crm/whatsapp-media
     depends_on:
       db:
         condition: service_healthy
@@ -71,3 +76,4 @@ services:
 
 volumes:
   postgres_data:
+  whatsapp_media:

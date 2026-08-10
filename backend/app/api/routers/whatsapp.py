@@ -302,7 +302,9 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         metadata: Annotated[str, Form()],
     ) -> MediaUploadResponse:
         parsed = _media_metadata(metadata)
-        content = await file.read(runtime.media_policy.max_bytes + 1)
+        content = await file.read(
+            runtime.media_policy.max_bytes_for(parsed.media_type) + 1
+        )
         uploaded = WhatsAppApiMediaService(session, runtime).upload(
             MediaUploadInput(
                 media_type=parsed.media_type,
@@ -314,9 +316,9 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         return MediaUploadResponse(
             media_ref=uploaded.media_ref,
             media_type=uploaded.media_type,
-            mime_type=uploaded.stored.mime_type,
-            filename=uploaded.stored.filename,
-            size_bytes=uploaded.stored.size_bytes,
+            mime_type=uploaded.mime_type,
+            filename=uploaded.filename,
+            size_bytes=uploaded.size_bytes,
             content_url=f"/api/whatsapp/media/{uploaded.media_ref}/content",
         )
 

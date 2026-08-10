@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -36,7 +37,9 @@ from app.schemas.whatsapp import (
     OutboundMessageResponse,
 )
 from app.whatsapp import (
+    FakeMediaStorage,
     FakeWhatsAppProvider,
+    FilesystemMediaStorage,
     ProviderMediaPayload,
     ProviderMediaReference,
     ProviderSendResult,
@@ -45,14 +48,11 @@ from app.whatsapp import (
     SendImageRequest,
     SendTemplateRequest,
     SendTextRequest,
+    WhatsAppMediaPolicy,
     WindowDecision,
     WindowEvaluationContext,
 )
-from app.whatsapp.runtime import (
-    WhatsAppMediaPolicy,
-    WhatsAppRuntime,
-    build_fake_whatsapp_runtime,
-)
+from app.whatsapp.runtime import WhatsAppRuntime, build_fake_whatsapp_runtime
 
 _NOW = datetime.now(UTC).replace(microsecond=0)
 
@@ -448,7 +448,7 @@ def test_fake_provider_failure_and_timeout_modes(
 @pytest.mark.parametrize(
     ("media_type", "filename", "mime_type", "content"),
     [
-        ("IMAGE", "../foto.jpg", "image/jpeg", b"fake-image"),
+        ("IMAGE", "../foto.jpg", "image/jpeg", b"\xff\xd8\xfffake-image"),
         ("DOCUMENT", "../ficha.pdf", "application/pdf", b"%PDF-fake"),
     ],
 )
@@ -493,8 +493,9 @@ def test_authenticated_media_upload_preview_and_outbound_send(
     sent = OutboundMessageResponse.model_validate(sent_response.json())
     assert sent_response.status_code == 201
     assert sent.message.attachment is not None
-    assert sent.message.attachment.content_url is not None
-    persisted_content = whatsapp_api.client.get(sent.message.attachment.content_url)
+    content_url = sent.message.attachment.content_url
+    assert content_url is not None
+    persisted_content = whatsapp_api.client.get(content_url)
     assert persisted_content.content == content
     assert "storage_key" not in sent_response.text
 
@@ -510,8 +511,14 @@ def test_media_validation_and_strict_requests(whatsapp_api: WhatsAppApiContext) 
         files={"file": ("a.pdf", b"pdf", "application/pdf")},
         data={"metadata": '{"media_type":"DOCUMENT","extra":true}'},
     )
+    mismatched_content = whatsapp_api.client.post(
+        "/api/whatsapp/media",
+        files={"file": ("fake.jpg", b"%PDF-1.7 fake", "image/jpeg")},
+        data={"metadata": '{"media_type":"IMAGE"}'},
+    )
     assert invalid_mime.status_code == 422
     assert extra_metadata.status_code == 422
+    assert mismatched_content.status_code == 422
 
     inbound = _inject_text(
         whatsapp_api,
@@ -549,7 +556,8 @@ def test_media_size_limit_is_enforced_before_storage(
     constrained_runtime = replace(
         runtime,
         media_policy=WhatsAppMediaPolicy(
-            max_bytes=3,
+            image_max_bytes=3,
+            document_max_bytes=3,
             image_mime_types=runtime.media_policy.image_mime_types,
             document_mime_types=runtime.media_policy.document_mime_types,
         ),
@@ -563,6 +571,109 @@ def test_media_size_limit_is_enforced_before_storage(
             data={"metadata": '{"media_type":"DOCUMENT"}'},
         )
     assert response.status_code == 422
+
+
+def test_storage_failure_returns_safe_error_without_media_reference(
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    storage = FakeMediaStorage()
+    storage.configure_put_failure("Internal storage path failed")
+    runtime = build_fake_whatsapp_runtime(storage=storage)
+
+    with _client_for_runtime(db_session, supervisor_user, runtime) as client:
+        response = client.post(
+            "/api/whatsapp/media",
+            files={"file": ("falla.pdf", b"%PDF-1.7 failure", "application/pdf")},
+            data={"metadata": '{"media_type":"DOCUMENT"}'},
+        )
+
+    assert response.status_code == 422
+    assert set(response.json()) == {"detail"}
+    assert "media_ref" not in response.text
+    assert "path" not in response.text.lower()
+
+
+def test_uploaded_media_reference_survives_backend_runtime_restart(
+    db_session: Session,
+    supervisor_user: User,
+    tmp_path: Path,
+) -> None:
+    provider = FakeWhatsAppProvider(freeform_window=timedelta(hours=24))
+    first_runtime = build_fake_whatsapp_runtime(
+        provider=provider,
+        storage=FilesystemMediaStorage(tmp_path),
+    )
+    with _client_for_runtime(db_session, supervisor_user, first_runtime) as client:
+        upload_response = client.post(
+            "/api/whatsapp/media",
+            files={
+                "file": (
+                    "persistente.pdf",
+                    b"%PDF-1.7 persistent",
+                    "application/pdf",
+                )
+            },
+            data={"metadata": '{"media_type":"DOCUMENT"}'},
+        )
+        uploaded = MediaUploadResponse.model_validate(upload_response.json())
+
+    restarted_runtime = build_fake_whatsapp_runtime(
+        provider=provider,
+        storage=FilesystemMediaStorage(tmp_path),
+    )
+    with _client_for_runtime(db_session, supervisor_user, restarted_runtime) as client:
+        preview = client.get(uploaded.content_url)
+
+    assert upload_response.status_code == 201
+    assert preview.status_code == 200
+    assert preview.content == b"%PDF-1.7 persistent"
+    assert str(tmp_path) not in upload_response.text
+    assert "storage_key" not in upload_response.text
+
+
+def test_soft_deleted_commercial_entities_do_not_remove_media_history(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+) -> None:
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.retained-media",
+        phone="+54 11 6000-0055",
+    )
+    uploaded = _upload_document(whatsapp_api, b"%PDF-1.7 retained")
+    sent_response = whatsapp_api.client.post(
+        f"/api/whatsapp/conversations/{inbound.message.conversation_id}/messages",
+        json={
+            "message_type": "DOCUMENT",
+            "client_generated_id": str(uuid4()),
+            "media_ref": str(uploaded.media_ref),
+        },
+    )
+    sent = OutboundMessageResponse.model_validate(sent_response.json())
+    detail = ConversationDetailResponse.model_validate(
+        whatsapp_api.client.get(
+            f"/api/whatsapp/conversations/{inbound.message.conversation_id}"
+        ).json()
+    )
+    assert sent.message.attachment is not None
+    content_url = sent.message.attachment.content_url
+    assert content_url is not None
+    assert detail.customer is not None
+    assert detail.active_opportunity is not None
+
+    deleted_at = datetime.now(UTC)
+    customer = db_session.get(Customer, detail.customer.id)
+    opportunity = db_session.get(Opportunity, detail.active_opportunity.id)
+    assert customer is not None
+    assert opportunity is not None
+    customer.deleted_at = deleted_at
+    opportunity.deleted_at = deleted_at
+    db_session.commit()
+
+    content = whatsapp_api.client.get(content_url)
+    assert content.status_code == 200
+    assert content.content == b"%PDF-1.7 retained"
 
 
 def test_fake_inbound_media_downloads_through_attachment_endpoint(

@@ -28,7 +28,7 @@ from app.services import (
 )
 from app.services.errors import InvalidWhatsAppMessageError
 from app.services.whatsapp_api_media_service import WhatsAppApiMediaService
-from app.whatsapp import FakeWhatsAppProvider, ProviderMediaPayload
+from app.whatsapp import FakeWhatsAppProvider, MediaStorageError, ProviderMediaPayload
 from app.whatsapp.runtime import WhatsAppRuntime
 
 
@@ -141,8 +141,13 @@ def _inbound_input(
     provider: FakeWhatsAppProvider,
 ) -> InboundMessageInput:
     if isinstance(payload, FakeInboundMediaRequest):
-        uploaded = runtime.uploads.get(payload.media_ref)
-        if uploaded.media_type is not payload.message_type:
+        try:
+            stored = runtime.storage.get_metadata(payload.media_ref)
+        except MediaStorageError as error:
+            raise InvalidWhatsAppMessageError(
+                "Uploaded media reference is invalid"
+            ) from error
+        if stored.media_type is not payload.message_type:
             raise InvalidWhatsAppMessageError(
                 "Uploaded media does not match the inbound message type"
             )

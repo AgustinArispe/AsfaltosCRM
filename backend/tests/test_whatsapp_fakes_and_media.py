@@ -20,7 +20,10 @@ from app.services import (
 from app.whatsapp import (
     FakeMediaStorage,
     FakeWhatsAppProvider,
+    MediaPutRequest,
+    MediaStorageConflictError,
     MediaStorageError,
+    MediaStorageNotFoundError,
     ProviderErrorKind,
     ProviderMediaPayload,
     ProviderMediaReference,
@@ -30,14 +33,21 @@ from app.whatsapp import (
     SendImageRequest,
     SendTemplateRequest,
     SendTextRequest,
-    StoreMediaRequest,
+    StoredMedia,
     TemplateHeaderType,
     TemplateParameter,
+    WhatsAppMediaPolicy,
     WhatsAppProviderError,
     WindowEvaluationContext,
 )
 
 NOW = datetime(2030, 8, 11, 12, 0, tzinfo=UTC)
+MEDIA_POLICY = WhatsAppMediaPolicy(
+    image_max_bytes=1024,
+    document_max_bytes=1024,
+    image_mime_types=frozenset({"image/jpeg", "image/png", "image/webp"}),
+    document_mime_types=frozenset({"application/pdf"}),
+)
 
 
 def test_fake_provider_records_all_requests_and_has_deterministic_ids() -> None:
@@ -180,27 +190,47 @@ def test_fake_provider_supports_media_errors_and_delivery_event_scenarios() -> N
         )
 
 
-def test_fake_media_storage_round_trip_delete_and_failure() -> None:
+def test_fake_media_storage_round_trip_idempotency_conflict_and_failure() -> None:
     storage = FakeMediaStorage()
-    request = StoreMediaRequest(
-        content=b"image-bytes",
+    media_ref = UUID("30000000-0000-0000-0000-000000000001")
+    request = MediaPutRequest(
+        media_ref=media_ref,
+        content=b"\x89PNG\r\n\x1a\nimage-bytes",
+        media_type=WhatsAppMessageType.IMAGE,
         mime_type="image/png",
         filename="mapa.png",
     )
-    stored = storage.store(request)
+    stored = storage.put(request)
 
     assert stored.storage_key == "fake-media-000001"
-    assert stored.size_bytes == len(b"image-bytes")
-    assert storage.read(stored.storage_key).content == b"image-bytes"
-    storage.delete(stored.storage_key)
-    with pytest.raises(FileNotFoundError):
-        storage.read(stored.storage_key)
+    assert stored.size_bytes == len(request.content)
+    assert storage.get(stored.storage_key).content == request.content
+    assert storage.get_metadata(media_ref) == stored
+    assert storage.put(request) == stored
+    with pytest.raises(MediaStorageConflictError):
+        storage.put(
+            MediaPutRequest(
+                media_ref=media_ref,
+                content=request.content + b"changed",
+                media_type=request.media_type,
+                mime_type=request.mime_type,
+                filename=request.filename,
+            )
+        )
+    with pytest.raises(MediaStorageNotFoundError):
+        storage.get("missing")
 
-    storage.configure_store_failure("Storage unavailable")
+    storage.configure_put_failure("Storage unavailable")
     with pytest.raises(MediaStorageError, match="Storage unavailable"):
-        storage.store(request)
-    storage.configure_store_failure(None)
-    assert storage.store(request).storage_key == "fake-media-000002"
+        storage.put(
+            MediaPutRequest(
+                media_ref=UUID("30000000-0000-0000-0000-000000000002"),
+                content=request.content,
+                media_type=request.media_type,
+                mime_type=request.mime_type,
+                filename=request.filename,
+            )
+        )
 
 
 def create_pending_attachment(
@@ -245,7 +275,7 @@ def test_media_service_downloads_once_and_persists_stable_storage_metadata(
     provider.add_media(
         "provider-doc-1",
         ProviderMediaPayload(
-            content=b"pdf bytes",
+            content=b"%PDF-1.7 pdf bytes",
             mime_type="application/pdf",
             filename="informe.pdf",
         ),
@@ -257,7 +287,7 @@ def test_media_service_downloads_once_and_persists_stable_storage_metadata(
         "provider-doc-1",
     )
     storage = FakeMediaStorage()
-    service = WhatsAppMediaService(db_session, provider, storage)
+    service = WhatsAppMediaService(db_session, provider, storage, MEDIA_POLICY)
 
     first = service.download(attachment.id, now=NOW)
     second = service.download(attachment.id, now=NOW + timedelta(minutes=1))
@@ -268,9 +298,9 @@ def test_media_service_downloads_once_and_persists_stable_storage_metadata(
     assert persisted is not None
     assert persisted.mime_type == "application/pdf"
     assert persisted.filename == "informe.pdf"
-    assert persisted.size_bytes == len(b"pdf bytes")
+    assert persisted.size_bytes == len(b"%PDF-1.7 pdf bytes")
     assert persisted.storage_key is not None
-    assert storage.read(persisted.storage_key).content == b"pdf bytes"
+    assert storage.get(persisted.storage_key).content == b"%PDF-1.7 pdf bytes"
 
 
 @pytest.mark.parametrize("storage_failure", [False, True])
@@ -285,7 +315,7 @@ def test_media_service_records_safe_provider_or_storage_failure(
         provider.add_media(
             media_id,
             ProviderMediaPayload(
-                content=b"bytes",
+                content=b"%PDF-1.7 bytes",
                 mime_type="application/pdf",
                 filename=None,
             ),
@@ -298,15 +328,111 @@ def test_media_service_records_safe_provider_or_storage_failure(
     )
     storage = FakeMediaStorage()
     if storage_failure:
-        storage.configure_store_failure("Safe storage failure")
+        storage.configure_put_failure("Safe storage failure")
 
-    result = WhatsAppMediaService(db_session, provider, storage).download(
-        attachment.id,
-        now=NOW,
+    service = WhatsAppMediaService(
+        db_session,
+        provider,
+        storage,
+        MEDIA_POLICY,
     )
+    result = service.download(attachment.id, now=NOW)
 
     assert result.storage_status is WhatsAppStorageStatus.FAILED
+    if storage_failure:
+        storage.configure_put_failure(None)
+        retried = service.download(attachment.id, now=NOW + timedelta(minutes=1))
+        not_downgraded = service.mark_storage_failed(
+            attachment.id,
+            "Late failure",
+            expected_storage_key="superseded-storage-key",
+            now=NOW + timedelta(minutes=2),
+        )
+        assert retried.storage_status is WhatsAppStorageStatus.AVAILABLE
+        assert not_downgraded.storage_status is WhatsAppStorageStatus.AVAILABLE
+        assert retried.storage_key is not None
+        current_failure = service.mark_storage_failed(
+            attachment.id,
+            "Integrity failure",
+            expected_storage_key=retried.storage_key,
+            now=NOW + timedelta(minutes=3),
+        )
+        recovered = service.download(
+            attachment.id,
+            now=NOW + timedelta(minutes=4),
+        )
+        assert current_failure.storage_status is WhatsAppStorageStatus.FAILED
+        assert recovered.storage_status is WhatsAppStorageStatus.AVAILABLE
     persisted = db_session.get(WhatsAppAttachment, attachment.id)
     assert persisted is not None
-    assert persisted.storage_key is None
-    assert persisted.storage_error is not None
+    if storage_failure:
+        assert persisted.storage_key is not None
+        assert persisted.storage_error is None
+    else:
+        assert persisted.storage_key is None
+        assert persisted.storage_error is not None
+
+
+def test_media_service_recovers_when_storage_succeeds_before_db_failure(
+    db_session: Session,
+) -> None:
+    provider = FakeWhatsAppProvider(now=NOW, freeform_window=timedelta(hours=24))
+    provider.add_media(
+        "provider-doc-db-failure",
+        ProviderMediaPayload(
+            content=b"%PDF-1.7 durable-before-db",
+            mime_type="application/pdf",
+            filename="durable.pdf",
+        ),
+    )
+    attachment = create_pending_attachment(
+        db_session,
+        provider,
+        "media-db-failure-00000001",
+        "provider-doc-db-failure",
+    )
+    storage = RecordingFakeMediaStorage()
+    failing_service = FailingReconciliationMediaService(
+        db_session,
+        provider,
+        storage,
+        MEDIA_POLICY,
+    )
+
+    with pytest.raises(RuntimeError, match="Injected DB reconciliation failure"):
+        failing_service.download(attachment.id, now=NOW)
+
+    pending = db_session.get(WhatsAppAttachment, attachment.id)
+    assert pending is not None
+    assert pending.storage_status is WhatsAppStorageStatus.PENDING
+    assert pending.storage_key is None
+    assert len(storage.put_results) == 1
+    db_session.commit()
+
+    recovered = WhatsAppMediaService(
+        db_session,
+        provider,
+        storage,
+        MEDIA_POLICY,
+    ).download(attachment.id, now=NOW + timedelta(minutes=1))
+
+    assert recovered.storage_status is WhatsAppStorageStatus.AVAILABLE
+    assert len(storage.put_results) == 2
+    assert storage.put_results[0].storage_key != storage.put_results[1].storage_key
+
+
+class RecordingFakeMediaStorage(FakeMediaStorage):
+    def __init__(self) -> None:
+        super().__init__()
+        self.put_results: list[StoredMedia] = []
+
+    def put(self, request: MediaPutRequest) -> StoredMedia:
+        result = super().put(request)
+        self.put_results.append(result)
+        return result
+
+
+class FailingReconciliationMediaService(WhatsAppMediaService):
+    def _attachment_for_update(self, attachment_id: int) -> WhatsAppAttachment:
+        del attachment_id
+        raise RuntimeError("Injected DB reconciliation failure")

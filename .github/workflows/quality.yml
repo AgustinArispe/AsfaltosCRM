@@ -26,6 +26,7 @@ jobs:
       WEB_INTAKE_SIGNING_SECRET: ci-only-intake-secret-with-thirty-two-characters
       STALE_OPPORTUNITY_DAYS: "14"
       WHATSAPP_PROVIDER: fake
+      WHATSAPP_MEDIA_STORAGE: fake
     services:
       postgres:
         image: postgres:17-alpine

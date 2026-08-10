@@ -22,18 +22,28 @@ from app.whatsapp.contracts import (
 from app.whatsapp.fake_provider import FakeWhatsAppProvider
 from app.whatsapp.media_storage import (
     FakeMediaStorage,
+    FilesystemMediaStorage,
+    MediaPutRequest,
     MediaStorage,
+    MediaStorageConflictError,
     MediaStorageError,
+    MediaStorageIntegrityError,
+    MediaStorageNotFoundError,
     StoredMedia,
     StoredMediaContent,
-    StoreMediaRequest,
 )
+from app.whatsapp.media_validation import WhatsAppMediaPolicy
 
 __all__ = [
     "FakeMediaStorage",
     "FakeWhatsAppProvider",
+    "FilesystemMediaStorage",
+    "MediaPutRequest",
     "MediaStorage",
+    "MediaStorageConflictError",
     "MediaStorageError",
+    "MediaStorageIntegrityError",
+    "MediaStorageNotFoundError",
     "ProviderDeliveryEvent",
     "ProviderErrorDetails",
     "ProviderErrorKind",
@@ -47,11 +57,11 @@ __all__ = [
     "SendImageRequest",
     "SendTemplateRequest",
     "SendTextRequest",
-    "StoreMediaRequest",
     "StoredMedia",
     "StoredMediaContent",
     "TemplateHeaderType",
     "TemplateParameter",
+    "WhatsAppMediaPolicy",
     "WhatsAppProvider",
     "WhatsAppProviderError",
     "WindowDecision",

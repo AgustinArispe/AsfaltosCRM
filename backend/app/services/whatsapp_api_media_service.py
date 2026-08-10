@@ -1,22 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import PurePath
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import WhatsAppAttachment, WhatsAppMessageType, WhatsAppStorageStatus
+from app.models import WhatsAppMessageType, WhatsAppStorageStatus
 from app.services.errors import InvalidWhatsAppMessageError
 from app.services.whatsapp_media_service import WhatsAppMediaService
 from app.services.whatsapp_message_service import OutboundAttachmentInput
 from app.whatsapp import (
+    MediaPutRequest,
     MediaStorageError,
+    StoredMedia,
     StoredMediaContent,
-    StoreMediaRequest,
 )
-from app.whatsapp.runtime import UploadedMedia, WhatsAppRuntime
+from app.whatsapp.media_validation import ValidatedMedia
+from app.whatsapp.runtime import WhatsAppRuntime
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,28 +43,25 @@ class WhatsAppApiMediaService:
         self._session = session
         self._runtime = runtime
 
-    def upload(self, upload: MediaUploadInput) -> UploadedMedia:
-        mime_type = upload.mime_type.strip().lower()
-        filename = _sanitized_filename(upload.filename)
-        if not upload.content:
-            raise InvalidWhatsAppMessageError("Uploaded media cannot be empty")
-        if len(upload.content) > self._runtime.media_policy.max_bytes:
-            raise InvalidWhatsAppMessageError("Uploaded media exceeds the size limit")
-        if not self._runtime.media_policy.supports(upload.media_type, mime_type):
-            raise InvalidWhatsAppMessageError(
-                "Uploaded media type or MIME type is not allowed"
-            )
+    def upload(self, upload: MediaUploadInput) -> StoredMedia:
+        validated = self._validate(
+            media_type=upload.media_type,
+            content=upload.content,
+            mime_type=upload.mime_type,
+            filename=upload.filename,
+        )
         try:
-            stored = self._runtime.storage.store(
-                StoreMediaRequest(
-                    content=upload.content,
-                    mime_type=mime_type,
-                    filename=filename,
+            return self._runtime.storage.put(
+                MediaPutRequest(
+                    media_ref=uuid4(),
+                    content=validated.content,
+                    media_type=validated.media_type,
+                    mime_type=validated.mime_type,
+                    filename=validated.filename,
                 )
             )
         except MediaStorageError as error:
             raise InvalidWhatsAppMessageError("Media storage failed") from error
-        return self._runtime.uploads.register(upload.media_type, stored)
 
     def outbound_attachment(
         self,
@@ -72,80 +69,103 @@ class WhatsAppApiMediaService:
         *,
         expected_type: WhatsAppMessageType,
     ) -> OutboundAttachmentInput:
-        uploaded = self._runtime.uploads.get(media_ref)
-        if uploaded.media_type is not expected_type:
+        stored = self._metadata(media_ref)
+        if stored.media_type is not expected_type:
             raise InvalidWhatsAppMessageError(
                 "Uploaded media does not match the outbound message type"
             )
         return OutboundAttachmentInput(
             provider_media_id=None,
-            storage_key=uploaded.stored.storage_key,
-            mime_type=uploaded.stored.mime_type,
-            filename=uploaded.stored.filename,
-            size_bytes=uploaded.stored.size_bytes,
+            storage_key=stored.storage_key,
+            mime_type=stored.mime_type,
+            filename=stored.filename,
+            size_bytes=stored.size_bytes,
         )
 
     def read_uploaded(self, media_ref: UUID) -> MediaContentResult:
-        uploaded = self._runtime.uploads.get(media_ref)
-        content = self._read_storage(uploaded.stored.storage_key)
-        self._validate_stored_content(uploaded.media_type, content)
+        metadata = self._metadata(media_ref)
+        content = self._read_storage(metadata.storage_key)
+        validated = self._validate_content(content)
         return MediaContentResult(
-            content=content.content,
-            mime_type=content.mime_type,
-            filename=_sanitized_filename(content.filename),
+            content=validated.content,
+            mime_type=validated.mime_type,
+            filename=validated.filename,
         )
 
     def read_attachment(self, attachment_id: int) -> MediaContentResult:
-        result = WhatsAppMediaService(
+        media_service = WhatsAppMediaService(
             self._session,
             self._runtime.provider,
             self._runtime.storage,
-        ).download(attachment_id)
+            self._runtime.media_policy,
+        )
+        result = media_service.download(attachment_id)
         if (
             result.storage_status is not WhatsAppStorageStatus.AVAILABLE
             or result.storage_key is None
         ):
             raise InvalidWhatsAppMessageError("Attachment content is unavailable")
-        content = self._read_storage(result.storage_key)
-        with self._session.begin():
-            media_type = self._session.scalar(
-                select(WhatsAppAttachment.media_type).where(
-                    WhatsAppAttachment.id == attachment_id
-                )
+        try:
+            content = self._runtime.storage.get(result.storage_key)
+            validated = self._runtime.media_policy.validate(
+                media_type=content.metadata.media_type,
+                content=content.content,
+                declared_mime_type=content.metadata.mime_type,
+                filename=content.metadata.filename,
             )
-        if media_type is None:
-            raise InvalidWhatsAppMessageError("Attachment metadata is unavailable")
-        self._validate_stored_content(media_type, content)
+        except MediaStorageError as error:
+            media_service.mark_storage_failed(
+                attachment_id,
+                "Stored media content is unavailable",
+                expected_storage_key=result.storage_key,
+            )
+            raise InvalidWhatsAppMessageError(
+                "Stored media content is unavailable"
+            ) from error
         return MediaContentResult(
-            content=content.content,
-            mime_type=content.mime_type,
-            filename=_sanitized_filename(content.filename),
+            content=validated.content,
+            mime_type=validated.mime_type,
+            filename=validated.filename,
         )
+
+    def _metadata(self, media_ref: UUID) -> StoredMedia:
+        try:
+            return self._runtime.storage.get_metadata(media_ref)
+        except MediaStorageError as error:
+            raise InvalidWhatsAppMessageError(
+                "Uploaded media reference is invalid"
+            ) from error
 
     def _read_storage(self, storage_key: str) -> StoredMediaContent:
         try:
-            return self._runtime.storage.read(storage_key)
-        except (FileNotFoundError, MediaStorageError) as error:
+            return self._runtime.storage.get(storage_key)
+        except MediaStorageError as error:
             raise InvalidWhatsAppMessageError(
                 "Stored media content is unavailable"
             ) from error
 
-    def _validate_stored_content(
+    def _validate_content(self, content: StoredMediaContent) -> ValidatedMedia:
+        return self._validate(
+            media_type=content.metadata.media_type,
+            content=content.content,
+            mime_type=content.metadata.mime_type,
+            filename=content.metadata.filename,
+        )
+
+    def _validate(
         self,
+        *,
         media_type: WhatsAppMessageType,
-        content: StoredMediaContent,
-    ) -> None:
-        if len(content.content) > self._runtime.media_policy.max_bytes:
-            raise InvalidWhatsAppMessageError("Stored media exceeds the size limit")
-        if not self._runtime.media_policy.supports(media_type, content.mime_type):
-            raise InvalidWhatsAppMessageError("Stored media MIME type is not allowed")
-
-
-def _sanitized_filename(filename: str | None) -> str | None:
-    if filename is None:
-        return None
-    leaf = PurePath(filename.replace("\\", "/")).name
-    cleaned = "".join(
-        character for character in leaf if character.isprintable()
-    ).strip()
-    return cleaned or None
+        content: bytes,
+        mime_type: str,
+        filename: str | None,
+    ) -> ValidatedMedia:
+        try:
+            return self._runtime.media_policy.validate(
+                media_type=media_type,
+                content=content,
+                declared_mime_type=mime_type,
+                filename=filename,
+            )
+        except MediaStorageError as error:
+            raise InvalidWhatsAppMessageError(str(error)) from error

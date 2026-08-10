@@ -1,5 +1,6 @@
 from functools import lru_cache
 from os import getenv
+from pathlib import Path
 
 JWT_ALGORITHM = "HS256"
 DEFAULT_ALLOWED_HOSTS = ("localhost", "127.0.0.1", "backend", "testserver")
@@ -9,6 +10,7 @@ DEFAULT_WHATSAPP_IMAGE_MIME_TYPES = (
     "image/webp",
 )
 DEFAULT_WHATSAPP_DOCUMENT_MIME_TYPES = ("application/pdf",)
+DEFAULT_WHATSAPP_MEDIA_MAX_BYTES = 16_777_216
 
 
 @lru_cache
@@ -89,14 +91,48 @@ def get_whatsapp_provider_name() -> str:
 
 
 @lru_cache
-def get_whatsapp_media_max_bytes() -> int:
-    raw_value = getenv("WHATSAPP_MEDIA_MAX_BYTES", "16777216")
+def get_whatsapp_image_max_bytes() -> int:
+    return _positive_int_setting(
+        "WHATSAPP_IMAGE_MAX_BYTES",
+        getenv("WHATSAPP_MEDIA_MAX_BYTES", str(DEFAULT_WHATSAPP_MEDIA_MAX_BYTES)),
+    )
+
+
+@lru_cache
+def get_whatsapp_document_max_bytes() -> int:
+    return _positive_int_setting(
+        "WHATSAPP_DOCUMENT_MAX_BYTES",
+        getenv("WHATSAPP_MEDIA_MAX_BYTES", str(DEFAULT_WHATSAPP_MEDIA_MAX_BYTES)),
+    )
+
+
+@lru_cache
+def get_whatsapp_media_storage_name() -> str:
+    storage_name = getenv("WHATSAPP_MEDIA_STORAGE", "fake").strip().lower()
+    if storage_name not in {"fake", "filesystem"}:
+        raise RuntimeError("WHATSAPP_MEDIA_STORAGE must be 'fake' or 'filesystem'")
+    return storage_name
+
+
+@lru_cache
+def get_whatsapp_media_storage_root() -> Path:
+    raw_value = getenv(
+        "WHATSAPP_MEDIA_STORAGE_ROOT",
+        "/var/lib/asfaltos-crm/whatsapp-media",
+    ).strip()
+    if not raw_value:
+        raise RuntimeError("WHATSAPP_MEDIA_STORAGE_ROOT cannot be empty")
+    return Path(raw_value)
+
+
+def _positive_int_setting(name: str, default: str) -> int:
+    raw_value = getenv(name, default)
     try:
         maximum = int(raw_value)
     except ValueError as error:
-        raise RuntimeError("WHATSAPP_MEDIA_MAX_BYTES must be an integer") from error
+        raise RuntimeError(f"{name} must be an integer") from error
     if maximum <= 0:
-        raise RuntimeError("WHATSAPP_MEDIA_MAX_BYTES must be greater than zero")
+        raise RuntimeError(f"{name} must be greater than zero")
     return maximum
 
 
