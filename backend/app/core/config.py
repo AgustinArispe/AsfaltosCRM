@@ -3,6 +3,12 @@ from os import getenv
 
 JWT_ALGORITHM = "HS256"
 DEFAULT_ALLOWED_HOSTS = ("localhost", "127.0.0.1", "backend", "testserver")
+DEFAULT_WHATSAPP_IMAGE_MIME_TYPES = (
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+)
+DEFAULT_WHATSAPP_DOCUMENT_MIME_TYPES = ("application/pdf",)
 
 
 @lru_cache
@@ -70,3 +76,54 @@ def get_allowed_hosts() -> list[str]:
     if "*" in allowed_hosts:
         raise RuntimeError("ALLOWED_HOSTS cannot contain a wildcard")
     return allowed_hosts
+
+
+@lru_cache
+def get_whatsapp_provider_name() -> str:
+    provider_name = getenv("WHATSAPP_PROVIDER", "fake").strip().lower()
+    if provider_name != "fake":
+        raise RuntimeError(
+            "WHATSAPP_PROVIDER must be 'fake' until another adapter is implemented"
+        )
+    return provider_name
+
+
+@lru_cache
+def get_whatsapp_media_max_bytes() -> int:
+    raw_value = getenv("WHATSAPP_MEDIA_MAX_BYTES", "16777216")
+    try:
+        maximum = int(raw_value)
+    except ValueError as error:
+        raise RuntimeError("WHATSAPP_MEDIA_MAX_BYTES must be an integer") from error
+    if maximum <= 0:
+        raise RuntimeError("WHATSAPP_MEDIA_MAX_BYTES must be greater than zero")
+    return maximum
+
+
+@lru_cache
+def get_whatsapp_image_mime_types() -> frozenset[str]:
+    return _mime_type_setting(
+        "WHATSAPP_IMAGE_MIME_TYPES",
+        DEFAULT_WHATSAPP_IMAGE_MIME_TYPES,
+    )
+
+
+@lru_cache
+def get_whatsapp_document_mime_types() -> frozenset[str]:
+    return _mime_type_setting(
+        "WHATSAPP_DOCUMENT_MIME_TYPES",
+        DEFAULT_WHATSAPP_DOCUMENT_MIME_TYPES,
+    )
+
+
+def _mime_type_setting(
+    name: str,
+    default: tuple[str, ...],
+) -> frozenset[str]:
+    raw_value = getenv(name, ",".join(default))
+    values = frozenset(
+        value.strip().lower() for value in raw_value.split(",") if value.strip()
+    )
+    if not values:
+        raise RuntimeError(f"{name} must contain at least one MIME type")
+    return values

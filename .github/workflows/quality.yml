@@ -25,6 +25,7 @@ jobs:
       ALLOWED_HOSTS: localhost,testserver
       WEB_INTAKE_SIGNING_SECRET: ci-only-intake-secret-with-thirty-two-characters
       STALE_OPPORTUNITY_DAYS: "14"
+      WHATSAPP_PROVIDER: fake
     services:
       postgres:
         image: postgres:17-alpine

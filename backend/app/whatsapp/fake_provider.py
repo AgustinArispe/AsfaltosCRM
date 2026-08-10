@@ -147,6 +147,8 @@ class FakeWhatsAppProvider:
         *,
         duplicate: bool = False,
         occurred_at: datetime | None = None,
+        error_code: str | None = None,
+        error_message: str | None = None,
     ) -> tuple[ProviderDeliveryEvent, ...]:
         timestamp = self._aware_utc(occurred_at or self._now)
         events = tuple(
@@ -154,6 +156,12 @@ class FakeWhatsAppProvider:
                 external_message_id=external_message_id,
                 state=state,
                 occurred_at=timestamp + timedelta(seconds=index),
+                error_code=(
+                    error_code if state is WhatsAppProviderState.FAILED else None
+                ),
+                error_message=(
+                    error_message if state is WhatsAppProviderState.FAILED else None
+                ),
             )
             for index, state in enumerate(states)
         )

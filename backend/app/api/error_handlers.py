@@ -16,8 +16,15 @@ from app.services import (
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
+    InvalidWhatsAppCursorError,
+    InvalidWhatsAppMessageError,
     LeadIntakeIdempotencyConflictError,
     PermissionDeniedError,
+    WhatsAppConversationResolutionError,
+    WhatsAppFreeformWindowClosedError,
+    WhatsAppIdempotencyConflictError,
+    WhatsAppOpportunityAssociationError,
+    WhatsAppReplyInProgressError,
 )
 
 DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
@@ -29,6 +36,11 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (DuplicateEntityError, status.HTTP_409_CONFLICT),
     (CustomerIdentityConflictError, status.HTTP_409_CONFLICT),
     (LeadIntakeIdempotencyConflictError, status.HTTP_409_CONFLICT),
+    (WhatsAppFreeformWindowClosedError, status.HTTP_409_CONFLICT),
+    (WhatsAppConversationResolutionError, status.HTTP_409_CONFLICT),
+    (WhatsAppIdempotencyConflictError, status.HTTP_409_CONFLICT),
+    (WhatsAppOpportunityAssociationError, status.HTTP_409_CONFLICT),
+    (WhatsAppReplyInProgressError, status.HTTP_409_CONFLICT),
     (InactiveUserError, status.HTTP_409_CONFLICT),
     (InactiveProductError, status.HTTP_409_CONFLICT),
     (InvalidStateTransitionError, status.HTTP_409_CONFLICT),
@@ -36,6 +48,8 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (InvalidQuoteProductsError, status.HTTP_422_UNPROCESSABLE_CONTENT),
     (InvalidLossReasonError, status.HTTP_422_UNPROCESSABLE_CONTENT),
     (InvalidLeadIntakeError, status.HTTP_422_UNPROCESSABLE_CONTENT),
+    (InvalidWhatsAppCursorError, status.HTTP_422_UNPROCESSABLE_CONTENT),
+    (InvalidWhatsAppMessageError, status.HTTP_422_UNPROCESSABLE_CONTENT),
 )
 
 

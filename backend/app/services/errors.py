@@ -33,6 +33,14 @@ class InvalidWhatsAppMessageError(DomainError):
     """Raised when a WhatsApp message violates its domain contract."""
 
 
+class WhatsAppFreeformWindowClosedError(InvalidWhatsAppMessageError):
+    """Raised when freeform sending requires an approved template."""
+
+
+class InvalidWhatsAppCursorError(DomainError):
+    """Raised when an opaque WhatsApp API cursor cannot be validated."""
+
+
 class WhatsAppIdempotencyConflictError(DomainError):
     """Raised when a WhatsApp idempotency key is reused with another payload."""
 

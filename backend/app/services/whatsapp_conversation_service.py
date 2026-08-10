@@ -160,6 +160,26 @@ class WhatsAppConversationService:
         self._session.flush()
         return link
 
+    def unlink_opportunity(
+        self,
+        conversation_id: int,
+        *,
+        now: datetime | None = None,
+    ) -> WhatsAppConversationOpportunity | None:
+        unlinked_at = self._aware_utc(now or datetime.now(UTC))
+        with self._session.begin():
+            conversation = self._get_for_update(conversation_id)
+            current = self._active_link_for_update(conversation.id)
+            if current is None:
+                return None
+            current.unlinked_at = unlinked_at
+            conversation.updated_at = later_datetime(
+                conversation.updated_at,
+                unlinked_at,
+            )
+            self._session.flush()
+            return current
+
     def suggest_open_opportunities(
         self,
         conversation_id: int,

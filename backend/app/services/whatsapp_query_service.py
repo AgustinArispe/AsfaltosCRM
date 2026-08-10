@@ -631,6 +631,51 @@ class MessageQueryService:
         )
         return result
 
+    def get_message(self, message_id: int) -> MessageProjection:
+        started_at = perf_counter()
+        message_at = _message_at()
+        change_key = _message_change_key()
+        statement = (
+            select(WhatsAppMessage, message_at, change_key)
+            .where(WhatsAppMessage.id == message_id)
+            .options(
+                raiseload("*"),
+                *_message_load_options(),
+            )
+        )
+        try:
+            with self._session.no_autoflush:
+                row = self._session.execute(statement).tuples().one_or_none()
+                message, at, changed_at = _require_entity(
+                    row,
+                    "WhatsAppMessage",
+                    message_id,
+                )
+                result = self._message_projection(message, at, changed_at)
+        except EntityNotFoundError:
+            self._record_failure(
+                WhatsAppQueryOperation.MESSAGE_HISTORY,
+                started_at,
+                1,
+                WhatsAppQueryErrorCategory.NOT_FOUND,
+            )
+            raise
+        except Exception:
+            self._record_failure(
+                WhatsAppQueryOperation.MESSAGE_HISTORY,
+                started_at,
+                1,
+                WhatsAppQueryErrorCategory.INTERNAL,
+            )
+            raise
+        self._record_success(
+            WhatsAppQueryOperation.MESSAGE_HISTORY,
+            started_at,
+            1,
+            1,
+        )
+        return result
+
     def list_message_changes(
         self,
         conversation_id: int,

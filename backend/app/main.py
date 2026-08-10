@@ -8,6 +8,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import api_router
 from app.api.error_handlers import domain_error_handler
+from app.api.routers.whatsapp import create_whatsapp_router
+from app.api.routers.whatsapp_dev import create_whatsapp_dev_router
 from app.core.config import (
     get_allowed_hosts,
     get_jwt_secret,
@@ -16,6 +18,11 @@ from app.core.config import (
 )
 from app.db.session import engine
 from app.services import DomainError
+from app.whatsapp import FakeWhatsAppProvider
+from app.whatsapp.runtime import (
+    WhatsAppRuntime,
+    build_configured_whatsapp_runtime,
+)
 
 
 @asynccontextmanager
@@ -27,21 +34,33 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     engine.dispose()
 
 
-app = FastAPI(
-    title="Asfaltos CRM API",
-    version="0.3.0",
-    description=(
-        "Authenticated REST API for FAA customers, products, users, and "
-        "commercial opportunities."
-    ),
-    lifespan=lifespan,
-)
-app.add_exception_handler(DomainError, domain_error_handler)
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=get_allowed_hosts(),
-)
-app.include_router(api_router, prefix="/api")
+def create_app(whatsapp_runtime: WhatsAppRuntime | None = None) -> FastAPI:
+    runtime = whatsapp_runtime or build_configured_whatsapp_runtime()
+    application = FastAPI(
+        title="Asfaltos CRM API",
+        version="0.3.0",
+        description=(
+            "Authenticated REST API for FAA customers, products, users, and "
+            "commercial opportunities."
+        ),
+        lifespan=lifespan,
+    )
+    application.add_exception_handler(DomainError, domain_error_handler)
+    application.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=get_allowed_hosts(),
+    )
+    application.include_router(api_router, prefix="/api")
+    application.include_router(create_whatsapp_router(runtime), prefix="/api")
+    if isinstance(runtime.provider, FakeWhatsAppProvider):
+        application.include_router(
+            create_whatsapp_dev_router(runtime, runtime.provider),
+            prefix="/api",
+        )
+    return application
+
+
+app = create_app()
 
 
 @app.get("/health", tags=["health"])

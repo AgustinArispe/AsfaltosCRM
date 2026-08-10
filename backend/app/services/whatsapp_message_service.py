@@ -25,6 +25,7 @@ from app.services.errors import (
     InactiveUserError,
     InvalidWhatsAppMessageError,
     WhatsAppConversationResolutionError,
+    WhatsAppFreeformWindowClosedError,
     WhatsAppIdempotencyConflictError,
     WhatsAppReplyInProgressError,
 )
@@ -165,7 +166,7 @@ class WhatsAppMessageService:
             )
             conversation.window_expires_at = decision.window_expires_at
             if not decision.can_send_freeform:
-                raise InvalidWhatsAppMessageError(
+                raise WhatsAppFreeformWindowClosedError(
                     "Freeform WhatsApp window is closed; an approved template is required"
                 )
 
