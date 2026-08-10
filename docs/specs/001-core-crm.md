@@ -13,6 +13,10 @@ Provide the authenticated FAA CRM for managing customers, products, users, and t
 
 This is the core persistence and domain behavior described by `docs/BUSINESS_RULES.md`.
 
+## Dependencies
+
+- None
+
 ## Scope
 
 Customer, User, Product, Opportunity, quote lines, status history, authentication, role authorization, CRUD/query behavior, and core opportunity transitions.
@@ -76,6 +80,10 @@ JWT bearer authentication requires an active user. Passwords are hashed; tokens 
 - AC-10: Model constraints reject blank names, duplicate normalized identities/names, invalid FKs, and invalid loss-state combinations.
 
 ## Open decisions
+
+None
+
+## Follow-up / future specs
 
 - Automatic three-consecutive-year Legendario qualification is an approved future business rule but is not implemented by this module; only the historical override exists.
 

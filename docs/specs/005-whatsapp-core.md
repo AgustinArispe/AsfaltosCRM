@@ -13,6 +13,11 @@ Provide the persistence and domain core for one-to-one WhatsApp conversations us
 
 This spec captures migration `0005_whatsapp_core` and the implemented fake-provider backend. It does not claim that Meta, webhooks, HTTP routers, or an Inbox UI exist.
 
+## Dependencies
+
+- CRM-001 — Core CRM
+- CRM-002 — Web Lead Intake
+
 ## Scope
 
 Permanent phone-keyed conversations, inbound/outbound messages, provider status events, historical opportunity links, attachment metadata and media storage boundary, shared customer identity resolution, fake provider behavior, local idempotency, concurrency, unread and waiting projections, and window evaluation.
@@ -81,6 +86,10 @@ Domain services require an active CRM user for human outbound and manual linking
 - AC-12: Concurrent duplicate inbound and outbound attempts do not create duplicate messages, active links, or inconsistent projections.
 
 ## Open decisions
+
+None
+
+## Follow-up / future specs
 
 The approved future WhatsApp roadmap still requires a Meta provider/webhook boundary, production media storage, template synchronization, broadcasts/consent, and HTTP/UI surfaces. Those are explicitly outside this implemented core and must be specified before implementation.
 

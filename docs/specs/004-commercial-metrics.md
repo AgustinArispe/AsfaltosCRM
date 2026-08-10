@@ -13,6 +13,10 @@ Expose consistent backend-calculated commercial KPIs for the CRM frontend and ot
 
 Metrics are calculated by `MetricsService`; the frontend only visualizes returned values. Definitions follow `docs/BUSINESS_RULES.md`.
 
+## Dependencies
+
+- CRM-001 — Core CRM
+
 ## Scope
 
 Overview, product, source, province, timeline, and current pipeline snapshot metrics, shared filters, period validation, timezone bucketing, Decimal quantities, and conversion formulas.
@@ -78,7 +82,11 @@ All metrics routes require an active authenticated user. No additional seller-sp
 
 ## Open decisions
 
-None for the implemented metric contracts.
+None
+
+## Follow-up / future specs
+
+None
 
 ## Implementation notes
 

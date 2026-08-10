@@ -98,12 +98,15 @@ su CRM se mantienen en `docs/BUSINESS_RULES.md`.
 - No modificar `docs/BUSINESS_RULES.md` por conveniencia técnica.
 - Una regla de negocio sólo puede cambiar cuando el usuario lo solicite
   explícitamente.
+- Los roles actuales son únicamente `SUPERVISOR` y `VENDEDOR`; `ADMIN` no es un rol
+  implementado.
 
 ## Spec-Driven Development (SDD)
 
-Las especificaciones de features se mantienen en `docs/specs/`. Una spec describe un
-feature o módulo; no reemplaza a `docs/BUSINESS_RULES.md` ni redefine las reglas
-generales de FAA.
+Las especificaciones de features se mantienen en `docs/specs/`. Cada spec usa un ID
+estable `CRM-NNN`; el nombre numérico del archivo es descriptivo y no reemplaza al ID.
+Una spec describe un feature o módulo; no reemplaza a `docs/BUSINESS_RULES.md` ni
+redefine las reglas generales de FAA.
 
 La jerarquía obligatoria de fuentes de verdad es:
 
@@ -119,22 +122,40 @@ silenciosamente `docs/BUSINESS_RULES.md` para que coincida con la implementació
 requisito nuevo cambia una spec `Approved` o `Implemented`, actualizar primero la spec
 con aprobación explícita y recién después modificar código y tests.
 
+Una spec sólo puede pasar a `Approved` cuando:
+
+- `Open decisions` es `None`;
+- los criterios de aceptación son comprobables;
+- el alcance y los no objetivos están explícitos;
+- no contradice `docs/BUSINESS_RULES.md`.
+
+Flujo obligatorio:
+
+A. redactar y revisar la spec en estado `Draft`;
+B. establecer `Status: Approved`;
+C. implementar y probar sólo el alcance aprobado;
+D. crear el commit de implementación referenciando el ID `CRM-NNN`;
+E. actualizar la spec con `Status: Implemented` y el hash del commit de implementación;
+F. crear un commit documental separado para esa actualización.
+
+Así se evita que el commit de implementación dependa de un hash documental futuro.
+Los estados permitidos son `Draft`, `Approved`, `Implemented` y `Deprecated`; el flujo
+normal es `Draft -> Approved -> implementation -> verified implementation commit ->
+separate documentation commit -> Implemented`.
+
 Antes de implementar un feature:
 
 1. leer `docs/BUSINESS_RULES.md`;
 2. leer su spec en `docs/specs/`;
-3. verificar que tenga `Status: Approved`;
+3. verificar que tenga `Status: Approved` y `Open decisions: None`;
 4. implementar únicamente el alcance aprobado;
 5. probar sus criterios de aceptación `AC-01`, `AC-02`, etc.;
-6. después de una implementación exitosa, cambiar el estado a `Implemented` y
-   registrar el commit de implementación en la spec.
+6. seguir el flujo de commits separado descrito arriba.
 
 Una spec es obligatoria para cambios de persistencia o esquema, reglas de negocio,
 integraciones, seguridad o autenticación, máquinas de estados, contratos API no
 triviales o comportamiento entre módulos. Cambios pequeños de estilos, refactors o
-bugfixes que no cambian comportamiento no requieren una spec nueva. Los estados
-permitidos son `Draft`, `Approved`, `Implemented` y `Deprecated`; el flujo normal es
-`Draft -> Approved -> Implemented`.
+bugfixes que no cambian comportamiento no requieren una spec nueva.
 
 ## Diseño y experiencia
 

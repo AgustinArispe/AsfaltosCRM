@@ -13,6 +13,10 @@ Accept trusted website submissions and turn each valid submission into an audita
 
 The endpoint is intended for server-to-server WordPress/CF7 integration. It is separate from user-authenticated CRM routes and follows the identity rules in `docs/BUSINESS_RULES.md`.
 
+## Dependencies
+
+- CRM-001 — Core CRM
+
 ## Scope
 
 Input normalization, exact customer identity resolution, enrichment, idempotency, atomic opportunity creation, immutable intake snapshots, HMAC authentication, and concurrency handling.
@@ -68,6 +72,10 @@ This route does not require a CRM JWT. It requires the configured backend signin
 - AC-09: A transaction failure leaves no partial customer, opportunity, or intake rows.
 
 ## Open decisions
+
+None
+
+## Follow-up / future specs
 
 - The later WordPress/CF7 server-to-server delivery arrangement remains integration work outside this implemented endpoint.
 

@@ -1,4 +1,4 @@
-# <ID> — <Title>
+# CRM-NNN — <Title>
 
 Status: Draft
 Owner: <owner>
@@ -12,6 +12,14 @@ Implementation commit: N/A
 ## Context
 
 <Relevant current behavior and links to governing business rules. Keep this concise.>
+
+## Dependencies
+
+- CRM-NNN — Title
+or:
+- None
+
+Dependencies are feature/spec dependencies, not package dependencies.
 
 ## Scope
 
@@ -53,7 +61,13 @@ Implementation commit: N/A
 
 ## Open decisions
 
-- <Decision that must be resolved before the spec can be Approved, or `None`.>
+<Decisions that must be resolved before the spec can be Approved, or `None`>.
+
+A spec cannot move to `Approved` while unresolved Open decisions remain.
+
+## Follow-up / future specs
+
+<Known future work outside the current scope, or `None`>.
 
 ## Implementation notes
 

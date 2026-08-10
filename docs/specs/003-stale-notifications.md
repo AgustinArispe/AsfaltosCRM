@@ -13,6 +13,10 @@ Give the team an internal reminder when an open opportunity remains in its curre
 
 This is an internal, global team notification. It is not an email reminder and is governed by the stale-opportunity rule in `docs/BUSINESS_RULES.md`.
 
+## Dependencies
+
+- CRM-001 — Core CRM
+
 ## Scope
 
 Notification persistence, eligibility, generation/deduplication, read/resolved state, opportunity-side resolution, CLI generation, and authenticated API access.
@@ -66,6 +70,10 @@ The API requires an active JWT user. Visibility and read state are global to the
 - AC-10: A later eligible stage entry can create a new notification after the prior one is resolved.
 
 ## Open decisions
+
+None
+
+## Follow-up / future specs
 
 - Deployment scheduling for the existing CLI is operational work and is not part of the implemented module.
 

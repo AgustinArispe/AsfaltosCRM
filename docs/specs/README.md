@@ -18,18 +18,45 @@ When sources disagree, use this order:
 Code and tests cannot redefine a requirement. A conflict with an Approved spec must be
 reported before implementation or behavior changes.
 
+## Spec IDs and filenames
+
+Every feature specification uses one stable ID in the `CRM-NNN` form, such as
+`CRM-001` or `CRM-006`. Keep the existing numeric descriptive filenames, for example
+`001-core-crm.md`; the filename is not an alternative ID. Do not introduce other ID
+formats.
+
 ## Lifecycle
 
 Specs move through these statuses:
 
 - **Draft** — being explored or clarified; it is not an implementation authorization.
 - **Approved** — explicitly approved for implementation within its stated scope.
-- **Implemented** — acceptance criteria are met and the implementation commit is
-  recorded in the spec.
+- **Implemented** — acceptance criteria are met, the implementation commit is verified,
+  and a separate documentation commit records that implementation hash in the spec.
 - **Deprecated** — retained for history, but no longer governs new work.
 
-The normal lifecycle is `Draft -> Approved -> Implemented`. A spec may be deprecated
-when its feature is replaced or removed.
+The normal lifecycle is `Draft -> Approved -> implementation -> verified implementation
+commit -> separate documentation commit -> Implemented`. This keeps implementation
+commits independent from the later documentation hash.
+
+A spec may only become `Approved` when:
+
+- `Open decisions` is `None`;
+- acceptance criteria are testable;
+- scope and non-goals are explicit; and
+- it does not conflict with `docs/BUSINESS_RULES.md`.
+
+Approved and Implemented specs should normally keep `Open decisions: None`; known
+out-of-scope roadmap items belong in `Follow-up / future specs`.
+
+Recommended workflow:
+
+A. Draft and review the spec.
+B. Set `Status: Approved`.
+C. Implement and test the approved scope.
+D. Commit the implementation referencing the spec ID.
+E. Update the spec to `Status: Implemented` and record the implementation hash.
+F. Commit that documentation update separately.
 
 ## When a spec is required
 
@@ -54,10 +81,14 @@ requested scope does not conflict with either source. Implement only the approve
 scope and test its acceptance criteria.
 
 Implementation commits should reference the spec ID in the commit message or body,
-for example `feat: add inbox filters [SPEC-WA-01]`. After the implementation is
-verified, set the spec status to `Implemented` and record that commit in
-`Implementation commit:`. Tests may reference stable acceptance IDs such as `AC-01`
-in test names, docstrings, or comments.
+for example `feat: add WhatsApp API [CRM-006]`. After the implementation is verified,
+update the spec and record that hash in `Implementation commit:` in a separate
+documentation commit. Tests may reference stable acceptance IDs such as `AC-01` in
+test names, docstrings, or comments.
+
+The `Dependencies` section lists feature/spec dependencies only, never package
+dependencies. The `Follow-up / future specs` section records known approved future work
+outside the current scope.
 
 ## Changes after implementation
 
@@ -74,8 +105,8 @@ must describe implemented behavior only.
 
 These retrospective specifications capture behavior already implemented and tested:
 
-- [`001-core-crm.md`](001-core-crm.md) — Implemented — core CRM domain, authentication, and roles.
-- [`002-web-lead-intake.md`](002-web-lead-intake.md) — Implemented — authenticated server-to-server web intake.
-- [`003-stale-notifications.md`](003-stale-notifications.md) — Implemented — stale opportunity notifications.
-- [`004-commercial-metrics.md`](004-commercial-metrics.md) — Implemented — backend commercial metrics.
-- [`005-whatsapp-core.md`](005-whatsapp-core.md) — Implemented — fake-provider WhatsApp core domain.
+- [`CRM-001`](001-core-crm.md) — Implemented — core CRM domain, authentication, and roles.
+- [`CRM-002`](002-web-lead-intake.md) — Implemented — authenticated server-to-server web intake.
+- [`CRM-003`](003-stale-notifications.md) — Implemented — stale opportunity notifications.
+- [`CRM-004`](004-commercial-metrics.md) — Implemented — backend commercial metrics.
+- [`CRM-005`](005-whatsapp-core.md) — Implemented — fake-provider WhatsApp core domain.
