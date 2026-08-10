@@ -1,9 +1,9 @@
 # CRM-007 — WhatsApp Query Layer
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-10
-Implementation commit: N/A
+Implementation commit: `375b8cd`
 
 ## Goal
 
