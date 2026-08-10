@@ -1,6 +1,6 @@
 # CRM-009 — Meta Cloud API Provider
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-10
 Implementation commit: N/A
