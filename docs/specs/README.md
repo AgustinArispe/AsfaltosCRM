@@ -103,8 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-009`](009-meta-cloud-api-provider.md) — Draft — production Meta Cloud API
-  provider and webhook integration.
+- [`CRM-010`](010-whatsapp-inbox-frontend.md) — Draft — desktop-first WhatsApp Inbox
+  frontend.
 
 ## Implemented specifications
 
@@ -124,3 +124,5 @@ These specifications capture behavior already implemented and tested:
   projections.
 - [`CRM-008`](008-whatsapp-media-storage.md) — Implemented — durable provider-agnostic
   WhatsApp media storage.
+- [`CRM-009`](009-meta-cloud-api-provider.md) — Implemented — production Meta Cloud API
+  provider and webhook integration.
