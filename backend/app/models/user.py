@@ -21,6 +21,10 @@ from app.models.enums import USER_ROLE_DB_ENUM, UserRole
 if TYPE_CHECKING:
     from app.models.opportunity import Opportunity
     from app.models.opportunity_status_history import OpportunityStatusHistory
+    from app.models.whatsapp_conversation_opportunity import (
+        WhatsAppConversationOpportunity,
+    )
+    from app.models.whatsapp_message import WhatsAppMessage
 
 
 class User(TimestampMixin, Base):
@@ -61,4 +65,14 @@ class User(TimestampMixin, Base):
     status_changes: Mapped[list[OpportunityStatusHistory]] = relationship(
         back_populates="changed_by_user",
         passive_deletes=True,
+    )
+    whatsapp_messages: Mapped[list[WhatsAppMessage]] = relationship(
+        back_populates="sent_by_user",
+        passive_deletes=True,
+    )
+    whatsapp_opportunity_links: Mapped[list[WhatsAppConversationOpportunity]] = (
+        relationship(
+            back_populates="linked_by_user",
+            passive_deletes=True,
+        )
     )

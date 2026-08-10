@@ -21,6 +21,7 @@ from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.opportunity import Opportunity
+    from app.models.whatsapp_conversation import WhatsAppConversation
 
 
 class Customer(TimestampMixin, Base):
@@ -66,6 +67,10 @@ class Customer(TimestampMixin, Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     opportunities: Mapped[list[Opportunity]] = relationship(
+        back_populates="customer",
+        passive_deletes=True,
+    )
+    whatsapp_conversations: Mapped[list[WhatsAppConversation]] = relationship(
         back_populates="customer",
         passive_deletes=True,
     )

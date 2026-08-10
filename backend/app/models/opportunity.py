@@ -32,6 +32,9 @@ if TYPE_CHECKING:
     from app.models.notification import Notification
     from app.models.opportunity_product import OpportunityProduct
     from app.models.user import User
+    from app.models.whatsapp_conversation_opportunity import (
+        WhatsAppConversationOpportunity,
+    )
 
 
 class Opportunity(TimestampMixin, Base):
@@ -148,4 +151,10 @@ class Opportunity(TimestampMixin, Base):
     notifications: Mapped[list[Notification]] = relationship(
         back_populates="opportunity",
         passive_deletes=True,
+    )
+    whatsapp_conversation_links: Mapped[list[WhatsAppConversationOpportunity]] = (
+        relationship(
+            back_populates="opportunity",
+            passive_deletes=True,
+        )
     )

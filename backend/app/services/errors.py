@@ -29,6 +29,26 @@ class InvalidLeadIntakeError(DomainError):
     """Raised when an intake DTO violates its application contract."""
 
 
+class InvalidWhatsAppMessageError(DomainError):
+    """Raised when a WhatsApp message violates its domain contract."""
+
+
+class WhatsAppIdempotencyConflictError(DomainError):
+    """Raised when a WhatsApp idempotency key is reused with another payload."""
+
+
+class WhatsAppConversationResolutionError(DomainError):
+    """Raised when an unresolved conversation cannot perform an operation."""
+
+
+class WhatsAppOpportunityAssociationError(DomainError):
+    """Raised when a conversation and opportunity cannot be associated."""
+
+
+class WhatsAppReplyInProgressError(DomainError):
+    """Raised when another direct reply has an uncertain or active dispatch."""
+
+
 class EntityNotFoundError(DomainError):
     def __init__(self, entity_name: str, entity_id: int) -> None:
         self.entity_name = entity_name

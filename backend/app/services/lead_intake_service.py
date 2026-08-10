@@ -1,20 +1,28 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from hashlib import sha256
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Customer, LeadIntake, LeadSource
+from app.services.customer_identity_service import (
+    CustomerIdentityResolver,
+    acquire_advisory_locks,
+    customer_identity_locks,
+    normalize_optional_text,
+)
+from app.services.customer_identity_service import (
+    comparable_phone as comparable_phone,
+)
+from app.services.customer_identity_service import (
+    normalize_email as normalize_email,
+)
 from app.services.errors import (
     CustomerIdentityConflictError,
     InvalidLeadIntakeError,
     LeadIntakeIdempotencyConflictError,
 )
 from app.services.opportunity_service import OpportunityService
-
-MIN_MATCHABLE_PHONE_DIGITS = 7
-_PHONE_REMOVALS = str.maketrans("", "", " \t\r\n\f\v-()")
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,42 +58,11 @@ class _NormalizedLeadIntake:
     comparable_phone: str | None
 
 
-def normalize_email(value: str | None) -> str | None:
-    normalized = _normalize_optional_text(value)
-    return normalized.lower() if normalized is not None else None
-
-
-def comparable_phone(value: str | None) -> str | None:
-    """Return a conservative match key, preserving '+' and country information."""
-    normalized = _normalize_optional_text(value)
-    if normalized is None:
-        return None
-    comparable = normalized.translate(_PHONE_REMOVALS)
-    digit_count = sum(
-        character.isascii() and character.isdigit() for character in comparable
-    )
-    if digit_count < MIN_MATCHABLE_PHONE_DIGITS:
-        return None
-    return comparable
-
-
 def normalize_message(value: str | None) -> str | None:
     if value is None:
         return None
     normalized = value.replace("\r\n", "\n").replace("\r", "\n").strip()
     return normalized or None
-
-
-def _normalize_optional_text(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    return normalized or None
-
-
-def _advisory_lock_key(namespace: str, value: str) -> int:
-    digest = sha256(f"{namespace}:{value}".encode()).digest()
-    return int.from_bytes(digest[:8], byteorder="big", signed=True)
 
 
 class LeadIntakeService:
@@ -148,13 +125,13 @@ class LeadIntakeService:
         if not isinstance(intake_input.source, LeadSource):
             raise InvalidLeadIntakeError("Lead source is invalid")
 
-        phone = _normalize_optional_text(intake_input.phone)
+        phone = normalize_optional_text(intake_input.phone)
         return _NormalizedLeadIntake(
             name=name,
-            company=_normalize_optional_text(intake_input.company),
+            company=normalize_optional_text(intake_input.company),
             email=normalize_email(intake_input.email),
             phone=phone,
-            province=_normalize_optional_text(intake_input.province),
+            province=normalize_optional_text(intake_input.province),
             message=normalize_message(intake_input.message),
             source=intake_input.source,
             external_submission_id=external_submission_id,
@@ -162,19 +139,14 @@ class LeadIntakeService:
         )
 
     def _acquire_identity_locks(self, intake: _NormalizedLeadIntake) -> None:
-        lock_keys = {
-            _advisory_lock_key(
+        identities = (
+            (
                 "intake",
                 f"{intake.source.value}:{intake.external_submission_id}",
-            )
-        }
-        if intake.email is not None:
-            lock_keys.add(_advisory_lock_key("email", intake.email))
-        if intake.comparable_phone is not None:
-            lock_keys.add(_advisory_lock_key("phone", intake.comparable_phone))
-
-        for lock_key in sorted(lock_keys):
-            self._session.execute(select(func.pg_advisory_xact_lock(lock_key)))
+            ),
+            *customer_identity_locks(intake.email, intake.comparable_phone),
+        )
+        acquire_advisory_locks(self._session, identities)
 
     def _find_existing_intake(
         self,
@@ -218,64 +190,16 @@ class LeadIntakeService:
         )
 
     def _resolve_customer(self, intake: _NormalizedLeadIntake) -> Customer | None:
-        email_matches = self._customers_matching_email(intake.email)
-        phone_matches = self._customers_matching_phone(intake.comparable_phone)
-
-        if len(email_matches) > 1 or len(phone_matches) > 1:
+        resolution = CustomerIdentityResolver(self._session).resolve(
+            normalized_email=intake.email,
+            phone_match_key=intake.comparable_phone,
+            lock_rows=True,
+        )
+        if resolution.is_ambiguous:
             raise CustomerIdentityConflictError(
                 "Lead identity matches multiple active customers"
             )
-
-        email_customer = email_matches[0] if email_matches else None
-        phone_customer = phone_matches[0] if phone_matches else None
-        if (
-            email_customer is not None
-            and phone_customer is not None
-            and email_customer.id != phone_customer.id
-        ):
-            raise CustomerIdentityConflictError(
-                "Lead email and phone identify different active customers"
-            )
-        return email_customer or phone_customer
-
-    def _customers_matching_email(self, email: str | None) -> list[Customer]:
-        if email is None:
-            return []
-        return list(
-            self._session.scalars(
-                select(Customer)
-                .where(
-                    Customer.deleted_at.is_(None),
-                    func.lower(func.btrim(Customer.email)) == email,
-                )
-                .order_by(Customer.id)
-                .with_for_update()
-            ).all()
-        )
-
-    def _customers_matching_phone(
-        self,
-        phone_match_key: str | None,
-    ) -> list[Customer]:
-        if phone_match_key is None:
-            return []
-        return list(
-            self._session.scalars(
-                select(Customer)
-                .where(
-                    Customer.deleted_at.is_(None),
-                    func.regexp_replace(
-                        Customer.phone,
-                        "[[:space:]()-]",
-                        "",
-                        "g",
-                    )
-                    == phone_match_key,
-                )
-                .order_by(Customer.id)
-                .with_for_update()
-            ).all()
-        )
+        return resolution.customer
 
     def _create_customer(self, intake: _NormalizedLeadIntake) -> Customer:
         customer = Customer(

@@ -13,8 +13,13 @@ from app.services.errors import (
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
+    InvalidWhatsAppMessageError,
     LeadIntakeIdempotencyConflictError,
     PermissionDeniedError,
+    WhatsAppConversationResolutionError,
+    WhatsAppIdempotencyConflictError,
+    WhatsAppOpportunityAssociationError,
+    WhatsAppReplyInProgressError,
 )
 from app.services.lead_intake_service import (
     LeadIntakeInput,
@@ -23,6 +28,28 @@ from app.services.lead_intake_service import (
 )
 from app.services.notification_service import NotificationService
 from app.services.opportunity_service import OpportunityService, QuoteProductInput
+from app.services.whatsapp_conversation_service import WhatsAppConversationService
+from app.services.whatsapp_inbound_service import (
+    InboundAttachmentInput,
+    InboundMessageInput,
+    InboundMessageResult,
+    WhatsAppInboundService,
+)
+from app.services.whatsapp_media_service import (
+    StoredAttachmentResult,
+    WhatsAppMediaService,
+)
+from app.services.whatsapp_message_service import (
+    OutboundAttachmentInput,
+    OutboundMessageInput,
+    OutboundMessageResult,
+    WhatsAppMessageService,
+)
+from app.services.whatsapp_status_service import (
+    ProviderStatusInput,
+    ProviderStatusResult,
+    WhatsAppStatusService,
+)
 
 __all__ = [
     "AuthenticationError",
@@ -34,17 +61,36 @@ __all__ = [
     "EntityNotFoundError",
     "InactiveProductError",
     "InactiveUserError",
+    "InboundAttachmentInput",
+    "InboundMessageInput",
+    "InboundMessageResult",
     "IntakeAuthenticationError",
     "InvalidLeadIntakeError",
     "InvalidLossReasonError",
     "InvalidQuoteProductsError",
     "InvalidStateTransitionError",
+    "InvalidWhatsAppMessageError",
     "LeadIntakeIdempotencyConflictError",
     "LeadIntakeInput",
     "LeadIntakeResult",
     "LeadIntakeService",
     "NotificationService",
     "OpportunityService",
+    "OutboundAttachmentInput",
+    "OutboundMessageInput",
+    "OutboundMessageResult",
     "PermissionDeniedError",
+    "ProviderStatusInput",
+    "ProviderStatusResult",
     "QuoteProductInput",
+    "StoredAttachmentResult",
+    "WhatsAppConversationResolutionError",
+    "WhatsAppConversationService",
+    "WhatsAppIdempotencyConflictError",
+    "WhatsAppInboundService",
+    "WhatsAppMediaService",
+    "WhatsAppMessageService",
+    "WhatsAppOpportunityAssociationError",
+    "WhatsAppReplyInProgressError",
+    "WhatsAppStatusService",
 ]
