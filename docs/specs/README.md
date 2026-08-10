@@ -101,6 +101,10 @@ the current implementation appear compliant.
 Retrospective specifications may be created when an explicit task requests them. They
 must describe implemented behavior only.
 
+## Draft specifications
+
+- [`CRM-006`](006-whatsapp-internal-api.md) — Draft — authenticated internal WhatsApp API and fake-provider polling support.
+
 ## Implemented specifications
 
 These retrospective specifications capture behavior already implemented and tested:
