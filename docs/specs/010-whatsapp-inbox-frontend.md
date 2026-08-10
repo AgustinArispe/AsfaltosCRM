@@ -1,9 +1,9 @@
 # CRM-010 — WhatsApp Inbox Frontend
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-10
-Implementation commit: N/A
+Implementation commit: c92cc9d, a7cec7f
 
 ## Goal
 

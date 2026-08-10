@@ -103,8 +103,7 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-010`](010-whatsapp-inbox-frontend.md) — Draft — desktop-first WhatsApp Inbox
-  frontend.
+None.
 
 ## Implemented specifications
 
@@ -126,3 +125,5 @@ These specifications capture behavior already implemented and tested:
   WhatsApp media storage.
 - [`CRM-009`](009-meta-cloud-api-provider.md) — Implemented — production Meta Cloud API
   provider and webhook integration.
+- [`CRM-010`](010-whatsapp-inbox-frontend.md) — Implemented — desktop-first WhatsApp
+  Inbox frontend.
