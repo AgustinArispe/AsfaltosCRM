@@ -298,7 +298,7 @@ function mockInboxApi({
         })
       }
       if (url.pathname.match(/^\/api\/whatsapp\/(attachments|media)\//)) {
-        return new Response(new Blob(['stored media'], { type: 'application/pdf' }), {
+        return new Response('stored media', {
           status: 200,
           headers: { 'Content-Type': 'application/pdf' },
         })
@@ -623,11 +623,7 @@ describe('WhatsAppInboxPage', () => {
     render(<WhatsAppInboxPage />)
     await openConversation()
 
-    expect(
-      await screen.findByAltText('Imagen muestra.png', undefined, {
-        timeout: 3000,
-      }),
-    ).toBeInTheDocument()
+    expect(await screen.findByAltText('Imagen muestra.png')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /ficha.pdf/ })).toBeInTheDocument()
     expect(screen.getByText('Aceptación sin confirmar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reenviar explícitamente' })).toBeInTheDocument()
