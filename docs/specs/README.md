@@ -103,14 +103,22 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-006`](006-whatsapp-internal-api.md) — Draft — authenticated internal WhatsApp API and fake-provider polling support.
+- [`CRM-008`](008-whatsapp-media-storage.md) — Draft — durable provider-agnostic
+  WhatsApp media storage.
 
 ## Implemented specifications
 
-These retrospective specifications capture behavior already implemented and tested:
+These specifications capture behavior already implemented and tested:
 
-- [`CRM-001`](001-core-crm.md) — Implemented — core CRM domain, authentication, and roles.
-- [`CRM-002`](002-web-lead-intake.md) — Implemented — authenticated server-to-server web intake.
-- [`CRM-003`](003-stale-notifications.md) — Implemented — stale opportunity notifications.
+- [`CRM-001`](001-core-crm.md) — Implemented — core CRM domain, authentication, and
+  roles.
+- [`CRM-002`](002-web-lead-intake.md) — Implemented — authenticated server-to-server
+  web intake.
+- [`CRM-003`](003-stale-notifications.md) — Implemented — stale opportunity
+  notifications.
 - [`CRM-004`](004-commercial-metrics.md) — Implemented — backend commercial metrics.
 - [`CRM-005`](005-whatsapp-core.md) — Implemented — fake-provider WhatsApp core domain.
+- [`CRM-006`](006-whatsapp-internal-api.md) — Implemented — authenticated internal
+  WhatsApp API and fake-provider support.
+- [`CRM-007`](007-whatsapp-query-layer.md) — Implemented — typed WhatsApp Inbox query
+  projections.
