@@ -99,6 +99,43 @@ su CRM se mantienen en `docs/BUSINESS_RULES.md`.
 - Una regla de negocio sólo puede cambiar cuando el usuario lo solicite
   explícitamente.
 
+## Spec-Driven Development (SDD)
+
+Las especificaciones de features se mantienen en `docs/specs/`. Una spec describe un
+feature o módulo; no reemplaza a `docs/BUSINESS_RULES.md` ni redefine las reglas
+generales de FAA.
+
+La jerarquía obligatoria de fuentes de verdad es:
+
+1. requisito explícito aprobado por el usuario;
+2. `docs/BUSINESS_RULES.md`;
+3. spec de feature aprobada;
+4. implementación;
+5. tests.
+
+El código no puede redefinir requisitos. Si la implementación contradice una spec con
+estado `Approved`, detenerse, informar el conflicto y solicitar definición. No editar
+silenciosamente `docs/BUSINESS_RULES.md` para que coincida con la implementación. Si un
+requisito nuevo cambia una spec `Approved` o `Implemented`, actualizar primero la spec
+con aprobación explícita y recién después modificar código y tests.
+
+Antes de implementar un feature:
+
+1. leer `docs/BUSINESS_RULES.md`;
+2. leer su spec en `docs/specs/`;
+3. verificar que tenga `Status: Approved`;
+4. implementar únicamente el alcance aprobado;
+5. probar sus criterios de aceptación `AC-01`, `AC-02`, etc.;
+6. después de una implementación exitosa, cambiar el estado a `Implemented` y
+   registrar el commit de implementación en la spec.
+
+Una spec es obligatoria para cambios de persistencia o esquema, reglas de negocio,
+integraciones, seguridad o autenticación, máquinas de estados, contratos API no
+triviales o comportamiento entre módulos. Cambios pequeños de estilos, refactors o
+bugfixes que no cambian comportamiento no requieren una spec nueva. Los estados
+permitidos son `Draft`, `Approved`, `Implemented` y `Deprecated`; el flujo normal es
+`Draft -> Approved -> Implemented`.
+
 ## Diseño y experiencia
 
 - Priorizar una experiencia simple, rápida, clara y fluida.
