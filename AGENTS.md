@@ -86,35 +86,18 @@ Anti-patrones explícitamente prohibidos:
 - Desactivar `strict`, agregar exclusiones amplias o ignorar diagnósticos para obtener
   un resultado artificial de cero errores.
 
-## Reglas de negocio conocidas
+## Fuente permanente de reglas de negocio
 
-Estas reglas son requisitos de referencia para implementaciones futuras; no habilitan funcionalidades no solicitadas en la tarea actual.
+`AGENTS.md` define cómo desarrollar el software. Las reglas sobre cómo funciona FAA y
+su CRM se mantienen en `docs/BUSINESS_RULES.md`.
 
-### Clientes y oportunidades
-
-- El CRM gestiona consultas comerciales de FAA.
-- Un cliente puede tener múltiples consultas u oportunidades y cada oportunidad pertenece a un cliente.
-- Los datos iniciales de cliente son nombre, empresa, email y teléfono. La provincia está prevista para incorporarse.
-- Debe poder distinguirse entre clientes nuevos y antiguos.
-
-### Pipeline y cotizaciones
-
-- Las etapas principales son `NUEVA`, `COTIZADA`, `NEGOCIACION` y `GANADA`.
-- Las oportunidades perdidas se almacenan y se consultan mediante búsqueda o filtros; no forman una columna principal del pipeline.
-- Al mover una oportunidad de `NUEVA` a `COTIZADA`, es obligatorio registrar uno o más productos cotizados y la cantidad en kilogramos de cada uno.
-- FAA cargará inicialmente aproximadamente diez productos. El CRM registra productos y cantidades cotizados, pero no genera presupuestos.
-- Al marcar una oportunidad como perdida, conservar la información de cotización y registrar un motivo de pérdida categorizado de manera sencilla.
-- El modelo debe registrar cuándo una oportunidad ingresó en su etapa actual, para permitir recordatorios futuros de oportunidades sin avance durante aproximadamente catorce días.
-- Las métricas futuras incluyen kilogramos cotizados, ganados y perdidos; productos más consultados y vendidos; y tasa de conversión.
-
-### Origen de leads, recordatorios y usuarios
-
-- Registrar el origen de cada consulta. Orígenes iniciales: `WEB` y `WHATSAPP`; `META` queda previsto para el futuro.
-- El CRM no es una bandeja de mensajería y no se implementan conversaciones internas.
-- Los recordatorios por email se implementarán más adelante.
-- Roles iniciales: `ADMIN` / `SUPERVISOR` y `VENDEDOR`.
-- El supervisor podrá administrar usuarios, crear usuarios, eliminar clientes y editar productos.
-- La visibilidad de oportunidades por vendedor todavía no está definida. No inventar ni implementar esa regla.
+- Antes de implementar o modificar comportamiento de negocio, leer
+  `docs/BUSINESS_RULES.md`.
+- Si una tarea contradice una regla existente, no elegir silenciosamente una
+  interpretación: señalar el conflicto y solicitar confirmación.
+- No modificar `docs/BUSINESS_RULES.md` por conveniencia técnica.
+- Una regla de negocio sólo puede cambiar cuando el usuario lo solicite
+  explícitamente.
 
 ## Diseño y experiencia
 
