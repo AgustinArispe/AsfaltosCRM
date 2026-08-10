@@ -67,5 +67,15 @@ history where they remain valid, document the changed scope or decision, and onl
 update code and tests. Never silently edit `docs/BUSINESS_RULES.md` or a spec to make
 the current implementation appear compliant.
 
-Do not create retrospective specs for existing features unless a future task explicitly
-requests them.
+Retrospective specifications may be created when an explicit task requests them. They
+must describe implemented behavior only.
+
+## Implemented specifications
+
+These retrospective specifications capture behavior already implemented and tested:
+
+- [`001-core-crm.md`](001-core-crm.md) — Implemented — core CRM domain, authentication, and roles.
+- [`002-web-lead-intake.md`](002-web-lead-intake.md) — Implemented — authenticated server-to-server web intake.
+- [`003-stale-notifications.md`](003-stale-notifications.md) — Implemented — stale opportunity notifications.
+- [`004-commercial-metrics.md`](004-commercial-metrics.md) — Implemented — backend commercial metrics.
+- [`005-whatsapp-core.md`](005-whatsapp-core.md) — Implemented — fake-provider WhatsApp core domain.
