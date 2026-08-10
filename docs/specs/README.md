@@ -103,8 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-008`](008-whatsapp-media-storage.md) — Draft — durable provider-agnostic
-  WhatsApp media storage.
+- [`CRM-009`](009-meta-cloud-api-provider.md) — Draft — production Meta Cloud API
+  provider and webhook integration.
 
 ## Implemented specifications
 
@@ -122,3 +122,5 @@ These specifications capture behavior already implemented and tested:
   WhatsApp API and fake-provider support.
 - [`CRM-007`](007-whatsapp-query-layer.md) — Implemented — typed WhatsApp Inbox query
   projections.
+- [`CRM-008`](008-whatsapp-media-storage.md) — Implemented — durable provider-agnostic
+  WhatsApp media storage.
