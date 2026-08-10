@@ -1,6 +1,6 @@
 # CRM-006 — WhatsApp Internal API
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-10
 Implementation commit: N/A
