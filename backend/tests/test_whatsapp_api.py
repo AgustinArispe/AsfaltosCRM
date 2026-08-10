@@ -207,9 +207,13 @@ def test_conversation_list_filters_detail_and_cursor_validation(
     assert {item.id for item in first_page.items}.isdisjoint(
         item.id for item in second_page.items
     )
-    tampered_cursor = first_page.next_page_cursor[:-1] + (
-        "A" if first_page.next_page_cursor[-1] != "A" else "B"
+    cursor_payload, cursor_signature = first_page.next_page_cursor.split(
+        ".", maxsplit=1
     )
+    tampered_signature = (
+        "A" if cursor_signature[0] != "A" else "B"
+    ) + cursor_signature[1:]
+    tampered_cursor = f"{cursor_payload}.{tampered_signature}"
     assert (
         whatsapp_api.client.get(
             "/api/whatsapp/conversations",
