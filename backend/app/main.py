@@ -10,6 +10,9 @@ from app.api import api_router
 from app.api.error_handlers import domain_error_handler
 from app.api.routers.whatsapp import create_whatsapp_router
 from app.api.routers.whatsapp_dev import create_whatsapp_dev_router
+from app.api.routers.whatsapp_provider_webhook import (
+    create_whatsapp_provider_webhook_router,
+)
 from app.core.config import (
     get_allowed_hosts,
     get_jwt_secret,
@@ -55,6 +58,11 @@ def create_app(whatsapp_runtime: WhatsAppRuntime | None = None) -> FastAPI:
     if isinstance(runtime.provider, FakeWhatsAppProvider):
         application.include_router(
             create_whatsapp_dev_router(runtime, runtime.provider),
+            prefix="/api",
+        )
+    if runtime.webhook is not None:
+        application.include_router(
+            create_whatsapp_provider_webhook_router(runtime),
             prefix="/api",
         )
     return application

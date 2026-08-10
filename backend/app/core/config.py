@@ -83,10 +83,8 @@ def get_allowed_hosts() -> list[str]:
 @lru_cache
 def get_whatsapp_provider_name() -> str:
     provider_name = getenv("WHATSAPP_PROVIDER", "fake").strip().lower()
-    if provider_name != "fake":
-        raise RuntimeError(
-            "WHATSAPP_PROVIDER must be 'fake' until another adapter is implemented"
-        )
+    if provider_name not in {"fake", "meta"}:
+        raise RuntimeError("WHATSAPP_PROVIDER must be 'fake' or 'meta'")
     return provider_name
 
 

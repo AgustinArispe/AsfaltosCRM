@@ -33,6 +33,22 @@ from app.whatsapp.media_storage import (
     StoredMediaContent,
 )
 from app.whatsapp.media_validation import WhatsAppMediaPolicy
+from app.whatsapp.meta_config import MetaConfig
+from app.whatsapp.meta_http import (
+    MetaGraphClient,
+    MetaHttpRequest,
+    MetaHttpResponse,
+    MetaHttpTransport,
+    MetaTransportError,
+    TransmissionState,
+)
+from app.whatsapp.meta_observability import MetaMetrics, NullMetaMetrics
+from app.whatsapp.meta_provider import MetaCloudApiProvider, MetaTemplateSnapshotCache
+from app.whatsapp.meta_webhook import (
+    MetaWebhookIntegration,
+    MetaWebhookMapper,
+    MetaWebhookVerifier,
+)
 
 __all__ = [
     "FakeMediaStorage",
@@ -44,6 +60,19 @@ __all__ = [
     "MediaStorageError",
     "MediaStorageIntegrityError",
     "MediaStorageNotFoundError",
+    "MetaCloudApiProvider",
+    "MetaConfig",
+    "MetaGraphClient",
+    "MetaHttpRequest",
+    "MetaHttpResponse",
+    "MetaHttpTransport",
+    "MetaMetrics",
+    "MetaTemplateSnapshotCache",
+    "MetaTransportError",
+    "MetaWebhookIntegration",
+    "MetaWebhookMapper",
+    "MetaWebhookVerifier",
+    "NullMetaMetrics",
     "ProviderDeliveryEvent",
     "ProviderErrorDetails",
     "ProviderErrorKind",
@@ -61,6 +90,7 @@ __all__ = [
     "StoredMediaContent",
     "TemplateHeaderType",
     "TemplateParameter",
+    "TransmissionState",
     "WhatsAppMediaPolicy",
     "WhatsAppProvider",
     "WhatsAppProviderError",

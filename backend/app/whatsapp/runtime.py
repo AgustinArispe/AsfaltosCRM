@@ -26,6 +26,16 @@ from app.whatsapp.media_storage import (
     MediaStorage,
 )
 from app.whatsapp.media_validation import WhatsAppMediaPolicy
+from app.whatsapp.meta_config import MetaConfig
+from app.whatsapp.meta_http import HttpsMetaHttpTransport, MetaGraphClient
+from app.whatsapp.meta_observability import NullMetaMetrics
+from app.whatsapp.meta_provider import MetaCloudApiProvider
+from app.whatsapp.meta_webhook import (
+    MetaWebhookIntegration,
+    MetaWebhookMapper,
+    MetaWebhookVerifier,
+)
+from app.whatsapp.webhook_contracts import ProviderWebhook
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +45,7 @@ class WhatsAppRuntime:
     media_policy: WhatsAppMediaPolicy
     cursors: WhatsAppCursorCodec
     metrics: WhatsAppQueryMetrics
+    webhook: ProviderWebhook | None = None
 
 
 def build_fake_whatsapp_runtime(
@@ -51,17 +62,63 @@ def build_fake_whatsapp_runtime(
         media_policy=media_policy or _configured_media_policy(),
         cursors=WhatsAppCursorCodec(get_jwt_secret(), selected_metrics),
         metrics=selected_metrics,
+        webhook=None,
     )
 
 
 def build_configured_whatsapp_runtime() -> WhatsAppRuntime:
-    get_whatsapp_provider_name()
+    provider_name = get_whatsapp_provider_name()
     storage: MediaStorage
     if get_whatsapp_media_storage_name() == "filesystem":
         storage = FilesystemMediaStorage(get_whatsapp_media_storage_root())
     else:
         storage = FakeMediaStorage()
-    return build_fake_whatsapp_runtime(storage=storage)
+    if provider_name == "fake":
+        return build_fake_whatsapp_runtime(storage=storage)
+    return build_meta_whatsapp_runtime(storage=storage)
+
+
+def build_meta_whatsapp_runtime(
+    *,
+    config: MetaConfig | None = None,
+    storage: MediaStorage | None = None,
+) -> WhatsAppRuntime:
+    selected_config = config or MetaConfig.from_environment()
+    selected_storage = storage or FakeMediaStorage()
+    meta_metrics = NullMetaMetrics()
+    graph = MetaGraphClient(
+        selected_config,
+        HttpsMetaHttpTransport(),
+        meta_metrics,
+    )
+    provider = MetaCloudApiProvider(
+        selected_config,
+        graph,
+        selected_storage,
+        meta_metrics,
+        image_max_bytes=get_whatsapp_image_max_bytes(),
+        document_max_bytes=get_whatsapp_document_max_bytes(),
+    )
+    webhook = MetaWebhookIntegration(
+        MetaWebhookVerifier(
+            verify_token=selected_config.webhook_verify_token,
+            app_secret=selected_config.app_secret,
+        ),
+        MetaWebhookMapper(
+            waba_id=selected_config.waba_id,
+            phone_number_id=selected_config.phone_number_id,
+            metrics=meta_metrics,
+        ),
+    )
+    query_metrics = NullWhatsAppQueryMetrics()
+    return WhatsAppRuntime(
+        provider=provider,
+        storage=selected_storage,
+        media_policy=_configured_media_policy(),
+        cursors=WhatsAppCursorCodec(get_jwt_secret(), query_metrics),
+        metrics=query_metrics,
+        webhook=webhook,
+    )
 
 
 def _configured_media_policy() -> WhatsAppMediaPolicy:
