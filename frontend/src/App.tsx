@@ -7,6 +7,7 @@ import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProductsPage } from './pages/ProductsPage'
+import { WhatsAppInboxPage } from './pages/WhatsAppInboxPage'
 import { getNavigationItem } from './routing/navigation'
 import { Redirect, usePathname } from './routing/router'
 import {
@@ -67,6 +68,8 @@ function RoutedApp() {
       <CustomersPage />
     ) : pathname === '/products' ? (
       <ProductsPage />
+    ) : pathname === '/whatsapp' ? (
+      <WhatsAppInboxPage />
     ) : (
       <PlaceholderPage
         description={navigationItem.description}

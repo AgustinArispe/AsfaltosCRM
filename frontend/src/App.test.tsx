@@ -256,6 +256,7 @@ describe('authenticated frontend', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
   })
 
   it('opens the pipeline drawer, restores focus, and keeps the deep-link route', async () => {
@@ -331,6 +332,7 @@ describe('authenticated frontend', () => {
       await screen.findByRole('heading', { name: 'Pipeline', level: 1 }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
   })
 

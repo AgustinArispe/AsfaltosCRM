@@ -19,6 +19,11 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
     description: 'Gestión de clientes y su historial comercial.',
   },
   {
+    path: '/whatsapp',
+    label: 'WhatsApp',
+    description: 'Conversaciones de WhatsApp y contexto comercial.',
+  },
+  {
     path: '/products',
     label: 'Productos',
     description: 'Catálogo de productos disponibles para cotizaciones.',
