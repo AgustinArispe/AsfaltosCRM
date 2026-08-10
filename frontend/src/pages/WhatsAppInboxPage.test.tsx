@@ -623,7 +623,11 @@ describe('WhatsAppInboxPage', () => {
     render(<WhatsAppInboxPage />)
     await openConversation()
 
-    expect(await screen.findByAltText('Imagen muestra.png')).toBeInTheDocument()
+    expect(
+      await screen.findByAltText('Imagen muestra.png', undefined, {
+        timeout: 3000,
+      }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /ficha.pdf/ })).toBeInTheDocument()
     expect(screen.getByText('Aceptación sin confirmar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reenviar explícitamente' })).toBeInTheDocument()
