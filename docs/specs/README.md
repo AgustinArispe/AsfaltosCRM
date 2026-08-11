@@ -103,12 +103,12 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-013`](013-concurrency-hardening.md) — Draft — backend concurrency,
-  idempotency, lock-order, and Broadcast projection hardening.
+None.
 
 ## Approved specifications
 
-None.
+- [`CRM-013`](013-concurrency-hardening.md) — Approved — backend concurrency,
+  idempotency, lock-order, and Broadcast projection hardening.
 
 ## Implemented specifications
 
