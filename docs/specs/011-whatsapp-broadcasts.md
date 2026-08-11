@@ -1,6 +1,6 @@
 # CRM-011 — WhatsApp Broadcast Execution
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-11
 Implementation commit: N/A
@@ -70,17 +70,20 @@ auditable execution record for content prepared by marketing elsewhere.
 - Native mobile or mobile-specific UI.
 - Per-recipient template values, URL/button construction, coupon codes, carousels, or
   template component shapes not represented by the provider-neutral contract.
-- Automated parsing of inbound opt-out keywords or external consent imports before a
-  separately approved contract exists.
+- Automated parsing of inbound opt-out keywords or bulk external consent imports.
 
 ## Business rules
 
 - Marketing prepares and approves the campaign/content outside the CRM. A Broadcast
   references that external work and may not author, edit, or approve it.
-- A send is eligible only when the exact normalized destination phone has a currently
-  valid `OPT_IN` event and no later effective `OPT_OUT` event.
+- A send is eligible only when the exact Customer and normalized destination phone
+  have a latest effective `OPT_IN` event and no later effective `OPT_OUT` event.
 - Consent belongs to the normalized phone, not implicitly to every past or future
   phone of a Customer. A Customer phone change does not transfer consent.
+- Valid consent originates either directly in FAA CRM (`FAA_CRM`) or in an external
+  FAA-controlled source (`EXTERNAL_FAA`) with traceable evidence.
+- Consent does not expire automatically. It remains valid until an explicit effective
+  `OPT_OUT` or revocation event becomes the latest event for that Customer and phone.
 - An opt-out becomes effective immediately when recorded and blocks every future
   Broadcast attempt to that phone, including confirmed or processing Broadcasts.
 - Recipient selection is explicit. CRM queries, filters, metrics, Opportunities, and
@@ -123,20 +126,24 @@ An append-only event is the authority for consent history:
 - `customer_id`, required in this scope;
 - `normalized_phone`, the exact destination identity affected by the event;
 - `decision`: `OPT_IN` or `OPT_OUT`;
-- `source`, a typed source value from the approved consent policy;
-- nullable bounded `evidence_reference`, containing a safe reference rather than raw
-  provider payload or sensitive evidence;
+- `source`: `FAA_CRM` or `EXTERNAL_FAA`;
+- nullable bounded `evidence_reference`, required for `EXTERNAL_FAA` and containing a
+  traceable safe reference rather than raw provider payload or sensitive evidence;
 - `occurred_at`, when the represented customer action occurred;
-- `effective_at`, assigned by the backend when the event is appended;
+- `effective_at`, supplied for imported external consent and assigned to the append
+  time for direct CRM consent;
 - `recorded_at` and `recorded_by_user_id`.
 
 Rows cannot be updated or deleted through application services. Current consent for a
-phone is the last effective event ordered by `(effective_at, id)`; an `OPT_IN` is valid
-only when its source/evidence satisfies the resolved consent policy. Backdated
-`occurred_at` never rewrites the effective ordering. Corrections append a new event.
-Indexes support current-state lookup by `(normalized_phone, effective_at, id)` and
-history by Customer. The Customer FK uses `RESTRICT`; consent history is never
-cascade-deleted.
+Customer and phone is the latest non-future effective event ordered by
+`(effective_at, id)`. `FAA_CRM` is auditable through its authenticated actor and
+timestamps; `EXTERNAL_FAA` is valid only with its required source evidence. Consent has
+no expiry field or time-based invalidation. A direct CRM opt-out uses the append time
+as its effective time and therefore blocks future sends immediately. Backdated
+`occurred_at` never rewrites effective ordering, and imported `effective_at` cannot be
+in the future. Corrections append a new event. Indexes support current-state lookup by
+`(customer_id, normalized_phone, effective_at, id)` and history by Customer. The
+Customer FK uses `RESTRICT`; consent history is never cascade-deleted.
 
 ### `WhatsAppBroadcast`
 
@@ -225,10 +232,13 @@ raw payloads, credentials, storage keys, and temporary media URLs are never retu
 ### Consent
 
 - `POST /marketing-consent-events` appends one event. The strict body contains a UUID
-  `client_event_id`, `customer_id`, `decision`, `source`, `occurred_at`, and optional
-  `evidence_reference`; normalized phone, effective time, and actor come from the
-  backend. Replaying the same UUID and normalized payload returns the existing event;
-  changed reuse is a conflict. It returns the event and effective current consent.
+  `client_event_id`, `customer_id`, `decision`, `source`, `occurred_at`, optional
+  `effective_at`, and optional `evidence_reference`; normalized phone and actor come
+  from the backend. `FAA_CRM` rejects a client-supplied effective time and uses the
+  append time. `EXTERNAL_FAA` requires a non-future effective time and a nonblank
+  evidence reference. Replaying the same UUID and normalized payload returns the
+  existing event; changed reuse is a conflict. It returns the event and effective
+  current consent.
 - `GET /marketing-consent-events?customer_id=...&limit=...&cursor=...` returns
   chronological append-only history, including phone snapshots and current status.
   This scope does not expose bulk import or mutation/deletion endpoints.
@@ -302,7 +312,8 @@ Confirmation succeeds only when all of the following are true:
    exists.
 2. Each Customer exists, is not soft-deleted, has the snapshotted valid phone, and no
    other selected Customer occupies that normalized phone.
-3. The exact phone has a currently valid opt-in under the resolved consent policy.
+3. The exact Customer and phone have a latest effective opt-in; consent never expires
+   automatically, while a later effective opt-out makes the recipient ineligible.
 4. A fresh complete provider lookup identifies the selected `MARKETING` template
    variant as approved/sendable.
 5. Named parameters exactly match the provider declaration; unsupported or unexpected
@@ -400,8 +411,8 @@ incremented counters.
 
 ## Edge cases
 
-- No consent history, an unresolved consent source, or a latest opt-out is ineligible;
-  absence is never interpreted as opt-in.
+- No consent history, invalid external evidence, or a latest opt-out is ineligible;
+  absence is never interpreted as opt-in and elapsed time never expires consent.
 - Selecting the same phone through repeated or different Customer IDs yields one
   recipient row and an explicit duplicate result, never two sends.
 - A Customer phone change after selection invalidates confirmation; after confirmation
@@ -470,12 +481,7 @@ incremented counters.
 
 ## Open decisions
 
-- OD-01: FAA must define which opt-in acquisition/evidence sources qualify as valid for
-  marketing sends, whether any source expires or requires renewal, and whether existing
-  external consent may be imported. This policy determines the `source` enum and the
-  eligibility validator and must be approved before implementation.
-
-A spec cannot move to `Approved` while this decision remains unresolved.
+None
 
 ## Follow-up / future specs
 

@@ -103,8 +103,12 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-011`](011-whatsapp-broadcasts.md) — Draft — safe WhatsApp Broadcast execution,
-  marketing consent, recipient tracking, and auditable delivery processing.
+None.
+
+## Approved specifications
+
+- [`CRM-011`](011-whatsapp-broadcasts.md) — Approved — safe WhatsApp Broadcast
+  execution, marketing consent, recipient tracking, and auditable delivery processing.
 
 ## Implemented specifications
 
