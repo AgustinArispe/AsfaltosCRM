@@ -251,11 +251,18 @@ def test_mapper_ignores_unknown_events_and_rejects_malformed_recognized_data() -
     assert "message" in metrics.mapping_failures
 
 
-def _meta_runtime() -> tuple[WhatsAppRuntime, _AcceptedTransport]:
+def _meta_runtime(
+    *,
+    provider_now: datetime | None = None,
+) -> tuple[WhatsAppRuntime, _AcceptedTransport]:
     config = _config()
     storage = FakeMediaStorage()
     metrics = NullMetaMetrics()
     transport = _AcceptedTransport()
+    selected_provider_now = provider_now or datetime.fromtimestamp(
+        int(_TIMESTAMP) + 60,
+        tz=UTC,
+    )
     graph = MetaGraphClient(
         config,
         transport,
@@ -269,7 +276,7 @@ def _meta_runtime() -> tuple[WhatsAppRuntime, _AcceptedTransport]:
         metrics,
         image_max_bytes=1024,
         document_max_bytes=2048,
-        now=lambda: datetime.fromtimestamp(int(_TIMESTAMP) + 60, tz=UTC),
+        now=lambda: selected_provider_now,
     )
     webhook = MetaWebhookIntegration(
         MetaWebhookVerifier(
@@ -325,7 +332,9 @@ def test_provider_webhook_api_processes_inbound_dedupe_and_out_of_order_status(
     db_session: Session,
     supervisor_user: User,
 ) -> None:
-    runtime, transport = _meta_runtime()
+    test_now = datetime.now(UTC)
+    test_timestamp = int(test_now.timestamp())
+    runtime, transport = _meta_runtime(provider_now=test_now)
     client = _client(db_session, runtime)
     verification = client.get(
         "/api/whatsapp/provider/webhook",
@@ -343,7 +352,10 @@ def test_provider_webhook_api_processes_inbound_dedupe_and_out_of_order_status(
         "metadata":{"phone_number_id":"106540352242922"},
         "contacts":[{"wa_id":"541155559999","profile":{"name":"Cliente Meta"}}],
         "messages":[{"from":"541155559999","id":"wamid.inbound.meta",
-        "timestamp":"1786374000","type":"text","text":{"body":"Consulta"}}]}"""
+        "timestamp":"TEST_TIMESTAMP","type":"text","text":{"body":"Consulta"}}]}""".replace(
+            "TEST_TIMESTAMP",
+            str(test_timestamp),
+        )
     )
     first = client.post(
         "/api/whatsapp/provider/webhook",
@@ -387,9 +399,12 @@ def test_provider_webhook_api_processes_inbound_dedupe_and_out_of_order_status(
         """{"messaging_product":"whatsapp",
         "metadata":{"phone_number_id":"106540352242922"},
         "statuses":[
-          {"id":"wamid.outbound.meta","status":"read","timestamp":"1786374060"},
-          {"id":"wamid.outbound.meta","status":"delivered","timestamp":"1786374050"}
-        ]}"""
+          {"id":"wamid.outbound.meta","status":"read","timestamp":"READ_TIMESTAMP"},
+          {"id":"wamid.outbound.meta","status":"delivered","timestamp":"DELIVERED_TIMESTAMP"}
+        ]}""".replace("READ_TIMESTAMP", str(test_timestamp + 60)).replace(
+            "DELIVERED_TIMESTAMP",
+            str(test_timestamp + 50),
+        )
     )
     status_response = client.post(
         "/api/whatsapp/provider/webhook",
