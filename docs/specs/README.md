@@ -107,9 +107,7 @@ None.
 
 ## Approved specifications
 
-- [`CRM-012`](012-crm-commercial-completion.md) — Approved — final commercial backend
-  completion: Opportunity Notes, automatic Legendary qualification, Lost Opportunities
-  workspace and reopen, Customer import, and WordPress production operations.
+None.
 
 ## Implemented specifications
 
@@ -135,3 +133,7 @@ These specifications capture behavior already implemented and tested:
   Inbox frontend.
 - [`CRM-011`](011-whatsapp-broadcasts.md) — Implemented — safe WhatsApp Broadcast
   execution, marketing consent, recipient tracking, and auditable delivery processing.
+- [`CRM-012`](012-crm-commercial-completion.md) — Implemented — final commercial
+  backend completion: Opportunity Notes, automatic Legendary qualification, Lost
+  Opportunities workspace and reopen, Customer import, and WordPress production
+  operations.

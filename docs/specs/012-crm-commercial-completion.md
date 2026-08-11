@@ -1,9 +1,9 @@
 # CRM-012 — CRM Commercial Completion
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-11
-Implementation commit: N/A
+Implementation commit: `040a7626dd19bac4f4d4dd2ac72b63c115850fab`
 
 ## Goal
 
