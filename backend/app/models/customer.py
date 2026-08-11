@@ -20,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.crm_commercial import CustomerLegendaryEvent
     from app.models.opportunity import Opportunity
     from app.models.whatsapp_conversation import WhatsAppConversation
 
@@ -64,6 +65,14 @@ class Customer(TimestampMixin, Base):
         nullable=False,
         server_default=false(),
     )
+    legendary_automatic: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=false(),
+    )
+    legendary_automatic_evaluated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     opportunities: Mapped[list[Opportunity]] = relationship(
@@ -74,3 +83,10 @@ class Customer(TimestampMixin, Base):
         back_populates="customer",
         passive_deletes=True,
     )
+    legendary_events: Mapped[list[CustomerLegendaryEvent]] = relationship(
+        passive_deletes=True,
+    )
+
+    @property
+    def is_legendary(self) -> bool:
+        return self.legendary_historical_override or self.legendary_automatic

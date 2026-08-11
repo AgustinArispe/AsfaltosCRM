@@ -5,7 +5,7 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_stale_opportunity_days
@@ -398,6 +398,7 @@ def _cleanup_persisted_notification_data(
     customer_id: int,
 ) -> None:
     with SessionLocal.begin() as session:
+        session.execute(text("SET LOCAL asfaltos.test_cleanup = 'on'"))
         session.execute(
             delete(Notification).where(Notification.opportunity_id == opportunity_id)
         )

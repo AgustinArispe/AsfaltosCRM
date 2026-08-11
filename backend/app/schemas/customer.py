@@ -48,6 +48,9 @@ class CustomerSummary(BaseModel):
     phone: str | None
     province: str | None
     legendary_historical_override: bool
+    legendary_automatic: bool
+    legendary_automatic_evaluated_at: datetime | None
+    is_legendary: bool
 
 
 class CustomerDetail(CustomerSummary):

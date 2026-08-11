@@ -15,7 +15,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import OPPORTUNITY_STATUS_DB_ENUM, OpportunityStatus
+from app.models.enums import (
+    OPPORTUNITY_STATUS_DB_ENUM,
+    OPPORTUNITY_TRANSITION_KIND_DB_ENUM,
+    OpportunityStatus,
+    OpportunityTransitionKind,
+)
 
 if TYPE_CHECKING:
     from app.models.opportunity import Opportunity
@@ -65,6 +70,11 @@ class OpportunityStatusHistory(Base):
             name="fk_status_history_changed_by_user_id_users",
             ondelete="RESTRICT",
         ),
+    )
+    transition_kind: Mapped[OpportunityTransitionKind] = mapped_column(
+        OPPORTUNITY_TRANSITION_KIND_DB_ENUM,
+        nullable=False,
+        default=OpportunityTransitionKind.STATUS_CHANGED,
     )
 
     opportunity: Mapped[Opportunity] = relationship(

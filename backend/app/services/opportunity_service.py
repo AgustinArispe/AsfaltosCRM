@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,9 +11,13 @@ from app.models import (
     LeadSource,
     LossReason,
     Opportunity,
+    OpportunityLossEvent,
+    OpportunityLossProductSnapshot,
     OpportunityProduct,
+    OpportunityReopenEvent,
     OpportunityStatus,
     OpportunityStatusHistory,
+    OpportunityTransitionKind,
     Product,
     User,
 )
@@ -20,12 +25,14 @@ from app.services.errors import (
     ClosedOpportunityError,
     DeletedCustomerError,
     EntityNotFoundError,
+    IdempotencyConflictError,
     InactiveProductError,
     InactiveUserError,
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
 )
+from app.services.legendary_service import LegendaryService
 from app.services.notification_service import NotificationService
 
 TERMINAL_STATUSES = frozenset({OpportunityStatus.GANADA, OpportunityStatus.PERDIDA})
@@ -98,6 +105,11 @@ class OpportunityService:
             to_status=OpportunityStatus.NUEVA,
             changed_at=opportunity.current_status_entered_at,
             changed_by_user_id=changed_by_user_id,
+            transition_kind=OpportunityTransitionKind.CREATED,
+        )
+        LegendaryService(self._session).recompute_customer_in_transaction(
+            customer_id,
+            evaluated_at=datetime.now(UTC),
         )
         self._session.flush()
         return opportunity
@@ -126,6 +138,10 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.COTIZADA,
                 changed_by_user_id=changed_by_user_id,
+            )
+            LegendaryService(self._session).recompute_customer_in_transaction(
+                opportunity.customer_id,
+                evaluated_at=datetime.now(UTC),
             )
             self._session.flush()
 
@@ -194,12 +210,14 @@ class OpportunityService:
                     "A valid loss reason is required to mark an opportunity lost"
                 )
             self._validate_history_user(changed_by_user_id)
-            self._transition(
+            history = self._transition(
                 opportunity,
                 to_status=OpportunityStatus.PERDIDA,
                 changed_by_user_id=changed_by_user_id,
                 loss_reason=loss_reason,
+                transition_kind=OpportunityTransitionKind.LOST,
             )
+            self._record_loss_event(opportunity, history, loss_reason)
             self._session.flush()
 
         return opportunity
@@ -258,6 +276,79 @@ class OpportunityService:
             ).resolve_stale_for_opportunity_in_transaction(
                 opportunity.id,
                 resolved_at=deleted_at,
+            )
+            LegendaryService(self._session).recompute_customer_in_transaction(
+                opportunity.customer_id,
+                evaluated_at=deleted_at,
+            )
+            self._session.flush()
+        return opportunity
+
+    def reopen(
+        self,
+        opportunity_id: int,
+        *,
+        command_id: UUID,
+        expected_status: OpportunityStatus,
+        changed_by_user_id: int,
+    ) -> Opportunity:
+        with self._session.begin():
+            replay = self._session.scalar(
+                select(OpportunityReopenEvent).where(
+                    OpportunityReopenEvent.command_id == command_id
+                )
+            )
+            if replay is not None:
+                if (
+                    replay.opportunity_id != opportunity_id
+                    or replay.actor_user_id != changed_by_user_id
+                    or expected_status is not OpportunityStatus.PERDIDA
+                ):
+                    raise IdempotencyConflictError(
+                        "Reopen command ID was already used for another opportunity"
+                    )
+                return self._get_opportunity_for_update(opportunity_id)
+            opportunity = self._get_opportunity_for_update(opportunity_id)
+            if (
+                expected_status is not OpportunityStatus.PERDIDA
+                or opportunity.status is not OpportunityStatus.PERDIDA
+            ):
+                raise InvalidStateTransitionError(
+                    opportunity.id,
+                    opportunity.status,
+                    OpportunityStatus.NEGOCIACION,
+                )
+            self._validate_history_user(changed_by_user_id)
+            self._require_quoted_products(opportunity.id)
+            loss_event = self._session.scalar(
+                select(OpportunityLossEvent)
+                .where(OpportunityLossEvent.opportunity_id == opportunity.id)
+                .order_by(OpportunityLossEvent.id.desc())
+                .limit(1)
+            )
+            if loss_event is None:
+                raise InvalidStateTransitionError(
+                    opportunity.id,
+                    opportunity.status,
+                    OpportunityStatus.NEGOCIACION,
+                )
+            history = self._transition(
+                opportunity,
+                to_status=OpportunityStatus.NEGOCIACION,
+                changed_by_user_id=changed_by_user_id,
+                transition_kind=OpportunityTransitionKind.REOPENED,
+            )
+            self._session.flush()
+            self._session.add(
+                OpportunityReopenEvent(
+                    opportunity_id=opportunity.id,
+                    loss_event_id=loss_event.id,
+                    status_history_id=history.id,
+                    target_status=OpportunityStatus.NEGOCIACION,
+                    actor_user_id=changed_by_user_id,
+                    command_id=command_id,
+                    reopened_at=history.changed_at,
+                )
             )
             self._session.flush()
         return opportunity
@@ -446,7 +537,8 @@ class OpportunityService:
         to_status: OpportunityStatus,
         changed_by_user_id: int | None,
         loss_reason: LossReason | None = None,
-    ) -> None:
+        transition_kind: OpportunityTransitionKind = OpportunityTransitionKind.STATUS_CHANGED,
+    ) -> OpportunityStatusHistory:
         from_status = opportunity.status
         changed_at = datetime.now(UTC)
         opportunity.status = to_status
@@ -457,12 +549,13 @@ class OpportunityService:
             opportunity.id,
             resolved_at=changed_at,
         )
-        self._add_history(
+        return self._add_history(
             opportunity=opportunity,
             from_status=from_status,
             to_status=to_status,
             changed_at=changed_at,
             changed_by_user_id=changed_by_user_id,
+            transition_kind=transition_kind,
         )
 
     def _add_history(
@@ -473,13 +566,69 @@ class OpportunityService:
         to_status: OpportunityStatus,
         changed_at: datetime,
         changed_by_user_id: int | None,
-    ) -> None:
-        self._session.add(
-            OpportunityStatusHistory(
-                opportunity_id=opportunity.id,
-                from_status=from_status,
-                to_status=to_status,
-                changed_at=changed_at,
-                changed_by_user_id=changed_by_user_id,
-            )
+        transition_kind: OpportunityTransitionKind,
+    ) -> OpportunityStatusHistory:
+        history = OpportunityStatusHistory(
+            opportunity_id=opportunity.id,
+            from_status=from_status,
+            to_status=to_status,
+            changed_at=changed_at,
+            changed_by_user_id=changed_by_user_id,
+            transition_kind=transition_kind,
         )
+        self._session.add(history)
+        self._session.flush()
+        return history
+
+    def _record_loss_event(
+        self,
+        opportunity: Opportunity,
+        history: OpportunityStatusHistory,
+        loss_reason: LossReason,
+    ) -> None:
+        customer = self._session.get(Customer, opportunity.customer_id)
+        if customer is None:
+            raise EntityNotFoundError("Customer", opportunity.customer_id)
+        quote_lines = self._session.scalars(
+            select(OpportunityProduct)
+            .where(OpportunityProduct.opportunity_id == opportunity.id)
+            .order_by(OpportunityProduct.product_id)
+        ).all()
+        total = sum((line.quantity_kg for line in quote_lines), Decimal("0"))
+        if history.from_status is None:
+            raise InvalidStateTransitionError(
+                opportunity.id,
+                OpportunityStatus.NUEVA,
+                OpportunityStatus.PERDIDA,
+            )
+        event = OpportunityLossEvent(
+            opportunity_id=opportunity.id,
+            customer_id=customer.id,
+            status_history_id=history.id,
+            from_status=history.from_status,
+            reason=loss_reason,
+            source=opportunity.source,
+            customer_display_name=(
+                customer.name
+                if customer.company is None
+                else f"{customer.name} {customer.company}"
+            ),
+            customer_province=customer.province,
+            quoted_total_kg=total,
+            actor_user_id=history.changed_by_user_id,
+            lost_at=history.changed_at,
+        )
+        self._session.add(event)
+        self._session.flush()
+        for line in quote_lines:
+            product = self._session.get(Product, line.product_id)
+            if product is None:
+                raise EntityNotFoundError("Product", line.product_id)
+            self._session.add(
+                OpportunityLossProductSnapshot(
+                    loss_event_id=event.id,
+                    product_id=line.product_id,
+                    product_name=product.name,
+                    quantity_kg=line.quantity_kg,
+                )
+            )

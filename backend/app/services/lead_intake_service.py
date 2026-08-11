@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,6 +15,11 @@ from app.services.customer_identity_service import (
 )
 from app.services.customer_identity_service import (
     normalize_email as normalize_email,
+)
+from app.services.customer_profile_service import (
+    CustomerProfileInput,
+    create_customer_from_profile,
+    enrich_customer_missing_fields,
 )
 from app.services.errors import (
     CustomerIdentityConflictError,
@@ -202,43 +206,30 @@ class LeadIntakeService:
         return resolution.customer
 
     def _create_customer(self, intake: _NormalizedLeadIntake) -> Customer:
-        customer = Customer(
-            name=intake.name,
-            company=intake.company,
-            email=intake.email,
-            phone=intake.phone,
-            province=intake.province,
-            legendary_historical_override=False,
+        return create_customer_from_profile(
+            self._session,
+            CustomerProfileInput(
+                name=intake.name,
+                company=intake.company,
+                email=intake.email,
+                phone=intake.phone,
+                province=intake.province,
+            ),
         )
-        self._session.add(customer)
-        self._session.flush()
-        return customer
 
     def _enrich_customer(
         self,
         customer: Customer,
         intake: _NormalizedLeadIntake,
     ) -> None:
-        changed = False
-        if self._is_missing(customer.name):
-            customer.name = intake.name
-            changed = True
-        if self._is_missing(customer.company) and intake.company is not None:
-            customer.company = intake.company
-            changed = True
-        if self._is_missing(customer.email) and intake.email is not None:
-            customer.email = intake.email
-            changed = True
-        if self._is_missing(customer.phone) and intake.phone is not None:
-            customer.phone = intake.phone
-            changed = True
-        if self._is_missing(customer.province) and intake.province is not None:
-            customer.province = intake.province
-            changed = True
-        if changed:
-            customer.updated_at = datetime.now(UTC)
-            self._session.flush()
-
-    @staticmethod
-    def _is_missing(value: str | None) -> bool:
-        return value is None or not value.strip()
+        enrich_customer_missing_fields(
+            self._session,
+            customer,
+            CustomerProfileInput(
+                name=intake.name,
+                company=intake.company,
+                email=intake.email,
+                phone=intake.phone,
+                province=intake.province,
+            ),
+        )

@@ -26,7 +26,10 @@ class OpportunityQueryService:
         assigned_user_id: int | None,
         source: LeadSource | None,
     ) -> tuple[list[Opportunity], int]:
-        filters: list[ColumnElement[bool]] = [Opportunity.deleted_at.is_(None)]
+        filters: list[ColumnElement[bool]] = [
+            Opportunity.deleted_at.is_(None),
+            Opportunity.status != OpportunityStatus.PERDIDA,
+        ]
         if status is not None:
             filters.append(Opportunity.status == status)
         if customer_id is not None:
@@ -60,6 +63,7 @@ class OpportunityQueryService:
                 *self._summary_load_options(),
                 selectinload(Opportunity.status_history),
             )
+            .execution_options(populate_existing=True)
         )
         if opportunity is None:
             raise EntityNotFoundError("Opportunity", opportunity_id)

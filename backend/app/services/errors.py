@@ -121,6 +121,18 @@ class InvalidLossReasonError(DomainError):
     """Raised when marking an opportunity lost without a valid reason."""
 
 
+class RevisionConflictError(DomainError):
+    """Raised for a stale append-only note command."""
+
+
+class IdempotencyConflictError(DomainError):
+    """Raised when a CRM command UUID is reused with different input."""
+
+
+class InvalidCustomerImportError(DomainError):
+    """Raised when a Customer import cannot be validated or committed."""
+
+
 class ClosedOpportunityError(DomainError):
     def __init__(
         self,

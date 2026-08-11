@@ -6,6 +6,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import Customer
 from app.services.errors import DeletedCustomerError, EntityNotFoundError
+from app.services.legendary_service import LegendaryService
 
 CUSTOMER_UPDATE_FIELDS = frozenset(
     {
@@ -32,6 +33,7 @@ class CustomerService:
         phone: str | None,
         province: str | None,
         legendary_historical_override: bool,
+        actor_user_id: int | None = None,
     ) -> Customer:
         with self._session.begin():
             customer = Customer(
@@ -44,6 +46,17 @@ class CustomerService:
             )
             self._session.add(customer)
             self._session.flush()
+            if legendary_historical_override:
+                if actor_user_id is None:
+                    raise ValueError("actor_user_id is required for a manual override")
+                customer.legendary_historical_override = False
+                LegendaryService(self._session).record_manual_change_in_transaction(
+                    customer,
+                    new_value=True,
+                    actor_user_id=actor_user_id,
+                    occurred_at=datetime.now(UTC),
+                )
+                self._session.flush()
         return customer
 
     def list_customers(
@@ -100,6 +113,8 @@ class CustomerService:
         self,
         customer_id: int,
         updates: dict[str, str | bool | None],
+        *,
+        actor_user_id: int | None = None,
     ) -> Customer:
         with self._session.begin():
             customer = self._session.scalar(
@@ -110,9 +125,21 @@ class CustomerService:
             if customer.deleted_at is not None:
                 raise DeletedCustomerError(customer_id)
 
+            manual_value = updates.get("legendary_historical_override")
             for field_name, value in updates.items():
                 if field_name in CUSTOMER_UPDATE_FIELDS:
+                    if field_name == "legendary_historical_override":
+                        continue
                     setattr(customer, field_name, value)
+            if isinstance(manual_value, bool):
+                if actor_user_id is None:
+                    raise ValueError("actor_user_id is required for a manual override")
+                LegendaryService(self._session).record_manual_change_in_transaction(
+                    customer,
+                    new_value=manual_value,
+                    actor_user_id=actor_user_id,
+                    occurred_at=datetime.now(UTC),
+                )
             if updates:
                 customer.updated_at = datetime.now(UTC)
             self._session.flush()

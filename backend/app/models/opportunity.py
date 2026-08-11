@@ -11,11 +11,13 @@ from sqlalchemy import (
     Identity,
     Index,
     func,
+    select,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.models.crm_commercial import OpportunityReopenEvent
 from app.models.enums import (
     LEAD_SOURCE_DB_ENUM,
     LOSS_REASON_DB_ENUM,
@@ -27,6 +29,11 @@ from app.models.enums import (
 from app.models.opportunity_status_history import OpportunityStatusHistory
 
 if TYPE_CHECKING:
+    from app.models.crm_commercial import (
+        OpportunityLossEvent,
+        OpportunityNote,
+        OpportunityReopenEvent,
+    )
     from app.models.customer import Customer
     from app.models.lead_intake import LeadIntake
     from app.models.notification import Notification
@@ -86,7 +93,7 @@ class Opportunity(TimestampMixin, Base):
         Index(
             "ix_opportunities_legendary_wins",
             "customer_id",
-            "current_status_entered_at",
+            "created_at",
             postgresql_where=text("status = 'GANADA' AND deleted_at IS NULL"),
         ),
     )
@@ -158,3 +165,27 @@ class Opportunity(TimestampMixin, Base):
             passive_deletes=True,
         )
     )
+    notes: Mapped[list[OpportunityNote]] = relationship(
+        back_populates="opportunity", passive_deletes=True
+    )
+    loss_events: Mapped[list[OpportunityLossEvent]] = relationship(
+        back_populates="opportunity",
+        passive_deletes=True,
+        order_by="OpportunityLossEvent.id",
+    )
+    reopen_events: Mapped[list[OpportunityReopenEvent]] = relationship(
+        back_populates="opportunity",
+        passive_deletes=True,
+        order_by="OpportunityReopenEvent.id",
+    )
+
+    reopen_count: Mapped[int] = column_property(
+        select(func.count(OpportunityReopenEvent.id))
+        .where(OpportunityReopenEvent.opportunity_id == id)
+        .correlate_except(OpportunityReopenEvent)
+        .scalar_subquery()
+    )
+
+    @property
+    def is_reopened(self) -> bool:
+        return self.reopen_count > 0

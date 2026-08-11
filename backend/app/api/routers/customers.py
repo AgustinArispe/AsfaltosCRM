@@ -40,7 +40,9 @@ def create_customer(
         raise PermissionDeniedError(
             "Only supervisors can set the legendary historical override"
         )
-    customer = CustomerService(session).create_customer(**payload.model_dump())
+    customer = CustomerService(session).create_customer(
+        **payload.model_dump(), actor_user_id=current_user.id
+    )
     return CustomerSummary.model_validate(customer)
 
 
@@ -105,6 +107,7 @@ def update_customer(
     customer = CustomerService(session).update_customer(
         customer_id,
         payload.model_dump(exclude_unset=True),
+        actor_user_id=current_user.id,
     )
     return CustomerSummary.model_validate(customer)
 

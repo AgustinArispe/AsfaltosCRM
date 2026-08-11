@@ -5,7 +5,7 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, event, func, select
+from sqlalchemy import delete, event, func, select, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Mapper, Session
 
@@ -488,6 +488,7 @@ def _cleanup_concurrent_results(results: list[LeadIntakeResult]) -> None:
     opportunity_ids = {result.opportunity_id for result in results}
     customer_ids = {result.customer_id for result in results}
     with SessionLocal.begin() as session:
+        session.execute(text("SET LOCAL asfaltos.test_cleanup = 'on'"))
         session.execute(
             delete(OpportunityStatusHistory).where(
                 OpportunityStatusHistory.opportunity_id.in_(opportunity_ids)

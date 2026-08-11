@@ -1,10 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import LeadSource, LossReason, OpportunityStatus
+from app.models import (
+    LeadSource,
+    LossReason,
+    OpportunityStatus,
+    OpportunityTransitionKind,
+)
 from app.schemas.common import StrictRequestModel
 from app.schemas.customer import CustomerSummary
 from app.schemas.product import ProductResponse
@@ -43,6 +49,11 @@ class LoseOpportunityRequest(StatusChangeRequest):
     loss_reason: LossReason
 
 
+class ReopenOpportunityRequest(StrictRequestModel):
+    command_id: UUID
+    expected_status: Literal[OpportunityStatus.PERDIDA]
+
+
 class AssigneeUpdate(StrictRequestModel):
     assigned_user_id: PositiveId | None
 
@@ -70,6 +81,7 @@ class OpportunityStatusHistoryResponse(BaseModel):
     to_status: OpportunityStatus
     changed_at: datetime
     changed_by_user_id: int | None
+    transition_kind: OpportunityTransitionKind
 
 
 class OpportunitySummary(BaseModel):
@@ -85,6 +97,8 @@ class OpportunitySummary(BaseModel):
         validation_alias="opportunity_products"
     )
     created_at: datetime
+    is_reopened: bool
+    reopen_count: int
 
 
 class OpportunityDetail(OpportunitySummary):

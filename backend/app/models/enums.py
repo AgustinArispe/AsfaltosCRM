@@ -29,6 +29,43 @@ class LossReason(StrEnum):
     OTRO = "OTRO"
 
 
+class OpportunityTransitionKind(StrEnum):
+    CREATED = "CREATED"
+    STATUS_CHANGED = "STATUS_CHANGED"
+    LOST = "LOST"
+    REOPENED = "REOPENED"
+
+
+class LegendaryEventType(StrEnum):
+    MANUAL_OVERRIDE_CHANGED = "MANUAL_OVERRIDE_CHANGED"
+    AUTOMATIC_CHANGED = "AUTOMATIC_CHANGED"
+
+
+class CustomerImportStatus(StrEnum):
+    VALID = "VALID"
+    INVALID = "INVALID"
+    COMMITTED = "COMMITTED"
+
+
+class CustomerImportAction(StrEnum):
+    CREATE = "CREATE"
+    ENRICH = "ENRICH"
+    UNCHANGED = "UNCHANGED"
+    ERROR = "ERROR"
+
+
+class CustomerImportIssueCode(StrEnum):
+    INVALID_FILE = "INVALID_FILE"
+    INVALID_HEADER = "INVALID_HEADER"
+    INVALID_ROW = "INVALID_ROW"
+    MISSING_NAME = "MISSING_NAME"
+    INVALID_EMAIL = "INVALID_EMAIL"
+    INVALID_PHONE = "INVALID_PHONE"
+    AMBIGUOUS_IDENTITY = "AMBIGUOUS_IDENTITY"
+    DELETED_IDENTITY = "DELETED_IDENTITY"
+    DUPLICATE_IDENTITY = "DUPLICATE_IDENTITY"
+
+
 class NotificationType(StrEnum):
     OPPORTUNITY_STALE = "OPPORTUNITY_STALE"
 
@@ -149,6 +186,36 @@ OPPORTUNITY_STATUS_DB_ENUM = SQLAlchemyEnum(
 LOSS_REASON_DB_ENUM = SQLAlchemyEnum(
     LossReason,
     name="loss_reason_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+OPPORTUNITY_TRANSITION_KIND_DB_ENUM = SQLAlchemyEnum(
+    OpportunityTransitionKind,
+    name="opportunity_transition_kind_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+LEGENDARY_EVENT_TYPE_DB_ENUM = SQLAlchemyEnum(
+    LegendaryEventType,
+    name="legendary_event_type_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+CUSTOMER_IMPORT_STATUS_DB_ENUM = SQLAlchemyEnum(
+    CustomerImportStatus,
+    name="customer_import_status_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+CUSTOMER_IMPORT_ACTION_DB_ENUM = SQLAlchemyEnum(
+    CustomerImportAction,
+    name="customer_import_action_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+CUSTOMER_IMPORT_ISSUE_CODE_DB_ENUM = SQLAlchemyEnum(
+    CustomerImportIssueCode,
+    name="customer_import_issue_code_enum",
     values_callable=_values,
     validate_strings=True,
 )

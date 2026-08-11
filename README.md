@@ -97,6 +97,8 @@ el ID con otros datos devuelve conflicto. `WEB_INTAKE_SIGNING_SECRET` debe exist
 en el servidor que integra el formulario y en el backend del CRM; nunca debe incluirse
 en JavaScript, WordPress público ni el repositorio. El rate limiting debe configurarse
 en el reverse proxy o la plataforma de despliegue, no en memoria dentro de FastAPI.
+La validación y operación productiva de WordPress/Contact Form 7 se detalla en el
+[runbook de intake WordPress](docs/runbooks/wordpress-production-intake.md).
 
 ## Notificaciones internas
 

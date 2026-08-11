@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
@@ -491,6 +491,7 @@ def test_concurrent_duplicate_inbound_creates_one_message_and_conversation() -> 
             )
     finally:
         with SessionLocal.begin() as cleanup:
+            cleanup.execute(text("SET LOCAL asfaltos.test_cleanup = 'on'"))
             conversation = cleanup.scalar(
                 select(WhatsAppConversation).where(
                     WhatsAppConversation.phone_match_key == "+541179990001"
