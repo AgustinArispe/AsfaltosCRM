@@ -57,6 +57,14 @@ class WhatsAppReplyInProgressError(DomainError):
     """Raised when another direct reply has an uncertain or active dispatch."""
 
 
+class WhatsAppBroadcastConflictError(DomainError):
+    """Raised when a Broadcast lifecycle or idempotency command conflicts."""
+
+
+class InvalidWhatsAppBroadcastError(DomainError):
+    """Raised when Broadcast inputs cannot be safely confirmed or dispatched."""
+
+
 class EntityNotFoundError(DomainError):
     def __init__(self, entity_name: str, entity_id: int) -> None:
         self.entity_name = entity_name

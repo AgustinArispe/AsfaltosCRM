@@ -27,6 +27,7 @@ from app.whatsapp import (
     SendImageRequest,
     SendTemplateRequest,
     SendTextRequest,
+    TemplateHeaderType,
     TemplateParameter,
     TransmissionState,
     WhatsAppProvider,
@@ -525,6 +526,56 @@ def test_template_sync_is_complete_atomic_and_supported_shapes_send() -> None:
                 (),
             )
         )
+
+
+@pytest.mark.parametrize(
+    ("header_format", "mime_type", "serialized_type"),
+    (
+        ("IMAGE", "image/jpeg", b'"type":"image"'),
+        ("DOCUMENT", "application/pdf", b'"type":"document"'),
+    ),
+)
+def test_supported_template_media_headers_are_serialized(
+    header_format: str,
+    mime_type: str,
+    serialized_type: bytes,
+) -> None:
+    template_payload = (
+        '{"data":[{"id":"media-template","name":"oferta_media",'
+        '"language":"es_AR","category":"MARKETING","status":"APPROVED",'
+        f'"components":[{{"type":"HEADER","format":"{header_format}"}},'
+        '{"type":"BODY","text":"Oferta FAA"}]}]}'
+    ).encode()
+    provider, transport, _, _ = _provider(
+        [
+            _response(200, template_payload),
+            _response(200, b'{"messages":[{"id":"wamid.media-template"}]}'),
+        ]
+    )
+    snapshot = provider.list_templates()[0]
+    assert snapshot.header_type is TemplateHeaderType(header_format)
+    assert snapshot.header_media_required is True
+    assert snapshot.supported_for_send is True
+
+    sent = provider.send_template(
+        SendTemplateRequest(
+            recipient=ProviderRecipient("541155551234"),
+            client_generated_id=uuid4(),
+            template_name="oferta_media",
+            language="es_AR",
+            parameters=(),
+            header_media=ProviderMediaReference(
+                "media-header",
+                None,
+                mime_type,
+                "header",
+            ),
+        )
+    )
+    assert sent.external_message_id == "wamid.media-template"
+    message_body = _body(transport.requests[1])
+    assert serialized_type in message_body
+    assert b'"id":"media-header"' in message_body
 
 
 def test_window_boundaries_and_fixture_performance_budgets() -> None:

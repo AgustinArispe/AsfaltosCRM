@@ -9,6 +9,7 @@ from app.models import (
     WhatsAppDirection,
     WhatsAppDispatchState,
     WhatsAppMessage,
+    WhatsAppMessageOrigin,
     WhatsAppProviderState,
 )
 
@@ -24,6 +25,7 @@ def recompute_response_projection(
         select(func.max(WhatsAppMessage.accepted_at)).where(
             WhatsAppMessage.conversation_id == conversation.id,
             WhatsAppMessage.direction == WhatsAppDirection.OUTBOUND,
+            WhatsAppMessage.origin == WhatsAppMessageOrigin.HUMAN,
             WhatsAppMessage.sent_by_user_id.is_not(None),
             WhatsAppMessage.dispatch_state == WhatsAppDispatchState.ACCEPTED,
             WhatsAppMessage.provider_state != WhatsAppProviderState.FAILED,

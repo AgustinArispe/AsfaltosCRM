@@ -76,6 +76,54 @@ class WhatsAppStorageStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class WhatsAppMessageOrigin(StrEnum):
+    HUMAN = "HUMAN"
+    BROADCAST = "BROADCAST"
+
+
+class WhatsAppConsentDecision(StrEnum):
+    OPT_IN = "OPT_IN"
+    OPT_OUT = "OPT_OUT"
+
+
+class WhatsAppConsentSource(StrEnum):
+    FAA_CRM = "FAA_CRM"
+    EXTERNAL_FAA = "EXTERNAL_FAA"
+
+
+class WhatsAppBroadcastStatus(StrEnum):
+    DRAFT = "DRAFT"
+    CONFIRMED = "CONFIRMED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+
+
+class WhatsAppBroadcastRecipientStatus(StrEnum):
+    DRAFT = "DRAFT"
+    READY = "READY"
+    IN_PROGRESS = "IN_PROGRESS"
+    ACCEPTED = "ACCEPTED"
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    READ = "READ"
+    FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
+    BLOCKED = "BLOCKED"
+
+
+class WhatsAppBroadcastAuditEventType(StrEnum):
+    CREATED = "CREATED"
+    RECIPIENTS_REPLACED = "RECIPIENTS_REPLACED"
+    VALIDATED = "VALIDATED"
+    CONFIRMED = "CONFIRMED"
+    STARTED = "STARTED"
+    RETRY_AUTHORIZED = "RETRY_AUTHORIZED"
+    STALE_CLAIM_RECOVERED = "STALE_CLAIM_RECOVERED"
+    BLOCKED = "BLOCKED"
+    PROCESSED = "PROCESSED"
+    COMPLETED = "COMPLETED"
+
+
 def _values(enum_class: type[Enum]) -> list[str]:
     return [member.value for member in enum_class]
 
@@ -149,6 +197,42 @@ WHATSAPP_OPPORTUNITY_LINK_SOURCE_DB_ENUM = SQLAlchemyEnum(
 WHATSAPP_STORAGE_STATUS_DB_ENUM = SQLAlchemyEnum(
     WhatsAppStorageStatus,
     name="whatsapp_storage_status_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+WHATSAPP_MESSAGE_ORIGIN_DB_ENUM = SQLAlchemyEnum(
+    WhatsAppMessageOrigin,
+    name="whatsapp_message_origin_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+WHATSAPP_CONSENT_DECISION_DB_ENUM = SQLAlchemyEnum(
+    WhatsAppConsentDecision,
+    name="whatsapp_consent_decision_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+WHATSAPP_CONSENT_SOURCE_DB_ENUM = SQLAlchemyEnum(
+    WhatsAppConsentSource,
+    name="whatsapp_consent_source_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+WHATSAPP_BROADCAST_STATUS_DB_ENUM = SQLAlchemyEnum(
+    WhatsAppBroadcastStatus,
+    name="whatsapp_broadcast_status_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+WHATSAPP_BROADCAST_RECIPIENT_STATUS_DB_ENUM = SQLAlchemyEnum(
+    WhatsAppBroadcastRecipientStatus,
+    name="whatsapp_broadcast_recipient_status_enum",
+    values_callable=_values,
+    validate_strings=True,
+)
+WHATSAPP_BROADCAST_AUDIT_EVENT_TYPE_DB_ENUM = SQLAlchemyEnum(
+    WhatsAppBroadcastAuditEventType,
+    name="whatsapp_broadcast_audit_event_type_enum",
     values_callable=_values,
     validate_strings=True,
 )

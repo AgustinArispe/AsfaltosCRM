@@ -133,9 +133,19 @@ class _MetaTemplateTextParameter(BaseModel):
     text: str
 
 
+class _MetaTemplateMediaId(BaseModel):
+    id: str
+
+
+class _MetaTemplateMediaParameter(BaseModel):
+    type: str
+    image: _MetaTemplateMediaId | None = None
+    document: _MetaTemplateMediaId | None = None
+
+
 class _MetaTemplateComponentRequest(BaseModel):
     type: str = "body"
-    parameters: tuple[_MetaTemplateTextParameter, ...]
+    parameters: tuple[_MetaTemplateTextParameter | _MetaTemplateMediaParameter, ...]
 
 
 class _MetaTemplateContent(BaseModel):
@@ -301,17 +311,48 @@ class MetaCloudApiProvider:
             )
             for parameter in request.parameters
         )
-        components = (
-            (_MetaTemplateComponentRequest(parameters=parameters),)
-            if parameters
-            else ()
-        )
+        components: list[_MetaTemplateComponentRequest] = []
+        if request.header_media is not None:
+            media_id = self._resolve_outbound_media_id(
+                request.header_media,
+                operation=MetaOperation.MEDIA_UPLOAD,
+            )
+            if definition.snapshot.header_type is TemplateHeaderType.IMAGE:
+                media_parameter = _MetaTemplateMediaParameter(
+                    type="image",
+                    image=_MetaTemplateMediaId(id=media_id),
+                )
+            elif definition.snapshot.header_type is TemplateHeaderType.DOCUMENT:
+                media_parameter = _MetaTemplateMediaParameter(
+                    type="document",
+                    document=_MetaTemplateMediaId(id=media_id),
+                )
+            else:
+                raise _provider_error(
+                    ProviderErrorKind.PERMANENT_FAILURE,
+                    "META_TEMPLATE_HEADER_INVALID",
+                    "Meta template does not accept header media",
+                )
+            components.append(
+                _MetaTemplateComponentRequest(
+                    type="header",
+                    parameters=(media_parameter,),
+                )
+            )
+        elif definition.snapshot.header_media_required:
+            raise _provider_error(
+                ProviderErrorKind.PERMANENT_FAILURE,
+                "META_TEMPLATE_HEADER_REQUIRED",
+                "Meta template requires header media",
+            )
+        if parameters:
+            components.append(_MetaTemplateComponentRequest(parameters=parameters))
         payload = _MetaTemplateMessageRequest(
             to=_normalized_recipient(request.recipient.phone),
             template=_MetaTemplateContent(
                 name=template_name,
                 language=_MetaTemplateLanguage(code=language),
-                components=components,
+                components=tuple(components),
             ),
         )
         return self._send(
@@ -587,12 +628,16 @@ def _template_definition(record: _MetaTemplateRecord) -> _TemplateDefinition:
         if component.type.upper() == "BODY" and component.text is not None
         for parameter_name in _NAMED_TEMPLATE_PARAMETER.findall(component.text)
     )
-    supported_header = (
-        len(header_components) <= 1
-        and header_type in {TemplateHeaderType.NONE, TemplateHeaderType.TEXT}
-        and not non_body_has_parameters
+    supported_header = len(header_components) <= 1 and header_type in {
+        TemplateHeaderType.NONE,
+        TemplateHeaderType.TEXT,
+        TemplateHeaderType.IMAGE,
+        TemplateHeaderType.DOCUMENT,
+    }
+    supported_header = supported_header and not non_body_has_parameters
+    supported_parameters = (
+        not body_parameter_names or (record.parameter_format or "").upper() == "NAMED"
     )
-    supported_parameters = (record.parameter_format or "").upper() == "NAMED"
     return _TemplateDefinition(
         snapshot=ProviderTemplateSnapshot(
             external_id=_required_text(record.id, "template ID"),
@@ -601,6 +646,12 @@ def _template_definition(record: _MetaTemplateRecord) -> _TemplateDefinition:
             category=_required_text(record.category, "template category"),
             status=_required_text(record.status, "template status"),
             header_type=header_type,
+            parameter_names=tuple(sorted(body_parameter_names)),
+            header_media_required=header_type
+            in {TemplateHeaderType.IMAGE, TemplateHeaderType.DOCUMENT},
+            supported_for_send=(
+                supported_components and supported_header and supported_parameters
+            ),
         ),
         supported_for_send=(
             supported_components and supported_header and supported_parameters

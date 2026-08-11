@@ -76,6 +76,7 @@ class SendTemplateRequest:
     template_name: str
     language: str
     parameters: tuple[TemplateParameter, ...]
+    header_media: ProviderMediaReference | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +101,9 @@ class ProviderTemplateSnapshot:
     category: str
     status: str
     header_type: TemplateHeaderType
+    parameter_names: tuple[str, ...] = ()
+    header_media_required: bool = False
+    supported_for_send: bool = True
 
 
 @dataclass(frozen=True, slots=True)

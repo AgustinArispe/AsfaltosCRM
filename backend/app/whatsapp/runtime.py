@@ -5,6 +5,8 @@ from datetime import timedelta
 
 from app.core.config import (
     get_jwt_secret,
+    get_whatsapp_broadcast_batch_size,
+    get_whatsapp_broadcast_claim_timeout_seconds,
     get_whatsapp_document_max_bytes,
     get_whatsapp_document_mime_types,
     get_whatsapp_image_max_bytes,
@@ -45,6 +47,8 @@ class WhatsAppRuntime:
     media_policy: WhatsAppMediaPolicy
     cursors: WhatsAppCursorCodec
     metrics: WhatsAppQueryMetrics
+    broadcast_batch_size: int
+    broadcast_claim_timeout: timedelta
     webhook: ProviderWebhook | None = None
 
 
@@ -62,6 +66,10 @@ def build_fake_whatsapp_runtime(
         media_policy=media_policy or _configured_media_policy(),
         cursors=WhatsAppCursorCodec(get_jwt_secret(), selected_metrics),
         metrics=selected_metrics,
+        broadcast_batch_size=get_whatsapp_broadcast_batch_size(),
+        broadcast_claim_timeout=timedelta(
+            seconds=get_whatsapp_broadcast_claim_timeout_seconds()
+        ),
         webhook=None,
     )
 
@@ -117,6 +125,10 @@ def build_meta_whatsapp_runtime(
         media_policy=_configured_media_policy(),
         cursors=WhatsAppCursorCodec(get_jwt_secret(), query_metrics),
         metrics=query_metrics,
+        broadcast_batch_size=get_whatsapp_broadcast_batch_size(),
+        broadcast_claim_timeout=timedelta(
+            seconds=get_whatsapp_broadcast_claim_timeout_seconds()
+        ),
         webhook=webhook,
     )
 

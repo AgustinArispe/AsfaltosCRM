@@ -11,6 +11,8 @@ DEFAULT_WHATSAPP_IMAGE_MIME_TYPES = (
 )
 DEFAULT_WHATSAPP_DOCUMENT_MIME_TYPES = ("application/pdf",)
 DEFAULT_WHATSAPP_MEDIA_MAX_BYTES = 16_777_216
+DEFAULT_WHATSAPP_BROADCAST_BATCH_SIZE = 50
+DEFAULT_WHATSAPP_BROADCAST_CLAIM_TIMEOUT_SECONDS = 300
 
 
 @lru_cache
@@ -101,6 +103,22 @@ def get_whatsapp_document_max_bytes() -> int:
     return _positive_int_setting(
         "WHATSAPP_DOCUMENT_MAX_BYTES",
         getenv("WHATSAPP_MEDIA_MAX_BYTES", str(DEFAULT_WHATSAPP_MEDIA_MAX_BYTES)),
+    )
+
+
+@lru_cache
+def get_whatsapp_broadcast_batch_size() -> int:
+    return _positive_int_setting(
+        "WHATSAPP_BROADCAST_BATCH_SIZE",
+        str(DEFAULT_WHATSAPP_BROADCAST_BATCH_SIZE),
+    )
+
+
+@lru_cache
+def get_whatsapp_broadcast_claim_timeout_seconds() -> int:
+    return _positive_int_setting(
+        "WHATSAPP_BROADCAST_CLAIM_TIMEOUT_SECONDS",
+        str(DEFAULT_WHATSAPP_BROADCAST_CLAIM_TIMEOUT_SECONDS),
     )
 
 

@@ -15,6 +15,9 @@ from app.models import (
     WhatsAppProviderState,
 )
 from app.services.errors import InvalidWhatsAppMessageError
+from app.services.whatsapp_broadcast_projection_service import (
+    sync_broadcast_recipient_from_message,
+)
 from app.services.whatsapp_projection_service import (
     later_datetime,
     recompute_response_projection,
@@ -158,6 +161,11 @@ class WhatsAppStatusService:
         recompute_response_projection(
             self._session,
             conversation,
+            now=now,
+        )
+        sync_broadcast_recipient_from_message(
+            self._session,
+            message,
             now=now,
         )
 

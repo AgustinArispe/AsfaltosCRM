@@ -5,9 +5,15 @@ from app.models.enums import (
     NotificationType,
     OpportunityStatus,
     UserRole,
+    WhatsAppBroadcastAuditEventType,
+    WhatsAppBroadcastRecipientStatus,
+    WhatsAppBroadcastStatus,
+    WhatsAppConsentDecision,
+    WhatsAppConsentSource,
     WhatsAppConversationResolution,
     WhatsAppDirection,
     WhatsAppDispatchState,
+    WhatsAppMessageOrigin,
     WhatsAppMessageType,
     WhatsAppOpportunityLinkSource,
     WhatsAppProviderState,
@@ -21,10 +27,17 @@ from app.models.opportunity_status_history import OpportunityStatusHistory
 from app.models.product import Product
 from app.models.user import User
 from app.models.whatsapp_attachment import WhatsAppAttachment
+from app.models.whatsapp_broadcast import (
+    WhatsAppBroadcast,
+    WhatsAppBroadcastAuditEvent,
+    WhatsAppBroadcastRecipient,
+    WhatsAppBroadcastTemplateParameter,
+)
 from app.models.whatsapp_conversation import WhatsAppConversation
 from app.models.whatsapp_conversation_opportunity import (
     WhatsAppConversationOpportunity,
 )
+from app.models.whatsapp_marketing_consent_event import WhatsAppMarketingConsentEvent
 from app.models.whatsapp_message import WhatsAppMessage
 from app.models.whatsapp_message_status_event import WhatsAppMessageStatusEvent
 
@@ -43,12 +56,23 @@ __all__ = [
     "User",
     "UserRole",
     "WhatsAppAttachment",
+    "WhatsAppBroadcast",
+    "WhatsAppBroadcastAuditEvent",
+    "WhatsAppBroadcastAuditEventType",
+    "WhatsAppBroadcastRecipient",
+    "WhatsAppBroadcastRecipientStatus",
+    "WhatsAppBroadcastStatus",
+    "WhatsAppBroadcastTemplateParameter",
+    "WhatsAppConsentDecision",
+    "WhatsAppConsentSource",
     "WhatsAppConversation",
     "WhatsAppConversationOpportunity",
     "WhatsAppConversationResolution",
     "WhatsAppDirection",
     "WhatsAppDispatchState",
+    "WhatsAppMarketingConsentEvent",
     "WhatsAppMessage",
+    "WhatsAppMessageOrigin",
     "WhatsAppMessageStatusEvent",
     "WhatsAppMessageType",
     "WhatsAppOpportunityLinkSource",

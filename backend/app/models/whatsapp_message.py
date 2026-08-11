@@ -21,10 +21,12 @@ from app.db.base import Base, TimestampMixin
 from app.models.enums import (
     WHATSAPP_DIRECTION_DB_ENUM,
     WHATSAPP_DISPATCH_STATE_DB_ENUM,
+    WHATSAPP_MESSAGE_ORIGIN_DB_ENUM,
     WHATSAPP_MESSAGE_TYPE_DB_ENUM,
     WHATSAPP_PROVIDER_STATE_DB_ENUM,
     WhatsAppDirection,
     WhatsAppDispatchState,
+    WhatsAppMessageOrigin,
     WhatsAppMessageType,
     WhatsAppProviderState,
 )
@@ -33,6 +35,7 @@ from app.models.whatsapp_message_status_event import WhatsAppMessageStatusEvent
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.whatsapp_attachment import WhatsAppAttachment
+    from app.models.whatsapp_broadcast import WhatsAppBroadcastRecipient
     from app.models.whatsapp_conversation import WhatsAppConversation
 
 
@@ -54,8 +57,17 @@ class WhatsAppMessage(TimestampMixin, Base):
             name="ck_whatsapp_messages_direction_contract",
         ),
         CheckConstraint(
-            "message_type <> 'TEXT' OR (body IS NOT NULL AND btrim(body) <> '')",
+            "message_type <> 'TEXT' OR origin = 'BROADCAST' "
+            "OR (body IS NOT NULL AND btrim(body) <> '')",
             name="ck_whatsapp_messages_text_body",
+        ),
+        CheckConstraint(
+            "(origin = 'HUMAN' AND broadcast_recipient_id IS NULL "
+            "AND template_name IS NULL AND template_language IS NULL) OR "
+            "(origin = 'BROADCAST' AND direction = 'OUTBOUND' "
+            "AND broadcast_recipient_id IS NOT NULL "
+            "AND template_name IS NOT NULL AND template_language IS NOT NULL)",
+            name="ck_whatsapp_messages_origin_contract",
         ),
         CheckConstraint(
             "provider_error_code IS NULL OR btrim(provider_error_code) <> ''",
@@ -88,6 +100,14 @@ class WhatsAppMessage(TimestampMixin, Base):
             "id",
         ),
         Index(
+            "uq_whatsapp_messages_broadcast_initial",
+            "broadcast_recipient_id",
+            unique=True,
+            postgresql_where=text(
+                "broadcast_recipient_id IS NOT NULL AND retry_of_message_id IS NULL"
+            ),
+        ),
+        Index(
             "ix_whatsapp_messages_conversation_updated",
             "conversation_id",
             "updated_at",
@@ -115,6 +135,12 @@ class WhatsAppMessage(TimestampMixin, Base):
         WHATSAPP_MESSAGE_TYPE_DB_ENUM,
         nullable=False,
     )
+    origin: Mapped[WhatsAppMessageOrigin] = mapped_column(
+        WHATSAPP_MESSAGE_ORIGIN_DB_ENUM,
+        nullable=False,
+        default=WhatsAppMessageOrigin.HUMAN,
+        server_default=WhatsAppMessageOrigin.HUMAN.value,
+    )
     body: Mapped[str | None] = mapped_column(Text)
     sent_by_user_id: Mapped[int | None] = mapped_column(
         BigInteger,
@@ -132,6 +158,16 @@ class WhatsAppMessage(TimestampMixin, Base):
             ondelete="RESTRICT",
         ),
     )
+    broadcast_recipient_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "whatsapp_broadcast_recipients.id",
+            name="fk_whatsapp_messages_broadcast_recipient_id_recipients",
+            ondelete="RESTRICT",
+        ),
+    )
+    template_name: Mapped[str | None] = mapped_column(Text)
+    template_language: Mapped[str | None] = mapped_column(Text)
     dispatch_state: Mapped[WhatsAppDispatchState | None] = mapped_column(
         WHATSAPP_DISPATCH_STATE_DB_ENUM
     )
@@ -160,6 +196,10 @@ class WhatsAppMessage(TimestampMixin, Base):
     )
     retry_of_message: Mapped[WhatsAppMessage | None] = relationship(
         remote_side=lambda: WhatsAppMessage.id,
+        passive_deletes=True,
+    )
+    broadcast_recipient: Mapped[WhatsAppBroadcastRecipient | None] = relationship(
+        back_populates="messages",
         passive_deletes=True,
     )
     attachment: Mapped[WhatsAppAttachment | None] = relationship(

@@ -11,11 +11,14 @@ from app.models import (
     Customer,
     User,
     WhatsAppAttachment,
+    WhatsAppBroadcastRecipient,
+    WhatsAppBroadcastTemplateParameter,
     WhatsAppConversation,
     WhatsAppConversationResolution,
     WhatsAppDirection,
     WhatsAppDispatchState,
     WhatsAppMessage,
+    WhatsAppMessageOrigin,
     WhatsAppMessageType,
     WhatsAppProviderState,
     WhatsAppStorageStatus,
@@ -29,7 +32,11 @@ from app.services.errors import (
     WhatsAppIdempotencyConflictError,
     WhatsAppReplyInProgressError,
 )
+from app.services.whatsapp_broadcast_projection_service import (
+    sync_broadcast_recipient_from_message,
+)
 from app.services.whatsapp_projection_service import (
+    earlier_datetime,
     later_datetime,
     recompute_response_projection,
 )
@@ -41,7 +48,9 @@ from app.whatsapp import (
     RecordedProviderRequest,
     SendDocumentRequest,
     SendImageRequest,
+    SendTemplateRequest,
     SendTextRequest,
+    TemplateParameter,
     WhatsAppProvider,
     WhatsAppProviderError,
     WindowEvaluationContext,
@@ -66,6 +75,11 @@ class OutboundMessageInput:
     body: str | None
     attachment: OutboundAttachmentInput | None = None
     retry_of_message_id: int | None = None
+    origin: WhatsAppMessageOrigin = WhatsAppMessageOrigin.HUMAN
+    broadcast_recipient_id: int | None = None
+    template_name: str | None = None
+    template_language: str | None = None
+    template_parameters: tuple[TemplateParameter, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,17 +172,18 @@ class WhatsAppMessageService:
                 )
             self._validate_conversation(conversation)
             self._validate_user(message_input.sent_by_user_id)
-            decision = self._provider.evaluate_window(
-                WindowEvaluationContext(
-                    last_inbound_at=conversation.last_inbound_at,
-                    now=requested_at,
+            if message_input.origin is WhatsAppMessageOrigin.HUMAN:
+                decision = self._provider.evaluate_window(
+                    WindowEvaluationContext(
+                        last_inbound_at=conversation.last_inbound_at,
+                        now=requested_at,
+                    )
                 )
-            )
-            conversation.window_expires_at = decision.window_expires_at
-            if not decision.can_send_freeform:
-                raise WhatsAppFreeformWindowClosedError(
-                    "Freeform WhatsApp window is closed; an approved template is required"
-                )
+                conversation.window_expires_at = decision.window_expires_at
+                if not decision.can_send_freeform:
+                    raise WhatsAppFreeformWindowClosedError(
+                        "Freeform WhatsApp window is closed; an approved template is required"
+                    )
 
             existing = self._session.scalar(
                 select(WhatsAppMessage)
@@ -187,26 +202,28 @@ class WhatsAppMessageService:
                 )
 
             self._validate_retry(message_input)
-            active_reply = self._session.scalar(
-                select(WhatsAppMessage.id)
-                .where(
-                    WhatsAppMessage.conversation_id == conversation.id,
-                    WhatsAppMessage.direction == WhatsAppDirection.OUTBOUND,
-                    WhatsAppMessage.id != (message_input.retry_of_message_id or 0),
-                    WhatsAppMessage.dispatch_state.in_(
-                        {
-                            WhatsAppDispatchState.PENDING,
-                            WhatsAppDispatchState.IN_PROGRESS,
-                            WhatsAppDispatchState.UNKNOWN,
-                        }
-                    ),
+            if message_input.origin is WhatsAppMessageOrigin.HUMAN:
+                active_reply = self._session.scalar(
+                    select(WhatsAppMessage.id)
+                    .where(
+                        WhatsAppMessage.conversation_id == conversation.id,
+                        WhatsAppMessage.direction == WhatsAppDirection.OUTBOUND,
+                        WhatsAppMessage.origin == WhatsAppMessageOrigin.HUMAN,
+                        WhatsAppMessage.id != (message_input.retry_of_message_id or 0),
+                        WhatsAppMessage.dispatch_state.in_(
+                            {
+                                WhatsAppDispatchState.PENDING,
+                                WhatsAppDispatchState.IN_PROGRESS,
+                                WhatsAppDispatchState.UNKNOWN,
+                            }
+                        ),
+                    )
+                    .limit(1)
                 )
-                .limit(1)
-            )
-            if active_reply is not None:
-                raise WhatsAppReplyInProgressError(
-                    "A direct reply is pending or has unknown acceptance"
-                )
+                if active_reply is not None:
+                    raise WhatsAppReplyInProgressError(
+                        "A direct reply is pending or has unknown acceptance"
+                    )
 
             message = WhatsAppMessage(
                 conversation_id=conversation.id,
@@ -214,9 +231,13 @@ class WhatsAppMessageService:
                 client_generated_id=message_input.client_generated_id,
                 direction=WhatsAppDirection.OUTBOUND,
                 message_type=message_input.message_type,
+                origin=message_input.origin,
                 body=message_input.body,
                 sent_by_user_id=message_input.sent_by_user_id,
                 retry_of_message_id=message_input.retry_of_message_id,
+                broadcast_recipient_id=message_input.broadcast_recipient_id,
+                template_name=message_input.template_name,
+                template_language=message_input.template_language,
                 dispatch_state=WhatsAppDispatchState.PENDING,
                 provider_state=None,
             )
@@ -257,6 +278,45 @@ class WhatsAppMessageService:
         )
         if conversation is None or message.client_generated_id is None:
             raise RuntimeError("Persisted outbound message is incomplete")
+        if message.origin is WhatsAppMessageOrigin.BROADCAST:
+            if message.template_name is None or message.template_language is None:
+                raise RuntimeError("Persisted broadcast message has no template")
+            broadcast_recipient = self._session.scalar(
+                select(WhatsAppBroadcastRecipient).where(
+                    WhatsAppBroadcastRecipient.id == message.broadcast_recipient_id
+                )
+            )
+            if broadcast_recipient is None:
+                raise RuntimeError("Persisted broadcast message has no recipient")
+            recipient = ProviderRecipient(phone=broadcast_recipient.normalized_phone)
+            parameters = tuple(
+                TemplateParameter(name=item.name, value=item.value)
+                for item in self._session.scalars(
+                    select(WhatsAppBroadcastTemplateParameter)
+                    .where(
+                        WhatsAppBroadcastTemplateParameter.broadcast_id
+                        == broadcast_recipient.broadcast_id
+                    )
+                    .order_by(WhatsAppBroadcastTemplateParameter.position)
+                )
+            )
+            header_media: ProviderMediaReference | None = None
+            if message.attachment is not None:
+                header_attachment = message.attachment
+                header_media = ProviderMediaReference(
+                    provider_media_id=header_attachment.provider_media_id,
+                    storage_key=header_attachment.storage_key,
+                    mime_type=header_attachment.mime_type,
+                    filename=header_attachment.filename,
+                )
+            return SendTemplateRequest(
+                recipient=recipient,
+                client_generated_id=message.client_generated_id,
+                template_name=message.template_name,
+                language=message.template_language,
+                parameters=parameters,
+                header_media=header_media,
+            )
         recipient = ProviderRecipient(phone=conversation.external_phone)
         if message.message_type is WhatsAppMessageType.TEXT:
             if message.body is None:
@@ -340,6 +400,11 @@ class WhatsAppMessageService:
                 conversation,
                 now=reconciled_at,
             )
+            sync_broadcast_recipient_from_message(
+                self._session,
+                message,
+                now=reconciled_at,
+            )
             self._session.flush()
             return self._as_result(message, created=created)
 
@@ -361,9 +426,19 @@ class WhatsAppMessageService:
                 )
                 message.provider_error_code = error.details.code
                 message.provider_error_message = error.details.safe_message
+                if not error.details.acceptance_unknown:
+                    message.failed_at = earlier_datetime(
+                        message.failed_at,
+                        reconciled_at,
+                    )
                 message.updated_at = later_datetime(
                     message.updated_at,
                     reconciled_at,
+                )
+                sync_broadcast_recipient_from_message(
+                    self._session,
+                    message,
+                    now=reconciled_at,
                 )
                 self._session.flush()
             return self._as_result(message, created=created)
@@ -380,6 +455,8 @@ class WhatsAppMessageService:
             original is None
             or original.direction is not WhatsAppDirection.OUTBOUND
             or original.conversation_id != message_input.conversation_id
+            or original.origin is not message_input.origin
+            or original.broadcast_recipient_id != message_input.broadcast_recipient_id
         ):
             raise InvalidWhatsAppMessageError("Retry target is not a valid message")
         if original.dispatch_state not in {
@@ -438,6 +515,10 @@ class WhatsAppMessageService:
             and message.message_type is message_input.message_type
             and message.body == message_input.body
             and message.retry_of_message_id == message_input.retry_of_message_id
+            and message.origin is message_input.origin
+            and message.broadcast_recipient_id == message_input.broadcast_recipient_id
+            and message.template_name == message_input.template_name
+            and message.template_language == message_input.template_language
             and same_attachment
         ):
             raise WhatsAppIdempotencyConflictError(
@@ -495,8 +576,34 @@ class WhatsAppMessageService:
     ) -> OutboundMessageInput:
         body = WhatsAppMessageService._optional_text(message_input.body)
         attachment = message_input.attachment
+        if message_input.origin is WhatsAppMessageOrigin.BROADCAST:
+            template_name = WhatsAppMessageService._optional_text(
+                message_input.template_name
+            )
+            template_language = WhatsAppMessageService._optional_text(
+                message_input.template_language
+            )
+            if (
+                message_input.broadcast_recipient_id is None
+                or template_name is None
+                or template_language is None
+            ):
+                raise InvalidWhatsAppMessageError(
+                    "Broadcast outbound requires recipient and template identity"
+                )
+            if body is not None:
+                raise InvalidWhatsAppMessageError(
+                    "Broadcast template body is provider-owned"
+                )
+        else:
+            template_name = None
+            template_language = None
+            if message_input.broadcast_recipient_id is not None:
+                raise InvalidWhatsAppMessageError(
+                    "Human outbound cannot reference a broadcast recipient"
+                )
         if message_input.message_type is WhatsAppMessageType.TEXT:
-            if body is None:
+            if message_input.origin is WhatsAppMessageOrigin.HUMAN and body is None:
                 raise InvalidWhatsAppMessageError("Text outbound requires a body")
             if attachment is not None:
                 raise InvalidWhatsAppMessageError(
@@ -536,6 +643,11 @@ class WhatsAppMessageService:
             body=body,
             attachment=attachment,
             retry_of_message_id=message_input.retry_of_message_id,
+            origin=message_input.origin,
+            broadcast_recipient_id=message_input.broadcast_recipient_id,
+            template_name=template_name,
+            template_language=template_language,
+            template_parameters=message_input.template_parameters,
         )
 
     @staticmethod

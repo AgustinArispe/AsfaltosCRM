@@ -9,6 +9,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from app.api import api_router
 from app.api.error_handlers import domain_error_handler
 from app.api.routers.whatsapp import create_whatsapp_router
+from app.api.routers.whatsapp_broadcast import create_whatsapp_broadcast_router
 from app.api.routers.whatsapp_dev import create_whatsapp_dev_router
 from app.api.routers.whatsapp_provider_webhook import (
     create_whatsapp_provider_webhook_router,
@@ -55,6 +56,10 @@ def create_app(whatsapp_runtime: WhatsAppRuntime | None = None) -> FastAPI:
     )
     application.include_router(api_router, prefix="/api")
     application.include_router(create_whatsapp_router(runtime), prefix="/api")
+    application.include_router(
+        create_whatsapp_broadcast_router(runtime),
+        prefix="/api",
+    )
     if isinstance(runtime.provider, FakeWhatsAppProvider):
         application.include_router(
             create_whatsapp_dev_router(runtime, runtime.provider),

@@ -14,6 +14,7 @@ from app.models import (
     WhatsAppConversationResolution,
     WhatsAppDirection,
     WhatsAppDispatchState,
+    WhatsAppMessageOrigin,
     WhatsAppMessageType,
     WhatsAppOpportunityLinkSource,
     WhatsAppProviderState,
@@ -140,7 +141,10 @@ class MessageResponse(BaseModel):
     client_generated_id: UUID | None
     direction: WhatsAppDirection
     message_type: WhatsAppMessageType
+    origin: WhatsAppMessageOrigin
     body: str | None
+    template_name: str | None
+    template_language: str | None
     sent_by: UserSummaryResponse | None
     retry_of_message_id: int | None
     is_retry: bool

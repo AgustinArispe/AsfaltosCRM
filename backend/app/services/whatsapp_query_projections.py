@@ -11,6 +11,7 @@ from app.models import (
     WhatsAppConversationResolution,
     WhatsAppDirection,
     WhatsAppDispatchState,
+    WhatsAppMessageOrigin,
     WhatsAppMessageType,
     WhatsAppOpportunityLinkSource,
     WhatsAppProviderState,
@@ -121,7 +122,10 @@ class MessageProjection:
     client_generated_id: UUID | None
     direction: WhatsAppDirection
     message_type: WhatsAppMessageType
+    origin: WhatsAppMessageOrigin
     body: str | None
+    template_name: str | None
+    template_language: str | None
     sent_by: UserSummaryProjection | None
     retry_of_message_id: int | None
     is_retry: bool
