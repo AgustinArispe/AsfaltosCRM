@@ -1,9 +1,9 @@
 # CRM-011 — WhatsApp Broadcast Execution
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-11
-Implementation commit: N/A
+Implementation commit: `e48f9e176873710cd5904d3f3004252a44de2fd6`
 
 ## Goal
 

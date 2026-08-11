@@ -107,8 +107,7 @@ None.
 
 ## Approved specifications
 
-- [`CRM-011`](011-whatsapp-broadcasts.md) — Approved — safe WhatsApp Broadcast
-  execution, marketing consent, recipient tracking, and auditable delivery processing.
+None.
 
 ## Implemented specifications
 
@@ -132,3 +131,5 @@ These specifications capture behavior already implemented and tested:
   provider and webhook integration.
 - [`CRM-010`](010-whatsapp-inbox-frontend.md) — Implemented — desktop-first WhatsApp
   Inbox frontend.
+- [`CRM-011`](011-whatsapp-broadcasts.md) — Implemented — safe WhatsApp Broadcast
+  execution, marketing consent, recipient tracking, and auditable delivery processing.
