@@ -107,7 +107,9 @@ None.
 
 ## Approved specifications
 
-None.
+- [`CRM-012`](012-crm-commercial-completion.md) — Approved — final commercial backend
+  completion: Opportunity Notes, automatic Legendary qualification, Lost Opportunities
+  workspace and reopen, Customer import, and WordPress production operations.
 
 ## Implemented specifications
 

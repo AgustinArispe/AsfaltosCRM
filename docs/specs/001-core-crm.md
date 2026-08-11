@@ -2,7 +2,7 @@
 
 Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 Implementation commit: `e75aa5a`, `822adb6`, `672c71f`, `c46174a`, `4a02da2`, `5d90058`, `e95a4e1`
 
 ## Goal
@@ -85,7 +85,10 @@ None
 
 ## Follow-up / future specs
 
-- Automatic three-consecutive-year Legendario qualification is an approved future business rule but is not implemented by this module; only the historical override exists.
+- CRM-012 owns the approved automatic Legendary rule and the exceptional
+  `PERDIDA -> NEGOCIACION` reopen workflow. They remain outside this implemented
+  retrospective module until CRM-012 is implemented; CRM-001 currently provides only
+  the manual historical override and terminal normal-operation behavior.
 
 ## Implementation notes
 

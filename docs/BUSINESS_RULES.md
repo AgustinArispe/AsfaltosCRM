@@ -35,12 +35,14 @@ por conveniencia técnica.
 
 ## Legendario
 
-- La regla automática, a implementar en el futuro, considera Legendario a un cliente
-  que tuvo al menos dos oportunidades `GANADA` por año durante tres años calendario
-  consecutivos.
-- Una vez que existe cualquier secuencia histórica válida de tres años consecutivos,
-  el cliente mantiene la condición de Legendario.
-- `legendary_historical_override` también convierte al cliente en Legendario.
+- La regla automática considera Legendario a un cliente cuando su primera oportunidad
+  `GANADA`, ordenada por `created_at` e `id`, tiene al menos tres años calendario de
+  antigüedad.
+- `legendary_historical_override=true` siempre convierte al cliente en Legendario y la
+  recomputación automática nunca modifica ese override manual.
+- El estado efectivo es
+  `legendary_historical_override OR legendary_automatic`.
+- La calificación automática debe poder recalcularse mediante un servicio compartido.
 - No implementar gamificación adicional.
 
 ## Opportunities
@@ -82,6 +84,11 @@ por conveniencia técnica.
 - Las oportunidades perdidas no aparecen en el Kanban principal, pero permanecen
   disponibles para búsqueda, historial y métricas.
 - Si existía una cotización, se conserva al marcar la oportunidad como perdida.
+- Una oportunidad `PERDIDA` puede reabrirse únicamente a `NEGOCIACION` y debe conservar
+  al menos un producto cotizado con cantidad positiva. No puede reabrirse directamente
+  a `NUEVA`, `COTIZADA` ni `GANADA`.
+- La reapertura conserva íntegro cada episodio previo de pérdida, agrega una nueva
+  entrada al historial de estados y marca la oportunidad como reabierta.
 
 ## Notificaciones
 
