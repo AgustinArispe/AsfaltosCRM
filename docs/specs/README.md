@@ -103,7 +103,9 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-None.
+- [`CRM-014`](014-performance-hardening.md) — Draft — measured backend performance
+  hardening for Broadcast validation/processing, metrics timelines, WhatsApp queries,
+  polling, and Opportunity reopen projections.
 
 ## Approved specifications
 
