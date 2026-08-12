@@ -3,8 +3,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
+from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -16,7 +18,10 @@ from app.models import (
     OpportunityStatus,
     Product,
 )
+from app.services.errors import MetricsTimelinePeriodTooLargeError
 from app.services.metrics_service import (
+    MAX_DAY_TIMELINE_BUCKETS,
+    MAX_MONTH_TIMELINE_BUCKETS,
     MetricsDimensions,
     MetricsFilters,
     MetricsPeriod,
@@ -533,6 +538,95 @@ def test_timeline_month_buckets_include_empty_periods(db_session: Session) -> No
     assert buckets[1].lost == 1
     assert buckets[1].kg_lost == Decimal("0.000")
     assert buckets[2].lost == 0
+
+
+@pytest.mark.parametrize(
+    ("granularity", "start", "end", "expected_count"),
+    [
+        (
+            TimelineGranularity.DAY,
+            datetime(2040, 1, 1, 3, tzinfo=UTC),
+            datetime(2041, 1, 1, 3, tzinfo=UTC),
+            MAX_DAY_TIMELINE_BUCKETS,
+        ),
+        (
+            TimelineGranularity.MONTH,
+            datetime(2000, 1, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires")),
+            datetime(2100, 1, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires")),
+            MAX_MONTH_TIMELINE_BUCKETS,
+        ),
+    ],
+)
+def test_timeline_accepts_exact_period_limits(
+    db_session: Session,
+    granularity: TimelineGranularity,
+    start: datetime,
+    end: datetime,
+    expected_count: int,
+) -> None:
+    result = MetricsService(db_session).timeline(
+        filters(start=start, end=end),
+        granularity=granularity,
+    )
+
+    assert len(result) == expected_count
+
+
+@pytest.mark.parametrize(
+    ("granularity", "start", "end", "requested", "maximum"),
+    [
+        (
+            TimelineGranularity.DAY,
+            datetime(2040, 1, 1, 3, tzinfo=UTC),
+            datetime(2041, 1, 2, 3, tzinfo=UTC),
+            367,
+            MAX_DAY_TIMELINE_BUCKETS,
+        ),
+        (
+            TimelineGranularity.MONTH,
+            datetime(2000, 1, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires")),
+            datetime(2100, 2, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires")),
+            1_201,
+            MAX_MONTH_TIMELINE_BUCKETS,
+        ),
+    ],
+)
+def test_timeline_rejects_one_bucket_over_before_sql(
+    db_session: Session,
+    granularity: TimelineGranularity,
+    start: datetime,
+    end: datetime,
+    requested: int,
+    maximum: int,
+) -> None:
+    select_count = 0
+    bind = db_session.get_bind()
+
+    def count_statement(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        nonlocal select_count
+        if statement.lstrip().upper().startswith("SELECT"):
+            select_count += 1
+
+    event.listen(bind, "before_cursor_execute", count_statement)
+    try:
+        with pytest.raises(MetricsTimelinePeriodTooLargeError) as raised:
+            MetricsService(db_session).timeline(
+                filters(start=start, end=end),
+                granularity=granularity,
+            )
+    finally:
+        event.remove(bind, "before_cursor_execute", count_statement)
+
+    assert raised.value.requested_bucket_count == requested
+    assert raised.value.maximum_bucket_count == maximum
+    assert select_count == 0
 
 
 def test_pipeline_is_current_snapshot_with_all_statuses_and_excludes_deleted(

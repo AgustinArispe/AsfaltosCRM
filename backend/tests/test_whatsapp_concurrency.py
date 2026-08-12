@@ -1255,7 +1255,7 @@ def _broadcast_service(
     provider: FakeWhatsAppProvider,
     storage: FakeMediaStorage,
     *,
-    batch_size: int = 20,
+    batch_size: int = 10,
 ) -> WhatsAppBroadcastService:
     return WhatsAppBroadcastService(
         session,

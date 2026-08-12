@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, event, func, select, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -37,6 +38,11 @@ from app.schemas.whatsapp_broadcast import (
     BroadcastValidationResponse,
     ConsentEventResultResponse,
 )
+from app.services.whatsapp_broadcast_service import WhatsAppBroadcastService
+from app.services.whatsapp_consent_service import (
+    ConsentLookupKey,
+    WhatsAppConsentService,
+)
 from app.whatsapp import (
     FakeMediaStorage,
     FakeWhatsAppProvider,
@@ -55,6 +61,11 @@ class BroadcastContext:
     provider: FakeWhatsAppProvider
     storage: FakeMediaStorage
     now: datetime
+
+
+@dataclass(slots=True)
+class SelectCounter:
+    count: int = 0
 
 
 @pytest.fixture
@@ -809,6 +820,215 @@ def test_stale_claims_are_safely_reclaimed_or_marked_unknown(
         if event["event_type"] == "STALE_CLAIM_RECOVERED"
     }
     assert stale_reasons == {"SAFE_RECLAIM", "MARKED_UNKNOWN"}
+
+
+@pytest.mark.parametrize("recipient_count", [1, 10, 120])
+def test_recipient_validation_queries_are_bounded(
+    broadcast_context: BroadcastContext,
+    db_session: Session,
+    supervisor_user: User,
+    recipient_count: int,
+) -> None:
+    context = broadcast_context
+    effective_at = context.now - timedelta(minutes=1)
+    customers = [
+        Customer(
+            name=f"Cliente lote {recipient_count}-{index}",
+            phone=f"+54115{recipient_count:03d}{index:05d}",
+        )
+        for index in range(recipient_count)
+    ]
+    db_session.add_all(customers)
+    db_session.flush()
+    db_session.add_all(
+        WhatsAppMarketingConsentEvent(
+            client_event_id=uuid4(),
+            customer_id=customer.id,
+            normalized_phone=customer.phone or "",
+            decision=WhatsAppConsentDecision.OPT_IN,
+            source=WhatsAppConsentSource.FAA_CRM,
+            evidence_reference=None,
+            occurred_at=effective_at,
+            effective_at=effective_at,
+            recorded_at=effective_at,
+            recorded_by_user_id=supervisor_user.id,
+        )
+        for customer in customers
+    )
+    db_session.commit()
+    created = _create_broadcast(context)
+    db_session.expunge_all()
+
+    with _select_counter(db_session) as selection_queries:
+        selected = context.client.put(
+            f"/api/whatsapp/broadcasts/{created.id}/recipients",
+            json={
+                "command_id": str(uuid4()),
+                "customer_ids": [customer.id for customer in customers],
+                "expected_version": 1,
+            },
+        )
+    assert selected.status_code == 200
+    version = int(selected.json()["version"])
+    db_session.expunge_all()
+
+    with _select_counter(db_session) as validation_queries:
+        validated_response = context.client.post(
+            f"/api/whatsapp/broadcasts/{created.id}/validate",
+            json={"expected_version": version},
+        )
+    assert validated_response.status_code == 200
+    validated = BroadcastValidationResponse.model_validate(validated_response.json())
+    assert validated.valid is True
+    assert validated.validation_token is not None
+    db_session.expunge_all()
+
+    with _select_counter(db_session) as confirmation_queries:
+        confirmed = context.client.post(
+            f"/api/whatsapp/broadcasts/{created.id}/confirm",
+            json={
+                "command_id": str(uuid4()),
+                "expected_version": version,
+                "validation_token": str(validated.validation_token),
+            },
+        )
+    assert confirmed.status_code == 200
+    assert (
+        selection_queries.count,
+        validation_queries.count,
+        confirmation_queries.count,
+    ) == (5, 6, 9)
+    if recipient_count == 120:
+        started = context.client.post(
+            f"/api/whatsapp/broadcasts/{created.id}/start",
+            json={"command_id": str(uuid4())},
+        )
+        processed = context.client.post(
+            f"/api/whatsapp/broadcasts/{created.id}/process",
+            json={"command_id": str(uuid4())},
+        )
+        assert started.status_code == 200
+        assert processed.status_code == 200
+        assert processed.json()["claimed_count"] == 10
+        assert processed.json()["completed_count"] == 10
+        assert processed.json()["remaining_count"] == 110
+        assert len(context.provider.requests) == 10
+
+
+def test_batch_consent_lookup_preserves_effective_at_and_id_ordering(
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    now = datetime.now(UTC).replace(microsecond=0)
+    customer = Customer(name="Orden de consentimiento", phone="+541150000001")
+    db_session.add(customer)
+    db_session.flush()
+    earlier = WhatsAppMarketingConsentEvent(
+        client_event_id=uuid4(),
+        customer_id=customer.id,
+        normalized_phone="+541150000001",
+        decision=WhatsAppConsentDecision.OPT_OUT,
+        source=WhatsAppConsentSource.FAA_CRM,
+        evidence_reference=None,
+        occurred_at=now - timedelta(days=1),
+        effective_at=now - timedelta(days=1),
+        recorded_at=now,
+        recorded_by_user_id=supervisor_user.id,
+    )
+    same_time_first = WhatsAppMarketingConsentEvent(
+        client_event_id=uuid4(),
+        customer_id=customer.id,
+        normalized_phone="+541150000001",
+        decision=WhatsAppConsentDecision.OPT_IN,
+        source=WhatsAppConsentSource.FAA_CRM,
+        evidence_reference=None,
+        occurred_at=now - timedelta(hours=1),
+        effective_at=now - timedelta(hours=1),
+        recorded_at=now,
+        recorded_by_user_id=supervisor_user.id,
+    )
+    same_time_last = WhatsAppMarketingConsentEvent(
+        client_event_id=uuid4(),
+        customer_id=customer.id,
+        normalized_phone="+541150000001",
+        decision=WhatsAppConsentDecision.OPT_OUT,
+        source=WhatsAppConsentSource.FAA_CRM,
+        evidence_reference=None,
+        occurred_at=now - timedelta(hours=1),
+        effective_at=now - timedelta(hours=1),
+        recorded_at=now,
+        recorded_by_user_id=supervisor_user.id,
+    )
+    future = WhatsAppMarketingConsentEvent(
+        client_event_id=uuid4(),
+        customer_id=customer.id,
+        normalized_phone="+541150000001",
+        decision=WhatsAppConsentDecision.OPT_IN,
+        source=WhatsAppConsentSource.FAA_CRM,
+        evidence_reference=None,
+        occurred_at=now - timedelta(minutes=1),
+        effective_at=now + timedelta(minutes=1),
+        recorded_at=now + timedelta(minutes=1),
+        recorded_by_user_id=supervisor_user.id,
+    )
+    db_session.add_all((earlier, same_time_first, same_time_last, future))
+    db_session.commit()
+
+    key = ConsentLookupKey(customer.id, "+541150000001")
+    selected = WhatsAppConsentService(db_session).current_many((key,), now=now)
+
+    assert selected[key].id == same_time_last.id
+    assert selected[key].decision is WhatsAppConsentDecision.OPT_OUT
+
+
+@pytest.mark.parametrize("batch_size", [-1, 0, 11])
+def test_broadcast_processor_rejects_unbounded_batch_size(
+    broadcast_context: BroadcastContext,
+    db_session: Session,
+    batch_size: int,
+) -> None:
+    with pytest.raises(ValueError, match="between 1 and 10"):
+        WhatsAppBroadcastService(
+            db_session,
+            broadcast_context.provider,
+            broadcast_context.storage,
+            batch_size=batch_size,
+            claim_timeout=timedelta(minutes=5),
+        )
+
+
+def test_broadcast_process_api_rejects_work_size_override(
+    broadcast_context: BroadcastContext,
+) -> None:
+    response = broadcast_context.client.post(
+        "/api/whatsapp/broadcasts/1/process",
+        json={"command_id": str(uuid4()), "batch_size": 100},
+    )
+
+    assert response.status_code == 422
+
+
+@contextmanager
+def _select_counter(session: Session) -> Iterator[SelectCounter]:
+    counter = SelectCounter()
+    bind = session.get_bind()
+
+    def count_statement(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        if statement.lstrip().upper().startswith("SELECT"):
+            counter.count += 1
+
+    event.listen(bind, "before_cursor_execute", count_statement)
+    try:
+        yield counter
+    finally:
+        event.remove(bind, "before_cursor_execute", count_statement)
 
 
 def _customer(

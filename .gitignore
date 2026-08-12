@@ -13,6 +13,7 @@ __pycache__/
 coverage.xml
 htmlcov/
 .venv/
+performance-artifacts/
 
 # Node
 node_modules/

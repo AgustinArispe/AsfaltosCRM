@@ -6,6 +6,7 @@ from uuid import UUID
 import pytest
 
 from app.core.config import (
+    get_whatsapp_broadcast_batch_size,
     get_whatsapp_document_max_bytes,
     get_whatsapp_image_max_bytes,
     get_whatsapp_media_storage_name,
@@ -28,6 +29,20 @@ IMAGE_REF = UUID("40000000-0000-0000-0000-000000000001")
 DOCUMENT_REF = UUID("40000000-0000-0000-0000-000000000002")
 PNG_CONTENT = b"\x89PNG\r\n\x1a\nvalidated-png"
 PDF_CONTENT = b"%PDF-1.7 validated-pdf"
+
+
+def test_broadcast_batch_configuration_defaults_to_ten_and_rejects_larger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("WHATSAPP_BROADCAST_BATCH_SIZE", raising=False)
+    get_whatsapp_broadcast_batch_size.cache_clear()
+    assert get_whatsapp_broadcast_batch_size() == 10
+
+    monkeypatch.setenv("WHATSAPP_BROADCAST_BATCH_SIZE", "11")
+    get_whatsapp_broadcast_batch_size.cache_clear()
+    with pytest.raises(RuntimeError, match="no greater than 10"):
+        get_whatsapp_broadcast_batch_size()
+    get_whatsapp_broadcast_batch_size.cache_clear()
 
 
 def media_policy(

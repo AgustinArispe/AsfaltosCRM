@@ -65,6 +65,25 @@ class InvalidWhatsAppBroadcastError(DomainError):
     """Raised when Broadcast inputs cannot be safely confirmed or dispatched."""
 
 
+class MetricsTimelinePeriodTooLargeError(DomainError):
+    code = "METRICS_TIMELINE_PERIOD_TOO_LARGE"
+
+    def __init__(
+        self,
+        *,
+        granularity: str,
+        requested_bucket_count: int,
+        maximum_bucket_count: int,
+    ) -> None:
+        self.granularity = granularity
+        self.requested_bucket_count = requested_bucket_count
+        self.maximum_bucket_count = maximum_bucket_count
+        super().__init__(
+            f"Timeline {granularity} period requests {requested_bucket_count} "
+            f"buckets; maximum is {maximum_bucket_count}"
+        )
+
+
 class EntityNotFoundError(DomainError):
     def __init__(self, entity_name: str, entity_id: int) -> None:
         self.entity_name = entity_name

@@ -17,6 +17,7 @@ from app.models import (
     OpportunityStatus,
     Product,
 )
+from app.services.errors import MetricsTimelinePeriodTooLargeError
 
 BUSINESS_TIMEZONE_NAME = "America/Argentina/Buenos_Aires"
 BUSINESS_TIMEZONE = ZoneInfo(BUSINESS_TIMEZONE_NAME)
@@ -35,6 +36,8 @@ TERMINAL_OPPORTUNITY_STATUSES = frozenset(
 )
 ZERO_KG = Decimal("0.000")
 RATIO_QUANTUM = Decimal("0.0001")
+MAX_DAY_TIMELINE_BUCKETS = 366
+MAX_MONTH_TIMELINE_BUCKETS = 1_200
 
 
 class TimelineGranularity(StrEnum):
@@ -426,6 +429,7 @@ class MetricsService:
         granularity: TimelineGranularity,
     ) -> list[TimelineBucket]:
         period = filters.period
+        self._validate_timeline_period(period, granularity)
         line_totals = self._line_totals(filters.dimensions)
         created_bucket = self._business_bucket(
             Opportunity.created_at,
@@ -605,6 +609,35 @@ class MetricsService:
                 else MetricsService._next_month(current)
             )
         return buckets
+
+    @staticmethod
+    def _validate_timeline_period(
+        period: MetricsPeriod,
+        granularity: TimelineGranularity,
+    ) -> None:
+        local_start = period.start.astimezone(BUSINESS_TIMEZONE).date()
+        local_last = (
+            (period.end - timedelta(microseconds=1))
+            .astimezone(BUSINESS_TIMEZONE)
+            .date()
+        )
+        if granularity is TimelineGranularity.DAY:
+            requested = (local_last - local_start).days + 1
+            maximum = MAX_DAY_TIMELINE_BUCKETS
+        else:
+            requested = (
+                (local_last.year - local_start.year) * 12
+                + local_last.month
+                - local_start.month
+                + 1
+            )
+            maximum = MAX_MONTH_TIMELINE_BUCKETS
+        if requested > maximum:
+            raise MetricsTimelinePeriodTooLargeError(
+                granularity=granularity.value,
+                requested_bucket_count=requested,
+                maximum_bucket_count=maximum,
+            )
 
     @staticmethod
     def _next_month(value: date) -> date:

@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
@@ -185,6 +186,53 @@ def test_timeline_rejects_unsupported_granularity(api_client: TestClient) -> Non
         params={**period_params(), "granularity": "week"},
     )
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("granularity", "start", "end", "requested", "maximum"),
+    [
+        (
+            "day",
+            datetime(2040, 1, 1, 3, tzinfo=UTC),
+            datetime(2041, 1, 2, 3, tzinfo=UTC),
+            367,
+            366,
+        ),
+        (
+            "month",
+            datetime(2000, 1, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires")),
+            datetime(2100, 2, 1, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires")),
+            1_201,
+            1_200,
+        ),
+    ],
+)
+def test_timeline_oversized_period_has_typed_422(
+    api_client: TestClient,
+    granularity: str,
+    start: datetime,
+    end: datetime,
+    requested: int,
+    maximum: int,
+) -> None:
+    response = api_client.get(
+        "/api/metrics/timeline",
+        params={
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "granularity": granularity,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": {
+            "code": "METRICS_TIMELINE_PERIOD_TOO_LARGE",
+            "granularity": granularity,
+            "requested_bucket_count": requested,
+            "maximum_bucket_count": maximum,
+        }
+    }
 
 
 def test_pipeline_rejects_period_and_invalid_product_filter(

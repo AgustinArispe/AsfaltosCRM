@@ -14,6 +14,7 @@ COPY pyproject.toml ./
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+COPY performance ./performance
 COPY tests ./tests
 
 EXPOSE 8000

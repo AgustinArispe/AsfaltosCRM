@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select, tuple_
+from sqlalchemy.orm import Session, raiseload
 
 from app.models import (
     Customer,
@@ -43,6 +43,12 @@ class ConsentEventResult:
     event: WhatsAppMarketingConsentEvent
     current: WhatsAppMarketingConsentEvent
     created: bool
+
+
+@dataclass(frozen=True, slots=True, order=True)
+class ConsentLookupKey:
+    customer_id: int
+    normalized_phone: str
 
 
 def consent_dispatch_lock(
@@ -192,6 +198,65 @@ class WhatsAppConsentService:
             normalized_phone,
             now=self._aware_utc(now),
         )
+
+    def current_many(
+        self,
+        keys: tuple[ConsentLookupKey, ...],
+        *,
+        now: datetime,
+    ) -> dict[ConsentLookupKey, WhatsAppMarketingConsentEvent]:
+        """Load the latest effective event for every exact Customer/phone pair."""
+        unique_keys = tuple(sorted(set(keys)))
+        if not unique_keys:
+            return {}
+        effective_at = self._aware_utc(now)
+        rank = (
+            func.row_number()
+            .over(
+                partition_by=(
+                    WhatsAppMarketingConsentEvent.customer_id,
+                    WhatsAppMarketingConsentEvent.normalized_phone,
+                ),
+                order_by=(
+                    WhatsAppMarketingConsentEvent.effective_at.desc(),
+                    WhatsAppMarketingConsentEvent.id.desc(),
+                ),
+            )
+            .label("consent_rank")
+        )
+        ranked = (
+            select(
+                WhatsAppMarketingConsentEvent.id.label("consent_event_id"),
+                rank,
+            )
+            .where(
+                tuple_(
+                    WhatsAppMarketingConsentEvent.customer_id,
+                    WhatsAppMarketingConsentEvent.normalized_phone,
+                ).in_(
+                    tuple(
+                        (key.customer_id, key.normalized_phone) for key in unique_keys
+                    )
+                ),
+                WhatsAppMarketingConsentEvent.effective_at <= effective_at,
+            )
+            .subquery()
+        )
+        events = tuple(
+            self._session.scalars(
+                select(WhatsAppMarketingConsentEvent)
+                .join(
+                    ranked,
+                    ranked.c.consent_event_id == WhatsAppMarketingConsentEvent.id,
+                )
+                .where(ranked.c.consent_rank == 1)
+                .options(raiseload("*"))
+            )
+        )
+        return {
+            ConsentLookupKey(event.customer_id, event.normalized_phone): event
+            for event in events
+        }
 
     def history(
         self,

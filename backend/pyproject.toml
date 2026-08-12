@@ -4,12 +4,12 @@ strict = true
 warn_unreachable = true
 show_error_codes = true
 pretty = true
-files = ["app", "tests"]
+files = ["app", "tests", "performance"]
 
 [tool.ruff]
 target-version = "py313"
 line-length = 88
-src = ["app", "tests"]
+src = ["app", "tests", "performance"]
 
 [tool.ruff.lint]
 select = [

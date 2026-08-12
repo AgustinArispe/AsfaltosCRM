@@ -22,6 +22,7 @@ from app.services import (
     InvalidWhatsAppCursorError,
     InvalidWhatsAppMessageError,
     LeadIntakeIdempotencyConflictError,
+    MetricsTimelinePeriodTooLargeError,
     PermissionDeniedError,
     RevisionConflictError,
     WhatsAppBroadcastConflictError,
@@ -60,6 +61,7 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (InvalidWhatsAppMessageError, status.HTTP_422_UNPROCESSABLE_CONTENT),
     (InvalidWhatsAppBroadcastError, status.HTTP_422_UNPROCESSABLE_CONTENT),
     (InvalidCustomerImportError, status.HTTP_422_UNPROCESSABLE_CONTENT),
+    (MetricsTimelinePeriodTooLargeError, status.HTTP_422_UNPROCESSABLE_CONTENT),
 )
 
 
@@ -76,6 +78,18 @@ async def domain_error_handler(_: Request, error: Exception) -> JSONResponse:
         if isinstance(error, AuthenticationError)
         else None
     )
+    if isinstance(error, MetricsTimelinePeriodTooLargeError):
+        return JSONResponse(
+            status_code=response_status,
+            content={
+                "detail": {
+                    "code": error.code,
+                    "granularity": error.granularity,
+                    "requested_bucket_count": error.requested_bucket_count,
+                    "maximum_bucket_count": error.maximum_bucket_count,
+                }
+            },
+        )
     return JSONResponse(
         status_code=response_status,
         content={"detail": str(error)},

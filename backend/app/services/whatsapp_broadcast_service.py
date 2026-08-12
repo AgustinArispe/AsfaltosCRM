@@ -6,7 +6,7 @@ from hashlib import sha256
 from uuid import UUID, uuid4
 
 from sqlalchemy import delete, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, raiseload
 
 from app.models import (
     Customer,
@@ -42,7 +42,10 @@ from app.services.errors import (
 from app.services.whatsapp_broadcast_projection_service import (
     recompute_broadcast_recipient_projection,
 )
-from app.services.whatsapp_consent_service import WhatsAppConsentService
+from app.services.whatsapp_consent_service import (
+    ConsentLookupKey,
+    WhatsAppConsentService,
+)
 from app.services.whatsapp_message_service import (
     OutboundAttachmentInput,
     OutboundMessageInput,
@@ -60,6 +63,7 @@ from app.whatsapp import (
 )
 
 VALIDATION_TTL = timedelta(minutes=10)
+MAX_BROADCAST_PROCESS_BATCH_SIZE = 10
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,8 +190,11 @@ class WhatsAppBroadcastService:
         batch_size: int,
         claim_timeout: timedelta,
     ) -> None:
-        if batch_size <= 0:
-            raise ValueError("Broadcast batch_size must be positive")
+        if not 1 <= batch_size <= MAX_BROADCAST_PROCESS_BATCH_SIZE:
+            raise ValueError(
+                "Broadcast batch_size must be between 1 and "
+                f"{MAX_BROADCAST_PROCESS_BATCH_SIZE}"
+            )
         if claim_timeout <= timedelta(0):
             raise ValueError("Broadcast claim_timeout must be positive")
         self._session = session
@@ -321,6 +328,14 @@ class WhatsAppBroadcastService:
                     True,
                 )
             self._require_draft_version(broadcast, expected_version)
+            customers = tuple(
+                self._session.scalars(
+                    select(Customer)
+                    .where(Customer.id.in_(tuple(sorted(set(customer_ids)))))
+                    .options(raiseload("*"))
+                )
+            )
+            customers_by_id = {customer.id: customer for customer in customers}
             selected: list[tuple[Customer, str]] = []
             duplicate_ids: list[int] = []
             invalid_ids: list[int] = []
@@ -328,7 +343,7 @@ class WhatsAppBroadcastService:
             missing_consent_ids: list[int] = []
             seen_phones: set[str] = set()
             for customer_id in customer_ids:
-                customer = self._session.get(Customer, customer_id)
+                customer = customers_by_id.get(customer_id)
                 if customer is None or customer.deleted_at is not None:
                     invalid_ids.append(customer_id)
                     continue
@@ -341,11 +356,14 @@ class WhatsAppBroadcastService:
                     continue
                 seen_phones.add(phone)
                 selected.append((customer, phone))
-                current = WhatsAppConsentService(self._session).current(
-                    customer.id,
-                    phone,
-                    now=changed_at,
-                )
+            consent_by_key = WhatsAppConsentService(self._session).current_many(
+                tuple(
+                    ConsentLookupKey(customer.id, phone) for customer, phone in selected
+                ),
+                now=changed_at,
+            )
+            for customer, phone in selected:
+                current = consent_by_key.get(ConsentLookupKey(customer.id, phone))
                 if (
                     current is None
                     or current.decision is not WhatsAppConsentDecision.OPT_IN
@@ -406,8 +424,12 @@ class WhatsAppBroadcastService:
         with self._session.begin():
             broadcast = self._broadcast_for_update(broadcast_id)
             self._require_draft_version(broadcast, expected_version)
+            recipients = self._validation_recipients(broadcast.id, for_update=False)
+            parameters = self._validation_parameters(broadcast.id)
             snapshot = self._validation_snapshot(
                 broadcast,
+                recipients=recipients,
+                parameters=parameters,
                 templates=templates,
                 now=validated_at,
             )
@@ -423,14 +445,14 @@ class WhatsAppBroadcastService:
                 WhatsAppBroadcastAuditEventType.VALIDATED,
                 occurred_at=validated_at,
                 actor_user_id=actor_user_id,
-                affected_count=len(broadcast.recipients),
+                affected_count=len(recipients),
                 reason_code="VALID" if token is not None else "INVALID",
             )
             return BroadcastValidationResult(
                 broadcast.id,
                 broadcast.version,
                 token is not None,
-                len(broadcast.recipients),
+                len(recipients),
                 snapshot.issues,
                 token,
                 expires_at,
@@ -461,8 +483,12 @@ class WhatsAppBroadcastService:
                 raise WhatsAppBroadcastConflictError(
                     "Broadcast validation token is missing, stale, or invalid"
                 )
+            recipients = self._validation_recipients(broadcast.id, for_update=True)
+            parameters = self._validation_parameters(broadcast.id)
             snapshot = self._validation_snapshot(
                 broadcast,
+                recipients=recipients,
+                parameters=parameters,
                 templates=templates,
                 now=confirmed_at,
             )
@@ -471,7 +497,7 @@ class WhatsAppBroadcastService:
                     "Broadcast inputs or eligibility changed after validation"
                 )
             consent_ids = dict(snapshot.consent_by_recipient)
-            for recipient in broadcast.recipients:
+            for recipient in recipients:
                 recipient.consent_event_id = consent_ids[recipient.id]
                 recipient.status = WhatsAppBroadcastRecipientStatus.READY
                 recipient.confirmed_at = confirmed_at
@@ -487,7 +513,7 @@ class WhatsAppBroadcastService:
                 occurred_at=confirmed_at,
                 actor_user_id=actor_user_id,
                 command_id=command_id,
-                affected_count=len(broadcast.recipients),
+                affected_count=len(recipients),
             )
             self._session.flush()
             return broadcast
@@ -1048,11 +1074,13 @@ class WhatsAppBroadcastService:
         self,
         broadcast: WhatsAppBroadcast,
         *,
+        recipients: tuple[WhatsAppBroadcastRecipient, ...],
+        parameters: tuple[WhatsAppBroadcastTemplateParameter, ...],
         templates: tuple[ProviderTemplateSnapshot, ...],
         now: datetime,
     ) -> _ValidationSnapshot:
         issues: list[str] = []
-        if not broadcast.recipients:
+        if not recipients:
             issues.append("NO_RECIPIENTS")
         template = self._template_for_broadcast(broadcast, templates)
         if template is None:
@@ -1066,9 +1094,27 @@ class WhatsAppBroadcastService:
                 issues.append("HEADER_MEDIA_REQUIRED")
         except MediaStorageError:
             issues.append("HEADER_MEDIA_UNAVAILABLE")
+        customer_ids = tuple(
+            sorted({recipient.customer_id for recipient in recipients})
+        )
+        customers = tuple(
+            self._session.scalars(
+                select(Customer)
+                .where(Customer.id.in_(customer_ids))
+                .options(raiseload("*"))
+            )
+        )
+        customers_by_id = {customer.id: customer for customer in customers}
+        consent_by_key = WhatsAppConsentService(self._session).current_many(
+            tuple(
+                ConsentLookupKey(recipient.customer_id, recipient.normalized_phone)
+                for recipient in recipients
+            ),
+            now=now,
+        )
         consent_by_recipient: list[tuple[int, int]] = []
-        for recipient in broadcast.recipients:
-            customer = self._session.get(Customer, recipient.customer_id)
+        for recipient in recipients:
+            customer = customers_by_id.get(recipient.customer_id)
             if (
                 customer is None
                 or customer.deleted_at is not None
@@ -1076,10 +1122,8 @@ class WhatsAppBroadcastService:
             ):
                 issues.append(f"RECIPIENT_{recipient.id}_PHONE_INVALID")
                 continue
-            current = WhatsAppConsentService(self._session).current(
-                customer.id,
-                recipient.normalized_phone,
-                now=now,
+            current = consent_by_key.get(
+                ConsentLookupKey(customer.id, recipient.normalized_phone)
             )
             if (
                 current is None
@@ -1088,7 +1132,12 @@ class WhatsAppBroadcastService:
                 issues.append(f"RECIPIENT_{recipient.id}_NO_OPT_IN")
                 continue
             consent_by_recipient.append((recipient.id, current.id))
-        digest = self._validation_digest(broadcast, tuple(consent_by_recipient))
+        digest = self._validation_digest(
+            broadcast,
+            parameters,
+            recipients,
+            tuple(consent_by_recipient),
+        )
         return _ValidationSnapshot(tuple(issues), tuple(consent_by_recipient), digest)
 
     def _recipient_is_eligible(
@@ -1453,6 +1502,8 @@ class WhatsAppBroadcastService:
     @staticmethod
     def _validation_digest(
         broadcast: WhatsAppBroadcast,
+        parameters: tuple[WhatsAppBroadcastTemplateParameter, ...],
+        recipients: tuple[WhatsAppBroadcastRecipient, ...],
         consent_ids: tuple[tuple[int, int], ...],
     ) -> str:
         values = [
@@ -1463,15 +1514,44 @@ class WhatsAppBroadcastService:
             broadcast.template_component_signature,
             str(broadcast.header_media_ref or ""),
         ]
-        values.extend(f"{item.name}={item.value}" for item in broadcast.parameters)
+        values.extend(f"{item.name}={item.value}" for item in parameters)
         values.extend(
             f"{recipient.id}:{recipient.customer_id}:{recipient.normalized_phone}"
-            for recipient in broadcast.recipients
+            for recipient in recipients
         )
         values.extend(
             f"{recipient_id}:{event_id}" for recipient_id, event_id in consent_ids
         )
         return sha256("\x1f".join(values).encode()).hexdigest()
+
+    def _validation_recipients(
+        self,
+        broadcast_id: int,
+        *,
+        for_update: bool,
+    ) -> tuple[WhatsAppBroadcastRecipient, ...]:
+        statement = (
+            select(WhatsAppBroadcastRecipient)
+            .where(WhatsAppBroadcastRecipient.broadcast_id == broadcast_id)
+            .order_by(WhatsAppBroadcastRecipient.id)
+            .options(raiseload("*"))
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        return tuple(self._session.scalars(statement))
+
+    def _validation_parameters(
+        self,
+        broadcast_id: int,
+    ) -> tuple[WhatsAppBroadcastTemplateParameter, ...]:
+        return tuple(
+            self._session.scalars(
+                select(WhatsAppBroadcastTemplateParameter)
+                .where(WhatsAppBroadcastTemplateParameter.broadcast_id == broadcast_id)
+                .order_by(WhatsAppBroadcastTemplateParameter.position)
+                .options(raiseload("*"))
+            )
+        )
 
     def _assert_create_replay(
         self,
