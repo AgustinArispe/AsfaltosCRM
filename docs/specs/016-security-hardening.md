@@ -1,9 +1,9 @@
 # CRM-016 — Application Security Hardening
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-12
-Implementation commit: N/A
+Implementation commit: 4b15dc667364ba10c13a33dd66e2fc8865b3b44c
 
 ## Goal
 

@@ -107,7 +107,7 @@ None.
 
 ## Approved specifications
 
-- [`CRM-016`](016-security-hardening.md) — Approved — Release Candidate application
+- [`CRM-016`](016-security-hardening.md) — Implemented — Release Candidate application
   security hardening and production-security deployment contract.
 
 ## Implemented specifications
