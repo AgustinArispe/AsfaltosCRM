@@ -1,8 +1,9 @@
 # CRM-015 — Quality and Reproducibility Hardening
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-12
+Implementation commit: aa8b23f
 
 ## Goal
 

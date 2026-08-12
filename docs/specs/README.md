@@ -107,8 +107,7 @@ None.
 
 ## Approved specifications
 
-- [`CRM-015`](015-quality-reproducibility-hardening.md) — Approved — deterministic
-  dependencies, frontend quality/coverage, CI supply-chain, and Docker smoke hardening.
+None.
 
 ## Implemented specifications
 
@@ -143,3 +142,5 @@ These specifications capture behavior already implemented and tested:
 - [`CRM-014`](014-performance-hardening.md) — Implemented — measured backend
   performance hardening for Broadcast validation/processing, metrics timelines,
   WhatsApp queries, polling, and Opportunity reopen projections.
+- [`CRM-015`](015-quality-reproducibility-hardening.md) — Implemented — deterministic
+  dependencies, frontend quality/coverage, CI supply-chain, and Docker smoke hardening.
