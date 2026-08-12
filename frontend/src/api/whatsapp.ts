@@ -1,5 +1,3 @@
-import { apiBlobRequest, apiFormRequest, apiRequest } from './client'
-import type { ApiSession } from './opportunities'
 import type {
   WhatsAppConversationChangePage,
   WhatsAppConversationDetail,
@@ -12,6 +10,8 @@ import type {
   WhatsAppOutboundResponse,
   WhatsAppSendIntent,
 } from '../whatsapp/types'
+import { apiBlobRequest, apiFormRequest, apiRequest } from './client'
+import type { ApiSession } from './opportunities'
 
 export type ConversationListRequest = {
   limit?: number
@@ -21,10 +21,7 @@ export type ConversationListRequest = {
   search: string
 }
 
-export function listWhatsAppConversations(
-  request: ConversationListRequest,
-  session: ApiSession,
-) {
+export function listWhatsAppConversations(request: ConversationListRequest, session: ApiSession) {
   const query = new URLSearchParams({
     limit: String(request.limit ?? 50),
     waiting_only: String(request.waitingOnly),
@@ -33,16 +30,10 @@ export function listWhatsAppConversations(
   if (request.pageCursor) query.set('page_cursor', request.pageCursor)
   const search = request.search.trim()
   if (search) query.set('search', search)
-  return apiRequest<WhatsAppConversationPage>(
-    `/whatsapp/conversations?${query}`,
-    session,
-  )
+  return apiRequest<WhatsAppConversationPage>(`/whatsapp/conversations?${query}`, session)
 }
 
-export function listWhatsAppConversationChanges(
-  cursor: string,
-  session: ApiSession,
-) {
+export function listWhatsAppConversationChanges(cursor: string, session: ApiSession) {
   const query = new URLSearchParams({ cursor, limit: '500' })
   return apiRequest<WhatsAppConversationChangePage>(
     `/whatsapp/conversations/changes?${query}`,
@@ -50,10 +41,7 @@ export function listWhatsAppConversationChanges(
   )
 }
 
-export function getWhatsAppConversation(
-  conversationId: number,
-  session: ApiSession,
-) {
+export function getWhatsAppConversation(conversationId: number, session: ApiSession) {
   return apiRequest<WhatsAppConversationDetail>(
     `/whatsapp/conversations/${conversationId}`,
     session,
@@ -86,9 +74,7 @@ export function listWhatsAppMessageChanges(
 }
 
 function outboundBody(intent: WhatsAppSendIntent): object {
-  const retry = intent.retryOfMessageId
-    ? { retry_of_message_id: intent.retryOfMessageId }
-    : {}
+  const retry = intent.retryOfMessageId ? { retry_of_message_id: intent.retryOfMessageId } : {}
   if (intent.messageType === 'TEXT') {
     return {
       message_type: 'TEXT',
@@ -117,14 +103,11 @@ export function sendWhatsAppMessage(
   )
 }
 
-export function markWhatsAppConversationRead(
-  conversationId: number,
-  session: ApiSession,
-) {
-  return apiRequest<WhatsAppConversationSummary>(
-    `/whatsapp/conversations/${conversationId}/read`,
-    { ...session, method: 'POST' },
-  )
+export function markWhatsAppConversationRead(conversationId: number, session: ApiSession) {
+  return apiRequest<WhatsAppConversationSummary>(`/whatsapp/conversations/${conversationId}/read`, {
+    ...session,
+    method: 'POST',
+  })
 }
 
 export function linkWhatsAppOpportunity(
@@ -138,10 +121,7 @@ export function linkWhatsAppOpportunity(
   )
 }
 
-export function unlinkWhatsAppOpportunity(
-  conversationId: number,
-  session: ApiSession,
-) {
+export function unlinkWhatsAppOpportunity(conversationId: number, session: ApiSession) {
   return apiRequest<WhatsAppConversationDetail>(
     `/whatsapp/conversations/${conversationId}/opportunity-link`,
     { ...session, method: 'DELETE' },
@@ -162,9 +142,6 @@ export function uploadWhatsAppMedia(
   })
 }
 
-export function getWhatsAppMediaBlob(
-  contentUrl: string,
-  session: ApiSession,
-) {
+export function getWhatsAppMediaBlob(contentUrl: string, session: ApiSession) {
   return apiBlobRequest(contentUrl, session)
 }

@@ -1,10 +1,10 @@
 import {
-  useEffect,
-  useId,
-  useRef,
   type MouseEvent,
   type ReactNode,
   type SyntheticEvent,
+  useEffect,
+  useId,
+  useRef,
 } from 'react'
 
 export function Modal({
@@ -37,9 +37,7 @@ export function Modal({
       previousFocusRef.current = document.activeElement as HTMLElement | null
       dialog.showModal()
       focusTimeoutId = window.setTimeout(() => {
-        dialog
-          .querySelector<HTMLElement>('[data-modal-initial-focus]')
-          ?.focus()
+        dialog.querySelector<HTMLElement>('[data-modal-initial-focus]')?.focus()
       }, 0)
       return () => window.clearTimeout(focusTimeoutId)
     }
@@ -71,32 +69,37 @@ export function Modal({
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className="m-auto w-[min(34rem,calc(100%-2rem))] border-0 bg-transparent p-0 text-slate-900 backdrop:bg-slate-950/45"
+      className='m-auto w-[min(34rem,calc(100%-2rem))] border-0 bg-transparent p-0 text-slate-900 backdrop:bg-slate-950/45'
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       ref={dialogRef}
     >
-      <div className="overflow-hidden rounded-[6px] border border-slate-200 bg-white shadow-[0_14px_36px_rgb(15_23_42_/_0.18)]">
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-3.5">
+      <div className='overflow-hidden rounded-[6px] border border-slate-200 bg-white shadow-[0_14px_36px_rgb(15_23_42_/_0.18)]'>
+        <header className='flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-3.5'>
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-slate-950" id={titleId}>
+            <h2 className='text-base font-semibold tracking-tight text-slate-950' id={titleId}>
               {title}
             </h2>
             {description ? (
-              <p className="mt-1 text-sm leading-5 text-slate-600" id={descriptionId}>
+              <p className='mt-1 text-sm leading-5 text-slate-600' id={descriptionId}>
                 {description}
               </p>
             ) : null}
           </div>
           <button
             aria-label={`Cerrar ${title.toLowerCase()}`}
-            className="ui-pressable grid size-11 shrink-0 place-items-center rounded-[4px] text-slate-500 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[4px] text-slate-500 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:opacity-40'
             disabled={closeDisabled}
             onClick={onClose}
-            type="button"
+            type='button'
           >
-            <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
-              <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+            <svg aria-hidden='true' className='size-5' fill='none' viewBox='0 0 24 24'>
+              <path
+                d='m6 6 12 12M18 6 6 18'
+                stroke='currentColor'
+                strokeLinecap='round'
+                strokeWidth='1.8'
+              />
             </svg>
           </button>
         </header>

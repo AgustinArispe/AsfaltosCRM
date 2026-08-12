@@ -212,44 +212,73 @@ curl http://localhost:8000/health
 
 ### Calidad del backend
 
-Las dependencias de runtime viven en `backend/requirements.txt` y las herramientas de
-desarrollo reproducibles en `backend/requirements-dev.txt`. El backend usa Ruff como
-linter y formatter, mypy strict como type checker y pytest con coverage mínimo de 93%.
-La medición base al adoptar el gate fue 93,56%.
+Las declaraciones directas viven en `backend/requirements.in` y
+`backend/requirements-dev.in`; Docker, CI y los entornos de calidad instalan los
+artefactos exactos y verificados por hash `requirements.lock` y
+`requirements-dev.lock`. El [runbook de dependencias](docs/runbooks/dependency-management.md)
+documenta la actualización determinista, la reproducción byte a byte y el manejo
+explícito de vulnerabilidades. El backend usa Ruff como linter y formatter, mypy strict
+como type checker y pytest con coverage mínimo de 93%. La medición base al adoptar el
+gate fue 93,56%.
 
 ```bash
 # Lint
-docker compose exec backend ruff check app tests
+docker compose exec backend ruff check app tests performance quality
 
 # Verificar formato (o aplicar con: ruff format app tests)
-docker compose exec backend ruff format --check app tests
+docker compose exec backend ruff format --check app tests performance quality
 
 # Tipado estricto de aplicación y tests
-docker compose exec backend mypy --strict app tests
+docker compose exec backend mypy --strict app tests performance quality
 
 # Tests y coverage
 docker compose exec backend pytest \
   --cov=app --cov-report=term-missing --cov-fail-under=93
 
 # Compilación y consistencia de migraciones
-docker compose exec backend python -m compileall -q app tests
+docker compose exec backend python -m compileall -q app tests performance quality
 docker compose exec backend alembic check
-docker compose exec backend alembic current
+docker compose exec backend alembic current --check-heads
+
+# Reproducibilidad y auditoría del grafo Python bloqueado
+docker compose exec backend ./scripts/verify-locks.sh
+docker compose exec backend python -m quality.audit_dependencies \
+  --output artifacts/pip-audit.json
 ```
 
-La suite completa de calidad también exige `npm test`, `npm run build` y
-`npm audit --audit-level=high` dentro de `frontend`. GitHub Actions ejecuta todos estos
-gates en cada push y pull request.
+La suite frontend exige `npm run check` (Biome), `npm run coverage`, `npm run build` y
+`npm audit --audit-level=high`. Vitest conserva reportes de statements, branches,
+functions y lines y aplica pisos de 85%, 75%, 86% y 88%, respectivamente. GitHub
+Actions ejecuta todos los gates en cada push y pull request y conserva los reportes de
+coverage y `pip-audit` durante siete días.
+
+El smoke de CI puede reproducirse sin ejecutar nuevamente las suites:
+
+```bash
+./scripts/ci-compose-smoke.sh
+```
+
+Construye y levanta un proyecto Compose aislado, espera health checks, verifica API,
+frontend, proxy y Alembic head, y siempre elimina sus contenedores y volúmenes.
 
 ### Pre-commit
 
-Pre-commit ejecuta Ruff lint, Ruff format check y mypy strict. La suite completa de
-pytest permanece en CI porque requiere PostgreSQL y no debe volver lentos los commits.
+Pre-commit ejecuta Ruff lint, Ruff format check, mypy strict y Biome con los mismos
+comandos rápidos de CI. Las suites PostgreSQL, coverage, auditorías de red y Docker
+permanecen en CI o como comandos explícitos para no volver lentos los commits.
 Para instalarlo sin dependencias globales, usar un entorno virtual local:
 
 ```bash
 python3.13 -m venv .venv
-.venv/bin/pip install -r backend/requirements-dev.txt
+.venv/bin/pip install --require-hashes \
+  -r backend/requirements.lock -r backend/requirements-dev.lock
 .venv/bin/pre-commit install
 .venv/bin/pre-commit run --all-files
 ```
+
+### Trazabilidad SDD de tests
+
+Los nuevos tests importantes de aceptación deben referenciar `CRM-NNN AC-NN` cuando
+sea práctico, mediante docstring, comentario adyacente o grupo de tests. Un test puede
+cubrir varios criterios y un criterio puede necesitar varios tests; no se exige una
+correspondencia artificial ni se modifican tests históricos sólo para agregar IDs.

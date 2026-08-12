@@ -1,14 +1,10 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 
 import type { UserRole } from '../auth/types'
+import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
-import { Button } from '../shared/Button'
-import type {
-  CustomerFormValues,
-  CustomerSummary,
-  CustomerWritePayload,
-} from './types'
+import type { CustomerFormValues, CustomerSummary, CustomerWritePayload } from './types'
 
 const EMPTY_VALUES: CustomerFormValues = {
   name: '',
@@ -102,19 +98,14 @@ export function CustomerFormModal({
       province: nullableTrimmed(values.province),
     }
     if (role === 'SUPERVISOR') {
-      payload.legendary_historical_override =
-        values.legendary_historical_override
+      payload.legendary_historical_override = values.legendary_historical_override
     }
 
     setIsSubmitting(true)
     try {
       await onSubmit(payload)
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : 'No pudimos guardar el cliente.',
-      )
+      setSubmitError(error instanceof Error ? error.message : 'No pudimos guardar el cliente.')
     } finally {
       setIsSubmitting(false)
     }
@@ -135,17 +126,17 @@ export function CustomerFormModal({
       title={isEditing ? 'Editar cliente' : 'Nuevo cliente'}
     >
       <form id={formId} noValidate onSubmit={handleSubmit}>
-        <div className="max-h-[65dvh] space-y-4 overflow-y-auto px-5 py-5">
+        <div className='max-h-[65dvh] space-y-4 overflow-y-auto px-5 py-5'>
           {submitError ? <InlineFeedback message={submitError} /> : null}
 
           <div>
-            <label className="ui-label" htmlFor={`${formId}-name`}>
-              Nombre <span aria-hidden="true">*</span>
+            <label className='ui-label' htmlFor={`${formId}-name`}>
+              Nombre <span aria-hidden='true'>*</span>
             </label>
             <input
               aria-describedby={fieldErrors.name ? `${formId}-name-error` : undefined}
               aria-invalid={Boolean(fieldErrors.name)}
-              autoComplete="name"
+              autoComplete='name'
               autoFocus
               className={inputClasses}
               data-modal-initial-focus
@@ -153,102 +144,99 @@ export function CustomerFormModal({
               id={`${formId}-name`}
               onChange={(event) => updateValue('name', event.target.value)}
               ref={nameInputRef}
-              type="text"
+              type='text'
               value={values.name}
             />
             {fieldErrors.name ? (
-              <p className="mt-1.5 text-sm font-medium text-red-700" id={`${formId}-name-error`}>
+              <p className='mt-1.5 text-sm font-medium text-red-700' id={`${formId}-name-error`}>
                 {fieldErrors.name}
               </p>
             ) : null}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="ui-label" htmlFor={`${formId}-company`}>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <div className='sm:col-span-2'>
+              <label className='ui-label' htmlFor={`${formId}-company`}>
                 Empresa
               </label>
               <input
-                autoComplete="organization"
+                autoComplete='organization'
                 className={inputClasses}
                 disabled={isSubmitting}
                 id={`${formId}-company`}
                 onChange={(event) => updateValue('company', event.target.value)}
-                type="text"
+                type='text'
                 value={values.company}
               />
             </div>
             <div>
-              <label className="ui-label" htmlFor={`${formId}-email`}>
+              <label className='ui-label' htmlFor={`${formId}-email`}>
                 Email
               </label>
               <input
                 aria-describedby={fieldErrors.email ? `${formId}-email-error` : undefined}
                 aria-invalid={Boolean(fieldErrors.email)}
-                autoComplete="email"
+                autoComplete='email'
                 className={inputClasses}
                 disabled={isSubmitting}
                 id={`${formId}-email`}
-                inputMode="email"
+                inputMode='email'
                 onChange={(event) => updateValue('email', event.target.value)}
                 ref={emailInputRef}
-                type="email"
+                type='email'
                 value={values.email}
               />
               {fieldErrors.email ? (
-                <p className="mt-1.5 text-sm font-medium text-red-700" id={`${formId}-email-error`}>
+                <p className='mt-1.5 text-sm font-medium text-red-700' id={`${formId}-email-error`}>
                   {fieldErrors.email}
                 </p>
               ) : null}
             </div>
             <div>
-              <label className="ui-label" htmlFor={`${formId}-phone`}>
+              <label className='ui-label' htmlFor={`${formId}-phone`}>
                 Teléfono
               </label>
               <input
-                autoComplete="tel"
+                autoComplete='tel'
                 className={inputClasses}
                 disabled={isSubmitting}
                 id={`${formId}-phone`}
-                inputMode="tel"
+                inputMode='tel'
                 onChange={(event) => updateValue('phone', event.target.value)}
-                type="tel"
+                type='tel'
                 value={values.phone}
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="ui-label" htmlFor={`${formId}-province`}>
+            <div className='sm:col-span-2'>
+              <label className='ui-label' htmlFor={`${formId}-province`}>
                 Provincia
               </label>
               <input
-                autoComplete="address-level1"
+                autoComplete='address-level1'
                 className={inputClasses}
                 disabled={isSubmitting}
                 id={`${formId}-province`}
                 onChange={(event) => updateValue('province', event.target.value)}
-                type="text"
+                type='text'
                 value={values.province}
               />
             </div>
           </div>
 
           {role === 'SUPERVISOR' ? (
-            <label className="flex min-h-11 items-start gap-3 rounded-[4px] border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800">
+            <label className='flex min-h-11 items-start gap-3 rounded-[4px] border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800'>
               <input
                 checked={values.legendary_historical_override}
-                className="mt-0.5 size-4 accent-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+                className='mt-0.5 size-4 accent-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2'
                 disabled={isSubmitting}
                 onChange={(event) =>
-                  updateValue(
-                    'legendary_historical_override',
-                    event.target.checked,
-                  )
+                  updateValue('legendary_historical_override', event.target.checked)
                 }
-                type="checkbox"
+                type='checkbox'
               />
               <span>
-                <span className="font-semibold">Legendario histórico</span>
-                <span className="mt-0.5 block text-xs leading-5 text-slate-600">
+                <span className='font-semibold'>Legendario histórico</span>
+                <span className='mt-0.5 block text-xs leading-5 text-slate-600'>
                   FAA reconoció esta relación comercial como histórica antes del CRM.
                 </span>
               </span>
@@ -256,18 +244,11 @@ export function CustomerFormModal({
           ) : null}
         </div>
 
-        <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <Button
-            disabled={isSubmitting}
-            onClick={onClose}
-          >
+        <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
+          <Button disabled={isSubmitting} onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            disabled={isSubmitting}
-            type="submit"
-            variant="primary"
-          >
+          <Button disabled={isSubmitting} type='submit' variant='primary'>
             {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear cliente'}
           </Button>
         </footer>

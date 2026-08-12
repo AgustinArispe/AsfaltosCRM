@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useSyncExternalStore,
-  type AnchorHTMLAttributes,
-  type MouseEvent,
-} from 'react'
+import { type AnchorHTMLAttributes, type MouseEvent, useEffect, useSyncExternalStore } from 'react'
 
 import { LoadingState } from '../shared/LoadingState'
 
@@ -65,5 +60,5 @@ export function AppLink({ to, onClick, ...props }: AppLinkProps) {
 
 export function Redirect({ to }: { to: string }) {
   useEffect(() => navigate(to, { replace: true }), [to])
-  return <LoadingState fullscreen label="Redirigiendo…" />
+  return <LoadingState fullscreen label='Redirigiendo…' />
 }

@@ -19,13 +19,8 @@ export function formatQuantityKg(quantity: string | number): string {
   return `${QUANTITY_FORMATTER.format(Number(quantity))} kg`
 }
 
-export function sumQuantitiesKg(
-  quantities: readonly (string | number)[],
-): number {
-  return quantities.reduce<number>(
-    (total, quantity) => total + Number(quantity),
-    0,
-  )
+export function sumQuantitiesKg(quantities: readonly (string | number)[]): number {
+  return quantities.reduce<number>((total, quantity) => total + Number(quantity), 0)
 }
 
 export function formatDateTime(value: string | Date): string {
@@ -38,14 +33,8 @@ export function formatDateTime(value: string | Date): string {
   return `${part('day')} ${part('month').replace('.', '')} ${part('year')}, ${part('hour')}:${part('minute')}`
 }
 
-export function formatStageDuration(
-  enteredAt: string,
-  now = new Date(),
-): string {
-  const elapsedMilliseconds = Math.max(
-    0,
-    now.getTime() - new Date(enteredAt).getTime(),
-  )
+export function formatStageDuration(enteredAt: string, now = new Date()): string {
+  const elapsedMilliseconds = Math.max(0, now.getTime() - new Date(enteredAt).getTime())
   const elapsedDays = Math.floor(elapsedMilliseconds / MILLISECONDS_PER_DAY)
 
   if (elapsedDays < 1) return 'Hoy'
@@ -67,10 +56,7 @@ export function formatStageDuration(
   return `${elapsedYears} ${elapsedYears === 1 ? 'año' : 'años'}`
 }
 
-export function formatTimeInStage(
-  enteredAt: string,
-  now = new Date(),
-): string {
+export function formatTimeInStage(enteredAt: string, now = new Date()): string {
   const duration = formatStageDuration(enteredAt, now)
   return duration === 'Hoy' ? duration : `Hace ${duration}`
 }

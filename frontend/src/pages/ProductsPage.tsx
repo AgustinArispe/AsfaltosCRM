@@ -1,32 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
-
-import {
-  createProduct,
-  listProducts,
-  updateProduct,
-} from '../api/products'
 import type { ApiSession } from '../api/opportunities'
+import { createProduct, listProducts, updateProduct } from '../api/products'
 import { useAuth } from '../auth/AuthContext'
 import { DeactivateProductModal } from '../products/DeactivateProductModal'
 import { productErrorMessage } from '../products/errors'
 import { ProductFormModal } from '../products/ProductFormModal'
 import { ProductTable } from '../products/ProductTable'
 import type { Product } from '../products/types'
+import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
-import { Button } from '../shared/Button'
 
 function sortProducts(products: Product[]): Product[] {
-  return [...products].sort((first, second) =>
-    first.name.localeCompare(second.name, 'es-AR'),
-  )
+  return [...products].sort((first, second) => first.name.localeCompare(second.name, 'es-AR'))
 }
 
 function replaceProduct(products: Product[], updatedProduct: Product): Product[] {
   return sortProducts(
-    products.map((product) =>
-      product.id === updatedProduct.id ? updatedProduct : product,
-    ),
+    products.map((product) => (product.id === updatedProduct.id ? updatedProduct : product)),
   )
 }
 
@@ -50,6 +41,7 @@ export function ProductsPage() {
   const canManage = user?.role === 'SUPERVISOR'
 
   useEffect(() => {
+    void reloadKey
     if (!user) return
     const controller = new AbortController()
     setIsLoading(true)
@@ -58,11 +50,7 @@ export function ProductsPage() {
     listProducts(canManage, { ...apiSession, signal: controller.signal })
       .then((response) => {
         setProducts(
-          sortProducts(
-            canManage
-              ? response
-              : response.filter((product) => product.is_active),
-          ),
+          sortProducts(canManage ? response : response.filter((product) => product.is_active)),
         )
       })
       .catch((error: unknown) => {
@@ -113,9 +101,7 @@ export function ProductsPage() {
       )
       closeForm()
       setAnnouncement(
-        formProduct
-          ? `${savedProduct.name} fue actualizado.`
-          : `${savedProduct.name} fue creado.`,
+        formProduct ? `${savedProduct.name} fue actualizado.` : `${savedProduct.name} fue creado.`,
       )
     } catch (error) {
       throw new Error(productErrorMessage(error, 'save'))
@@ -147,11 +133,7 @@ export function ProductsPage() {
     setOperationError(null)
     setProductBusy(product.id, true)
     try {
-      const updatedProduct = await updateProduct(
-        product.id,
-        { is_active: true },
-        apiSession,
-      )
+      const updatedProduct = await updateProduct(product.id, { is_active: true }, apiSession)
       setProducts((current) => replaceProduct(current, updatedProduct))
       setAnnouncement(
         `${updatedProduct.name} fue reactivado y está disponible para nuevas cotizaciones.`,
@@ -164,36 +146,40 @@ export function ProductsPage() {
   }
 
   return (
-    <section aria-labelledby="products-workspace-title" className="mx-auto max-w-5xl">
-      <div aria-live="polite" className="sr-only">{announcement}</div>
+    <section aria-labelledby='products-workspace-title' className='mx-auto max-w-5xl'>
+      <div aria-live='polite' className='sr-only'>
+        {announcement}
+      </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className='flex flex-wrap items-end justify-between gap-4'>
         <div>
-          <h2 className="text-base font-semibold text-slate-950" id="products-workspace-title">
+          <h2 className='text-base font-semibold text-slate-950' id='products-workspace-title'>
             Catálogo de productos
           </h2>
-          <p className="mt-0.5 text-sm text-slate-600">
+          <p className='mt-0.5 text-sm text-slate-600'>
             {canManage
               ? 'Administrá los productos disponibles para cotizaciones.'
               : 'Consultá los productos activos disponibles para nuevas cotizaciones.'}
           </p>
         </div>
         {canManage ? (
-          <Button onClick={openCreate} variant="primary">
+          <Button onClick={openCreate} variant='primary'>
             Nuevo producto
           </Button>
         ) : null}
       </div>
 
       {!isLoading && !loadError ? (
-        <p className="ui-panel mt-4 px-4 py-2.5 text-sm text-slate-700" role="status">
-          <span className="font-semibold tabular-nums text-slate-950">{products.length}</span>{' '}
+        <p className='ui-panel mt-4 px-4 py-2.5 text-sm text-slate-700' role='status'>
+          <span className='font-semibold tabular-nums text-slate-950'>{products.length}</span>{' '}
           {products.length === 1 ? 'producto' : 'productos'}
           {canManage ? (
             <>
-              {' · '}<span className="font-semibold tabular-nums text-emerald-800">{activeCount}</span>{' '}
+              {' · '}
+              <span className='font-semibold tabular-nums text-emerald-800'>{activeCount}</span>{' '}
               {activeCount === 1 ? 'activo' : 'activos'}
-              {' · '}<span className="font-semibold tabular-nums text-slate-700">{inactiveCount}</span>{' '}
+              {' · '}
+              <span className='font-semibold tabular-nums text-slate-700'>{inactiveCount}</span>{' '}
               {inactiveCount === 1 ? 'inactivo' : 'inactivos'}
             </>
           ) : null}
@@ -201,30 +187,25 @@ export function ProductsPage() {
       ) : null}
 
       {operationError ? (
-        <div className="mt-4">
-          <InlineFeedback
-            message={operationError}
-            onDismiss={() => setOperationError(null)}
-          />
+        <div className='mt-4'>
+          <InlineFeedback message={operationError} onDismiss={() => setOperationError(null)} />
         </div>
       ) : null}
 
-      <div className="mt-4">
+      <div className='mt-4'>
         {loadError ? (
-          <div className="ui-panel px-5 py-6">
+          <div className='ui-panel px-5 py-6'>
             <InlineFeedback message={loadError} />
-            <Button className="mt-4" onClick={() => setReloadKey((current) => current + 1)}>
+            <Button className='mt-4' onClick={() => setReloadKey((current) => current + 1)}>
               Reintentar
             </Button>
           </div>
         ) : isLoading ? (
-          <LoadingState label="Cargando productos…" />
+          <LoadingState label='Cargando productos…' />
         ) : products.length === 0 ? (
-          <div className="ui-panel px-5 py-9 text-center">
-            <h3 className="text-base font-semibold text-slate-950">
-              No hay productos disponibles
-            </h3>
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600">
+          <div className='ui-panel px-5 py-9 text-center'>
+            <h3 className='text-base font-semibold text-slate-950'>No hay productos disponibles</h3>
+            <p className='mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600'>
               {canManage
                 ? 'Creá el primer producto para comenzar a cotizar oportunidades.'
                 : 'Un supervisor debe activar productos para que aparezcan en este catálogo.'}

@@ -6,10 +6,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { SESSION_TOKEN_KEY } from './auth/session-storage'
 import type { AuthUser } from './auth/types'
 import type { CustomerDetail } from './customers/types'
-import type {
-  OpportunityDetail,
-  OpportunitySummary,
-} from './pipeline/types'
+import type { OpportunityDetail, OpportunitySummary } from './pipeline/types'
 
 const supervisor: AuthUser = {
   id: 1,
@@ -123,17 +120,9 @@ describe('authenticated frontend', () => {
   it('renders the accessible login form', async () => {
     renderApp()
 
-    expect(
-      await screen.findByRole('heading', { name: 'Ingresar al sistema' }),
-    ).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toHaveAttribute(
-      'autocomplete',
-      'username',
-    )
-    expect(screen.getByLabelText('Contraseña')).toHaveAttribute(
-      'autocomplete',
-      'current-password',
-    )
+    expect(await screen.findByRole('heading', { name: 'Ingresar al sistema' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toHaveAttribute('autocomplete', 'username')
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('autocomplete', 'current-password')
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled()
   })
 
@@ -151,9 +140,7 @@ describe('authenticated frontend', () => {
     renderApp()
 
     await fillAndSubmitLogin()
-    expect(
-      screen.getByRole('button', { name: 'Ingresando…' }),
-    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Ingresando…' })).toBeDisabled()
 
     await act(async () => {
       resolveLogin(
@@ -165,17 +152,13 @@ describe('authenticated frontend', () => {
       )
     })
 
-    expect(
-      await screen.findByRole('heading', { name: 'Pipeline', level: 1 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Pipeline', level: 1 })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBe('new-token')
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/login')
 
     const meRequest = fetchMock.mock.calls[1]?.[1] as RequestInit
-    expect(new Headers(meRequest.headers).get('Authorization')).toBe(
-      'Bearer new-token',
-    )
+    expect(new Headers(meRequest.headers).get('Authorization')).toBe('Bearer new-token')
   })
 
   it('shows a generic message for invalid credentials', async () => {
@@ -187,9 +170,9 @@ describe('authenticated frontend', () => {
 
     await fillAndSubmitLogin()
 
-    expect(
-      await screen.findByRole('alert'),
-    ).toHaveTextContent('El email o la contraseña no son correctos.')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El email o la contraseña no son correctos.',
+    )
     expect(screen.getByLabelText('Email')).toHaveFocus()
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBeNull()
   })
@@ -210,17 +193,13 @@ describe('authenticated frontend', () => {
     renderApp('/')
 
     expect(screen.getByRole('status')).toHaveTextContent('Restaurando sesión…')
-    expect(
-      await screen.findByRole('heading', { name: 'Pipeline', level: 1 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Pipeline', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Supervisor FAA')).toBeInTheDocument()
     expect(screen.getByText('Supervisor')).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
-    expect(new Headers(request.headers).get('Authorization')).toBe(
-      'Bearer stored-token',
-    )
+    expect(new Headers(request.headers).get('Authorization')).toBe('Bearer stored-token')
   })
 
   it('clears an invalid stored token and redirects to login', async () => {
@@ -231,9 +210,7 @@ describe('authenticated frontend', () => {
     )
     renderApp('/customers')
 
-    expect(
-      await screen.findByRole('heading', { name: 'Ingresar al sistema' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Ingresar al sistema' })).toBeInTheDocument()
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBeNull()
     expect(window.location.pathname).toBe('/login')
   })
@@ -241,9 +218,7 @@ describe('authenticated frontend', () => {
   it('protects internal routes when there is no session', async () => {
     renderApp('/products')
 
-    expect(
-      await screen.findByRole('heading', { name: 'Ingresar al sistema' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Ingresar al sistema' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/login')
   })
 
@@ -251,9 +226,7 @@ describe('authenticated frontend', () => {
     mockRestoredSession(supervisor)
     renderApp('/pipeline')
 
-    expect(
-      await screen.findByRole('link', { name: 'Usuarios' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
@@ -261,26 +234,24 @@ describe('authenticated frontend', () => {
 
   it('opens the pipeline drawer, restores focus, and keeps the deep-link route', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
-    const fetchMock = vi.fn(
-      async (input: RequestInfo | URL): Promise<Response> => {
-        const url = new URL(String(input), 'http://localhost')
-        if (url.pathname === '/api/auth/me') {
-          return jsonResponse(200, supervisor)
-        }
-        if (url.pathname === '/api/opportunities/77') {
-          return jsonResponse(200, opportunityDetail)
-        }
-        if (url.pathname === '/api/opportunities') {
-          const status = url.searchParams.get('status')
-          return jsonResponse(200, {
-            ...emptyOpportunityPage,
-            items: status === 'NUEVA' ? [opportunitySummary] : [],
-            total: status === 'NUEVA' ? 1 : 0,
-          })
-        }
-        throw new Error(`Unexpected request: ${url.pathname}`)
-      },
-    )
+    const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = new URL(String(input), 'http://localhost')
+      if (url.pathname === '/api/auth/me') {
+        return jsonResponse(200, supervisor)
+      }
+      if (url.pathname === '/api/opportunities/77') {
+        return jsonResponse(200, opportunityDetail)
+      }
+      if (url.pathname === '/api/opportunities') {
+        const status = url.searchParams.get('status')
+        return jsonResponse(200, {
+          ...emptyOpportunityPage,
+          items: status === 'NUEVA' ? [opportunitySummary] : [],
+          total: status === 'NUEVA' ? 1 : 0,
+        })
+      }
+      throw new Error(`Unexpected request: ${url.pathname}`)
+    })
     vi.stubGlobal('fetch', fetchMock)
     renderApp('/pipeline')
 
@@ -294,9 +265,7 @@ describe('authenticated frontend', () => {
     const drawer = await screen.findByRole('dialog', {
       name: 'Detalle de oportunidad',
     })
-    expect(
-      within(drawer).getByRole('heading', { name: 'Navegación SA' }),
-    ).toBeInTheDocument()
+    expect(within(drawer).getByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
     fireEvent(drawer, new Event('cancel', { cancelable: true }))
     await waitFor(() => expect(cardButton).toHaveFocus())
 
@@ -305,32 +274,23 @@ describe('authenticated frontend', () => {
       window.dispatchEvent(new PopStateEvent('popstate'))
     })
 
-    expect(
-      await screen.findByRole('heading', { name: 'Navegación SA' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'Detalle de oportunidad', level: 1 }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('aria-current', 'page')
 
     fireEvent.click(screen.getByRole('link', { name: 'Volver al Pipeline' }))
 
     expect(window.location.pathname).toBe('/pipeline')
-    expect(
-      await screen.findByRole('heading', { name: 'Nuevos' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nuevos' })).toBeInTheDocument()
   })
 
   it('hides Users and redirects its route for sellers', async () => {
     mockRestoredSession(seller)
     renderApp('/users')
 
-    expect(
-      await screen.findByRole('heading', { name: 'Pipeline', level: 1 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Pipeline', level: 1 })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
@@ -363,9 +323,7 @@ describe('authenticated frontend', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     await waitFor(() => expect(window.location.pathname).toBe('/login'))
-    expect(
-      screen.getByRole('heading', { name: 'Ingresar al sistema' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ingresar al sistema' })).toBeInTheDocument()
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBeNull()
   })
 })

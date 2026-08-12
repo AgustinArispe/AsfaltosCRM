@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
@@ -29,9 +29,7 @@ export function LoginPage() {
       await login({ email, password })
     } catch (requestError) {
       setError(
-        requestError instanceof ApiError && requestError.status === 401
-          ? 'invalid'
-          : 'unexpected',
+        requestError instanceof ApiError && requestError.status === 401 ? 'invalid' : 'unexpected',
       )
       emailRef.current?.focus()
     } finally {
@@ -42,88 +40,101 @@ export function LoginPage() {
   const errorMessage = error ? ERROR_MESSAGES[error] : null
 
   return (
-    <main className="grid min-h-dvh bg-slate-100 text-slate-900 lg:grid-cols-[18rem_minmax(28rem,1fr)]">
-      <section className="hidden border-r border-slate-700 bg-slate-800 px-7 py-7 text-white lg:flex lg:flex-col lg:justify-between" aria-label="Identidad FAA">
+    <main className='grid min-h-dvh bg-slate-100 text-slate-900 lg:grid-cols-[18rem_minmax(28rem,1fr)]'>
+      <section
+        className='hidden border-r border-slate-700 bg-slate-800 px-7 py-7 text-white lg:flex lg:flex-col lg:justify-between'
+        aria-label='Identidad FAA'
+      >
         <Brand inverse />
-        <p className="border-l-2 border-slate-500 pl-4 text-sm leading-6 text-slate-300">
+        <p className='border-l-2 border-slate-500 pl-4 text-sm leading-6 text-slate-300'>
           Acceso interno al sistema de gestión comercial.
         </p>
-        <p className="text-xs text-slate-400">Fábrica Argentina de Asfaltos</p>
+        <p className='text-xs text-slate-400'>Fábrica Argentina de Asfaltos</p>
       </section>
 
-      <section className="flex items-center justify-center px-5 py-10 sm:px-8" aria-labelledby="login-title">
-        <div className="ui-panel w-full max-w-sm px-5 py-6 sm:px-6">
-          <div className="mb-10 lg:hidden">
+      <section
+        className='flex items-center justify-center px-5 py-10 sm:px-8'
+        aria-labelledby='login-title'
+      >
+        <div className='ui-panel w-full max-w-sm px-5 py-6 sm:px-6'>
+          <div className='mb-10 lg:hidden'>
             <Brand />
           </div>
 
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">CRM de FAA</p>
-            <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-slate-950" id="login-title">
+          <div className='mb-6'>
+            <p className='text-xs font-semibold uppercase tracking-[0.1em] text-slate-500'>
+              CRM de FAA
+            </p>
+            <h1
+              className='mt-1.5 text-xl font-semibold tracking-tight text-slate-950'
+              id='login-title'
+            >
               Ingresar al sistema
             </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <p className='mt-2 text-sm leading-6 text-slate-600'>
               Usá las credenciales asignadas por tu supervisor.
             </p>
           </div>
 
-          <form aria-busy={isSubmitting} className="space-y-5" onSubmit={handleSubmit}>
+          <form aria-busy={isSubmitting} className='space-y-5' onSubmit={handleSubmit}>
             <div>
-              <label className="ui-label" htmlFor="email">
+              <label className='ui-label' htmlFor='email'>
                 Email
               </label>
               <input
                 aria-describedby={errorMessage ? 'login-error' : undefined}
                 aria-invalid={Boolean(errorMessage)}
-                autoComplete="username"
+                autoComplete='username'
                 autoFocus
-                className="ui-field text-base"
+                className='ui-field text-base'
                 disabled={isSubmitting}
-                id="email"
-                name="email"
+                id='email'
+                name='email'
                 onChange={(event) => setEmail(event.target.value)}
                 ref={emailRef}
                 required
-                type="email"
+                type='email'
                 value={email}
               />
             </div>
 
             <div>
-              <label className="ui-label" htmlFor="password">
+              <label className='ui-label' htmlFor='password'>
                 Contraseña
               </label>
               <input
                 aria-describedby={errorMessage ? 'login-error' : undefined}
                 aria-invalid={Boolean(errorMessage)}
-                autoComplete="current-password"
-                className="ui-field text-base"
+                autoComplete='current-password'
+                className='ui-field text-base'
                 disabled={isSubmitting}
-                id="password"
+                id='password'
                 minLength={1}
-                name="password"
+                name='password'
                 onChange={(event) => setPassword(event.target.value)}
                 required
-                type="password"
+                type='password'
                 value={password}
               />
             </div>
 
             {errorMessage ? (
-              <p className="rounded-[4px] border border-rose-200 border-l-2 border-l-rose-500 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-800" id="login-error" role="alert">
+              <p
+                className='rounded-[4px] border border-rose-200 border-l-2 border-l-rose-500 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-800'
+                id='login-error'
+                role='alert'
+              >
                 {errorMessage}
               </p>
             ) : null}
 
-            <Button
-              className="w-full"
-              disabled={isSubmitting}
-              type="submit"
-              variant="primary"
-            >
+            <Button className='w-full' disabled={isSubmitting} type='submit' variant='primary'>
               {isSubmitting ? (
                 <>
-                  <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-slate-500 border-t-slate-900 motion-reduce:animate-none" />
+                  <span
+                    aria-hidden='true'
+                    className='size-4 animate-spin rounded-full border-2 border-slate-500 border-t-slate-900 motion-reduce:animate-none'
+                  />
                   Ingresando…
                 </>
               ) : (

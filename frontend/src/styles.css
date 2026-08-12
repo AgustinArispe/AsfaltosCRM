@@ -14,8 +14,8 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   color: var(--text-primary);
   background: var(--surface-canvas);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -125,7 +125,7 @@ a {
   }
 }
 
-.drawer-dialog[data-closing='true'] .drawer-panel {
+.drawer-dialog[data-closing="true"] .drawer-panel {
   transform: translateX(100%);
   transition-duration: 160ms;
 }

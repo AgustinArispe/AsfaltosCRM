@@ -1,8 +1,4 @@
-import type {
-  WhatsAppConversationSummary,
-  WhatsAppFilters,
-  WhatsAppMessage,
-} from './types'
+import type { WhatsAppConversationSummary, WhatsAppFilters, WhatsAppMessage } from './types'
 
 function timestamp(value: string | null): number {
   return value ? new Date(value).getTime() : Number.NEGATIVE_INFINITY
@@ -18,8 +14,7 @@ export function compareConversations(
   if (left.unread_count !== right.unread_count) {
     return right.unread_count - left.unread_count
   }
-  const activityDifference =
-    timestamp(right.last_message_at) - timestamp(left.last_message_at)
+  const activityDifference = timestamp(right.last_message_at) - timestamp(left.last_message_at)
   return activityDifference || right.id - left.id
 }
 
@@ -68,17 +63,12 @@ export function conversationMatchesFilters(
     customer?.name,
     customer?.company,
   ]
-  if (
-    textValues.some((value) =>
-      value ? normalizedSearchValue(value).includes(search) : false,
-    )
-  ) {
+  if (textValues.some((value) => (value ? normalizedSearchValue(value).includes(search) : false))) {
     return true
   }
   const searchedDigits = phoneDigits(search)
   return (
-    searchedDigits.length > 0 &&
-    phoneDigits(conversation.external_phone).includes(searchedDigits)
+    searchedDigits.length > 0 && phoneDigits(conversation.external_phone).includes(searchedDigits)
   )
 }
 
@@ -86,9 +76,7 @@ export function filterConversations(
   conversations: readonly WhatsAppConversationSummary[],
   filters: WhatsAppFilters,
 ): WhatsAppConversationSummary[] {
-  return conversations.filter((conversation) =>
-    conversationMatchesFilters(conversation, filters),
-  )
+  return conversations.filter((conversation) => conversationMatchesFilters(conversation, filters))
 }
 
 export function upsertMessages(
@@ -98,10 +86,7 @@ export function upsertMessages(
   const byId = new Map(existing.map((message) => [message.id, message]))
   for (const message of incoming) {
     const previous = byId.get(message.id)
-    if (
-      !previous ||
-      isAtLeastAsFresh(previous.resource_updated_at, message.resource_updated_at)
-    ) {
+    if (!previous || isAtLeastAsFresh(previous.resource_updated_at, message.resource_updated_at)) {
       byId.set(message.id, message)
     }
   }
@@ -111,19 +96,11 @@ export function upsertMessages(
   })
 }
 
-export function conversationDisplayName(
-  conversation: WhatsAppConversationSummary,
-): string {
-  return (
-    conversation.customer?.name ||
-    conversation.display_name ||
-    conversation.external_phone
-  )
+export function conversationDisplayName(conversation: WhatsAppConversationSummary): string {
+  return conversation.customer?.name || conversation.display_name || conversation.external_phone
 }
 
-export function conversationActivityLabel(
-  conversation: WhatsAppConversationSummary,
-): string {
+export function conversationActivityLabel(conversation: WhatsAppConversationSummary): string {
   if (conversation.resolution_status === 'NEEDS_REVIEW') {
     return 'Identidad pendiente de revisión'
   }

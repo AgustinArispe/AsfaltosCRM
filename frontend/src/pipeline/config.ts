@@ -1,10 +1,5 @@
-import type {
-  LeadSource,
-  LossReason,
-  OpportunityStatus,
-  PipelineStatus,
-} from './types'
 import type { BadgeTone } from '../shared/Badge'
+import type { LeadSource, LossReason, OpportunityStatus, PipelineStatus } from './types'
 
 export type PipelineStage = {
   status: PipelineStatus
@@ -59,9 +54,7 @@ export const PIPELINE_STATUS_SET = new Set<PipelineStatus>(
   PIPELINE_STAGES.map((stage) => stage.status),
 )
 
-export const STAGE_BY_STATUS = new Map(
-  PIPELINE_STAGES.map((stage) => [stage.status, stage]),
-)
+export const STAGE_BY_STATUS = new Map(PIPELINE_STAGES.map((stage) => [stage.status, stage]))
 
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   NUEVA: 'Nueva',
@@ -110,9 +103,6 @@ export function isPipelineStatus(value: string): value is PipelineStatus {
   return PIPELINE_STATUS_SET.has(value as PipelineStatus)
 }
 
-export function canMoveTo(
-  from: PipelineStatus,
-  to: PipelineStatus,
-): boolean {
+export function canMoveTo(from: PipelineStatus, to: PipelineStatus): boolean {
   return STAGE_BY_STATUS.get(from)?.nextStatus === to
 }

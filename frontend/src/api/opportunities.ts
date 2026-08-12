@@ -1,4 +1,3 @@
-import { apiRequest } from './client'
 import { PIPELINE_STAGES } from '../pipeline/config'
 import type {
   LossReason,
@@ -8,6 +7,7 @@ import type {
   PipelineStatus,
   QuoteProductInput,
 } from '../pipeline/types'
+import { apiRequest } from './client'
 
 export type ApiSession = {
   token: string
@@ -45,14 +45,8 @@ export async function listCustomerOpportunities(
   return items
 }
 
-export function getOpportunityDetail(
-  opportunityId: number,
-  session: ApiSession,
-) {
-  return apiRequest<OpportunityDetail>(
-    `/opportunities/${opportunityId}`,
-    session,
-  )
+export function getOpportunityDetail(opportunityId: number, session: ApiSession) {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}`, session)
 }
 
 async function listOpportunityStage(
@@ -87,9 +81,7 @@ export async function listPipelineOpportunities(
   session: ApiSession,
 ): Promise<OpportunitySummary[]> {
   const opportunitiesByStage = await Promise.all(
-    PIPELINE_STAGES.map((stage) =>
-      listOpportunityStage(stage.status, session),
-    ),
+    PIPELINE_STAGES.map((stage) => listOpportunityStage(stage.status, session)),
   )
   return opportunitiesByStage.flat()
 }
@@ -99,10 +91,11 @@ export function quoteOpportunity(
   products: QuoteProductInput[],
   session: ApiSession,
 ) {
-  return apiRequest<OpportunitySummary>(
-    `/opportunities/${opportunityId}/quote`,
-    { ...session, method: 'POST', body: { products } },
-  )
+  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/quote`, {
+    ...session,
+    method: 'POST',
+    body: { products },
+  })
 }
 
 export function updateOpportunityQuoteProducts(
@@ -110,30 +103,27 @@ export function updateOpportunityQuoteProducts(
   products: QuoteProductInput[],
   session: ApiSession,
 ) {
-  return apiRequest<OpportunitySummary>(
-    `/opportunities/${opportunityId}/quote-products`,
-    { ...session, method: 'PUT', body: { products } },
-  )
+  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/quote-products`, {
+    ...session,
+    method: 'PUT',
+    body: { products },
+  })
 }
 
-export function moveOpportunityToNegotiation(
-  opportunityId: number,
-  session: ApiSession,
-) {
-  return apiRequest<OpportunitySummary>(
-    `/opportunities/${opportunityId}/move-to-negotiation`,
-    { ...session, method: 'POST', body: {} },
-  )
+export function moveOpportunityToNegotiation(opportunityId: number, session: ApiSession) {
+  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/move-to-negotiation`, {
+    ...session,
+    method: 'POST',
+    body: {},
+  })
 }
 
-export function winOpportunity(
-  opportunityId: number,
-  session: ApiSession,
-) {
-  return apiRequest<OpportunitySummary>(
-    `/opportunities/${opportunityId}/win`,
-    { ...session, method: 'POST', body: {} },
-  )
+export function winOpportunity(opportunityId: number, session: ApiSession) {
+  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/win`, {
+    ...session,
+    method: 'POST',
+    body: {},
+  })
 }
 
 export function loseOpportunity(
@@ -141,8 +131,9 @@ export function loseOpportunity(
   lossReason: LossReason,
   session: ApiSession,
 ) {
-  return apiRequest<OpportunitySummary>(
-    `/opportunities/${opportunityId}/lose`,
-    { ...session, method: 'POST', body: { loss_reason: lossReason } },
-  )
+  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/lose`, {
+    ...session,
+    method: 'POST',
+    body: { loss_reason: lossReason },
+  })
 }

@@ -1,9 +1,6 @@
 import { ApiError } from '../api/client'
 
-export function productErrorMessage(
-  error: unknown,
-  operation: 'load' | 'save' | 'status',
-): string {
+export function productErrorMessage(error: unknown, operation: 'load' | 'save' | 'status'): string {
   if (error instanceof ApiError) {
     if (error.status === 403) {
       return 'No tenés permiso para administrar productos.'

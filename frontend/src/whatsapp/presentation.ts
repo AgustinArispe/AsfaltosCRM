@@ -1,7 +1,4 @@
-import type {
-  WhatsAppConversationSummary,
-  WhatsAppMessage,
-} from './types'
+import type { WhatsAppConversationSummary, WhatsAppMessage } from './types'
 
 const SHORT_TIME_FORMATTER = new Intl.DateTimeFormat('es-AR', {
   hour: '2-digit',
@@ -19,14 +16,14 @@ const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat('es-AR', {
 export function formatInboxActivity(value: string | null, now = new Date()): string {
   if (!value) return '—'
   const date = new Date(value)
-  const sameDay = date.toLocaleDateString('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-  }) === now.toLocaleDateString('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-  })
-  return sameDay
-    ? SHORT_TIME_FORMATTER.format(date)
-    : SHORT_DATE_FORMATTER.format(date)
+  const sameDay =
+    date.toLocaleDateString('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+    }) ===
+    now.toLocaleDateString('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+    })
+  return sameDay ? SHORT_TIME_FORMATTER.format(date) : SHORT_DATE_FORMATTER.format(date)
 }
 
 export function formatFileSize(bytes: number | null): string | null {

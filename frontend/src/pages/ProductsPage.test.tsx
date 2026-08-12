@@ -1,8 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { ProductsPage } from './ProductsPage'
 import type { Product } from '../products/types'
+import { ProductsPage } from './ProductsPage'
 
 const authState = vi.hoisted(() => ({
   role: 'SUPERVISOR' as 'SUPERVISOR' | 'VENDEDOR',
@@ -130,7 +129,9 @@ describe('ProductsPage', () => {
     expect(screen.queryByText('Producto antiguo')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'Acciones' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Editar|Desactivar|Reactivar/ })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Editar|Desactivar|Reactivar/ }),
+    ).not.toBeInTheDocument()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/products')
     expect(screen.getByRole('status')).toHaveTextContent('2 productos')
     expect(screen.getByRole('status')).not.toHaveTextContent('inactivos')
@@ -140,7 +141,9 @@ describe('ProductsPage', () => {
     let shouldFail = false
     mockProductApi({ products: [], failList: () => shouldFail })
     const { unmount } = render(<ProductsPage />)
-    expect(await screen.findByRole('heading', { name: 'No hay productos disponibles' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'No hay productos disponibles' }),
+    ).toBeInTheDocument()
     unmount()
 
     shouldFail = true
@@ -189,7 +192,9 @@ describe('ProductsPage', () => {
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear producto' }))
 
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Ya existe un producto con ese nombre')
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'Ya existe un producto con ese nombre',
+    )
     expect(within(dialog).getByLabelText(/Nombre/)).toHaveValue('SuperPhalt')
   })
 
@@ -218,13 +223,15 @@ describe('ProductsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar SuperPhalt' }))
     const dialog = await screen.findByRole('dialog', { name: '¿Desactivar SuperPhalt?' })
     expect(within(dialog).getByText(/historial comercial/)).toBeInTheDocument()
-    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus())
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus(),
+    )
     fireEvent.click(within(dialog).getByRole('button', { name: 'Desactivar producto' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(within(rowFor('SuperPhalt')).getByText('Inactivo')).toBeInTheDocument()
-    const statusCall = fetchMock.mock.calls.find(([, init]) =>
-      init?.method === 'PATCH' && String(init.body).includes('is_active'),
+    const statusCall = fetchMock.mock.calls.find(
+      ([, init]) => init?.method === 'PATCH' && String(init.body).includes('is_active'),
     )
     expect(JSON.parse(String(statusCall?.[1]?.body))).toEqual({ is_active: false })
   })

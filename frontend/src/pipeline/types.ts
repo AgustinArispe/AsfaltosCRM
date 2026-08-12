@@ -3,21 +3,11 @@ import type { Product as ProductModel } from '../products/types'
 
 export type LeadSource = 'WEB' | 'WHATSAPP'
 
-export type OpportunityStatus =
-  | 'NUEVA'
-  | 'COTIZADA'
-  | 'NEGOCIACION'
-  | 'GANADA'
-  | 'PERDIDA'
+export type OpportunityStatus = 'NUEVA' | 'COTIZADA' | 'NEGOCIACION' | 'GANADA' | 'PERDIDA'
 
 export type PipelineStatus = Exclude<OpportunityStatus, 'PERDIDA'>
 
-export type LossReason =
-  | 'PRECIO'
-  | 'SIN_RESPUESTA'
-  | 'COMPETENCIA'
-  | 'PROYECTO_CANCELADO'
-  | 'OTRO'
+export type LossReason = 'PRECIO' | 'SIN_RESPUESTA' | 'COMPETENCIA' | 'PROYECTO_CANCELADO' | 'OTRO'
 
 export type Product = ProductModel
 

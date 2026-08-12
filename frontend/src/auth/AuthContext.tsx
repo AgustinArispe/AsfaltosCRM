@@ -1,20 +1,16 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from 'react'
 
 import { currentUserRequest, loginRequest } from '../api/auth'
 import { ApiError } from '../api/client'
-import {
-  readSessionToken,
-  removeSessionToken,
-  writeSessionToken,
-} from './session-storage'
+import { readSessionToken, removeSessionToken, writeSessionToken } from './session-storage'
 import type { AuthUser, LoginCredentials } from './types'
 
 type AuthContextValue = {

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-
+import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
-import { Button } from '../shared/Button'
 import type { Product } from './types'
 
 export function DeactivateProductModal({
@@ -30,9 +29,7 @@ export function DeactivateProductModal({
       await onConfirm()
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'No pudimos desactivar el producto.',
+        caughtError instanceof Error ? caughtError.message : 'No pudimos desactivar el producto.',
       )
     } finally {
       setIsSubmitting(false)
@@ -42,31 +39,22 @@ export function DeactivateProductModal({
   return (
     <Modal
       closeDisabled={isSubmitting}
-      description="El producto dejará de estar disponible para nuevas cotizaciones, pero continuará apareciendo en el historial comercial."
+      description='El producto dejará de estar disponible para nuevas cotizaciones, pero continuará apareciendo en el historial comercial.'
       isOpen={product !== null}
       onClose={onClose}
       title={product ? `¿Desactivar ${product.name}?` : 'Desactivar producto'}
     >
-      <div className="px-5 py-5">
+      <div className='px-5 py-5'>
         {error ? <InlineFeedback message={error} /> : null}
-        <p className="text-sm leading-6 text-slate-700">
+        <p className='text-sm leading-6 text-slate-700'>
           Podrás reactivarlo posteriormente desde este listado.
         </p>
       </div>
-      <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
-        <Button
-          autoFocus
-          data-modal-initial-focus
-          disabled={isSubmitting}
-          onClick={onClose}
-        >
+      <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
+        <Button autoFocus data-modal-initial-focus disabled={isSubmitting} onClick={onClose}>
           Cancelar
         </Button>
-        <Button
-          disabled={isSubmitting}
-          onClick={() => void handleConfirm()}
-          variant="danger"
-        >
+        <Button disabled={isSubmitting} onClick={() => void handleConfirm()} variant='danger'>
           {isSubmitting ? 'Desactivando…' : 'Desactivar producto'}
         </Button>
       </footer>

@@ -1,8 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { OpportunityDetailPage } from './OpportunityDetailPage'
 import type { OpportunityDetail } from '../pipeline/types'
+import { OpportunityDetailPage } from './OpportunityDetailPage'
 
 const authState = vi.hoisted(() => ({
   logout: vi.fn(),
@@ -22,9 +21,7 @@ function jsonResponse(status: number, body: unknown): Response {
   })
 }
 
-function makeDetail(
-  overrides: Partial<OpportunityDetail> = {},
-): OpportunityDetail {
+function makeDetail(overrides: Partial<OpportunityDetail> = {}): OpportunityDetail {
   return {
     id: 42,
     status: 'GANADA',
@@ -98,13 +95,14 @@ describe('OpportunityDetailPage', () => {
   })
 
   it('shows a loading state while requesting the opportunity', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => undefined)),
+    )
 
     render(<OpportunityDetailPage opportunityId={42} />)
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Cargando oportunidad…',
-    )
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando oportunidad…')
   })
 
   it('renders customer, commercial data, products, total, history and legendary status', async () => {
@@ -113,9 +111,7 @@ describe('OpportunityDetailPage', () => {
 
     render(<OpportunityDetailPage opportunityId={42} />)
 
-    expect(
-      await screen.findByRole('heading', { name: 'Del Sur SA' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Del Sur SA' })).toBeInTheDocument()
     expect(screen.getByText('Contacto: Constructora del Sur')).toBeInTheDocument()
     expect(screen.getByText('ventas@delsur.test')).toBeInTheDocument()
     expect(screen.getByText('+54 11 4444-5555')).toBeInTheDocument()
@@ -144,9 +140,7 @@ describe('OpportunityDetailPage', () => {
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/opportunities/42')
-    expect(new Headers(request.headers).get('Authorization')).toBe(
-      'Bearer detail-token',
-    )
+    expect(new Headers(request.headers).get('Authorization')).toBe('Bearer detail-token')
   })
 
   it('shows the empty quote state for a new opportunity', async () => {
@@ -171,9 +165,7 @@ describe('OpportunityDetailPage', () => {
 
     render(<OpportunityDetailPage opportunityId={42} />)
 
-    expect(
-      await screen.findByText('Aún no se registró una cotización.'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('Aún no se registró una cotización.')).toBeInTheDocument()
     expect(screen.getByText('Sin responsable')).toBeInTheDocument()
     expect(screen.queryByText('Legendario')).not.toBeInTheDocument()
   })
@@ -181,12 +173,11 @@ describe('OpportunityDetailPage', () => {
   it('shows a subdued loss reason for a lost opportunity', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          200,
-          makeDetail({ status: 'PERDIDA', loss_reason: 'PRECIO' }),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(200, makeDetail({ status: 'PERDIDA', loss_reason: 'PRECIO' })),
         ),
-      ),
     )
 
     render(<OpportunityDetailPage opportunityId={42} />)
@@ -197,19 +188,17 @@ describe('OpportunityDetailPage', () => {
   })
 
   it('renders a specific 404 state with a path back to the pipeline', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse(404, { detail: 'Not found' })),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(404, { detail: 'Not found' })))
 
     render(<OpportunityDetailPage opportunityId={999} />)
 
     expect(
       await screen.findByRole('heading', { name: 'Oportunidad no encontrada' }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: 'Volver al Pipeline' }),
-    ).toHaveAttribute('href', '/pipeline')
+    expect(screen.getByRole('link', { name: 'Volver al Pipeline' })).toHaveAttribute(
+      'href',
+      '/pipeline',
+    )
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
   })
 
@@ -229,17 +218,12 @@ describe('OpportunityDetailPage', () => {
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
 
-    expect(
-      await screen.findByRole('heading', { name: 'Del Sur SA' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Del Sur SA' })).toBeInTheDocument()
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
   })
 
   it('returns to the pipeline with a real keyboard-accessible link', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())))
     render(<OpportunityDetailPage opportunityId={42} />)
     const backLink = await screen.findByRole('link', {
       name: 'Volver al Pipeline',

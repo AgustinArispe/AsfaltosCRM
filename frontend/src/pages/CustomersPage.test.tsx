@@ -1,8 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { CustomersPage } from './CustomersPage'
 import type { CustomerSummary } from '../customers/types'
+import { CustomersPage } from './CustomersPage'
 
 const authState = vi.hoisted(() => ({
   role: 'SUPERVISOR' as 'SUPERVISOR' | 'VENDEDOR',
@@ -128,11 +127,20 @@ describe('CustomersPage', () => {
     render(<CustomersPage />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Cargando clientes…')
-    expect(await screen.findByRole('link', { name: 'Constructora Austral' })).toHaveAttribute('href', '/customers/1')
+    expect(await screen.findByRole('link', { name: 'Constructora Austral' })).toHaveAttribute(
+      'href',
+      '/customers/1',
+    )
     expect(screen.getByRole('columnheader', { name: 'Empresa' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Categoría' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'ventas@austral.test' })).toHaveAttribute('href', 'mailto:ventas@austral.test')
-    expect(screen.getByRole('link', { name: '+54 11 4444-5555' })).toHaveAttribute('href', 'tel:+541144445555')
+    expect(screen.getByRole('link', { name: 'ventas@austral.test' })).toHaveAttribute(
+      'href',
+      'mailto:ventas@austral.test',
+    )
+    expect(screen.getByRole('link', { name: '+54 11 4444-5555' })).toHaveAttribute(
+      'href',
+      'tel:+541144445555',
+    )
     expect(screen.getByText('Legendario')).toBeInTheDocument()
     expect(screen.getByText('2 clientes')).toBeInTheDocument()
     expect(screen.getByText('Página 1 de 1')).toBeInTheDocument()
@@ -147,12 +155,12 @@ describe('CustomersPage', () => {
       target: { value: 'inexistente' },
     })
 
-    expect(await screen.findByRole('heading', { name: 'No encontramos clientes' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'No encontramos clientes' }),
+    ).toBeInTheDocument()
     expect(screen.getByText(/Probá con otro nombre/)).toBeInTheDocument()
     expect(
-      fetchMock.mock.calls.some(([input]) =>
-        String(input).includes('search=inexistente'),
-      ),
+      fetchMock.mock.calls.some(([input]) => String(input).includes('search=inexistente')),
     ).toBe(true)
   })
 
@@ -160,7 +168,9 @@ describe('CustomersPage', () => {
     let shouldFail = false
     mockCustomerApi({ initialCustomers: [], failList: () => shouldFail })
     const { unmount } = render(<CustomersPage />)
-    expect(await screen.findByRole('heading', { name: 'Todavía no hay clientes' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Todavía no hay clientes' }),
+    ).toBeInTheDocument()
     unmount()
 
     shouldFail = true
@@ -182,13 +192,19 @@ describe('CustomersPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear cliente' }))
     expect(await within(dialog).findByText('Ingresá el nombre del cliente.')).toBeInTheDocument()
 
-    fireEvent.change(within(dialog).getByLabelText(/Nombre/), { target: { value: '  Cliente Nuevo  ' } })
-    fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'email-invalido' } })
+    fireEvent.change(within(dialog).getByLabelText(/Nombre/), {
+      target: { value: '  Cliente Nuevo  ' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Email'), {
+      target: { value: 'email-invalido' },
+    })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear cliente' }))
     expect(await within(dialog).findByText('Ingresá un email válido.')).toBeInTheDocument()
     expect(within(dialog).getByLabelText('Email')).toHaveFocus()
 
-    fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'nuevo@faa.test' } })
+    fireEvent.change(within(dialog).getByLabelText('Email'), {
+      target: { value: 'nuevo@faa.test' },
+    })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear cliente' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -210,7 +226,9 @@ describe('CustomersPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Editar cliente' })
     expect(within(dialog).getByLabelText(/Nombre/)).toHaveValue('Constructora Austral')
     expect(within(dialog).getByLabelText('Empresa')).toHaveValue('Austral SA')
-    fireEvent.change(within(dialog).getByLabelText('Empresa'), { target: { value: 'Austral Renovada SA' } })
+    fireEvent.change(within(dialog).getByLabelText('Empresa'), {
+      target: { value: 'Austral Renovada SA' },
+    })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -222,7 +240,9 @@ describe('CustomersPage', () => {
     mockCustomerApi()
     const { unmount } = render(<CustomersPage />)
     await screen.findByRole('link', { name: 'Constructora Austral' })
-    expect(screen.getByRole('button', { name: 'Eliminar a Constructora Austral' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Eliminar a Constructora Austral' }),
+    ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
     expect(await screen.findByLabelText(/Legendario histórico/)).toBeInTheDocument()
     unmount()
@@ -248,7 +268,9 @@ describe('CustomersPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar cliente' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    await waitFor(() => expect(screen.queryByRole('link', { name: 'Constructora Austral' })).not.toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Constructora Austral' })).not.toBeInTheDocument(),
+    )
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true)
   })
 
@@ -260,9 +282,7 @@ describe('CustomersPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
     await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([input]) => String(input).includes('page=2')),
-      ).toBe(true),
+      expect(fetchMock.mock.calls.some(([input]) => String(input).includes('page=2'))).toBe(true),
     )
     expect(screen.getByText('Página 2 de 2')).toBeInTheDocument()
   })

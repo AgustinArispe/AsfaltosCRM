@@ -1,7 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
-
-import { Modal } from '../shared/Modal'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Button } from '../shared/Button'
+import { Modal } from '../shared/Modal'
 import { LOSS_REASON_OPTIONS } from './config'
 import type { LossReason, OpportunitySummary } from './types'
 
@@ -19,6 +18,7 @@ export function LossModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
+    void opportunity?.id
     setLossReason('')
     setError(null)
     setIsSubmitting(false)
@@ -56,29 +56,29 @@ export function LossModal({
       }
       isOpen={Boolean(opportunity)}
       onClose={onClose}
-      title="Marcar como perdida"
+      title='Marcar como perdida'
     >
       <form aria-busy={isSubmitting} onSubmit={handleSubmit}>
-        <div className="space-y-4 px-5 py-5">
+        <div className='space-y-4 px-5 py-5'>
           <div>
-            <label className="ui-label" htmlFor="loss-reason">
+            <label className='ui-label' htmlFor='loss-reason'>
               Motivo
             </label>
             <select
               aria-describedby={error ? 'loss-reason-error' : undefined}
               aria-invalid={Boolean(error)}
               autoFocus
-              className="ui-field text-base"
+              className='ui-field text-base'
               data-modal-initial-focus
               disabled={isSubmitting}
-              id="loss-reason"
+              id='loss-reason'
               onChange={(event) => {
                 setLossReason(event.target.value as LossReason | '')
                 setError(null)
               }}
               value={lossReason}
             >
-              <option value="">Seleccionar motivo</option>
+              <option value=''>Seleccionar motivo</option>
               {LOSS_REASON_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -86,25 +86,22 @@ export function LossModal({
               ))}
             </select>
             {error ? (
-              <p className="mt-2 text-sm font-medium text-red-700" id="loss-reason-error" role="alert">
+              <p
+                className='mt-2 text-sm font-medium text-red-700'
+                id='loss-reason-error'
+                role='alert'
+              >
                 {error}
               </p>
             ) : null}
           </div>
         </div>
 
-        <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
-          <Button
-            disabled={isSubmitting}
-            onClick={onClose}
-          >
+        <footer className='flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end'>
+          <Button disabled={isSubmitting} onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            disabled={isSubmitting}
-            type="submit"
-            variant="danger"
-          >
+          <Button disabled={isSubmitting} type='submit' variant='danger'>
             {isSubmitting ? 'Guardando…' : 'Confirmar pérdida'}
           </Button>
         </footer>

@@ -34,8 +34,8 @@ export function PipelineColumn({
       data-stage={stage.status}
       ref={ref}
     >
-      <header className="flex min-h-12 items-center justify-between gap-3 rounded-t-[4px] border-b border-slate-200 bg-white px-3 py-2.5">
-        <h2 className="text-sm font-semibold text-slate-900" id={headingId}>
+      <header className='flex min-h-12 items-center justify-between gap-3 rounded-t-[4px] border-b border-slate-200 bg-white px-3 py-2.5'>
+        <h2 className='text-sm font-semibold text-slate-900' id={headingId}>
           {stage.label}
         </h2>
         <span
@@ -46,7 +46,7 @@ export function PipelineColumn({
         </span>
       </header>
 
-      <div className="flex flex-1 flex-col gap-2 p-2.5">
+      <div className='flex flex-1 flex-col gap-2 p-2.5'>
         {opportunities.length > 0 ? (
           opportunities.map((opportunity) => (
             <OpportunityCard
@@ -58,9 +58,7 @@ export function PipelineColumn({
             />
           ))
         ) : (
-          <p className="px-2 py-8 text-center text-sm text-slate-500">
-            No hay oportunidades
-          </p>
+          <p className='px-2 py-8 text-center text-sm text-slate-500'>No hay oportunidades</p>
         )}
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '../shared/Button'
 import { LoadingState } from '../shared/LoadingState'
@@ -35,13 +35,13 @@ export function MessageLog({
   const [hasUnseenMessages, setHasUnseenMessages] = useState(false)
   const [announceUpdates, setAnnounceUpdates] = useState(false)
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     const node = scrollRef.current
     if (!node) return
     node.scrollTop = node.scrollHeight
     setHasUnseenMessages(false)
     setIsNearBottom(true)
-  }
+  }, [])
 
   useEffect(() => {
     if (status !== 'ready' || initialScrollDoneRef.current) return
@@ -49,7 +49,7 @@ export function MessageLog({
     scrollToBottom()
     const frame = window.requestAnimationFrame(() => setAnnounceUpdates(true))
     return () => window.cancelAnimationFrame(frame)
-  }, [status])
+  }, [scrollToBottom, status])
 
   useEffect(() => {
     const lastId = messages.at(-1)?.id ?? null
@@ -63,13 +63,12 @@ export function MessageLog({
     } else {
       setHasUnseenMessages(true)
     }
-  }, [isNearBottom, messages])
+  }, [isNearBottom, messages, scrollToBottom])
 
   const handleScroll = () => {
     const node = scrollRef.current
     if (!node) return
-    const nearBottom =
-      node.scrollHeight - node.scrollTop - node.clientHeight <= BOTTOM_THRESHOLD_PX
+    const nearBottom = node.scrollHeight - node.scrollTop - node.clientHeight <= BOTTOM_THRESHOLD_PX
     setIsNearBottom(nearBottom)
     if (nearBottom) setHasUnseenMessages(false)
   }
@@ -84,17 +83,15 @@ export function MessageLog({
   }
 
   if (status === 'loading') {
-    return <LoadingState label="Cargando mensajes…" />
+    return <LoadingState label='Cargando mensajes…' />
   }
   if (status === 'error' && messages.length === 0) {
     return (
-      <div className="grid min-h-0 flex-1 place-items-center px-5 text-center">
+      <div className='grid min-h-0 flex-1 place-items-center px-5 text-center'>
         <div>
-          <p className="text-sm font-semibold text-slate-900">
-            No pudimos cargar los mensajes
-          </p>
-          <p className="mt-1 text-xs text-slate-500">{error}</p>
-          <Button className="mt-4" onClick={onRetry} size="compact">
+          <p className='text-sm font-semibold text-slate-900'>No pudimos cargar los mensajes</p>
+          <p className='mt-1 text-xs text-slate-500'>{error}</p>
+          <Button className='mt-4' onClick={onRetry} size='compact'>
             Reintentar
           </Button>
         </div>
@@ -103,53 +100,49 @@ export function MessageLog({
   }
 
   return (
-    <div className="relative min-h-0 flex-1 bg-slate-50">
+    <div className='relative min-h-0 flex-1 bg-slate-50'>
       <div
-        aria-label="Historial de mensajes"
+        aria-label='Historial de mensajes'
         aria-live={announceUpdates ? 'polite' : 'off'}
-        aria-relevant="additions"
-        className="h-full overflow-y-auto px-3 py-4 sm:px-5"
+        aria-relevant='additions'
+        className='h-full overflow-y-auto px-3 py-4 sm:px-5'
         onScroll={handleScroll}
         ref={scrollRef}
-        role="log"
+        role='log'
       >
         {hasOlder ? (
-          <div className="mb-4 text-center">
+          <div className='mb-4 text-center'>
             <Button
               disabled={isLoadingOlder}
               onClick={() => void handleLoadOlder()}
-              size="compact"
-              variant="ghost"
+              size='compact'
+              variant='ghost'
             >
               {isLoadingOlder ? 'Cargando…' : 'Cargar mensajes anteriores'}
             </Button>
           </div>
         ) : null}
         {error ? (
-          <p className="mb-3 text-center text-xs font-medium text-rose-700" role="status">
+          <p className='mb-3 text-center text-xs font-medium text-rose-700' role='status'>
             {error}
           </p>
         ) : null}
         {messages.length === 0 ? (
-          <div className="grid min-h-full place-items-center text-center">
+          <div className='grid min-h-full place-items-center text-center'>
             <div>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className='text-sm font-semibold text-slate-800'>
                 Todavía no hay mensajes disponibles
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className='mt-1 text-xs text-slate-500'>
                 La conversación aparecerá aquí cuando tenga actividad.
               </p>
             </div>
           </div>
         ) : (
-          <ol className="space-y-2.5">
+          <ol className='space-y-2.5'>
             {messages.map((message) => (
               <li key={message.id}>
-                <MessageBubble
-                  isSending={isSending}
-                  message={message}
-                  onResend={onResend}
-                />
+                <MessageBubble isSending={isSending} message={message} onResend={onResend} />
               </li>
             ))}
           </ol>
@@ -157,10 +150,10 @@ export function MessageLog({
       </div>
       {hasUnseenMessages ? (
         <Button
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 shadow-sm"
+          className='absolute bottom-3 left-1/2 -translate-x-1/2 shadow-sm'
           onClick={scrollToBottom}
-          size="compact"
-          variant="primary"
+          size='compact'
+          variant='primary'
         >
           Hay mensajes nuevos
         </Button>

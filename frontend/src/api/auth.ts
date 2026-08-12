@@ -1,5 +1,5 @@
-import { apiRequest } from './client'
 import type { AuthUser, LoginCredentials, TokenResponse } from '../auth/types'
+import { apiRequest } from './client'
 
 export function loginRequest(credentials: LoginCredentials) {
   return apiRequest<TokenResponse>('/auth/login', {

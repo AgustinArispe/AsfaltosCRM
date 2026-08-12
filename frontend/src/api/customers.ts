@@ -1,5 +1,3 @@
-import { apiRequest } from './client'
-import type { ApiSession } from './opportunities'
 import type {
   CustomerDetail,
   CustomerSummary,
@@ -7,6 +5,8 @@ import type {
   CustomerWritePayload,
 } from '../customers/types'
 import type { PaginatedResponse } from '../pipeline/types'
+import { apiRequest } from './client'
+import type { ApiSession } from './opportunities'
 
 export type CustomerListParams = {
   page: number
@@ -14,30 +14,21 @@ export type CustomerListParams = {
   search?: string
 }
 
-export function listCustomers(
-  { page, pageSize, search }: CustomerListParams,
-  session: ApiSession,
-) {
+export function listCustomers({ page, pageSize, search }: CustomerListParams, session: ApiSession) {
   const query = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   })
   if (search) query.set('search', search)
 
-  return apiRequest<PaginatedResponse<CustomerSummary>>(
-    `/customers?${query}`,
-    session,
-  )
+  return apiRequest<PaginatedResponse<CustomerSummary>>(`/customers?${query}`, session)
 }
 
 export function getCustomer(customerId: number, session: ApiSession) {
   return apiRequest<CustomerDetail>(`/customers/${customerId}`, session)
 }
 
-export function createCustomer(
-  payload: CustomerWritePayload,
-  session: ApiSession,
-) {
+export function createCustomer(payload: CustomerWritePayload, session: ApiSession) {
   return apiRequest<CustomerSummary>('/customers', {
     ...session,
     method: 'POST',

@@ -1,18 +1,15 @@
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
-import {
-  conversationActivityLabel,
-  conversationDisplayName,
-} from './inbox-state'
+import { conversationActivityLabel, conversationDisplayName } from './inbox-state'
 import { formatInboxActivity } from './presentation'
 import type { WhatsAppConversationSummary } from './types'
 
 function SearchIcon() {
   return (
-    <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 20 20">
-      <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="m12.5 12.5 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
+    <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>
+      <circle cx='8.5' cy='8.5' r='5.5' stroke='currentColor' strokeWidth='1.6' />
+      <path d='m12.5 12.5 4 4' stroke='currentColor' strokeLinecap='round' strokeWidth='1.6' />
     </svg>
   )
 }
@@ -38,21 +35,19 @@ function ConversationRow({
       ].join(' ')}
       onClick={onSelect}
       id={`whatsapp-conversation-${conversation.id}`}
-      type="button"
+      type='button'
     >
-      <span className="flex items-start justify-between gap-3">
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-slate-950">
-            {name}
-          </span>
+      <span className='flex items-start justify-between gap-3'>
+        <span className='min-w-0'>
+          <span className='block truncate text-sm font-semibold text-slate-950'>{name}</span>
           {conversation.customer?.company ? (
-            <span className="mt-0.5 block truncate text-xs text-slate-500">
+            <span className='mt-0.5 block truncate text-xs text-slate-500'>
               {conversation.customer.company}
             </span>
           ) : null}
         </span>
         <time
-          className="shrink-0 text-[0.6875rem] font-medium text-slate-500"
+          className='shrink-0 text-[0.6875rem] font-medium text-slate-500'
           dateTime={conversation.last_message_at ?? undefined}
           title={conversation.last_message_at ?? undefined}
         >
@@ -60,7 +55,7 @@ function ConversationRow({
         </time>
       </span>
 
-      <span className="mt-2 flex items-center justify-between gap-3">
+      <span className='mt-2 flex items-center justify-between gap-3'>
         <span
           className={[
             'min-w-0 truncate text-xs',
@@ -76,12 +71,12 @@ function ConversationRow({
         {conversation.unread_count > 0 ? (
           <span
             aria-label={`${conversation.unread_count} mensajes sin leer`}
-            className="grid min-h-5 min-w-5 shrink-0 place-items-center rounded-full bg-slate-800 px-1.5 text-[0.6875rem] font-bold text-white"
+            className='grid min-h-5 min-w-5 shrink-0 place-items-center rounded-full bg-slate-800 px-1.5 text-[0.6875rem] font-bold text-white'
           >
             {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
           </span>
         ) : (
-          <span className="shrink-0 text-[0.6875rem] text-slate-400">
+          <span className='shrink-0 text-[0.6875rem] text-slate-400'>
             {conversation.external_phone}
           </span>
         )}
@@ -124,39 +119,30 @@ export function ConversationList({
   const isInitialLoading = status === 'loading' && conversations.length === 0
   return (
     <section
-      aria-labelledby="whatsapp-conversations-title"
-      className="flex min-h-0 flex-col border-r border-slate-200 bg-white"
+      aria-labelledby='whatsapp-conversations-title'
+      className='flex min-h-0 flex-col border-r border-slate-200 bg-white'
     >
-      <div className="shrink-0 border-b border-slate-200 px-3 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2
-            className="text-sm font-semibold text-slate-950"
-            id="whatsapp-conversations-title"
-          >
+      <div className='shrink-0 border-b border-slate-200 px-3 py-3'>
+        <div className='flex items-center justify-between gap-3'>
+          <h2 className='text-sm font-semibold text-slate-950' id='whatsapp-conversations-title'>
             Conversaciones
           </h2>
-          <span className="text-xs tabular-nums text-slate-500">
-            {conversations.length}
-          </span>
+          <span className='text-xs tabular-nums text-slate-500'>{conversations.length}</span>
         </div>
-        <label className="relative mt-3 block">
-          <span className="sr-only">Buscar conversaciones</span>
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+        <label className='relative mt-3 block'>
+          <span className='sr-only'>Buscar conversaciones</span>
+          <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500'>
             <SearchIcon />
           </span>
           <input
-            className="ui-field pl-9 text-sm"
+            className='ui-field pl-9 text-sm'
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Buscar cliente o teléfono"
-            type="search"
+            placeholder='Buscar cliente o teléfono'
+            type='search'
             value={search}
           />
         </label>
-        <div
-          aria-label="Filtros de conversaciones"
-          className="mt-2 flex gap-2"
-          role="group"
-        >
+        <div aria-label='Filtros de conversaciones' className='mt-2 flex gap-2' role='group'>
           <button
             aria-pressed={waitingOnly}
             className={[
@@ -166,7 +152,7 @@ export function ConversationList({
                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
             ].join(' ')}
             onClick={() => onWaitingChange(!waitingOnly)}
-            type="button"
+            type='button'
           >
             Esperando
           </button>
@@ -179,7 +165,7 @@ export function ConversationList({
                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
             ].join(' ')}
             onClick={() => onUnreadChange(!unreadOnly)}
-            type="button"
+            type='button'
           >
             No leídas
           </button>
@@ -187,48 +173,48 @@ export function ConversationList({
       </div>
 
       {error && conversations.length > 0 ? (
-        <div className="shrink-0 px-3 pt-3">
+        <div className='shrink-0 px-3 pt-3'>
           <InlineFeedback message={error} />
         </div>
       ) : null}
 
-      <div
-        aria-busy={status === 'loading'}
-        className="min-h-0 flex-1 overflow-y-auto"
-      >
+      <div aria-busy={status === 'loading'} className='min-h-0 flex-1 overflow-y-auto'>
         {isInitialLoading ? (
-          <LoadingState label="Cargando conversaciones…" />
+          <LoadingState label='Cargando conversaciones…' />
         ) : status === 'error' && conversations.length === 0 ? (
-          <div className="px-4 py-7 text-center">
-            <p className="text-sm font-semibold text-slate-900">
-              No pudimos cargar la bandeja
-            </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+          <div className='px-4 py-7 text-center'>
+            <p className='text-sm font-semibold text-slate-900'>No pudimos cargar la bandeja</p>
+            <p className='mt-1 text-xs leading-5 text-slate-500'>
               {error ?? 'Revisá la conexión e intentá nuevamente.'}
             </p>
-            <Button className="mt-4" onClick={onRetry} size="compact">
+            <Button className='mt-4' onClick={onRetry} size='compact'>
               Reintentar
             </Button>
           </div>
         ) : conversations.length === 0 ? (
-          <div className="px-5 py-8 text-center">
+          <div className='px-5 py-8 text-center'>
             <svg
-              aria-hidden="true"
-              className="mx-auto size-7 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
+              aria-hidden='true'
+              className='mx-auto size-7 text-slate-400'
+              fill='none'
+              viewBox='0 0 24 24'
             >
-              <path d="M5 6.5h14v9H9l-4 3v-12Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
+              <path
+                d='M5 6.5h14v9H9l-4 3v-12Z'
+                stroke='currentColor'
+                strokeLinejoin='round'
+                strokeWidth='1.5'
+              />
             </svg>
-            <p className="mt-3 text-sm font-semibold text-slate-800">
+            <p className='mt-3 text-sm font-semibold text-slate-800'>
               No hay conversaciones para mostrar
             </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+            <p className='mt-1 text-xs leading-5 text-slate-500'>
               Probá quitando filtros o cambiando la búsqueda.
             </p>
           </div>
         ) : (
-          <ul aria-label="Conversaciones de WhatsApp" className="divide-y divide-slate-100">
+          <ul aria-label='Conversaciones de WhatsApp' className='divide-y divide-slate-100'>
             {conversations.map((conversation) => (
               <li key={conversation.id}>
                 <ConversationRow
@@ -241,8 +227,8 @@ export function ConversationList({
           </ul>
         )}
         {hasMore ? (
-          <div className="border-t border-slate-100 p-3 text-center">
-            <Button onClick={onLoadMore} size="compact">
+          <div className='border-t border-slate-100 p-3 text-center'>
+            <Button onClick={onLoadMore} size='compact'>
               Cargar más conversaciones
             </Button>
           </div>

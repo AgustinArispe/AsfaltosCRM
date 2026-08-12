@@ -1,8 +1,7 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
+import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
-import { Button } from '../shared/Button'
 import type { Product } from './types'
 
 export function ProductFormModal({
@@ -48,11 +47,7 @@ export function ProductFormModal({
     try {
       await onSubmit(trimmedName)
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : 'No pudimos guardar el producto.',
-      )
+      setSubmitError(error instanceof Error ? error.message : 'No pudimos guardar el producto.')
     } finally {
       setIsSubmitting(false)
     }
@@ -71,46 +66,39 @@ export function ProductFormModal({
       title={isEditing ? 'Editar producto' : 'Nuevo producto'}
     >
       <form noValidate onSubmit={handleSubmit}>
-        <div className="space-y-4 px-5 py-5">
+        <div className='space-y-4 px-5 py-5'>
           {submitError ? <InlineFeedback message={submitError} /> : null}
           <div>
-            <label className="ui-label" htmlFor={`${formId}-name`}>
-              Nombre <span aria-hidden="true">*</span>
+            <label className='ui-label' htmlFor={`${formId}-name`}>
+              Nombre <span aria-hidden='true'>*</span>
             </label>
             <input
               aria-describedby={nameError ? `${formId}-name-error` : undefined}
               aria-invalid={Boolean(nameError)}
-              autoComplete="off"
+              autoComplete='off'
               autoFocus
-              className="ui-field text-base"
+              className='ui-field text-base'
               data-modal-initial-focus
               disabled={isSubmitting}
               id={`${formId}-name`}
               onChange={(event) => setName(event.target.value)}
               ref={nameInputRef}
-              type="text"
+              type='text'
               value={name}
             />
             {nameError ? (
-              <p className="mt-1.5 text-sm font-medium text-red-700" id={`${formId}-name-error`}>
+              <p className='mt-1.5 text-sm font-medium text-red-700' id={`${formId}-name-error`}>
                 {nameError}
               </p>
             ) : null}
           </div>
         </div>
 
-        <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <Button
-            disabled={isSubmitting}
-            onClick={onClose}
-          >
+        <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
+          <Button disabled={isSubmitting} onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            disabled={isSubmitting}
-            type="submit"
-            variant="primary"
-          >
+          <Button disabled={isSubmitting} type='submit' variant='primary'>
             {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear producto'}
           </Button>
         </footer>

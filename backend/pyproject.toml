@@ -4,12 +4,12 @@ strict = true
 warn_unreachable = true
 show_error_codes = true
 pretty = true
-files = ["app", "tests", "performance"]
+files = ["app", "tests", "performance", "quality"]
 
 [tool.ruff]
 target-version = "py313"
 line-length = 88
-src = ["app", "tests", "performance"]
+src = ["app", "tests", "performance", "quality"]
 
 [tool.ruff.lint]
 select = [
@@ -39,7 +39,7 @@ extend-immutable-calls = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app"]
+known-first-party = ["app", "quality"]
 
 [tool.coverage.run]
 source = ["app"]
@@ -48,3 +48,12 @@ source = ["app"]
 fail_under = 93
 precision = 2
 show_missing = true
+
+[tool.pip-tools.compile]
+generate-hashes = true
+strip-extras = true
+allow-unsafe = true
+annotate = true
+annotation-style = "line"
+emit-index-url = false
+emit-trusted-host = false

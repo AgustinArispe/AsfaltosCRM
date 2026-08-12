@@ -15,7 +15,13 @@ repos:
         types_or: [python, pyi]
       - id: mypy
         name: mypy strict
-        entry: mypy --config-file backend/pyproject.toml --strict backend/app backend/tests
+        entry: mypy --config-file backend/pyproject.toml --strict backend/app backend/tests backend/performance backend/quality
         language: system
         pass_filenames: false
-        files: ^backend/(app|tests)/
+        files: ^backend/(app|tests|performance|quality)/
+      - id: biome
+        name: Biome lint and format check
+        entry: npm --prefix frontend run check
+        language: system
+        pass_filenames: false
+        files: ^frontend/(src/|biome\.json$|package(-lock)?\.json$|tsconfig.*\.json$|vite\.config\.ts$)

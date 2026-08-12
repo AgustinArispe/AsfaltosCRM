@@ -10,12 +10,7 @@ export type WhatsAppDispatchState =
   | 'ACCEPTED'
   | 'DEFINITIVE_FAILED'
   | 'UNKNOWN'
-export type WhatsAppProviderState =
-  | 'RECEIVED'
-  | 'SENT'
-  | 'DELIVERED'
-  | 'READ'
-  | 'FAILED'
+export type WhatsAppProviderState = 'RECEIVED' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'
 export type WhatsAppWindowReason = 'APPROVED_TEMPLATE_REQUIRED'
 export type WhatsAppOpportunityLinkSource = 'AUTO_NEW_CONTACT' | 'MANUAL'
 

@@ -1,9 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { CustomerDetailPage } from './CustomerDetailPage'
 import type { CustomerDetail } from '../customers/types'
 import type { OpportunitySummary } from '../pipeline/types'
+import { CustomerDetailPage } from './CustomerDetailPage'
 
 const authState = vi.hoisted(() => ({ logout: vi.fn() }))
 
@@ -22,17 +21,15 @@ const customer: CustomerDetail = {
   created_at: '2026-08-03T17:35:00Z',
 }
 
-function makeOpportunity(
-  id: number,
-  status: OpportunitySummary['status'],
-): OpportunitySummary {
+function makeOpportunity(id: number, status: OpportunitySummary['status']): OpportunitySummary {
   return {
     id,
     status,
     source: id % 2 === 0 ? 'WHATSAPP' : 'WEB',
     current_status_entered_at: '2026-08-04T12:00:00Z',
     customer,
-    assigned_user: id === 1 ? null : { id: 9, full_name: 'Martín Vendedor', email: 'martin@faa.test' },
+    assigned_user:
+      id === 1 ? null : { id: 9, full_name: 'Martín Vendedor', email: 'martin@faa.test' },
     products:
       status === 'NUEVA'
         ? []
@@ -93,14 +90,25 @@ describe('CustomerDetailPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Cargando cliente…')
     expect(await screen.findByRole('heading', { name: 'Constructora del Sur' })).toBeInTheDocument()
     expect(screen.getByText('Del Sur SA')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'ventas@delsur.test' })).toHaveAttribute('href', 'mailto:ventas@delsur.test')
-    expect(screen.getByRole('link', { name: '+54 11 4444-5555' })).toHaveAttribute('href', 'tel:+541144445555')
+    expect(screen.getByRole('link', { name: 'ventas@delsur.test' })).toHaveAttribute(
+      'href',
+      'mailto:ventas@delsur.test',
+    )
+    expect(screen.getByRole('link', { name: '+54 11 4444-5555' })).toHaveAttribute(
+      'href',
+      'tel:+541144445555',
+    )
     expect(screen.getByText('Buenos Aires')).toBeInTheDocument()
     expect(screen.getByText('Legendario')).toBeInTheDocument()
     expect(screen.getByText('3 ago 2026, 14:35')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver a Clientes' })).toHaveAttribute('href', '/customers')
+    expect(screen.getByRole('link', { name: 'Volver a Clientes' })).toHaveAttribute(
+      'href',
+      '/customers',
+    )
 
-    const detailRequest = fetchMock.mock.calls.find(([input]) => String(input) === '/api/customers/7')
+    const detailRequest = fetchMock.mock.calls.find(
+      ([input]) => String(input) === '/api/customers/7',
+    )
     const request = detailRequest?.[1] as RequestInit
     expect(new Headers(request.headers).get('Authorization')).toBe('Bearer customer-detail-token')
   })
@@ -110,7 +118,8 @@ describe('CustomerDetailPage', () => {
     render(<CustomerDetailPage customerId={7} />)
     await screen.findByRole('heading', { name: 'Constructora del Sur' })
 
-    const opportunitiesSection = screen.getByRole('heading', { name: 'Oportunidades' }).parentElement?.parentElement
+    const opportunitiesSection = screen.getByRole('heading', { name: 'Oportunidades' })
+      .parentElement?.parentElement
     expect(opportunitiesSection).not.toBeNull()
     const section = opportunitiesSection as HTMLElement
     expect(within(section).getByText('Nueva')).toBeInTheDocument()
@@ -120,7 +129,10 @@ describe('CustomerDetailPage', () => {
     expect(within(section).getByText('Sin cotización')).toBeInTheDocument()
     expect(within(section).getByText('Martín Vendedor')).toBeInTheDocument()
     expect(within(section).getByText('2 oportunidades')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver detalle de oportunidad 2' })).toHaveAttribute('href', '/opportunities/2')
+    expect(screen.getByRole('link', { name: 'Ver detalle de oportunidad 2' })).toHaveAttribute(
+      'href',
+      '/opportunities/2',
+    )
   })
 
   it('shows an empty opportunity state without inventing customer categories', async () => {
@@ -130,7 +142,9 @@ describe('CustomerDetailPage', () => {
     })
     render(<CustomerDetailPage customerId={7} />)
 
-    expect(await screen.findByText('Este cliente todavía no tiene oportunidades registradas.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Este cliente todavía no tiene oportunidades registradas.'),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Legendario')).not.toBeInTheDocument()
     expect(screen.queryByText('Recurrente')).not.toBeInTheDocument()
   })
@@ -139,8 +153,13 @@ describe('CustomerDetailPage', () => {
     mockDetailApi({ customerStatus: 404 })
     render(<CustomerDetailPage customerId={7} />)
 
-    expect(await screen.findByRole('heading', { name: 'Cliente no encontrado' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver a Clientes' })).toHaveAttribute('href', '/customers')
+    expect(
+      await screen.findByRole('heading', { name: 'Cliente no encontrado' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Volver a Clientes' })).toHaveAttribute(
+      'href',
+      '/customers',
+    )
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
   })
 
@@ -156,7 +175,9 @@ describe('CustomerDetailPage', () => {
       }),
     )
     render(<CustomerDetailPage customerId={7} />)
-    expect(await screen.findByRole('heading', { name: 'No pudimos cargar el cliente' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'No pudimos cargar el cliente' }),
+    ).toBeInTheDocument()
 
     shouldFail = false
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))

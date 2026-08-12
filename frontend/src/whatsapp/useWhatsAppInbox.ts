@@ -1,14 +1,7 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-
-import { getCustomer } from '../api/customers'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
-import { getOpportunityDetail, type ApiSession } from '../api/opportunities'
+import { getCustomer } from '../api/customers'
+import { type ApiSession, getOpportunityDetail } from '../api/opportunities'
 import {
   getWhatsAppConversation,
   getWhatsAppMediaBlob,
@@ -25,11 +18,7 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import type { CustomerDetail } from '../customers/types'
 import type { OpportunityDetail } from '../pipeline/types'
-import {
-  filterConversations,
-  upsertConversations,
-  upsertMessages,
-} from './inbox-state'
+import { filterConversations, upsertConversations, upsertMessages } from './inbox-state'
 import type {
   StagedWhatsAppAttachment,
   WhatsAppConversationDetail,
@@ -76,25 +65,17 @@ export function useWhatsAppInbox() {
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
   )
-  const [conversations, setConversations] = useState<
-    WhatsAppConversationSummary[]
-  >([])
-  const [conversationStatus, setConversationStatus] =
-    useState<LoadStatus>('idle')
+  const [conversations, setConversations] = useState<WhatsAppConversationSummary[]>([])
+  const [conversationStatus, setConversationStatus] = useState<LoadStatus>('idle')
   const [conversationError, setConversationError] = useState<string | null>(null)
-  const [nextConversationCursor, setNextConversationCursor] = useState<
-    string | null
-  >(null)
+  const [nextConversationCursor, setNextConversationCursor] = useState<string | null>(null)
   const [conversationReloadKey, setConversationReloadKey] = useState(0)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
   const [waitingOnly, setWaitingOnly] = useState(false)
   const [unreadOnly, setUnreadOnly] = useState(false)
-  const [selectedConversationId, setSelectedConversationId] = useState<
-    number | null
-  >(null)
-  const [selectedDetail, setSelectedDetail] =
-    useState<WhatsAppConversationDetail | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null)
+  const [selectedDetail, setSelectedDetail] = useState<WhatsAppConversationDetail | null>(null)
   const [detailStatus, setDetailStatus] = useState<LoadStatus>('idle')
   const [detailError, setDetailError] = useState<string | null>(null)
   const [messages, setMessages] = useState<WhatsAppMessage[]>([])
@@ -109,8 +90,7 @@ export function useWhatsAppInbox() {
   const [isLinking, setIsLinking] = useState(false)
   const [linkError, setLinkError] = useState<string | null>(null)
   const [customerDetail, setCustomerDetail] = useState<CustomerDetail | null>(null)
-  const [opportunityDetail, setOpportunityDetail] =
-    useState<OpportunityDetail | null>(null)
+  const [opportunityDetail, setOpportunityDetail] = useState<OpportunityDetail | null>(null)
   const [contextStatus, setContextStatus] = useState<LoadStatus>('idle')
   const [contextError, setContextError] = useState<string | null>(null)
   const [contextReloadKey, setContextReloadKey] = useState(0)
@@ -137,10 +117,7 @@ export function useWhatsAppInbox() {
   )
 
   useEffect(() => {
-    const timer = window.setTimeout(
-      () => setSearch(searchDraft.trim()),
-      SEARCH_DEBOUNCE_MS,
-    )
+    const timer = window.setTimeout(() => setSearch(searchDraft.trim()), SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
   }, [searchDraft])
 
@@ -149,6 +126,7 @@ export function useWhatsAppInbox() {
   }, [selectedConversationId])
 
   useEffect(() => {
+    void conversationReloadKey
     const controller = new AbortController()
     conversationSyncCursorRef.current = null
     setConversationStatus('loading')
@@ -174,9 +152,7 @@ export function useWhatsAppInbox() {
       .catch((error: unknown) => {
         if (isAbortError(error)) return
         setConversationStatus('error')
-        setConversationError(
-          errorMessage(error, 'No pudimos cargar las conversaciones.'),
-        )
+        setConversationError(errorMessage(error, 'No pudimos cargar las conversaciones.'))
       })
     return () => controller.abort()
   }, [apiSession, conversationReloadKey, search, unreadOnly, waitingOnly])
@@ -211,9 +187,7 @@ export function useWhatsAppInbox() {
         conversationSyncCursorRef.current = null
         setConversationReloadKey((current) => current + 1)
       } else {
-        setConversationError(
-          errorMessage(error, 'La bandeja está temporalmente desactualizada.'),
-        )
+        setConversationError(errorMessage(error, 'La bandeja está temporalmente desactualizada.'))
       }
     } finally {
       conversationPollingRef.current = false
@@ -230,11 +204,7 @@ export function useWhatsAppInbox() {
       let cursor = initialCursor
       let hasMore = true
       while (hasMore) {
-        const page = await listWhatsAppMessageChanges(
-          conversationId,
-          cursor,
-          apiSession,
-        )
+        const page = await listWhatsAppMessageChanges(conversationId, cursor, apiSession)
         if (selectedConversationIdRef.current !== conversationId) return
         setMessages((current) => upsertMessages(current, page.items))
         cursor = page.next_cursor
@@ -249,9 +219,7 @@ export function useWhatsAppInbox() {
           setSelectedReloadKey((key) => key + 1)
         }
       } else {
-        setMessageError(
-          errorMessage(error, 'Los mensajes están temporalmente desactualizados.'),
-        )
+        setMessageError(errorMessage(error, 'Los mensajes están temporalmente desactualizados.'))
       }
     } finally {
       messagePollingRef.current = false
@@ -283,32 +251,23 @@ export function useWhatsAppInbox() {
   }, [])
 
   useEffect(() => {
+    void resyncKey
     if (!isOnline || !isDocumentVisible) return
     void pollConversationChanges()
-    const timer = window.setInterval(
-      () => void pollConversationChanges(),
-      POLLING_INTERVAL_MS,
-    )
+    const timer = window.setInterval(() => void pollConversationChanges(), POLLING_INTERVAL_MS)
     return () => window.clearInterval(timer)
   }, [isDocumentVisible, isOnline, pollConversationChanges, resyncKey])
 
   useEffect(() => {
+    void resyncKey
     if (!isOnline || !isDocumentVisible || !selectedConversationId) return
     void pollMessageChanges()
-    const timer = window.setInterval(
-      () => void pollMessageChanges(),
-      POLLING_INTERVAL_MS,
-    )
+    const timer = window.setInterval(() => void pollMessageChanges(), POLLING_INTERVAL_MS)
     return () => window.clearInterval(timer)
-  }, [
-    isDocumentVisible,
-    isOnline,
-    pollMessageChanges,
-    resyncKey,
-    selectedConversationId,
-  ])
+  }, [isDocumentVisible, isOnline, pollMessageChanges, resyncKey, selectedConversationId])
 
   useEffect(() => {
+    void selectedReloadKey
     if (!selectedConversationId) {
       setSelectedDetail(null)
       setMessages([])
@@ -343,20 +302,14 @@ export function useWhatsAppInbox() {
         void markWhatsAppConversationRead(selectedConversationId, session)
           .then((readSummary) => {
             if (controller.signal.aborted) return
-            setConversations((current) =>
-              upsertConversations(current, [readSummary]),
-            )
+            setConversations((current) => upsertConversations(current, [readSummary]))
             setSelectedDetail((current) =>
-              current && current.id === readSummary.id
-                ? { ...current, ...readSummary }
-                : current,
+              current && current.id === readSummary.id ? { ...current, ...readSummary } : current,
             )
           })
           .catch((error: unknown) => {
             if (isAbortError(error)) return
-            setConversationError(
-              errorMessage(error, 'No pudimos actualizar el estado de lectura.'),
-            )
+            setConversationError(errorMessage(error, 'No pudimos actualizar el estado de lectura.'))
           })
       })
       .catch((error: unknown) => {
@@ -365,10 +318,7 @@ export function useWhatsAppInbox() {
           setSelectedConversationId(null)
           return
         }
-        const message = errorMessage(
-          error,
-          'No pudimos cargar esta conversación.',
-        )
+        const message = errorMessage(error, 'No pudimos cargar esta conversación.')
         setDetailError(message)
         setMessageError(message)
         setDetailStatus('error')
@@ -378,6 +328,7 @@ export function useWhatsAppInbox() {
   }, [apiSession, selectedConversationId, selectedReloadKey])
 
   useEffect(() => {
+    void selectedConversationId
     setSendError(null)
     setFailedSend(null)
   }, [selectedConversationId])
@@ -395,18 +346,15 @@ export function useWhatsAppInbox() {
           setConversations((current) => upsertConversations(current, [detail]))
         })
         .catch((error: unknown) => {
-          setDetailError(
-            errorMessage(error, 'No pudimos actualizar la ventana de respuesta.'),
-          )
+          setDetailError(errorMessage(error, 'No pudimos actualizar la ventana de respuesta.'))
         })
     }, delay)
     return () => window.clearTimeout(timer)
   }, [apiSession, selectedConversationId, selectedDetail?.window_expires_at])
 
   useEffect(() => {
-    const customerId = selectedDetail?.customer?.is_available
-      ? selectedDetail.customer.id
-      : null
+    void contextReloadKey
+    const customerId = selectedDetail?.customer?.is_available ? selectedDetail.customer.id : null
     const opportunityId = selectedDetail?.active_opportunity?.is_available
       ? selectedDetail.active_opportunity.id
       : null
@@ -423,24 +371,16 @@ export function useWhatsAppInbox() {
     setContextError(null)
     Promise.allSettled([
       customerId ? getCustomer(customerId, session) : Promise.resolve(null),
-      opportunityId
-        ? getOpportunityDetail(opportunityId, session)
-        : Promise.resolve(null),
+      opportunityId ? getOpportunityDetail(opportunityId, session) : Promise.resolve(null),
     ]).then(([customerResult, opportunityResult]) => {
       if (controller.signal.aborted) return
-      const customer =
-        customerResult.status === 'fulfilled' ? customerResult.value : null
-      const opportunity =
-        opportunityResult.status === 'fulfilled' ? opportunityResult.value : null
+      const customer = customerResult.status === 'fulfilled' ? customerResult.value : null
+      const opportunity = opportunityResult.status === 'fulfilled' ? opportunityResult.value : null
       setCustomerDetail(customer)
       setOpportunityDetail(opportunity)
-      const failed =
-        customerResult.status === 'rejected' ||
-        opportunityResult.status === 'rejected'
+      const failed = customerResult.status === 'rejected' || opportunityResult.status === 'rejected'
       setContextStatus(failed ? 'error' : 'ready')
-      setContextError(
-        failed ? 'No pudimos completar todo el contexto comercial.' : null,
-      )
+      setContextError(failed ? 'No pudimos completar todo el contexto comercial.' : null)
     })
     return () => controller.abort()
   }, [
@@ -467,33 +407,19 @@ export function useWhatsAppInbox() {
       setConversations((current) => upsertConversations(current, page.items))
       setNextConversationCursor(page.next_page_cursor)
     } catch (error: unknown) {
-      setConversationError(
-        errorMessage(error, 'No pudimos cargar más conversaciones.'),
-      )
+      setConversationError(errorMessage(error, 'No pudimos cargar más conversaciones.'))
     }
-  }, [
-    apiSession,
-    nextConversationCursor,
-    search,
-    unreadOnly,
-    waitingOnly,
-  ])
+  }, [apiSession, nextConversationCursor, search, unreadOnly, waitingOnly])
 
   const loadOlderMessages = useCallback(async () => {
     if (!selectedConversationId || !nextMessageCursor || isLoadingOlder) return
     setIsLoadingOlder(true)
     try {
-      const page = await listWhatsAppMessages(
-        selectedConversationId,
-        nextMessageCursor,
-        apiSession,
-      )
+      const page = await listWhatsAppMessages(selectedConversationId, nextMessageCursor, apiSession)
       setMessages((current) => upsertMessages(current, page.items))
       setNextMessageCursor(page.next_before_cursor)
     } catch (error: unknown) {
-      setMessageError(
-        errorMessage(error, 'No pudimos cargar mensajes anteriores.'),
-      )
+      setMessageError(errorMessage(error, 'No pudimos cargar mensajes anteriores.'))
     } finally {
       setIsLoadingOlder(false)
     }
@@ -616,9 +542,7 @@ export function useWhatsAppInbox() {
             previewUrl: null,
           }
         } catch (error: unknown) {
-          setSendError(
-            errorMessage(error, 'No pudimos recuperar el archivo para reenviar.'),
-          )
+          setSendError(errorMessage(error, 'No pudimos recuperar el archivo para reenviar.'))
           return false
         }
       }
@@ -638,18 +562,12 @@ export function useWhatsAppInbox() {
       setLinkError(null)
       try {
         const detail = opportunityId
-          ? await linkWhatsAppOpportunity(
-              selectedConversationId,
-              opportunityId,
-              apiSession,
-            )
+          ? await linkWhatsAppOpportunity(selectedConversationId, opportunityId, apiSession)
           : await unlinkWhatsAppOpportunity(selectedConversationId, apiSession)
         setSelectedDetail(detail)
         setConversations((current) => upsertConversations(current, [detail]))
       } catch (error: unknown) {
-        setLinkError(
-          errorMessage(error, 'No pudimos actualizar la oportunidad vinculada.'),
-        )
+        setLinkError(errorMessage(error, 'No pudimos actualizar la oportunidad vinculada.'))
       } finally {
         setIsLinking(false)
       }
@@ -690,8 +608,7 @@ export function useWhatsAppInbox() {
     isOnline,
     loadMoreConversations,
     loadOlderMessages,
-    retryConversationLoad: () =>
-      setConversationReloadKey((current) => current + 1),
+    retryConversationLoad: () => setConversationReloadKey((current) => current + 1),
     retrySelectedLoad: () => setSelectedReloadKey((current) => current + 1),
     retryContextLoad: () => setContextReloadKey((current) => current + 1),
     clearSendError: () => setSendError(null),

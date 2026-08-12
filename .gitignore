@@ -14,10 +14,12 @@ coverage.xml
 htmlcov/
 .venv/
 performance-artifacts/
+backend/artifacts/
 
 # Node
 node_modules/
 dist/
+frontend/coverage/
 
 # IDEs
 .idea/

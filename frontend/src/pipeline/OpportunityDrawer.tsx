@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ApiError } from '../api/client'
-import { getOpportunityDetail, type ApiSession } from '../api/opportunities'
+import { type ApiSession, getOpportunityDetail } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { Button } from '../shared/Button'
 import { Drawer } from '../shared/Drawer'
@@ -45,6 +45,8 @@ export function OpportunityDrawer({
   )
 
   useEffect(() => {
+    void reloadKey
+    void retryKey
     if (opportunityId === null) {
       setOpportunity(null)
       setLoadError(null)
@@ -70,7 +72,7 @@ export function OpportunityDrawer({
 
   const nextStatus =
     opportunity && opportunity.status !== 'PERDIDA'
-      ? STAGE_BY_STATUS.get(opportunity.status)?.nextStatus ?? null
+      ? (STAGE_BY_STATUS.get(opportunity.status)?.nextStatus ?? null)
       : null
 
   const runAfterClose = (action: () => void) => {
@@ -88,12 +90,19 @@ export function OpportunityDrawer({
   const actions = opportunity ? (
     <>
       {opportunity.status === 'NUEVA' ? (
-        <Button disabled={isBusy} onClick={() => runAfterClose(() => onQuote(opportunity.id))} variant="primary">
+        <Button
+          disabled={isBusy}
+          onClick={() => runAfterClose(() => onQuote(opportunity.id))}
+          variant='primary'
+        >
           Cotizar
         </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
-        <Button disabled={isBusy} onClick={() => runAfterClose(() => onEditQuote(opportunity.id, opportunity))}>
+        <Button
+          disabled={isBusy}
+          onClick={() => runAfterClose(() => onEditQuote(opportunity.id, opportunity))}
+        >
           Editar cotización
         </Button>
       ) : null}
@@ -101,13 +110,18 @@ export function OpportunityDrawer({
         <Button
           disabled={isBusy}
           onClick={() => onMove(opportunity.id, nextStatus)}
-          variant="primary"
+          variant='primary'
         >
           {opportunity.status === 'COTIZADA' ? 'Pasar a negociación' : 'Marcar ganada'}
         </Button>
       ) : null}
       {nextStatus ? (
-        <Button className="text-rose-700 hover:bg-rose-50 hover:text-rose-900" disabled={isBusy} onClick={() => runAfterClose(() => onLose(opportunity.id))} variant="ghost">
+        <Button
+          className='text-rose-700 hover:bg-rose-50 hover:text-rose-900'
+          disabled={isBusy}
+          onClick={() => runAfterClose(() => onLose(opportunity.id))}
+          variant='ghost'
+        >
           Marcar perdida
         </Button>
       ) : null}
@@ -117,32 +131,37 @@ export function OpportunityDrawer({
   return (
     <Drawer
       closeDisabled={isBusy}
-      description="Información comercial completa"
+      description='Información comercial completa'
       isOpen={isOpen}
       onAfterClose={handleAfterClose}
       onClose={onClose}
-      title="Detalle de oportunidad"
+      title='Detalle de oportunidad'
     >
       {isLoading && !opportunity ? (
-        <LoadingState label="Cargando oportunidad…" />
+        <LoadingState label='Cargando oportunidad…' />
       ) : loadError ? (
-        <div className="m-4 ui-panel px-4 py-5" role={loadError === 'request' ? 'alert' : undefined}>
-          <h3 className="text-base font-semibold text-slate-950">
-            {loadError === 'not-found' ? 'Oportunidad no encontrada' : 'No pudimos cargar la oportunidad'}
+        <div
+          className='m-4 ui-panel px-4 py-5'
+          role={loadError === 'request' ? 'alert' : undefined}
+        >
+          <h3 className='text-base font-semibold text-slate-950'>
+            {loadError === 'not-found'
+              ? 'Oportunidad no encontrada'
+              : 'No pudimos cargar la oportunidad'}
           </h3>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className='mt-1 text-sm text-slate-600'>
             {loadError === 'not-found'
               ? 'La oportunidad ya no está disponible.'
               : 'Revisá tu conexión e intentá nuevamente.'}
           </p>
           {loadError === 'request' ? (
-            <Button className="mt-4" onClick={() => setRetryKey((current) => current + 1)}>
+            <Button className='mt-4' onClick={() => setRetryKey((current) => current + 1)}>
               Reintentar
             </Button>
           ) : null}
         </div>
       ) : opportunity ? (
-        <OpportunityDetailContent actions={actions} layout="drawer" opportunity={opportunity} />
+        <OpportunityDetailContent actions={actions} layout='drawer' opportunity={opportunity} />
       ) : null}
     </Drawer>
   )

@@ -1,22 +1,14 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { PipelinePage } from './PipelinePage'
 import type {
-  OpportunitySummary,
   OpportunityDetail,
   OpportunityStatus,
+  OpportunitySummary,
   PipelineStatus,
   Product,
 } from '../pipeline/types'
+import { PipelinePage } from './PipelinePage'
 
 const dndState = vi.hoisted(() => ({
   onDragEnd: null as ((event: unknown) => void) | null,
@@ -29,9 +21,9 @@ const authState = vi.hoisted(() => ({
 }))
 
 vi.mock('@dnd-kit/react', () => ({
-  PointerSensor: class PointerSensor {},
+  PointerSensor: function PointerSensor() {},
   KeyboardSensor: {
-    configure: vi.fn(() => class ConfiguredKeyboardSensor {}),
+    configure: vi.fn(() => function ConfiguredKeyboardSensor() {}),
   },
   DragDropProvider: ({
     children,
@@ -72,10 +64,7 @@ const activeProducts: Product[] = [
   { id: 11, name: 'Bituplast', is_active: true },
 ]
 
-function makeOpportunity(
-  status: OpportunityStatus,
-  id = 1,
-): OpportunitySummary {
+function makeOpportunity(status: OpportunityStatus, id = 1): OpportunitySummary {
   return {
     id,
     status,
@@ -168,9 +157,7 @@ function mockApi({
       if (url.pathname === '/api/opportunities' && init?.method !== 'POST') {
         if (failLoad?.()) throw new TypeError('network unavailable')
         const status = url.searchParams.get('status')
-        const items = opportunities.filter(
-          (opportunity) => opportunity.status === status,
-        )
+        const items = opportunities.filter((opportunity) => opportunity.status === status)
         return jsonResponse(200, {
           items,
           page: Number(url.searchParams.get('page')),
@@ -185,9 +172,7 @@ function mockApi({
 
       const detailMatch = url.pathname.match(/^\/api\/opportunities\/(\d+)$/)
       if (detailMatch) {
-        const opportunity = opportunities.find(
-          (item) => item.id === Number(detailMatch[1]),
-        )
+        const opportunity = opportunities.find((item) => item.id === Number(detailMatch[1]))
         return opportunity
           ? jsonResponse(200, detailFromSummary(opportunity))
           : jsonResponse(404, { detail: 'Not found' })
@@ -208,10 +193,7 @@ function getStage(container: HTMLElement, status: PipelineStatus): HTMLElement {
   return stage
 }
 
-function simulateDrop(
-  opportunity: OpportunitySummary,
-  targetStatus: PipelineStatus,
-) {
+function simulateDrop(opportunity: OpportunitySummary, targetStatus: PipelineStatus) {
   const nextByStatus: Partial<Record<PipelineStatus, PipelineStatus>> = {
     NUEVA: 'COTIZADA',
     COTIZADA: 'NEGOCIACION',
@@ -260,26 +242,34 @@ describe('PipelinePage', () => {
     expect(screen.getByRole('heading', { name: 'Negociación' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Ganados' })).toBeInTheDocument()
 
-    expect(
-      within(getStage(container, 'NUEVA')).getByLabelText('1 oportunidad'),
-    ).toHaveTextContent('1')
+    expect(within(getStage(container, 'NUEVA')).getByLabelText('1 oportunidad')).toHaveTextContent(
+      '1',
+    )
     expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
     expect(within(getStage(container, 'NUEVA')).getByText('Legendario')).toBeInTheDocument()
-    expect(within(getStage(container, 'COTIZADA')).queryByText('SuperPhalt')).not.toBeInTheDocument()
+    expect(
+      within(getStage(container, 'COTIZADA')).queryByText('SuperPhalt'),
+    ).not.toBeInTheDocument()
     expect(within(getStage(container, 'COTIZADA')).queryByText('2.500 kg')).not.toBeInTheDocument()
-    expect(within(getStage(container, 'NEGOCIACION')).getByText('No hay oportunidades')).toBeInTheDocument()
-    expect(within(getStage(container, 'GANADA')).getByText('No hay oportunidades')).toBeInTheDocument()
-    const compactCard = within(getStage(container, 'COTIZADA')).getByRole(
-      'button',
-      { name: /Abrir detalle/ },
-    )
+    expect(
+      within(getStage(container, 'NEGOCIACION')).getByText('No hay oportunidades'),
+    ).toBeInTheDocument()
+    expect(
+      within(getStage(container, 'GANADA')).getByText('No hay oportunidades'),
+    ).toBeInTheDocument()
+    const compactCard = within(getStage(container, 'COTIZADA')).getByRole('button', {
+      name: /Abrir detalle/,
+    })
     expect(compactCard).not.toHaveTextContent('SuperPhalt')
     expect(compactCard).not.toHaveTextContent('Martín Vendedor')
     expect(dndState.draggableRef).toHaveBeenCalledWith(compactCard)
   })
 
   it('shows the initial loading state', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => undefined)),
+    )
     render(<PipelinePage />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Cargando pipeline…')
@@ -307,11 +297,11 @@ describe('PipelinePage', () => {
 
     simulateDrop(opportunity, 'COTIZADA')
 
-    expect(
-      await screen.findByRole('dialog', { name: 'Cotizar oportunidad' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })).toBeInTheDocument()
     expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
-    expect(within(getStage(container, 'COTIZADA')).queryByText('Cliente NUEVA')).not.toBeInTheDocument()
+    expect(
+      within(getStage(container, 'COTIZADA')).queryByText('Cliente NUEVA'),
+    ).not.toBeInTheDocument()
     expect(await screen.findByLabelText('Producto')).toHaveFocus()
   })
 
@@ -348,20 +338,18 @@ describe('PipelinePage', () => {
     fireEvent.change(quantityInputs[1], { target: { value: '0' } })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Revisá los productos y cantidades',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('Revisá los productos y cantidades')
 
     fireEvent.change(productSelects[1], { target: { value: '11' } })
     fireEvent.change(quantityInputs[1], { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
 
     await waitFor(() =>
-      expect(within(getStage(container, 'COTIZADA')).getByText('Cliente NUEVA')).toBeInTheDocument(),
+      expect(
+        within(getStage(container, 'COTIZADA')).getByText('Cliente NUEVA'),
+      ).toBeInTheDocument(),
     )
-    const quoteCall = fetchMock.mock.calls.find(([input]) =>
-      String(input).endsWith('/quote'),
-    )
+    const quoteCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/quote'))
     const quoteBody = JSON.parse(String(quoteCall?.[1]?.body)) as {
       products: unknown[]
     }
@@ -389,9 +377,7 @@ describe('PipelinePage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'ya no está activo',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('ya no está activo')
     expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
   })
 
@@ -399,10 +385,7 @@ describe('PipelinePage', () => {
     const opportunity = makeOpportunity('NUEVA')
     mockApi({
       opportunities: [opportunity],
-      products: [
-        ...activeProducts,
-        { id: 12, name: 'Producto inactivo', is_active: false },
-      ],
+      products: [...activeProducts, { id: 12, name: 'Producto inactivo', is_active: false }],
     })
     render(<PipelinePage />)
     await waitForPipeline()
@@ -410,7 +393,9 @@ describe('PipelinePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Mover a Cotizada:/ }))
     const productSelect = await screen.findByLabelText('Producto')
     expect(within(productSelect).getByRole('option', { name: 'SuperPhalt' })).toBeInTheDocument()
-    expect(within(productSelect).queryByRole('option', { name: 'Producto inactivo' })).not.toBeInTheDocument()
+    expect(
+      within(productSelect).queryByRole('option', { name: 'Producto inactivo' }),
+    ).not.toBeInTheDocument()
   })
 
   it('keeps historical inactive products out of the compact card and visible in detail', async () => {
@@ -427,9 +412,7 @@ describe('PipelinePage', () => {
 
     const quotedStage = getStage(container, 'COTIZADA')
     expect(within(quotedStage).queryByText('Producto histórico')).not.toBeInTheDocument()
-    fireEvent.click(
-      within(quotedStage).getByRole('button', { name: /Abrir detalle/ }),
-    )
+    fireEvent.click(within(quotedStage).getByRole('button', { name: /Abrir detalle/ }))
     const drawer = await screen.findByRole('dialog', { name: 'Detalle de oportunidad' })
     expect(within(drawer).getByText('Producto histórico')).toBeInTheDocument()
     expect(within(drawer).getAllByText('750 kg')).toHaveLength(2)
@@ -451,7 +434,9 @@ describe('PipelinePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Mover a Negociación:/ }))
 
     await waitFor(() =>
-      expect(within(getStage(container, 'NEGOCIACION')).getByText('Cliente COTIZADA')).toBeInTheDocument(),
+      expect(
+        within(getStage(container, 'NEGOCIACION')).getByText('Cliente COTIZADA'),
+      ).toBeInTheDocument(),
     )
   })
 
@@ -471,9 +456,7 @@ describe('PipelinePage', () => {
     const drawer = await screen.findByRole('dialog', {
       name: 'Detalle de oportunidad',
     })
-    fireEvent.click(
-      within(drawer).getByRole('button', { name: 'Pasar a negociación' }),
-    )
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Pasar a negociación' }))
 
     await waitFor(() =>
       expect(
@@ -481,9 +464,7 @@ describe('PipelinePage', () => {
       ).toBeInTheDocument(),
     )
     expect(
-      fetchMock.mock.calls.some(([input]) =>
-        String(input).endsWith('/move-to-negotiation'),
-      ),
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith('/move-to-negotiation')),
     ).toBe(true)
   })
 
@@ -492,9 +473,7 @@ describe('PipelinePage', () => {
     const fetchMock = mockApi({
       opportunities: [opportunity],
       actionResponse: (url) =>
-        url.pathname.endsWith('/quote-products')
-          ? jsonResponse(200, opportunity)
-          : undefined,
+        url.pathname.endsWith('/quote-products') ? jsonResponse(200, opportunity) : undefined,
     })
     render(<PipelinePage />)
     await waitForPipeline()
@@ -503,9 +482,7 @@ describe('PipelinePage', () => {
     const drawer = await screen.findByRole('dialog', {
       name: 'Detalle de oportunidad',
     })
-    fireEvent.click(
-      within(drawer).getByRole('button', { name: 'Editar cotización' }),
-    )
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Editar cotización' }))
     const quoteDialog = await screen.findByRole('dialog', {
       name: 'Editar cotización',
     })
@@ -513,14 +490,10 @@ describe('PipelinePage', () => {
     fireEvent.change(within(quoteDialog).getByLabelText('Cantidad (kg)'), {
       target: { value: '3000' },
     })
-    fireEvent.click(
-      within(quoteDialog).getByRole('button', { name: 'Guardar cambios' }),
-    )
+    fireEvent.click(within(quoteDialog).getByRole('button', { name: 'Guardar cambios' }))
 
     await waitFor(() =>
-      expect(
-        screen.queryByRole('dialog', { name: 'Editar cotización' }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Editar cotización' })).not.toBeInTheDocument(),
     )
     const updateCall = fetchMock.mock.calls.find(([input]) =>
       String(input).endsWith('/quote-products'),
@@ -545,7 +518,9 @@ describe('PipelinePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Mover a Ganada:/ }))
 
     await waitFor(() =>
-      expect(within(getStage(container, 'GANADA')).getByText('Cliente NEGOCIACION')).toBeInTheDocument(),
+      expect(
+        within(getStage(container, 'GANADA')).getByText('Cliente NEGOCIACION'),
+      ).toBeInTheDocument(),
     )
   })
 
@@ -579,9 +554,7 @@ describe('PipelinePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Mover a Negociación:/ }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'se mantuvo sin cambios',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('se mantuvo sin cambios')
     expect(
       within(getStage(container, 'COTIZADA')).getByText('Cliente COTIZADA'),
     ).toBeInTheDocument()
@@ -620,13 +593,9 @@ describe('PipelinePage', () => {
     const lossDialog = await screen.findByRole('dialog', {
       name: 'Marcar como perdida',
     })
-    await waitFor(() =>
-      expect(within(lossDialog).getByLabelText('Motivo')).toHaveFocus(),
-    )
+    await waitFor(() => expect(within(lossDialog).getByLabelText('Motivo')).toHaveFocus())
     fireEvent.click(within(lossDialog).getByRole('button', { name: 'Confirmar pérdida' }))
-    expect(await within(lossDialog).findByRole('alert')).toHaveTextContent(
-      'Seleccioná un motivo',
-    )
+    expect(await within(lossDialog).findByRole('alert')).toHaveTextContent('Seleccioná un motivo')
 
     fireEvent.change(within(lossDialog).getByLabelText('Motivo'), {
       target: { value: 'PRECIO' },
@@ -634,11 +603,11 @@ describe('PipelinePage', () => {
     fireEvent.click(within(lossDialog).getByRole('button', { name: 'Confirmar pérdida' }))
 
     await waitFor(() =>
-      expect(within(getStage(container, 'NUEVA')).queryByText('Cliente NUEVA')).not.toBeInTheDocument(),
+      expect(
+        within(getStage(container, 'NUEVA')).queryByText('Cliente NUEVA'),
+      ).not.toBeInTheDocument(),
     )
-    const loseCall = fetchMock.mock.calls.find(([input]) =>
-      String(input).endsWith('/lose'),
-    )
+    const loseCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/lose'))
     expect(JSON.parse(String(loseCall?.[1]?.body))).toEqual({
       loss_reason: 'PRECIO',
     })

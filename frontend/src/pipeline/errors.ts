@@ -5,10 +5,7 @@ type PipelineAction = 'load' | 'quote' | 'transition' | 'lose'
 const NETWORK_MESSAGE =
   'No pudimos conectar con el servidor. Revisá tu conexión e intentá nuevamente.'
 
-export function pipelineErrorMessage(
-  error: unknown,
-  action: PipelineAction,
-): string {
+export function pipelineErrorMessage(error: unknown, action: PipelineAction): string {
   if (!(error instanceof ApiError)) return NETWORK_MESSAGE
 
   if (error.status === 401) return 'Tu sesión expiró. Volvé a ingresar.'

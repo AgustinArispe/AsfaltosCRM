@@ -9,9 +9,7 @@ export type CustomerDetailRoute = {
 const OPPORTUNITY_DETAIL_PATTERN = /^\/opportunities\/([1-9]\d*)$/
 const CUSTOMER_DETAIL_PATTERN = /^\/customers\/([1-9]\d*)$/
 
-export function matchOpportunityDetailRoute(
-  pathname: string,
-): OpportunityDetailRoute | null {
+export function matchOpportunityDetailRoute(pathname: string): OpportunityDetailRoute | null {
   const match = OPPORTUNITY_DETAIL_PATTERN.exec(pathname)
   if (!match) return null
 
@@ -19,9 +17,7 @@ export function matchOpportunityDetailRoute(
   return Number.isSafeInteger(opportunityId) ? { opportunityId } : null
 }
 
-export function matchCustomerDetailRoute(
-  pathname: string,
-): CustomerDetailRoute | null {
+export function matchCustomerDetailRoute(pathname: string): CustomerDetailRoute | null {
   const match = CUSTOMER_DETAIL_PATTERN.exec(pathname)
   if (!match) return null
 

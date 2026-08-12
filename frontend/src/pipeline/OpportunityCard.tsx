@@ -2,7 +2,7 @@ import { useDraggable } from '@dnd-kit/react'
 
 import { LegendaryBadge } from '../customers/LegendaryBadge'
 import { Badge } from '../shared/Badge'
-import { STAGE_BY_STATUS, SOURCE_LABELS } from './config'
+import { SOURCE_LABELS, STAGE_BY_STATUS } from './config'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
 export type PipelineDragData = {
@@ -64,30 +64,36 @@ export function OpportunityCard({
           if (!isDragging) onOpenDetail(opportunity.id)
         }}
         ref={isDraggable ? ref : undefined}
-        type="button"
+        type='button'
       >
-        <span className="block truncate text-sm font-semibold leading-5 text-slate-950" title={primaryName}>
+        <span
+          className='block truncate text-sm font-semibold leading-5 text-slate-950'
+          title={primaryName}
+        >
           {primaryName}
         </span>
         {contactName ? (
-          <span className="mt-0.5 block truncate text-xs leading-5 text-slate-600" title={contactName}>
+          <span
+            className='mt-0.5 block truncate text-xs leading-5 text-slate-600'
+            title={contactName}
+          >
             {contactName}
           </span>
         ) : null}
-        <span className="mt-2 flex flex-wrap items-center gap-1.5">
-          <Badge tone="neutral">{SOURCE_LABELS[opportunity.source]}</Badge>
+        <span className='mt-2 flex flex-wrap items-center gap-1.5'>
+          <Badge tone='neutral'>{SOURCE_LABELS[opportunity.source]}</Badge>
           {opportunity.customer.legendary_historical_override ? <LegendaryBadge /> : null}
         </span>
       </button>
 
       {nextStatus ? (
-        <div className="border-t border-slate-100 px-2 py-1">
+        <div className='border-t border-slate-100 px-2 py-1'>
           <button
             aria-label={`Mover a ${nextStage?.singularLabel}: ${opportunity.customer.name}`}
-            className="ui-pressable min-h-11 rounded-[4px] px-2 text-xs font-medium text-slate-500 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500 disabled:cursor-wait disabled:opacity-45"
+            className='ui-pressable min-h-11 rounded-[4px] px-2 text-xs font-medium text-slate-500 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500 disabled:cursor-wait disabled:opacity-45'
             disabled={isBusy}
             onClick={() => onMove(opportunity.id, nextStatus)}
-            type="button"
+            type='button'
           >
             {isBusy ? 'Actualizando…' : `Mover a ${nextStage?.singularLabel}`}
           </button>

@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
-
+import { Drawer } from '../shared/Drawer'
 import { ChatPanel } from '../whatsapp/ChatPanel'
 import { ConversationList } from '../whatsapp/ConversationList'
 import { CrmContextPanel } from '../whatsapp/CrmContextPanel'
 import { useWhatsAppInbox } from '../whatsapp/useWhatsAppInbox'
-import { Drawer } from '../shared/Drawer'
 
 export function WhatsAppInboxPage() {
   const inbox = useWhatsAppInbox()
   const [isContextOpen, setIsContextOpen] = useState(false)
 
-  useEffect(() => setIsContextOpen(false), [inbox.selectedConversationId])
+  useEffect(() => {
+    void inbox.selectedConversationId
+    setIsContextOpen(false)
+  }, [inbox.selectedConversationId])
 
   const returnToConversationList = () => {
     const conversationId = inbox.selectedConversationId
@@ -29,7 +31,7 @@ export function WhatsAppInboxPage() {
       conversation={inbox.selectedDetail}
       customerDetail={inbox.customerDetail}
       error={inbox.contextError}
-      headingId="whatsapp-context-title"
+      headingId='whatsapp-context-title'
       isLinking={inbox.isLinking}
       linkError={inbox.linkError}
       onRetryContext={inbox.retryContextLoad}
@@ -40,13 +42,12 @@ export function WhatsAppInboxPage() {
   ) : null
 
   return (
-    <div className="ui-panel min-h-[36rem] overflow-hidden lg:h-[calc(100dvh-7.75rem)]">
-      <div className="grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[20rem_minmax(28rem,1fr)_19rem]">
+    <div className='ui-panel min-h-[36rem] overflow-hidden lg:h-[calc(100dvh-7.75rem)]'>
+      <div className='grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[20rem_minmax(28rem,1fr)_19rem]'>
         <div
-          className={[
-            'min-h-0',
-            inbox.selectedConversationId ? 'hidden md:block' : 'block',
-          ].join(' ')}
+          className={['min-h-0', inbox.selectedConversationId ? 'hidden md:block' : 'block'].join(
+            ' ',
+          )}
         >
           <ConversationList
             conversations={inbox.conversations}
@@ -67,10 +68,9 @@ export function WhatsAppInboxPage() {
         </div>
 
         <div
-          className={[
-            'min-h-0',
-            inbox.selectedConversationId ? 'flex' : 'hidden md:flex',
-          ].join(' ')}
+          className={['min-h-0', inbox.selectedConversationId ? 'flex' : 'hidden md:flex'].join(
+            ' ',
+          )}
         >
           <ChatPanel
             conversation={inbox.selectedDetail}
@@ -97,25 +97,23 @@ export function WhatsAppInboxPage() {
           />
         </div>
 
-        <div className="hidden min-h-0 border-l border-slate-200 2xl:flex">
-          {context}
-        </div>
+        <div className='hidden min-h-0 border-l border-slate-200 2xl:flex'>{context}</div>
       </div>
 
       <Drawer
-        description="Cliente y oportunidad asociados a la conversación"
+        description='Cliente y oportunidad asociados a la conversación'
         isOpen={isContextOpen}
         onClose={() => setIsContextOpen(false)}
-        title="Contexto CRM"
+        title='Contexto CRM'
       >
-        <div id="whatsapp-context-drawer">
+        <div id='whatsapp-context-drawer'>
           {isContextOpen && inbox.selectedDetail ? (
             <CrmContextPanel
               key={`drawer-${inbox.selectedDetail.id}`}
               conversation={inbox.selectedDetail}
               customerDetail={inbox.customerDetail}
               error={inbox.contextError}
-              headingId="whatsapp-context-drawer-title"
+              headingId='whatsapp-context-drawer-title'
               isLinking={inbox.isLinking}
               linkError={inbox.linkError}
               onRetryContext={inbox.retryContextLoad}

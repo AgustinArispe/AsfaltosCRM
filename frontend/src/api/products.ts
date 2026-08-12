@@ -1,15 +1,12 @@
+import type { Product, ProductUpdatePayload } from '../products/types'
 import { apiRequest } from './client'
 import type { ApiSession } from './opportunities'
-import type { Product, ProductUpdatePayload } from '../products/types'
 
 export function listActiveProducts(session: ApiSession) {
   return apiRequest<Product[]>('/products', session)
 }
 
-export function listProducts(
-  includeInactive: boolean,
-  session: ApiSession,
-) {
+export function listProducts(includeInactive: boolean, session: ApiSession) {
   const query = includeInactive ? '?include_inactive=true' : ''
   return apiRequest<Product[]>(`/products${query}`, session)
 }

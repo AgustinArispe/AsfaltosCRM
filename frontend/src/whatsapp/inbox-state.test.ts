@@ -7,10 +7,7 @@ import {
   upsertConversations,
   upsertMessages,
 } from './inbox-state'
-import type {
-  WhatsAppConversationSummary,
-  WhatsAppMessage,
-} from './types'
+import type { WhatsAppConversationSummary, WhatsAppMessage } from './types'
 
 function conversation(
   id: number,
@@ -47,10 +44,7 @@ function conversation(
   }
 }
 
-function message(
-  id: number,
-  overrides: Partial<WhatsAppMessage> = {},
-): WhatsAppMessage {
+function message(id: number, overrides: Partial<WhatsAppMessage> = {}): WhatsAppMessage {
   return {
     id,
     conversation_id: 1,
@@ -84,14 +78,17 @@ function message(
 
 describe('WhatsApp Inbox state reconciliation', () => {
   it('keeps the backend inbox order with deterministic ID ties', () => {
-    const items = upsertConversations([], [
-      conversation(1, { unread_count: 2 }),
-      conversation(2, { waiting_for_response: true }),
-      conversation(3, {
-        last_message_at: '2026-08-10T12:01:00Z',
-        unread_count: 2,
-      }),
-    ])
+    const items = upsertConversations(
+      [],
+      [
+        conversation(1, { unread_count: 2 }),
+        conversation(2, { waiting_for_response: true }),
+        conversation(3, {
+          last_message_at: '2026-08-10T12:01:00Z',
+          unread_count: 2,
+        }),
+      ],
+    )
 
     expect(items.map((item) => item.id)).toEqual([2, 3, 1])
   })

@@ -1,13 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-
+import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { Button } from '../shared/Button'
 import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
-import { Button } from '../shared/Button'
-import type {
-  OpportunitySummary,
-  Product,
-  QuoteProductInput,
-} from './types'
+import type { OpportunitySummary, Product, QuoteProductInput } from './types'
 
 type QuoteLine = {
   key: number
@@ -55,6 +50,7 @@ export function QuoteModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const nextKeyRef = useRef(1)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the modal identity or mode changes.
   useEffect(() => {
     const nextLines = initialLines(opportunity)
     setLines(nextLines)
@@ -64,25 +60,16 @@ export function QuoteModal({
     nextKeyRef.current = nextLines.length
   }, [opportunity?.id, mode])
 
-  const updateLine = (
-    key: number,
-    field: 'productId' | 'quantity',
-    value: string,
-  ) => {
+  const updateLine = (key: number, field: 'productId' | 'quantity', value: string) => {
     setLines((current) =>
-      current.map((line) =>
-        line.key === key ? { ...line, [field]: value } : line,
-      ),
+      current.map((line) => (line.key === key ? { ...line, [field]: value } : line)),
     )
     setLineErrors((current) => ({ ...current, [key]: {} }))
     setSubmitError(null)
   }
 
   const addLine = () => {
-    setLines((current) => [
-      ...current,
-      { key: nextKeyRef.current++, productId: '', quantity: '' },
-    ])
+    setLines((current) => [...current, { key: nextKeyRef.current++, productId: '', quantity: '' }])
   }
 
   const removeLine = (key: number) => {
@@ -141,19 +128,13 @@ export function QuoteModal({
     try {
       await onConfirm(quoteProducts)
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : 'No pudimos guardar la cotización.',
-      )
+      setSubmitError(error instanceof Error ? error.message : 'No pudimos guardar la cotización.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const selectedProductIds = new Set(
-    lines.map((line) => line.productId).filter(Boolean),
-  )
+  const selectedProductIds = new Set(lines.map((line) => line.productId).filter(Boolean))
   const existingProducts = opportunity?.products.map((item) => item.product) ?? []
   const availableProducts = [
     ...(products ?? []),
@@ -178,49 +159,50 @@ export function QuoteModal({
       title={mode === 'edit' ? 'Editar cotización' : 'Cotizar oportunidad'}
     >
       {isLoadingProducts || (!products && !productsError) ? (
-        <LoadingState label="Cargando productos…" />
+        <LoadingState label='Cargando productos…' />
       ) : productsError ? (
-        <div className="space-y-3 px-5 py-5">
-          <p className="text-sm text-red-800" role="alert">{productsError}</p>
-          <Button
-            onClick={onRetryProducts}
-          >
-            Reintentar
-          </Button>
+        <div className='space-y-3 px-5 py-5'>
+          <p className='text-sm text-red-800' role='alert'>
+            {productsError}
+          </p>
+          <Button onClick={onRetryProducts}>Reintentar</Button>
         </div>
       ) : products?.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-slate-600" role="status">
+        <p className='px-5 py-6 text-sm text-slate-600' role='status'>
           No hay productos activos disponibles para cotizar.
         </p>
       ) : (
         <form aria-busy={isSubmitting} noValidate onSubmit={handleSubmit}>
-          <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 py-5">
+          <div className='max-h-[55vh] space-y-3 overflow-y-auto px-5 py-5'>
             {lines.map((line, index) => {
               const errors = lineErrors[line.key]
               const productErrorId = `quote-product-${line.key}-error`
               const quantityErrorId = `quote-quantity-${line.key}-error`
 
               return (
-                <fieldset className="rounded-[4px] border border-slate-200 bg-slate-50 p-3" key={line.key}>
-                  <legend className="px-1 text-xs font-semibold text-slate-600">
+                <fieldset
+                  className='rounded-[4px] border border-slate-200 bg-slate-50 p-3'
+                  key={line.key}
+                >
+                  <legend className='px-1 text-xs font-semibold text-slate-600'>
                     Producto {index + 1}
                   </legend>
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
+                  <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end'>
                     <div>
-                      <label className="ui-label" htmlFor={`quote-product-${line.key}`}>
+                      <label className='ui-label' htmlFor={`quote-product-${line.key}`}>
                         Producto
                       </label>
                       <select
                         aria-describedby={errors?.product ? productErrorId : undefined}
                         aria-invalid={Boolean(errors?.product)}
                         autoFocus={index === 0}
-                        className="ui-field text-base"
+                        className='ui-field text-base'
                         disabled={isSubmitting}
                         id={`quote-product-${line.key}`}
                         onChange={(event) => updateLine(line.key, 'productId', event.target.value)}
                         value={line.productId}
                       >
-                        <option value="">Seleccionar</option>
+                        <option value=''>Seleccionar</option>
                         {availableProducts.map((product) => (
                           <option
                             disabled={
@@ -231,36 +213,37 @@ export function QuoteModal({
                             key={product.id}
                             value={product.id}
                           >
-                            {product.name}{!product.is_active ? ' (inactivo)' : ''}
+                            {product.name}
+                            {!product.is_active ? ' (inactivo)' : ''}
                           </option>
                         ))}
                       </select>
                       {errors?.product ? (
-                        <p className="mt-1 text-xs font-medium text-red-700" id={productErrorId}>
+                        <p className='mt-1 text-xs font-medium text-red-700' id={productErrorId}>
                           {errors.product}
                         </p>
                       ) : null}
                     </div>
 
                     <div>
-                      <label className="ui-label" htmlFor={`quote-quantity-${line.key}`}>
+                      <label className='ui-label' htmlFor={`quote-quantity-${line.key}`}>
                         Cantidad (kg)
                       </label>
                       <input
                         aria-describedby={errors?.quantity ? quantityErrorId : undefined}
                         aria-invalid={Boolean(errors?.quantity)}
-                        className="ui-field text-base tabular-nums"
+                        className='ui-field text-base tabular-nums'
                         disabled={isSubmitting}
                         id={`quote-quantity-${line.key}`}
-                        inputMode="decimal"
-                        min="0.001"
+                        inputMode='decimal'
+                        min='0.001'
                         onChange={(event) => updateLine(line.key, 'quantity', event.target.value)}
-                        step="0.001"
-                        type="number"
+                        step='0.001'
+                        type='number'
                         value={line.quantity}
                       />
                       {errors?.quantity ? (
-                        <p className="mt-1 text-xs font-medium text-red-700" id={quantityErrorId}>
+                        <p className='mt-1 text-xs font-medium text-red-700' id={quantityErrorId}>
                           {errors.quantity}
                         </p>
                       ) : null}
@@ -270,7 +253,7 @@ export function QuoteModal({
                       aria-label={`Quitar producto ${index + 1}`}
                       disabled={lines.length === 1 || isSubmitting}
                       onClick={() => removeLine(line.key)}
-                      variant="ghost"
+                      variant='ghost'
                     >
                       Quitar
                     </Button>
@@ -280,33 +263,31 @@ export function QuoteModal({
             })}
 
             <Button
-              className="border-dashed"
+              className='border-dashed'
               disabled={allProductsSelected || isSubmitting}
               onClick={addLine}
-              title={allProductsSelected ? 'Todos los productos activos ya fueron agregados' : undefined}
+              title={
+                allProductsSelected ? 'Todos los productos activos ya fueron agregados' : undefined
+              }
             >
               + Agregar producto
             </Button>
 
             {submitError ? (
-              <p className="border-l-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-medium text-red-800" role="alert">
+              <p
+                className='border-l-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-medium text-red-800'
+                role='alert'
+              >
                 {submitError}
               </p>
             ) : null}
           </div>
 
-          <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
-            <Button
-              disabled={isSubmitting}
-              onClick={onClose}
-            >
+          <footer className='flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end'>
+            <Button disabled={isSubmitting} onClick={onClose}>
               Cancelar
             </Button>
-            <Button
-              disabled={isSubmitting}
-              type="submit"
-              variant="primary"
-            >
+            <Button disabled={isSubmitting} type='submit' variant='primary'>
               {isSubmitting
                 ? 'Guardando…'
                 : mode === 'edit'

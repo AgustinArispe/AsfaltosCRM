@@ -48,10 +48,7 @@ async function throwApiError(
   throw new ApiError(response.status, detail || 'Request failed')
 }
 
-export async function apiRequest<T>(
-  path: string,
-  options: ApiRequestOptions = {},
-): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { body, token, onUnauthorized, ...requestOptions } = options
   const headers = requestHeaders(token)
 

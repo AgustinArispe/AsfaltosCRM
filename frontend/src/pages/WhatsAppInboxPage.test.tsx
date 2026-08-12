@@ -1,7 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { WhatsAppInboxPage } from './WhatsAppInboxPage'
 import type { CustomerDetail } from '../customers/types'
 import type { OpportunityDetail } from '../pipeline/types'
 import type {
@@ -10,6 +8,7 @@ import type {
   WhatsAppMessage,
   WhatsAppMessageType,
 } from '../whatsapp/types'
+import { WhatsAppInboxPage } from './WhatsAppInboxPage'
 
 const authState = vi.hoisted(() => ({ logout: vi.fn() }))
 
@@ -93,9 +92,7 @@ function summary(
   }
 }
 
-function detail(
-  overrides: Partial<WhatsAppConversationDetail> = {},
-): WhatsAppConversationDetail {
+function detail(overrides: Partial<WhatsAppConversationDetail> = {}): WhatsAppConversationDetail {
   return {
     ...summary(1),
     opportunity_links: [
@@ -115,10 +112,7 @@ function detail(
   }
 }
 
-function message(
-  id: number,
-  overrides: Partial<WhatsAppMessage> = {},
-): WhatsAppMessage {
+function message(id: number, overrides: Partial<WhatsAppMessage> = {}): WhatsAppMessage {
   const minute = String(id % 60).padStart(2, '0')
   return {
     id,
@@ -151,10 +145,7 @@ function message(
   }
 }
 
-function outboundMessage(
-  id: number,
-  type: WhatsAppMessageType = 'TEXT',
-): WhatsAppMessage {
+function outboundMessage(id: number, type: WhatsAppMessageType = 'TEXT'): WhatsAppMessage {
   const minute = String(id % 60).padStart(2, '0')
   return message(id, {
     external_message_id: `wamid.out.${id}`,
@@ -197,10 +188,7 @@ type MockApiOptions = {
   conversationDetail?: WhatsAppConversationDetail
   messages?: WhatsAppMessage[]
   initialFailure?: boolean
-  send?: (
-    payload: Record<string, unknown>,
-    call: number,
-  ) => Response | Promise<Response>
+  send?: (payload: Record<string, unknown>, call: number) => Response | Promise<Response>
   conversationChanges?: WhatsAppConversationSummary[][]
   olderMessages?: WhatsAppMessage[]
 }
@@ -233,7 +221,8 @@ function mockInboxApi({
         })
       }
       if (url.pathname === '/api/whatsapp/conversations/changes') {
-        const items = conversationChanges[Math.min(changeCalls, conversationChanges.length - 1)] ?? []
+        const items =
+          conversationChanges[Math.min(changeCalls, conversationChanges.length - 1)] ?? []
         changeCalls += 1
         return jsonResponse(200, {
           items,
@@ -244,15 +233,11 @@ function mockInboxApi({
       if (url.pathname === '/api/whatsapp/conversations/1' && method === 'GET') {
         return jsonResponse(200, conversationDetail)
       }
-      if (
-        url.pathname === '/api/whatsapp/conversations/1/messages' &&
-        method === 'GET'
-      ) {
+      if (url.pathname === '/api/whatsapp/conversations/1/messages' && method === 'GET') {
         const isOlderPage = url.searchParams.has('before_cursor')
         return jsonResponse(200, {
           items: isOlderPage ? olderMessages : messages,
-          next_before_cursor:
-            !isOlderPage && olderMessages.length > 0 ? 'older-cursor-1' : null,
+          next_before_cursor: !isOlderPage && olderMessages.length > 0 ? 'older-cursor-1' : null,
           sync_cursor: 'message-cursor-1',
         })
       }
@@ -272,10 +257,7 @@ function mockInboxApi({
       if (url.pathname === '/api/opportunities/77') {
         return jsonResponse(200, opportunityDetail)
       }
-      if (
-        url.pathname === '/api/whatsapp/conversations/1/messages' &&
-        method === 'POST'
-      ) {
+      if (url.pathname === '/api/whatsapp/conversations/1/messages' && method === 'POST') {
         sendCalls += 1
         const payload = JSON.parse(String(init?.body)) as Record<string, unknown>
         if (send) return send(payload, sendCalls)
@@ -303,10 +285,7 @@ function mockInboxApi({
           headers: { 'Content-Type': 'application/pdf' },
         })
       }
-      if (
-        url.pathname === '/api/whatsapp/conversations/1/opportunity-link' &&
-        method === 'PUT'
-      ) {
+      if (url.pathname === '/api/whatsapp/conversations/1/opportunity-link' && method === 'PUT') {
         const payload = JSON.parse(String(init?.body)) as { opportunity_id: number }
         const opportunity = conversationDetail.opportunity_suggestions.find(
           (item) => item.id === payload.opportunity_id,
@@ -356,9 +335,7 @@ function mockInboxApi({
 }
 
 async function openConversation() {
-  expect(
-    await screen.findByRole('heading', { name: 'Cliente Uno' }),
-  ).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: 'Cliente Uno' })).toBeInTheDocument()
   await screen.findByText('Necesito una cotización')
 }
 
@@ -387,14 +364,12 @@ describe('WhatsAppInboxPage', () => {
     expect(screen.getByText('SuperPhalt')).toBeInTheDocument()
     expect(screen.getByText('2.500 kg')).toBeInTheDocument()
 
-    const readCall = fetchMock.mock.calls.find(([input, init]) =>
-      String(input).endsWith('/api/whatsapp/conversations/1/read') &&
-      init?.method === 'POST',
+    const readCall = fetchMock.mock.calls.find(
+      ([input, init]) =>
+        String(input).endsWith('/api/whatsapp/conversations/1/read') && init?.method === 'POST',
     )
     expect(readCall).toBeDefined()
-    expect(new Headers(readCall?.[1]?.headers).get('Authorization')).toBe(
-      'Bearer whatsapp-token',
-    )
+    expect(new Headers(readCall?.[1]?.headers).get('Authorization')).toBe('Bearer whatsapp-token')
     expect(screen.queryByLabelText('2 mensajes sin leer')).not.toBeInTheDocument()
     expect(screen.getByText('Respuesta pendiente.')).toBeInTheDocument()
   })
@@ -403,18 +378,14 @@ describe('WhatsAppInboxPage', () => {
     mockInboxApi({ initialFailure: true })
     render(<WhatsAppInboxPage />)
 
-    expect(
-      await screen.findByText('No pudimos cargar la bandeja'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos cargar la bandeja')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     await openConversation()
 
     fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar conversaciones' }), {
       target: { value: 'cliente inexistente' },
     })
-    expect(
-      await screen.findByText('No hay conversaciones para mostrar'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('No hay conversaciones para mostrar')).toBeInTheDocument()
   })
 
   it('combines waiting and unread filters in a fresh backend snapshot', async () => {
@@ -450,9 +421,7 @@ describe('WhatsAppInboxPage', () => {
     render(<WhatsAppInboxPage />)
     await openConversation()
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Cargar mensajes anteriores' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar mensajes anteriores' }))
     expect(await screen.findByText('Mensaje anterior')).toBeInTheDocument()
     expect(screen.getAllByText('Necesito una cotización')).toHaveLength(1)
     expect(screen.getAllByRole('log')).toHaveLength(1)
@@ -482,16 +451,12 @@ describe('WhatsAppInboxPage', () => {
     expect(sentPayloads).toHaveLength(0)
     fireEvent.keyDown(composer, { key: 'Enter' })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No pudimos enviar el mensaje',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos enviar el mensaje')
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar mismo envío' }))
 
     await screen.findByText('Respuesta del equipo')
     expect(sentPayloads).toHaveLength(2)
-    expect(sentPayloads[0]?.client_generated_id).toBe(
-      sentPayloads[1]?.client_generated_id,
-    )
+    expect(sentPayloads[0]?.client_generated_id).toBe(sentPayloads[1]?.client_generated_id)
     expect(sentPayloads[1]).toMatchObject({
       message_type: 'TEXT',
       body: 'Enseguida te respondemos',
@@ -502,47 +467,56 @@ describe('WhatsAppInboxPage', () => {
   it.each([
     ['application/pdf', 'ficha.pdf', 'DOCUMENT'],
     ['image/png', 'muestra.png', 'IMAGE'],
-  ] as const)('uploads and sends %s without base64 or provider URLs', async (mime, filename, expectedType) => {
-    const fetchMock = mockInboxApi()
-    render(<WhatsAppInboxPage />)
-    await openConversation()
+  ] as const)(
+    'uploads and sends %s without base64 or provider URLs',
+    async (mime, filename, expectedType) => {
+      const fetchMock = mockInboxApi()
+      render(<WhatsAppInboxPage />)
+      await openConversation()
 
-    const file = new File(['content'], filename, { type: mime })
-    fireEvent.change(screen.getByLabelText('Adjuntar imagen o PDF'), {
-      target: { files: [file] },
-    })
-    fireEvent.change(screen.getByLabelText('Mensaje'), {
-      target: { value: 'Adjunto documentación' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+      const file = new File(['content'], filename, { type: mime })
+      fireEvent.change(screen.getByLabelText('Adjuntar imagen o PDF'), {
+        target: { files: [file] },
+      })
+      fireEvent.change(screen.getByLabelText('Mensaje'), {
+        target: { value: 'Adjunto documentación' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
 
-    await waitFor(() => {
-      const sendCall = fetchMock.mock.calls.find(([input, init]) =>
-        String(input).endsWith('/api/whatsapp/conversations/1/messages') &&
-        init?.method === 'POST',
+      await waitFor(() => {
+        const sendCall = fetchMock.mock.calls.find(
+          ([input, init]) =>
+            String(input).endsWith('/api/whatsapp/conversations/1/messages') &&
+            init?.method === 'POST',
+        )
+        expect(sendCall).toBeDefined()
+      })
+      const uploadCall = fetchMock.mock.calls.find(([input]) =>
+        String(input).endsWith('/api/whatsapp/media'),
       )
-      expect(sendCall).toBeDefined()
-    })
-    const uploadCall = fetchMock.mock.calls.find(([input]) =>
-      String(input).endsWith('/api/whatsapp/media'),
-    )
-    expect(uploadCall?.[1]?.body).toBeInstanceOf(FormData)
-    const metadata = (uploadCall?.[1]?.body as FormData).get('metadata')
-    expect(metadata).toBe(JSON.stringify({ media_type: expectedType }))
+      const uploadBody = uploadCall?.[1]?.body
+      expect(uploadBody).toBeInstanceOf(FormData)
+      if (!(uploadBody instanceof FormData)) {
+        throw new Error('Expected the upload request to contain FormData')
+      }
+      const metadata = uploadBody.get('metadata')
+      expect(metadata).toBe(JSON.stringify({ media_type: expectedType }))
 
-    const sendCall = fetchMock.mock.calls.find(([input, init]) =>
-      String(input).endsWith('/api/whatsapp/conversations/1/messages') &&
-      init?.method === 'POST',
-    )
-    const payload = JSON.parse(String(sendCall?.[1]?.body)) as Record<string, unknown>
-    expect(payload).toMatchObject({
-      message_type: expectedType,
-      media_ref: '22222222-2222-4222-8222-222222222222',
-      caption: 'Adjunto documentación',
-    })
-    expect(String(sendCall?.[1]?.body)).not.toContain('content')
-    expect(String(sendCall?.[1]?.body)).not.toContain('graph.facebook')
-  })
+      const sendCall = fetchMock.mock.calls.find(
+        ([input, init]) =>
+          String(input).endsWith('/api/whatsapp/conversations/1/messages') &&
+          init?.method === 'POST',
+      )
+      const payload = JSON.parse(String(sendCall?.[1]?.body)) as Record<string, unknown>
+      expect(payload).toMatchObject({
+        message_type: expectedType,
+        media_ref: '22222222-2222-4222-8222-222222222222',
+        caption: 'Adjunto documentación',
+      })
+      expect(String(sendCall?.[1]?.body)).not.toContain('content')
+      expect(String(sendCall?.[1]?.body)).not.toContain('graph.facebook')
+    },
+  )
 
   it('blocks freeform composition with backend template-required evidence', async () => {
     mockInboxApi({
@@ -557,9 +531,7 @@ describe('WhatsAppInboxPage', () => {
     await openConversation()
 
     expect(screen.getByLabelText('Mensaje')).toBeDisabled()
-    expect(
-      screen.getAllByText(/Se requiere un template aprobado/).length,
-    ).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Se requiere un template aprobado/).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /enviar template/i })).not.toBeInTheDocument()
   })
 
@@ -588,8 +560,8 @@ describe('WhatsAppInboxPage', () => {
 
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls.some(([input, init]) =>
-          String(input).endsWith('/opportunity-link') && init?.method === 'PUT',
+        fetchMock.mock.calls.some(
+          ([input, init]) => String(input).endsWith('/opportunity-link') && init?.method === 'PUT',
         ),
       ).toBe(true),
     )
@@ -602,8 +574,9 @@ describe('WhatsAppInboxPage', () => {
     fireEvent.click(within(unlinkConfirmation).getByRole('button', { name: 'Confirmar' }))
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls.some(([input, init]) =>
-          String(input).endsWith('/opportunity-link') && init?.method === 'DELETE',
+        fetchMock.mock.calls.some(
+          ([input, init]) =>
+            String(input).endsWith('/opportunity-link') && init?.method === 'DELETE',
         ),
       ).toBe(true),
     )
@@ -632,9 +605,7 @@ describe('WhatsAppInboxPage', () => {
     )
     expect(mediaCalls).toHaveLength(2)
     for (const call of mediaCalls) {
-      expect(new Headers(call[1]?.headers).get('Authorization')).toBe(
-        'Bearer whatsapp-token',
-      )
+      expect(new Headers(call[1]?.headers).get('Authorization')).toBe('Bearer whatsapp-token')
     }
     expect(document.body).not.toHaveTextContent('storage_key')
     expect(document.body).not.toHaveTextContent('graph.facebook.com')
@@ -643,7 +614,13 @@ describe('WhatsAppInboxPage', () => {
   it('drains incremental changes, reorders rows and keeps the active selection stable', async () => {
     const fetchMock = mockInboxApi({
       conversationChanges: [
-        [summary(2, { waiting_for_response: true, unread_count: 5, resource_updated_at: '2026-08-10T16:00:00Z' })],
+        [
+          summary(2, {
+            waiting_for_response: true,
+            unread_count: 5,
+            resource_updated_at: '2026-08-10T16:00:00Z',
+          }),
+        ],
         [],
       ],
     })
@@ -659,9 +636,12 @@ describe('WhatsAppInboxPage', () => {
       ).toHaveLength(2),
     )
     expect(screen.getByRole('heading', { name: 'Cliente Uno' })).toBeInTheDocument()
-    const rows = screen.getAllByRole('button').filter((button) =>
-      button.textContent?.includes('Cliente 2') || button.textContent?.includes('Cliente Uno'),
-    )
+    const rows = screen
+      .getAllByRole('button')
+      .filter(
+        (button) =>
+          button.textContent?.includes('Cliente 2') || button.textContent?.includes('Cliente Uno'),
+      )
     expect(rows[0]).toHaveTextContent('Cliente 2')
     expect(
       fetchMock.mock.calls.filter(([input]) => {
