@@ -40,6 +40,16 @@ Stack obligatorio: FastAPI, SQLAlchemy, Alembic y PostgreSQL.
 - Usar enums, constantes o tipos de dominio para estados, roles y valores importantes; evitar strings mágicos.
 - Todo cambio de esquema de PostgreSQL debe incorporarse mediante una migración Alembic. Nunca modificar manualmente una base existente para evitar una migración.
 
+### Orden permanente de locks PostgreSQL
+
+Las mutaciones afectadas deben adquirir locks en este orden global, omitiendo clases
+que no necesiten pero sin volver nunca a una clase anterior: advisory locks de
+transacción ordenados por clave → `Customer` → `WhatsAppBroadcast` →
+`WhatsAppBroadcastRecipient` → `WhatsAppConversation` → `WhatsAppMessage` → filas de
+evidencia dependientes. Un read sin lock puede descubrir IDs, pero toda condición se
+revalida después de adquirir los locks ordenados. Ordenar IDs antes de bloquear varias
+filas y no mantener transacciones ni locks durante I/O de red o del provider.
+
 ### Strict Python Engineering
 
 El backend se trata como una codebase fuertemente tipada aunque Python sea dinámico

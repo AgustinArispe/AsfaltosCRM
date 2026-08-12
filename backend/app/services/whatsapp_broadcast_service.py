@@ -39,12 +39,16 @@ from app.services.errors import (
     InvalidWhatsAppBroadcastError,
     WhatsAppBroadcastConflictError,
 )
+from app.services.whatsapp_broadcast_projection_service import (
+    recompute_broadcast_recipient_projection,
+)
 from app.services.whatsapp_consent_service import WhatsAppConsentService
 from app.services.whatsapp_message_service import (
     OutboundAttachmentInput,
     OutboundMessageInput,
     WhatsAppMessageService,
 )
+from app.services.whatsapp_projection_service import later_datetime
 from app.whatsapp import (
     MediaStorage,
     MediaStorageError,
@@ -164,6 +168,14 @@ class _DispatchPlan:
     parameters: tuple[TemplateParameter, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class _ClaimCandidate:
+    recipient_id: int
+    customer_id: int
+    normalized_phone: str
+    initial_client_generated_id: UUID
+
+
 class WhatsAppBroadcastService:
     def __init__(
         self,
@@ -208,6 +220,15 @@ class WhatsAppBroadcastService:
         media = self._header_media(template, create_input.header_media_ref)
         signature = self._template_signature(template)
         with self._session.begin():
+            acquire_advisory_locks(
+                self._session,
+                (
+                    (
+                        "whatsapp-broadcast-create",
+                        str(create_input.client_generated_id),
+                    ),
+                ),
+            )
             existing = self._session.scalar(
                 select(WhatsAppBroadcast)
                 .where(
@@ -511,20 +532,60 @@ class WhatsAppBroadcastService:
     ) -> BroadcastProcessResult:
         processed_at = self._aware_utc(now or datetime.now(UTC))
         templates = self._provider.list_templates()
+        self._recover_stale_claims_transaction(
+            broadcast_id,
+            now=processed_at,
+        )
+        candidates = self._claim_candidates(broadcast_id)
         with self._session.begin():
-            broadcast = self._broadcast_for_update(broadcast_id)
+            advisory_identities: list[tuple[str, str]] = [
+                (
+                    "whatsapp-broadcast-command",
+                    f"{broadcast_id}:{command_id}",
+                )
+            ]
+            for candidate in candidates:
+                advisory_identities.extend(
+                    customer_identity_locks(None, candidate.normalized_phone)
+                )
+                advisory_identities.append(
+                    (
+                        "whatsapp-outbound-message",
+                        str(candidate.initial_client_generated_id),
+                    )
+                )
+            acquire_advisory_locks(
+                self._session,
+                tuple(advisory_identities),
+            )
+            broadcast = self._session.get(WhatsAppBroadcast, broadcast_id)
+            if broadcast is None:
+                raise EntityNotFoundError("WhatsAppBroadcast", broadcast_id)
             if self._command_exists(broadcast.id, command_id):
                 return self._process_result(broadcast, 0, True)
             if broadcast.status is not WhatsAppBroadcastStatus.PROCESSING:
                 raise WhatsAppBroadcastConflictError(
                     "Broadcast must be processing before claiming recipients"
                 )
-            self._recover_stale_claims(broadcast, now=processed_at)
+            candidate_by_id = {
+                candidate.recipient_id: candidate for candidate in candidates
+            }
+            customer_ids = sorted({candidate.customer_id for candidate in candidates})
+            if customer_ids:
+                tuple(
+                    self._session.scalars(
+                        select(Customer)
+                        .where(Customer.id.in_(customer_ids))
+                        .order_by(Customer.id)
+                        .with_for_update()
+                    )
+                )
             recipients = tuple(
                 self._session.scalars(
                     select(WhatsAppBroadcastRecipient)
                     .where(
                         WhatsAppBroadcastRecipient.broadcast_id == broadcast.id,
+                        WhatsAppBroadcastRecipient.id.in_(candidate_by_id),
                         WhatsAppBroadcastRecipient.status
                         == WhatsAppBroadcastRecipientStatus.READY,
                     )
@@ -534,19 +595,47 @@ class WhatsAppBroadcastService:
                 )
             )
             for recipient in recipients:
+                conversation = self._conversation_for_recipient(recipient)
+                recipient.conversation_id = conversation.id
+            latest_by_recipient = self._latest_messages_for_recipients_locked(
+                tuple(recipient.id for recipient in recipients)
+            )
+            claimed_recipients: list[WhatsAppBroadcastRecipient] = []
+            for recipient in recipients:
+                existing = latest_by_recipient.get(recipient.id)
+                if existing is None:
+                    candidate = candidate_by_id[recipient.id]
+                    self._pending_broadcast_message(
+                        broadcast,
+                        recipient,
+                        previous=None,
+                        actor_user_id=self._broadcast_sender(broadcast),
+                        client_generated_id=candidate.initial_client_generated_id,
+                    )
+                elif existing.dispatch_state is WhatsAppDispatchState.PENDING:
+                    pass
+                else:
+                    self._block(recipient, "ATTEMPT_ALREADY_EXISTS", now=processed_at)
+                    continue
                 recipient.status = WhatsAppBroadcastRecipientStatus.IN_PROGRESS
                 recipient.claim_token = command_id
                 recipient.claimed_at = processed_at
                 recipient.updated_at = processed_at
+                recompute_broadcast_recipient_projection(
+                    self._session,
+                    recipient,
+                    now=processed_at,
+                )
+                claimed_recipients.append(recipient)
             self._audit(
                 broadcast.id,
                 WhatsAppBroadcastAuditEventType.PROCESSED,
                 occurred_at=processed_at,
                 actor_user_id=actor_user_id,
                 command_id=command_id,
-                affected_count=len(recipients),
+                affected_count=len(claimed_recipients),
             )
-            recipient_ids = tuple(recipient.id for recipient in recipients)
+            recipient_ids = tuple(recipient.id for recipient in claimed_recipients)
         completed_count = 0
         for recipient_id in recipient_ids:
             plan = self._prepare_dispatch(
@@ -598,9 +687,46 @@ class WhatsAppBroadcastService:
         if not recipient_ids:
             raise InvalidWhatsAppBroadcastError("Retry requires recipient IDs")
         templates = self._provider.list_templates()
+        candidates = self._retry_candidates(broadcast_id, recipient_ids)
         created_ids: list[int] = []
         rejected_ids: list[int] = []
         with self._session.begin():
+            advisory_identities: list[tuple[str, str]] = [
+                (
+                    "whatsapp-broadcast-command",
+                    f"{broadcast_id}:{command_id}",
+                )
+            ]
+            for candidate in candidates:
+                advisory_identities.append(
+                    (
+                        "whatsapp-consent-dispatch",
+                        f"{candidate.customer_id}:{candidate.normalized_phone}",
+                    )
+                )
+                advisory_identities.append(
+                    (
+                        "whatsapp-outbound-message",
+                        str(candidate.initial_client_generated_id),
+                    )
+                )
+            acquire_advisory_locks(
+                self._session,
+                tuple(advisory_identities),
+            )
+            candidate_by_id = {
+                candidate.recipient_id: candidate for candidate in candidates
+            }
+            customer_ids = sorted({candidate.customer_id for candidate in candidates})
+            if customer_ids:
+                tuple(
+                    self._session.scalars(
+                        select(Customer)
+                        .where(Customer.id.in_(customer_ids))
+                        .order_by(Customer.id)
+                        .with_for_update()
+                    )
+                )
             broadcast = self._broadcast_for_update(broadcast_id)
             if self._command_exists(broadcast.id, command_id):
                 return BroadcastRetryResult(broadcast.id, (), (), True)
@@ -609,38 +735,73 @@ class WhatsAppBroadcastService:
                 raise WhatsAppBroadcastConflictError(
                     "Broadcast template is no longer approved or unchanged"
                 )
-            for recipient_id in recipient_ids:
-                recipient = self._session.scalar(
+            locked_recipients = tuple(
+                self._session.scalars(
                     select(WhatsAppBroadcastRecipient)
                     .where(
-                        WhatsAppBroadcastRecipient.id == recipient_id,
+                        WhatsAppBroadcastRecipient.id.in_(candidate_by_id),
                         WhatsAppBroadcastRecipient.broadcast_id == broadcast.id,
                     )
+                    .order_by(WhatsAppBroadcastRecipient.id)
                     .with_for_update()
                 )
+            )
+            recipient_by_id = {
+                recipient.id: recipient for recipient in locked_recipients
+            }
+            conversation_ids = sorted(
+                {
+                    recipient.conversation_id
+                    for recipient in locked_recipients
+                    if recipient.conversation_id is not None
+                }
+            )
+            if conversation_ids:
+                tuple(
+                    self._session.scalars(
+                        select(WhatsAppConversation)
+                        .where(WhatsAppConversation.id.in_(conversation_ids))
+                        .order_by(WhatsAppConversation.id)
+                        .with_for_update()
+                    )
+                )
+            latest_by_recipient = self._latest_messages_for_recipients_locked(
+                tuple(recipient.id for recipient in locked_recipients)
+            )
+            for recipient_id in recipient_ids:
+                recipient = recipient_by_id.get(recipient_id)
+                eligibility_at = datetime.now(UTC)
                 if (
                     recipient is None
                     or recipient.status is not WhatsAppBroadcastRecipientStatus.FAILED
-                    or not self._recipient_is_eligible(recipient, now=retried_at)
+                    or not self._recipient_is_eligible(
+                        recipient,
+                        now=eligibility_at,
+                    )
                 ):
                     rejected_ids.append(recipient_id)
                     continue
-                previous = self._latest_message(recipient.id)
+                previous = latest_by_recipient[recipient.id]
                 if previous is None or not self._message_failed(previous):
                     rejected_ids.append(recipient_id)
                     continue
-                message = self._pending_retry_message(
+                candidate = candidate_by_id[recipient.id]
+                message = self._pending_broadcast_message(
                     broadcast,
                     recipient,
-                    previous,
+                    previous=previous,
                     actor_user_id=actor_user_id,
+                    client_generated_id=candidate.initial_client_generated_id,
                 )
                 created_ids.append(message.id)
-                recipient.status = WhatsAppBroadcastRecipientStatus.READY
                 recipient.reason_code = None
-                recipient.safe_error_code = None
-                recipient.safe_error_message = None
-                recipient.updated_at = retried_at
+                recipient.claim_token = None
+                recipient.claimed_at = None
+                recompute_broadcast_recipient_projection(
+                    self._session,
+                    recipient,
+                    now=retried_at,
+                )
             if created_ids:
                 broadcast.status = WhatsAppBroadcastStatus.PROCESSING
                 broadcast.updated_at = retried_at
@@ -750,6 +911,76 @@ class WhatsAppBroadcastService:
             broadcast.last_completed_at,
         )
 
+    def _claim_candidates(
+        self,
+        broadcast_id: int,
+    ) -> tuple[_ClaimCandidate, ...]:
+        with self._session.begin():
+            rows = self._session.execute(
+                select(
+                    WhatsAppBroadcastRecipient.id,
+                    WhatsAppBroadcastRecipient.customer_id,
+                    WhatsAppBroadcastRecipient.normalized_phone,
+                )
+                .where(
+                    WhatsAppBroadcastRecipient.broadcast_id == broadcast_id,
+                    WhatsAppBroadcastRecipient.status
+                    == WhatsAppBroadcastRecipientStatus.READY,
+                )
+                .order_by(WhatsAppBroadcastRecipient.id)
+                .limit(self._batch_size * 2)
+            ).all()
+            return tuple(
+                _ClaimCandidate(
+                    recipient_id=row.id,
+                    customer_id=row.customer_id,
+                    normalized_phone=row.normalized_phone,
+                    initial_client_generated_id=uuid4(),
+                )
+                for row in rows
+            )
+
+    def _retry_candidates(
+        self,
+        broadcast_id: int,
+        recipient_ids: tuple[int, ...],
+    ) -> tuple[_ClaimCandidate, ...]:
+        with self._session.begin():
+            rows = self._session.execute(
+                select(
+                    WhatsAppBroadcastRecipient.id,
+                    WhatsAppBroadcastRecipient.customer_id,
+                    WhatsAppBroadcastRecipient.normalized_phone,
+                )
+                .where(
+                    WhatsAppBroadcastRecipient.broadcast_id == broadcast_id,
+                    WhatsAppBroadcastRecipient.id.in_(set(recipient_ids)),
+                )
+                .order_by(WhatsAppBroadcastRecipient.id)
+            ).all()
+            return tuple(
+                _ClaimCandidate(
+                    recipient_id=row.id,
+                    customer_id=row.customer_id,
+                    normalized_phone=row.normalized_phone,
+                    initial_client_generated_id=uuid4(),
+                )
+                for row in rows
+            )
+
+    def _recover_stale_claims_transaction(
+        self,
+        broadcast_id: int,
+        *,
+        now: datetime,
+    ) -> None:
+        with self._session.begin():
+            broadcast = self._session.get(WhatsAppBroadcast, broadcast_id)
+            if broadcast is None:
+                raise EntityNotFoundError("WhatsAppBroadcast", broadcast_id)
+            if broadcast.status is WhatsAppBroadcastStatus.PROCESSING:
+                self._recover_stale_claims(broadcast, now=now)
+
     def _prepare_dispatch(
         self,
         recipient_id: int,
@@ -768,43 +999,41 @@ class WhatsAppBroadcastService:
                 or recipient.status is not WhatsAppBroadcastRecipientStatus.IN_PROGRESS
             ):
                 return None
-            broadcast = self._broadcast_for_update(recipient.broadcast_id)
+            broadcast = self._session.get(WhatsAppBroadcast, recipient.broadcast_id)
+            if broadcast is None:
+                raise EntityNotFoundError(
+                    "WhatsAppBroadcast",
+                    recipient.broadcast_id,
+                )
             if self._template_for_broadcast(broadcast, templates) is None:
                 self._block(recipient, "TEMPLATE_UNAVAILABLE", now=now)
                 return None
             if not self._recipient_is_eligible(recipient, now=now):
                 self._block(recipient, "CONSENT_OR_PHONE_CHANGED", now=now)
                 return None
-            conversation = self._conversation_for_recipient(recipient)
             existing = self._latest_message(recipient.id)
             if (
-                existing is not None
-                and existing.dispatch_state is WhatsAppDispatchState.PENDING
+                existing is None
+                or existing.dispatch_state is not WhatsAppDispatchState.PENDING
+                or recipient.conversation_id is None
             ):
-                client_generated_id = existing.client_generated_id
-                retry_of_message_id = existing.retry_of_message_id
-                if client_generated_id is None:
-                    raise RuntimeError("Pending Broadcast Message has no UUID")
-            elif existing is None:
-                client_generated_id = uuid4()
-                retry_of_message_id = None
-            else:
                 self._block(recipient, "ATTEMPT_ALREADY_EXISTS", now=now)
                 return None
+            client_generated_id = existing.client_generated_id
+            retry_of_message_id = existing.retry_of_message_id
+            if client_generated_id is None:
+                raise RuntimeError("Pending Broadcast Message has no UUID")
             message_type = broadcast.template_header_type or WhatsAppMessageType.TEXT
             attachment = self._attachment_input(broadcast)
             parameters = tuple(
                 TemplateParameter(name=item.name, value=item.value)
                 for item in broadcast.parameters
             )
-            sent_by = broadcast.started_by_user_id or broadcast.confirmed_by_user_id
-            if sent_by is None:
-                raise RuntimeError("Started Broadcast has no initiating user")
-            recipient.conversation_id = conversation.id
+            sent_by = self._broadcast_sender(broadcast)
             recipient.updated_at = now
             return _DispatchPlan(
                 recipient.id,
-                conversation.id,
+                recipient.conversation_id,
                 client_generated_id,
                 retry_of_message_id,
                 sent_by,
@@ -888,10 +1117,6 @@ class WhatsAppBroadcastService:
         self,
         recipient: WhatsAppBroadcastRecipient,
     ) -> WhatsAppConversation:
-        acquire_advisory_locks(
-            self._session,
-            customer_identity_locks(None, recipient.normalized_phone),
-        )
         conversation = self._session.scalar(
             select(WhatsAppConversation)
             .where(WhatsAppConversation.phone_match_key == recipient.normalized_phone)
@@ -917,27 +1142,36 @@ class WhatsAppBroadcastService:
             )
         return conversation
 
-    def _pending_retry_message(
+    def _pending_broadcast_message(
         self,
         broadcast: WhatsAppBroadcast,
         recipient: WhatsAppBroadcastRecipient,
-        previous: WhatsAppMessage,
+        previous: WhatsAppMessage | None,
         *,
         actor_user_id: int,
+        client_generated_id: UUID,
     ) -> WhatsAppMessage:
-        if recipient.conversation_id is None:
+        conversation_id = recipient.conversation_id
+        if conversation_id is None:
+            conversation = self._session.scalar(
+                select(WhatsAppConversation).where(
+                    WhatsAppConversation.phone_match_key == recipient.normalized_phone
+                )
+            )
+            conversation_id = conversation.id if conversation is not None else None
+        if conversation_id is None:
             raise RuntimeError("Failed Broadcast recipient has no conversation")
         message_type = broadcast.template_header_type or WhatsAppMessageType.TEXT
         message = WhatsAppMessage(
-            conversation_id=recipient.conversation_id,
+            conversation_id=conversation_id,
             external_message_id=None,
-            client_generated_id=uuid4(),
+            client_generated_id=client_generated_id,
             direction=WhatsAppDirection.OUTBOUND,
             message_type=message_type,
             origin=WhatsAppMessageOrigin.BROADCAST,
             body=None,
             sent_by_user_id=actor_user_id,
-            retry_of_message_id=previous.id,
+            retry_of_message_id=previous.id if previous is not None else None,
             broadcast_recipient_id=recipient.id,
             template_name=broadcast.template_name,
             template_language=broadcast.template_language,
@@ -978,11 +1212,15 @@ class WhatsAppBroadcastService:
                     == WhatsAppBroadcastRecipientStatus.IN_PROGRESS,
                     WhatsAppBroadcastRecipient.claimed_at < threshold,
                 )
+                .order_by(WhatsAppBroadcastRecipient.id)
                 .with_for_update(skip_locked=True)
             )
         )
+        latest_by_recipient = self._latest_messages_for_recipients_locked(
+            tuple(recipient.id for recipient in stale)
+        )
         for recipient in stale:
-            message = self._latest_message(recipient.id)
+            message = latest_by_recipient.get(recipient.id)
             if (
                 message is None
                 or message.dispatch_state is WhatsAppDispatchState.PENDING
@@ -995,14 +1233,20 @@ class WhatsAppBroadcastService:
                 message.dispatch_state = WhatsAppDispatchState.UNKNOWN
                 message.provider_error_code = "STALE_IN_PROGRESS"
                 message.provider_error_message = "Provider acceptance is unknown"
-                message.updated_at = now
-                recipient.status = WhatsAppBroadcastRecipientStatus.UNKNOWN
-                recipient.safe_error_code = message.provider_error_code
-                recipient.safe_error_message = message.provider_error_message
+                message.updated_at = later_datetime(message.updated_at, now)
+                recipient.claim_token = None
+                recipient.claimed_at = None
                 reason = "MARKED_UNKNOWN"
             else:
                 reason = "ALREADY_RECONCILED"
-            recipient.updated_at = now
+            if message is not None:
+                recompute_broadcast_recipient_projection(
+                    self._session,
+                    recipient,
+                    now=now,
+                )
+            else:
+                recipient.updated_at = now
             self._audit(
                 broadcast.id,
                 WhatsAppBroadcastAuditEventType.STALE_CLAIM_RECOVERED,
@@ -1280,6 +1524,36 @@ class WhatsAppBroadcastService:
             .order_by(WhatsAppMessage.id.desc())
             .limit(1)
         )
+
+    def _latest_messages_for_recipients_locked(
+        self,
+        recipient_ids: tuple[int, ...],
+    ) -> dict[int, WhatsAppMessage]:
+        if not recipient_ids:
+            return {}
+        messages = tuple(
+            self._session.scalars(
+                select(WhatsAppMessage)
+                .where(WhatsAppMessage.broadcast_recipient_id.in_(recipient_ids))
+                .order_by(WhatsAppMessage.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        )
+        latest: dict[int, WhatsAppMessage] = {}
+        for message in messages:
+            recipient_id = message.broadcast_recipient_id
+            if recipient_id is None:
+                raise RuntimeError("Broadcast Message has no recipient")
+            latest[recipient_id] = message
+        return latest
+
+    @staticmethod
+    def _broadcast_sender(broadcast: WhatsAppBroadcast) -> int:
+        sent_by = broadcast.started_by_user_id or broadcast.confirmed_by_user_id
+        if sent_by is None:
+            raise RuntimeError("Started Broadcast has no initiating user")
+        return sent_by
 
     @staticmethod
     def _message_failed(message: WhatsAppMessage) -> bool:

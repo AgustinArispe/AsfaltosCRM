@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models import (
     Customer,
@@ -75,6 +76,7 @@ class LegendaryService:
         before_effective = customer.is_legendary
         customer.legendary_automatic = automatic
         customer.legendary_automatic_evaluated_at = evaluated_at.astimezone(UTC)
+        flag_modified(customer, "updated_at")
         changed = before_automatic != automatic
         if changed:
             self._session.add(

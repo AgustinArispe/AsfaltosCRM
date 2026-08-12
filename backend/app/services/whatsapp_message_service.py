@@ -11,8 +11,12 @@ from app.models import (
     Customer,
     User,
     WhatsAppAttachment,
+    WhatsAppBroadcastAuditEvent,
+    WhatsAppBroadcastAuditEventType,
     WhatsAppBroadcastRecipient,
+    WhatsAppBroadcastRecipientStatus,
     WhatsAppBroadcastTemplateParameter,
+    WhatsAppConsentDecision,
     WhatsAppConversation,
     WhatsAppConversationResolution,
     WhatsAppDirection,
@@ -22,6 +26,10 @@ from app.models import (
     WhatsAppMessageType,
     WhatsAppProviderState,
     WhatsAppStorageStatus,
+)
+from app.services.customer_identity_service import (
+    acquire_advisory_locks,
+    comparable_phone,
 )
 from app.services.errors import (
     EntityNotFoundError,
@@ -33,7 +41,11 @@ from app.services.errors import (
     WhatsAppReplyInProgressError,
 )
 from app.services.whatsapp_broadcast_projection_service import (
-    sync_broadcast_recipient_from_message,
+    recompute_broadcast_recipient_projection,
+)
+from app.services.whatsapp_consent_service import (
+    WhatsAppConsentService,
+    consent_dispatch_lock,
 )
 from app.services.whatsapp_projection_service import (
     earlier_datetime,
@@ -110,14 +122,9 @@ class WhatsAppMessageService:
         if not should_dispatch:
             return self._result(message_id, created=created)
 
-        with self._session.begin():
-            message = self._message_for_update(message_id)
-            if message.dispatch_state is not WhatsAppDispatchState.PENDING:
-                return self._as_result(message, created=created)
-            message.dispatch_state = WhatsAppDispatchState.IN_PROGRESS
-            message.updated_at = later_datetime(message.updated_at, requested_at)
-            provider_request = self._build_provider_request(message)
-            self._session.flush()
+        provider_request = self._start_dispatch(message_id, started_at=requested_at)
+        if provider_request is None:
+            return self._result(message_id, created=created)
 
         try:
             provider_result = self._dispatch(provider_request)
@@ -133,6 +140,148 @@ class WhatsAppMessageService:
             provider_result,
             reconciled_at=requested_at,
             created=created,
+        )
+
+    def _start_dispatch(
+        self,
+        message_id: int,
+        *,
+        started_at: datetime,
+    ) -> RecordedProviderRequest | None:
+        with self._session.begin():
+            discovered = self._session.get(WhatsAppMessage, message_id)
+            if discovered is None:
+                raise EntityNotFoundError("WhatsAppMessage", message_id)
+
+            discovered_recipient: WhatsAppBroadcastRecipient | None = None
+            if discovered.broadcast_recipient_id is not None:
+                discovered_recipient = self._session.get(
+                    WhatsAppBroadcastRecipient,
+                    discovered.broadcast_recipient_id,
+                )
+                if discovered_recipient is None:
+                    raise RuntimeError("Broadcast Message has no recipient")
+                acquire_advisory_locks(
+                    self._session,
+                    (
+                        consent_dispatch_lock(
+                            discovered_recipient.customer_id,
+                            discovered_recipient.normalized_phone,
+                        ),
+                    ),
+                )
+                customer = self._session.scalar(
+                    select(Customer)
+                    .where(Customer.id == discovered_recipient.customer_id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+                recipient = self._session.scalar(
+                    select(WhatsAppBroadcastRecipient)
+                    .where(WhatsAppBroadcastRecipient.id == discovered_recipient.id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+                if recipient is None:
+                    raise RuntimeError("Broadcast Message has no recipient")
+            else:
+                customer = None
+                recipient = None
+
+            conversation = self._session.scalar(
+                select(WhatsAppConversation)
+                .where(WhatsAppConversation.id == discovered.conversation_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if conversation is None:
+                raise RuntimeError("Persisted WhatsApp message has no conversation")
+            messages = tuple(
+                self._session.scalars(
+                    select(WhatsAppMessage)
+                    .where(
+                        WhatsAppMessage.id == message_id
+                        if recipient is None
+                        else WhatsAppMessage.broadcast_recipient_id == recipient.id
+                    )
+                    .order_by(WhatsAppMessage.id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+            )
+            if not messages:
+                raise EntityNotFoundError("WhatsAppMessage", message_id)
+            message = next(
+                (item for item in messages if item.id == message_id),
+                None,
+            )
+            if message is None:
+                raise EntityNotFoundError("WhatsAppMessage", message_id)
+
+            if recipient is not None:
+                latest = messages[-1]
+                eligible_at = datetime.now(UTC)
+                consent = WhatsAppConsentService(self._session).current(
+                    recipient.customer_id,
+                    recipient.normalized_phone,
+                    now=eligible_at,
+                )
+                if (
+                    customer is None
+                    or customer.deleted_at is not None
+                    or comparable_phone(customer.phone) != recipient.normalized_phone
+                    or conversation.id != recipient.conversation_id
+                    or conversation.customer_id != recipient.customer_id
+                    or recipient.status
+                    is not WhatsAppBroadcastRecipientStatus.IN_PROGRESS
+                    or latest.id != message.id
+                    or consent is None
+                    or consent.decision is not WhatsAppConsentDecision.OPT_IN
+                ):
+                    self._block_broadcast_recipient(
+                        recipient,
+                        message,
+                        now=eligible_at,
+                    )
+                    return None
+
+            if message.dispatch_state is not WhatsAppDispatchState.PENDING:
+                return None
+            message.dispatch_state = WhatsAppDispatchState.IN_PROGRESS
+            message.updated_at = later_datetime(message.updated_at, started_at)
+            if recipient is not None:
+                recompute_broadcast_recipient_projection(
+                    self._session,
+                    recipient,
+                    now=started_at,
+                )
+            provider_request = self._build_provider_request(message)
+            self._session.flush()
+            return provider_request
+
+    def _block_broadcast_recipient(
+        self,
+        recipient: WhatsAppBroadcastRecipient,
+        message: WhatsAppMessage,
+        *,
+        now: datetime,
+    ) -> None:
+        recipient.status = WhatsAppBroadcastRecipientStatus.BLOCKED
+        recipient.reason_code = "CONSENT_OR_PHONE_CHANGED"
+        recipient.safe_error_code = None
+        recipient.safe_error_message = None
+        recipient.claim_token = None
+        recipient.claimed_at = None
+        recipient.updated_at = later_datetime(recipient.updated_at, now)
+        self._session.add(
+            WhatsAppBroadcastAuditEvent(
+                broadcast_id=recipient.broadcast_id,
+                recipient_id=recipient.id,
+                message_id=message.id,
+                event_type=WhatsAppBroadcastAuditEventType.BLOCKED,
+                reason_code="CONSENT_OR_PHONE_CHANGED",
+                occurred_at=now,
+            )
         )
 
     def can_send_freeform(
@@ -160,10 +309,34 @@ class WhatsAppMessageService:
         requested_at: datetime,
     ) -> tuple[int, bool, bool]:
         with self._session.begin():
+            acquire_advisory_locks(
+                self._session,
+                (
+                    (
+                        "whatsapp-outbound-message",
+                        str(message_input.client_generated_id),
+                    ),
+                ),
+            )
+            if message_input.broadcast_recipient_id is not None:
+                broadcast_recipient = self._session.scalar(
+                    select(WhatsAppBroadcastRecipient)
+                    .where(
+                        WhatsAppBroadcastRecipient.id
+                        == message_input.broadcast_recipient_id
+                    )
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+                if broadcast_recipient is None:
+                    raise InvalidWhatsAppMessageError(
+                        "Broadcast outbound recipient does not exist"
+                    )
             conversation = self._session.scalar(
                 select(WhatsAppConversation)
                 .where(WhatsAppConversation.id == message_input.conversation_id)
                 .with_for_update()
+                .execution_options(populate_existing=True)
             )
             if conversation is None:
                 raise EntityNotFoundError(
@@ -192,6 +365,7 @@ class WhatsAppMessageService:
                     == message_input.client_generated_id
                 )
                 .with_for_update()
+                .execution_options(populate_existing=True)
             )
             if existing is not None:
                 self._assert_same_payload(existing, message_input)
@@ -371,7 +545,13 @@ class WhatsAppMessageService:
         if not external_id:
             raise RuntimeError("Provider accepted a message without an external ID")
         with self._session.begin():
-            message = self._message_for_update(message_id)
+            acquire_advisory_locks(
+                self._session,
+                (("whatsapp-provider-message", external_id),),
+            )
+            message, conversation, recipient = self._message_graph_for_update(
+                message_id
+            )
             if message.dispatch_state is not WhatsAppDispatchState.IN_PROGRESS:
                 return self._as_result(message, created=created)
             message.dispatch_state = WhatsAppDispatchState.ACCEPTED
@@ -386,7 +566,6 @@ class WhatsAppMessageService:
             message.provider_error_code = None
             message.provider_error_message = None
             message.updated_at = later_datetime(message.updated_at, reconciled_at)
-            conversation = self._conversation_for_message(message)
             conversation.last_message_at = later_datetime(
                 conversation.last_message_at,
                 accepted_at,
@@ -400,9 +579,8 @@ class WhatsAppMessageService:
                 conversation,
                 now=reconciled_at,
             )
-            sync_broadcast_recipient_from_message(
-                self._session,
-                message,
+            self._recompute_broadcast_recipient(
+                recipient,
                 now=reconciled_at,
             )
             self._session.flush()
@@ -417,7 +595,9 @@ class WhatsAppMessageService:
         created: bool,
     ) -> OutboundMessageResult:
         with self._session.begin():
-            message = self._message_for_update(message_id)
+            message, _conversation, recipient = self._message_graph_for_update(
+                message_id
+            )
             if message.dispatch_state is WhatsAppDispatchState.IN_PROGRESS:
                 message.dispatch_state = (
                     WhatsAppDispatchState.UNKNOWN
@@ -435,9 +615,8 @@ class WhatsAppMessageService:
                     message.updated_at,
                     reconciled_at,
                 )
-                sync_broadcast_recipient_from_message(
-                    self._session,
-                    message,
+                self._recompute_broadcast_recipient(
+                    recipient,
                     now=reconciled_at,
                 )
                 self._session.flush()
@@ -530,10 +709,60 @@ class WhatsAppMessageService:
             select(WhatsAppMessage)
             .where(WhatsAppMessage.id == message_id)
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         if message is None:
             raise EntityNotFoundError("WhatsAppMessage", message_id)
         return message
+
+    def _recompute_broadcast_recipient(
+        self,
+        recipient: WhatsAppBroadcastRecipient | None,
+        *,
+        now: datetime,
+    ) -> None:
+        if recipient is None:
+            return
+        recompute_broadcast_recipient_projection(
+            self._session,
+            recipient,
+            now=now,
+        )
+
+    def _message_graph_for_update(
+        self,
+        message_id: int,
+    ) -> tuple[
+        WhatsAppMessage,
+        WhatsAppConversation,
+        WhatsAppBroadcastRecipient | None,
+    ]:
+        discovered = self._session.get(WhatsAppMessage, message_id)
+        if discovered is None:
+            raise EntityNotFoundError("WhatsAppMessage", message_id)
+        if discovered.broadcast_recipient_id is None:
+            recipient = None
+        else:
+            recipient = self._session.scalar(
+                select(WhatsAppBroadcastRecipient)
+                .where(
+                    WhatsAppBroadcastRecipient.id == discovered.broadcast_recipient_id
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if recipient is None:
+                raise RuntimeError("Broadcast Message has no recipient")
+        conversation = self._session.scalar(
+            select(WhatsAppConversation)
+            .where(WhatsAppConversation.id == discovered.conversation_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if conversation is None:
+            raise RuntimeError("Persisted WhatsApp message has no conversation")
+        message = self._message_for_update(message_id)
+        return message, conversation, recipient
 
     def _conversation_for_message(
         self,

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -12,38 +13,62 @@ from app.models import (
 from app.services.whatsapp_projection_service import later_datetime
 
 
-def sync_broadcast_recipient_from_message(
+def recompute_broadcast_recipient_projection(
     session: Session,
-    message: WhatsAppMessage,
+    recipient: WhatsAppBroadcastRecipient,
     *,
     now: datetime,
 ) -> None:
-    if message.broadcast_recipient_id is None:
+    messages = tuple(
+        session.scalars(
+            select(WhatsAppMessage)
+            .where(WhatsAppMessage.broadcast_recipient_id == recipient.id)
+            .order_by(WhatsAppMessage.id)
+        )
+    )
+    if not messages:
         return
-    recipient = session.get(WhatsAppBroadcastRecipient, message.broadcast_recipient_id)
-    if recipient is None:
-        raise RuntimeError("Broadcast Message has no recipient")
-    recipient.accepted_at = later_datetime(recipient.accepted_at, message.accepted_at)
-    recipient.sent_at = later_datetime(recipient.sent_at, message.sent_at)
-    recipient.delivered_at = later_datetime(
-        recipient.delivered_at,
-        message.delivered_at,
+
+    latest = messages[-1]
+    recipient.first_attempt_at = messages[0].created_at
+    recipient.latest_attempt_at = latest.created_at
+    recipient.accepted_at = _latest_timestamp(
+        tuple(message.accepted_at for message in messages)
     )
-    recipient.read_at = later_datetime(recipient.read_at, message.read_at)
-    recipient.failed_at = later_datetime(recipient.failed_at, message.failed_at)
-    recipient.latest_attempt_at = later_datetime(
-        recipient.latest_attempt_at,
-        message.created_at,
+    recipient.sent_at = _latest_timestamp(
+        tuple(message.sent_at for message in messages)
     )
-    if recipient.first_attempt_at is None:
-        recipient.first_attempt_at = message.created_at
-    recipient.safe_error_code = message.provider_error_code
-    recipient.safe_error_message = message.provider_error_message
-    recipient.status = _recipient_status(message)
+    recipient.delivered_at = _latest_timestamp(
+        tuple(message.delivered_at for message in messages)
+    )
+    recipient.read_at = _latest_timestamp(
+        tuple(message.read_at for message in messages)
+    )
+    recipient.failed_at = _latest_timestamp(
+        tuple(message.failed_at for message in messages)
+    )
+    recipient.safe_error_code = latest.provider_error_code
+    recipient.safe_error_message = latest.provider_error_message
+    if not (
+        recipient.status is WhatsAppBroadcastRecipientStatus.BLOCKED
+        and recipient.reason_code is not None
+        and latest.dispatch_state is WhatsAppDispatchState.PENDING
+    ):
+        recipient.status = _recipient_status(recipient, latest)
     recipient.updated_at = later_datetime(recipient.updated_at, now)
 
 
-def _recipient_status(message: WhatsAppMessage) -> WhatsAppBroadcastRecipientStatus:
+def _latest_timestamp(values: tuple[datetime | None, ...]) -> datetime | None:
+    latest: datetime | None = None
+    for value in values:
+        latest = later_datetime(latest, value)
+    return latest
+
+
+def _recipient_status(
+    recipient: WhatsAppBroadcastRecipient,
+    message: WhatsAppMessage,
+) -> WhatsAppBroadcastRecipientStatus:
     if message.provider_state is WhatsAppProviderState.READ:
         return WhatsAppBroadcastRecipientStatus.READ
     if message.provider_state is WhatsAppProviderState.DELIVERED:
@@ -58,4 +83,9 @@ def _recipient_status(message: WhatsAppMessage) -> WhatsAppBroadcastRecipientSta
         return WhatsAppBroadcastRecipientStatus.FAILED
     if message.dispatch_state is WhatsAppDispatchState.ACCEPTED:
         return WhatsAppBroadcastRecipientStatus.ACCEPTED
+    if (
+        message.dispatch_state is WhatsAppDispatchState.PENDING
+        and recipient.claim_token is None
+    ):
+        return WhatsAppBroadcastRecipientStatus.READY
     return WhatsAppBroadcastRecipientStatus.IN_PROGRESS

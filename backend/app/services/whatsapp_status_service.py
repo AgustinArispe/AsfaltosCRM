@@ -8,15 +8,17 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import (
+    WhatsAppBroadcastRecipient,
     WhatsAppConversation,
     WhatsAppDirection,
     WhatsAppMessage,
     WhatsAppMessageStatusEvent,
     WhatsAppProviderState,
 )
+from app.services.customer_identity_service import acquire_advisory_locks
 from app.services.errors import InvalidWhatsAppMessageError
 from app.services.whatsapp_broadcast_projection_service import (
-    sync_broadcast_recipient_from_message,
+    recompute_broadcast_recipient_projection,
 )
 from app.services.whatsapp_projection_service import (
     later_datetime,
@@ -53,6 +55,30 @@ class WhatsAppStatusService:
         normalized = self._normalize(status_input)
         received = self._aware_utc(received_at or datetime.now(UTC))
         with self._session.begin():
+            acquire_advisory_locks(
+                self._session,
+                (
+                    (
+                        "whatsapp-provider-message",
+                        normalized.external_message_id,
+                    ),
+                ),
+            )
+            discovered_message = self._session.scalar(
+                select(WhatsAppMessage).where(
+                    WhatsAppMessage.external_message_id
+                    == normalized.external_message_id
+                )
+            )
+            if discovered_message is not None:
+                message = self._message_graph_for_update(discovered_message.id)
+                if message.direction is not WhatsAppDirection.OUTBOUND:
+                    raise InvalidWhatsAppMessageError(
+                        "Provider delivery states only apply to outbound messages"
+                    )
+            else:
+                message = None
+
             statement = (
                 insert(WhatsAppMessageStatusEvent)
                 .values(
@@ -87,19 +113,7 @@ class WhatsAppStatusService:
                 if event is None:
                     raise RuntimeError("Created status event could not be loaded")
 
-            message = self._session.scalar(
-                select(WhatsAppMessage)
-                .where(
-                    WhatsAppMessage.external_message_id
-                    == normalized.external_message_id
-                )
-                .with_for_update()
-            )
             if message is not None:
-                if message.direction is not WhatsAppDirection.OUTBOUND:
-                    raise InvalidWhatsAppMessageError(
-                        "Provider delivery states only apply to outbound messages"
-                    )
                 event.message_id = message.id
                 self.apply_event_in_transaction(message, event, now=received)
             self._session.flush()
@@ -108,6 +122,39 @@ class WhatsAppStatusService:
                 message_id=message.id if message is not None else None,
                 created=created,
             )
+
+    def _message_graph_for_update(self, message_id: int) -> WhatsAppMessage:
+        discovered = self._session.get(WhatsAppMessage, message_id)
+        if discovered is None:
+            raise RuntimeError("Persisted status Message disappeared")
+        if discovered.broadcast_recipient_id is not None:
+            recipient = self._session.scalar(
+                select(WhatsAppBroadcastRecipient)
+                .where(
+                    WhatsAppBroadcastRecipient.id == discovered.broadcast_recipient_id
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if recipient is None:
+                raise RuntimeError("Broadcast Message has no recipient")
+        conversation = self._session.scalar(
+            select(WhatsAppConversation)
+            .where(WhatsAppConversation.id == discovered.conversation_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if conversation is None:
+            raise RuntimeError("Persisted WhatsApp message has no conversation")
+        message = self._session.scalar(
+            select(WhatsAppMessage)
+            .where(WhatsAppMessage.id == message_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if message is None:
+            raise RuntimeError("Persisted status Message disappeared")
+        return message
 
     def attach_pending_events_in_transaction(
         self,
@@ -163,11 +210,18 @@ class WhatsAppStatusService:
             conversation,
             now=now,
         )
-        sync_broadcast_recipient_from_message(
-            self._session,
-            message,
-            now=now,
-        )
+        if message.broadcast_recipient_id is not None:
+            recipient = self._session.get(
+                WhatsAppBroadcastRecipient,
+                message.broadcast_recipient_id,
+            )
+            if recipient is None:
+                raise RuntimeError("Broadcast Message has no recipient")
+            recompute_broadcast_recipient_projection(
+                self._session,
+                recipient,
+                now=now,
+            )
 
     @staticmethod
     def _record_evidence_timestamp(

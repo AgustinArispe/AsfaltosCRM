@@ -14,7 +14,10 @@ from app.models import (
     WhatsAppConsentSource,
     WhatsAppMarketingConsentEvent,
 )
-from app.services.customer_identity_service import comparable_phone
+from app.services.customer_identity_service import (
+    acquire_advisory_locks,
+    comparable_phone,
+)
 from app.services.errors import (
     EntityNotFoundError,
     InactiveUserError,
@@ -40,6 +43,16 @@ class ConsentEventResult:
     event: WhatsAppMarketingConsentEvent
     current: WhatsAppMarketingConsentEvent
     created: bool
+
+
+def consent_dispatch_lock(
+    customer_id: int,
+    normalized_phone: str,
+) -> tuple[str, str]:
+    return (
+        "whatsapp-consent-dispatch",
+        f"{customer_id}:{normalized_phone}",
+    )
 
 
 class WhatsAppConsentService:
@@ -75,18 +88,50 @@ class WhatsAppConsentService:
                 )
 
         with self._session.begin():
+            discovered_customer = self._session.get(Customer, event_input.customer_id)
+            if (
+                discovered_customer is None
+                or discovered_customer.deleted_at is not None
+            ):
+                raise EntityNotFoundError("Customer", event_input.customer_id)
+            discovered_phone = comparable_phone(discovered_customer.phone)
+            if discovered_phone is None:
+                raise InvalidWhatsAppBroadcastError(
+                    "Customer requires a valid phone for marketing consent"
+                )
+            acquire_advisory_locks(
+                self._session,
+                (
+                    (
+                        "whatsapp-consent-event",
+                        str(event_input.client_event_id),
+                    ),
+                    consent_dispatch_lock(
+                        discovered_customer.id,
+                        discovered_phone,
+                    ),
+                ),
+            )
             user = self._session.get(User, event_input.recorded_by_user_id)
             if user is None:
                 raise EntityNotFoundError("User", event_input.recorded_by_user_id)
             if not user.is_active:
                 raise InactiveUserError(user.id)
-            customer = self._session.get(Customer, event_input.customer_id)
+            customer = self._session.scalar(
+                select(Customer)
+                .where(Customer.id == event_input.customer_id)
+                .with_for_update()
+            )
             if customer is None or customer.deleted_at is not None:
                 raise EntityNotFoundError("Customer", event_input.customer_id)
             normalized_phone = comparable_phone(customer.phone)
             if normalized_phone is None:
                 raise InvalidWhatsAppBroadcastError(
                     "Customer requires a valid phone for marketing consent"
+                )
+            if normalized_phone != discovered_phone:
+                raise WhatsAppBroadcastConflictError(
+                    "Customer phone changed while consent was being recorded"
                 )
             existing = self._session.scalar(
                 select(WhatsAppMarketingConsentEvent)

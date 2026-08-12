@@ -786,6 +786,11 @@ def test_stale_claims_are_safely_reclaimed_or_marked_unknown(
     recipient.status = WhatsAppBroadcastRecipientStatus.IN_PROGRESS
     recipient.claimed_at = datetime.now(UTC) - timedelta(hours=1)
     message.dispatch_state = WhatsAppDispatchState.IN_PROGRESS
+    message.external_message_id = None
+    message.provider_state = None
+    message.provider_status_at = None
+    message.accepted_at = None
+    message.sent_at = None
     broadcast.status = WhatsAppBroadcastStatus.PROCESSING
     db_session.commit()
 
