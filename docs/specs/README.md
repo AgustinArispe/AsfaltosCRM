@@ -103,12 +103,12 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-016`](016-security-hardening.md) — Draft — Release Candidate application
-  security hardening and production-security deployment contract.
+None.
 
 ## Approved specifications
 
-None.
+- [`CRM-016`](016-security-hardening.md) — Approved — Release Candidate application
+  security hardening and production-security deployment contract.
 
 ## Implemented specifications
 
