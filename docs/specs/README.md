@@ -107,9 +107,7 @@ None.
 
 ## Approved specifications
 
-- [`CRM-014`](014-performance-hardening.md) — Approved — measured backend performance
-  hardening for Broadcast validation/processing, metrics timelines, WhatsApp queries,
-  polling, and Opportunity reopen projections.
+None.
 
 ## Implemented specifications
 
@@ -141,3 +139,6 @@ These specifications capture behavior already implemented and tested:
   operations.
 - [`CRM-013`](013-concurrency-hardening.md) — Implemented — backend concurrency,
   idempotency, lock-order, and Broadcast projection hardening.
+- [`CRM-014`](014-performance-hardening.md) — Implemented — measured backend
+  performance hardening for Broadcast validation/processing, metrics timelines,
+  WhatsApp queries, polling, and Opportunity reopen projections.

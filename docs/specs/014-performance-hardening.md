@@ -1,9 +1,9 @@
 # CRM-014 — Backend Performance Hardening
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-12
-Implementation commit: —
+Implementation commit: 6d13182
 
 ## Goal
 
