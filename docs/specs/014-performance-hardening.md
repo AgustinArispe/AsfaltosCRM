@@ -1,6 +1,6 @@
 # CRM-014 — Backend Performance Hardening
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-12
 Implementation commit: —
@@ -256,7 +256,7 @@ tools, not application persistence. No cache table, materialized view, change ta
 denormalized timestamp, stored `reopen_count`, or PostgreSQL extension is introduced.
 
 Any later evidence-backed index requires the spec update and Alembic process described
-above; it is not implicitly authorized by this Draft.
+above; it is not implicitly authorized by this spec.
 
 ## Contracts / API
 
@@ -334,9 +334,6 @@ application database locks are held.
 ## Open decisions
 
 None
-
-This Draft is not approved for implementation even though no unresolved blocker is
-currently known.
 
 ## Follow-up / future specs
 
