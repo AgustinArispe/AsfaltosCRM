@@ -1,6 +1,6 @@
 # CRM-015 — Quality and Reproducibility Hardening
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-12
 

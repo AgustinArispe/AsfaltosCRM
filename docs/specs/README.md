@@ -103,12 +103,12 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-015`](015-quality-reproducibility-hardening.md) — Draft — deterministic
-  dependencies, frontend quality/coverage, CI supply-chain, and Docker smoke hardening.
+None.
 
 ## Approved specifications
 
-None.
+- [`CRM-015`](015-quality-reproducibility-hardening.md) — Approved — deterministic
+  dependencies, frontend quality/coverage, CI supply-chain, and Docker smoke hardening.
 
 ## Implemented specifications
 
