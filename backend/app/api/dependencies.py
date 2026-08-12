@@ -59,13 +59,17 @@ def get_current_user(
     if credentials is None:
         raise AuthenticationError("Could not validate credentials")
     try:
-        user_id = decode_access_token(credentials.credentials)
+        claims = decode_access_token(credentials.credentials)
     except InvalidTokenError as error:
         raise AuthenticationError("Could not validate credentials") from error
 
     with session.begin():
-        user = session.get(User, user_id)
-        if user is None or not user.is_active:
+        user = session.get(User, claims.user_id)
+        if (
+            user is None
+            or not user.is_active
+            or user.auth_session_version != claims.auth_session_version
+        ):
             raise AuthenticationError("Could not validate credentials")
         session.expunge(user)
     return user

@@ -19,6 +19,7 @@ jobs:
       run:
         working-directory: backend
     env:
+      APP_ENVIRONMENT: test
       DATABASE_URL: postgresql+psycopg://asfaltos:ci_password@localhost:5432/asfaltos_crm
       JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
@@ -26,6 +27,7 @@ jobs:
       WEB_INTAKE_SIGNING_SECRET: ci-only-intake-secret-with-thirty-two-characters
       STALE_OPPORTUNITY_DAYS: "14"
       WHATSAPP_PROVIDER: fake
+      WHATSAPP_DEV_ROUTES_ENABLED: "false"
       WHATSAPP_MEDIA_STORAGE: fake
     services:
       postgres:

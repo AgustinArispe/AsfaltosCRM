@@ -53,6 +53,7 @@ from app.whatsapp import (
     WindowEvaluationContext,
 )
 from app.whatsapp.runtime import WhatsAppRuntime, build_fake_whatsapp_runtime
+from conftest import development_security_settings
 
 _NOW = datetime.now(UTC).replace(microsecond=0)
 
@@ -74,7 +75,7 @@ def whatsapp_api(
         freeform_window=timedelta(hours=24),
     )
     runtime = build_fake_whatsapp_runtime(provider=provider)
-    application = create_app(runtime)
+    application = create_app(runtime, security_settings=development_security_settings())
 
     def override_db_session() -> Iterator[Session]:
         try:
@@ -480,6 +481,11 @@ def test_authenticated_media_upload_preview_and_outbound_send(
     assert preview.status_code == 200
     assert preview.content == content
     assert preview.headers["cache-control"] == "private, no-store"
+    assert preview.headers["x-content-type-options"] == "nosniff"
+    if media_type == "IMAGE":
+        assert preview.headers["content-disposition"].startswith("inline;")
+    else:
+        assert preview.headers["content-disposition"].startswith("attachment;")
 
     sent_response = whatsapp_api.client.post(
         f"/api/whatsapp/conversations/{inbound.message.conversation_id}/messages",
@@ -497,6 +503,11 @@ def test_authenticated_media_upload_preview_and_outbound_send(
     assert content_url is not None
     persisted_content = whatsapp_api.client.get(content_url)
     assert persisted_content.content == content
+    assert persisted_content.headers["x-content-type-options"] == "nosniff"
+    assert (
+        persisted_content.headers["content-disposition"]
+        == preview.headers["content-disposition"]
+    )
     assert "storage_key" not in sent_response.text
 
 
@@ -1032,7 +1043,7 @@ def _client_for_runtime(
     user: User,
     runtime: WhatsAppRuntime,
 ) -> TestClient:
-    application = create_app(runtime)
+    application = create_app(runtime, security_settings=development_security_settings())
 
     def override_db_session() -> Iterator[Session]:
         try:

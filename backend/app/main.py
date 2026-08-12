@@ -15,14 +15,18 @@ from app.api.routers.whatsapp_provider_webhook import (
     create_whatsapp_provider_webhook_router,
 )
 from app.core.config import (
-    get_allowed_hosts,
-    get_jwt_secret,
+    RuntimeSecuritySettings,
+    get_runtime_security_settings,
     get_stale_opportunity_days,
-    get_web_intake_signing_secret,
+    validate_runtime_security_settings,
+)
+from app.core.security_middleware import (
+    ProductionSecurityHeadersMiddleware,
+    RequestBodyLimitMiddleware,
 )
 from app.db.session import engine
 from app.services import DomainError
-from app.whatsapp import FakeWhatsAppProvider
+from app.whatsapp import FakeMediaStorage, FakeWhatsAppProvider
 from app.whatsapp.runtime import (
     WhatsAppRuntime,
     build_configured_whatsapp_runtime,
@@ -31,15 +35,27 @@ from app.whatsapp.runtime import (
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    get_jwt_secret()
-    get_web_intake_signing_secret()
+    get_runtime_security_settings()
     get_stale_opportunity_days()
     yield
     engine.dispose()
 
 
-def create_app(whatsapp_runtime: WhatsAppRuntime | None = None) -> FastAPI:
+def create_app(
+    whatsapp_runtime: WhatsAppRuntime | None = None,
+    *,
+    security_settings: RuntimeSecuritySettings | None = None,
+) -> FastAPI:
+    settings = security_settings or get_runtime_security_settings()
+    validate_runtime_security_settings(settings)
     runtime = whatsapp_runtime or build_configured_whatsapp_runtime()
+    if settings.is_production and (
+        isinstance(runtime.provider, FakeWhatsAppProvider)
+        or isinstance(runtime.storage, FakeMediaStorage)
+    ):
+        raise RuntimeError(
+            "Fake WhatsApp runtime components are not allowed in production"
+        )
     application = FastAPI(
         title="Asfaltos CRM API",
         version="0.3.0",
@@ -48,19 +64,29 @@ def create_app(whatsapp_runtime: WhatsAppRuntime | None = None) -> FastAPI:
             "commercial opportunities."
         ),
         lifespan=lifespan,
+        docs_url=None if settings.is_production else "/docs",
+        redoc_url=None if settings.is_production else "/redoc",
+        openapi_url=None if settings.is_production else "/openapi.json",
     )
+    application.state.runtime_security_settings = settings
     application.add_exception_handler(DomainError, domain_error_handler)
     application.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=get_allowed_hosts(),
+        allowed_hosts=list(settings.allowed_hosts),
     )
+    application.add_middleware(RequestBodyLimitMiddleware, settings.request_body_limits)
+    if settings.is_production:
+        application.add_middleware(ProductionSecurityHeadersMiddleware)
     application.include_router(api_router, prefix="/api")
     application.include_router(create_whatsapp_router(runtime), prefix="/api")
     application.include_router(
         create_whatsapp_broadcast_router(runtime),
         prefix="/api",
     )
-    if isinstance(runtime.provider, FakeWhatsAppProvider):
+    if settings.registers_whatsapp_dev_routes and isinstance(
+        runtime.provider,
+        FakeWhatsAppProvider,
+    ):
         application.include_router(
             create_whatsapp_dev_router(runtime, runtime.provider),
             prefix="/api",

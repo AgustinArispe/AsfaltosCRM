@@ -1,16 +1,35 @@
 from collections.abc import Iterator
+from dataclasses import replace
+from os import environ
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+environ.setdefault("APP_ENVIRONMENT", "test")
+
 from app.api.dependencies import get_db_session
+from app.core.config import (
+    RuntimeEnvironment,
+    RuntimeSecuritySettings,
+    get_runtime_security_settings,
+)
 from app.core.security import create_access_token, hash_password
 from app.db.session import engine
 from app.main import app
 from app.models import User, UserRole
 
 TEST_SUPERVISOR_PASSWORD = "supervisor-test-password"
+
+
+def development_security_settings() -> RuntimeSecuritySettings:
+    return replace(
+        get_runtime_security_settings(),
+        environment=RuntimeEnvironment.DEVELOPMENT,
+        whatsapp_provider_name="fake",
+        whatsapp_media_storage_name="fake",
+        whatsapp_dev_routes_enabled=True,
+    )
 
 
 @pytest.fixture

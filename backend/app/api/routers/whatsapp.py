@@ -417,10 +417,10 @@ def _media_response(content: MediaContentResult) -> StreamingResponse:
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
     }
-    if content.filename is not None:
-        headers["Content-Disposition"] = "inline; filename*=UTF-8''" + quote(
-            content.filename, safe=""
-        )
+    disposition = "inline" if content.mime_type.startswith("image/") else "attachment"
+    headers["Content-Disposition"] = f"{disposition}; filename*=UTF-8''" + quote(
+        _download_filename(content), safe=""
+    )
     return StreamingResponse(
         _content_chunks(content.content),
         media_type=content.mime_type,
@@ -430,3 +430,17 @@ def _media_response(content: MediaContentResult) -> StreamingResponse:
 
 def _content_chunks(content: bytes) -> Iterator[bytes]:
     yield content
+
+
+def _download_filename(content: MediaContentResult) -> str:
+    if content.filename is not None:
+        return content.filename
+    if content.mime_type == "application/pdf":
+        return "attachment.pdf"
+    if content.mime_type == "image/jpeg":
+        return "attachment.jpg"
+    if content.mime_type == "image/png":
+        return "attachment.png"
+    if content.mime_type == "image/webp":
+        return "attachment.webp"
+    return "attachment"

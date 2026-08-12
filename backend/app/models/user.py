@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     Identity,
     Index,
+    Integer,
     Text,
     func,
     text,
@@ -40,6 +41,10 @@ class User(TimestampMixin, Base):
             "updated_at >= created_at",
             name="ck_users_updated_after_created",
         ),
+        CheckConstraint(
+            "auth_session_version > 0",
+            name="ck_users_auth_session_version_positive",
+        ),
         Index(
             "uq_users_email_normalized",
             func.lower(func.btrim(text("email"))),
@@ -56,6 +61,12 @@ class User(TimestampMixin, Base):
         Boolean,
         nullable=False,
         server_default=true(),
+    )
+    auth_session_version: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        nullable=False,
+        server_default=text("1"),
     )
 
     assigned_opportunities: Mapped[list[Opportunity]] = relationship(

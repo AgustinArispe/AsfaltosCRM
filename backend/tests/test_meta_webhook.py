@@ -49,6 +49,7 @@ from app.whatsapp.webhook_contracts import (
     ProviderStatusEvent,
     ProviderWebhookMappingError,
 )
+from conftest import development_security_settings
 
 _APP_SECRET = "test-app-secret"
 _VERIFY_TOKEN = "test-verify-token"
@@ -320,7 +321,14 @@ def test_meta_route_table_excludes_fake_dev_and_fake_excludes_meta_webhook() -> 
     meta_runtime, _ = _meta_runtime()
     meta_routes = TestClient(create_app(meta_runtime)).get("/openapi.json").text
     fake_routes = (
-        TestClient(create_app(build_fake_whatsapp_runtime())).get("/openapi.json").text
+        TestClient(
+            create_app(
+                build_fake_whatsapp_runtime(),
+                security_settings=development_security_settings(),
+            )
+        )
+        .get("/openapi.json")
+        .text
     )
     assert "/api/whatsapp/provider/webhook" in meta_routes
     assert "/api/whatsapp/dev/inbound" not in meta_routes

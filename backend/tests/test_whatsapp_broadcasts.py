@@ -53,6 +53,7 @@ from app.whatsapp import (
     TemplateHeaderType,
 )
 from app.whatsapp.runtime import build_fake_whatsapp_runtime
+from conftest import development_security_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,7 +108,7 @@ def broadcast_context(
     )
     storage = FakeMediaStorage()
     runtime = build_fake_whatsapp_runtime(provider=provider, storage=storage)
-    application = create_app(runtime)
+    application = create_app(runtime, security_settings=development_security_settings())
 
     def override_db_session() -> Iterator[Session]:
         try:

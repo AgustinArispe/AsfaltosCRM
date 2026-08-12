@@ -21,7 +21,10 @@ def login(payload: LoginRequest, session: DatabaseSession) -> TokenResponse:
     )
     expires_in = get_access_token_expire_minutes() * 60
     return TokenResponse(
-        access_token=create_access_token(user.id),
+        access_token=create_access_token(
+            user.id,
+            auth_session_version=user.auth_session_version,
+        ),
         expires_in=expires_in,
     )
 

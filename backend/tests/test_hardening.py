@@ -9,6 +9,12 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import (
+    CUSTOMER_IMPORT_REQUEST_MAX_BYTES,
+    META_WEBHOOK_BODY_MAX_BYTES,
+    WEB_INTAKE_BODY_MAX_BYTES,
+    WHATSAPP_MEDIA_REQUEST_MAX_BYTES,
+)
 from app.core.security import create_access_token, hash_password
 from app.models import (
     Customer,
@@ -105,6 +111,30 @@ def test_untrusted_host_is_rejected(api_client: TestClient) -> None:
     )
     assert response.status_code == 400
     assert response.text == "Invalid host header"
+
+
+@pytest.mark.parametrize(
+    ("path", "maximum"),
+    [
+        ("/api/intake/web", WEB_INTAKE_BODY_MAX_BYTES),
+        ("/api/whatsapp/provider/webhook", META_WEBHOOK_BODY_MAX_BYTES),
+        ("/api/whatsapp/media", WHATSAPP_MEDIA_REQUEST_MAX_BYTES),
+        ("/api/customer-imports/dry-run", CUSTOMER_IMPORT_REQUEST_MAX_BYTES),
+    ],
+)
+def test_protected_request_bodies_are_rejected_before_application_parsing(
+    api_client: TestClient,
+    path: str,
+    maximum: int,
+) -> None:
+    response = api_client.post(
+        path,
+        content=b"x" * (maximum + 1),
+        headers={"Content-Type": "application/octet-stream"},
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "Request body too large"}
 
 
 def test_soft_deleted_customer_rejects_edits_and_new_opportunities(

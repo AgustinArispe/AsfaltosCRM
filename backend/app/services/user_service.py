@@ -65,12 +65,15 @@ class UserService:
                 if user is None:
                     raise EntityNotFoundError("User", user_id)
 
+                was_active = user.is_active
                 for field_name, value in updates.items():
                     if field_name not in USER_UPDATE_FIELDS:
                         continue
                     if field_name == "email" and isinstance(value, str):
                         value = self._normalize_email(value)
                     setattr(user, field_name, value)
+                if was_active and user.is_active is False:
+                    user.auth_session_version += 1
                 if updates:
                     user.updated_at = datetime.now(UTC)
                 self._session.flush()
@@ -89,6 +92,7 @@ class UserService:
             if user is None:
                 raise EntityNotFoundError("User", user_id)
             user.password_hash = password_hash
+            user.auth_session_version += 1
             user.updated_at = datetime.now(UTC)
             self._session.flush()
         return user

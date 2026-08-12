@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 from fastapi.testclient import TestClient
 from httpx2 import Response
 from sqlalchemy import select, update
@@ -35,7 +36,9 @@ def make_vendor(
 
 
 def authenticate_as(client: TestClient, user: User) -> None:
-    client.headers["Authorization"] = f"Bearer {create_access_token(user.id)}"
+    client.headers["Authorization"] = (
+        f"Bearer {create_access_token(user.id, auth_session_version=user.auth_session_version)}"
+    )
 
 
 def login(client: TestClient, email: str, password: str) -> Response:
@@ -130,7 +133,7 @@ def test_inactive_user_and_invalid_tokens_are_rejected(
     assert api_client.get("/api/auth/me").status_code == 401
 
 
-def test_jwt_requires_expiration_positive_subject_and_fixed_algorithm(
+def test_jwt_requires_required_claims_and_fixed_algorithm(
     api_client: TestClient,
     supervisor_user: User,
 ) -> None:
@@ -156,6 +159,36 @@ def test_jwt_requires_expiration_positive_subject_and_fixed_algorithm(
             key="",
             algorithm="none",
         ),
+        jwt.encode(
+            {
+                "sub": str(supervisor_user.id),
+                "iat": datetime.now(UTC),
+                "exp": expires_at,
+                "ver": 0,
+            },
+            get_jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        ),
+        jwt.encode(
+            {
+                "sub": str(supervisor_user.id),
+                "iat": datetime.now(UTC) + timedelta(minutes=1),
+                "exp": expires_at,
+                "ver": supervisor_user.auth_session_version,
+            },
+            get_jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        ),
+        jwt.encode(
+            {
+                "sub": str(supervisor_user.id),
+                "iat": datetime.now(UTC),
+                "exp": datetime.now(UTC) + timedelta(minutes=61),
+                "ver": supervisor_user.auth_session_version,
+            },
+            get_jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        ),
     ]
 
     for token in invalid_tokens:
@@ -163,6 +196,15 @@ def test_jwt_requires_expiration_positive_subject_and_fixed_algorithm(
         response = api_client.get("/api/auth/me")
         assert response.status_code == 401
         assert response.json() == {"detail": "Could not validate credentials"}
+
+
+def test_access_token_generation_rejects_unsafe_inputs() -> None:
+    with pytest.raises(ValueError, match="user ID"):
+        create_access_token(0)
+    with pytest.raises(ValueError, match="auth session version"):
+        create_access_token(1, auth_session_version=True)
+    with pytest.raises(ValueError, match="timezone-aware"):
+        create_access_token(1, now=datetime.now())
 
 
 def test_supervisor_manages_users_and_passwords(
@@ -226,6 +268,55 @@ def test_supervisor_manages_users_and_passwords(
     assert persisted_user is not None
     assert persisted_user.password_hash != "replacement-password"
     assert verify_password("replacement-password", persisted_user.password_hash)
+
+
+def test_password_change_and_deactivation_revoke_existing_jwts(
+    api_client: TestClient,
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    created = api_client.post(
+        "/api/users",
+        json={
+            "full_name": "Sesión revocable",
+            "email": "session-revocation@faa.test",
+            "password": VENDOR_PASSWORD,
+            "role": "VENDEDOR",
+        },
+    )
+    assert created.status_code == 201
+    user_id = created.json()["id"]
+
+    initial_login = login(api_client, "session-revocation@faa.test", VENDOR_PASSWORD)
+    assert initial_login.status_code == 200
+    old_token = initial_login.json()["access_token"]
+
+    changed = api_client.put(
+        f"/api/users/{user_id}/password",
+        json={"password": "changed-session-password"},
+    )
+    assert changed.status_code == 200
+    api_client.headers["Authorization"] = f"Bearer {old_token}"
+    assert api_client.get("/api/auth/me").status_code == 401
+
+    fresh_login = login(
+        api_client,
+        "session-revocation@faa.test",
+        "changed-session-password",
+    )
+    assert fresh_login.status_code == 200
+    new_token = fresh_login.json()["access_token"]
+    api_client.headers["Authorization"] = f"Bearer {new_token}"
+    assert api_client.get("/api/auth/me").status_code == 200
+
+    authenticate_as(api_client, supervisor_user)
+    deactivated = api_client.patch(f"/api/users/{user_id}", json={"is_active": False})
+    assert deactivated.status_code == 200
+    api_client.headers["Authorization"] = f"Bearer {new_token}"
+    assert api_client.get("/api/auth/me").status_code == 401
+    persisted_user = db_session.get(User, user_id)
+    assert persisted_user is not None
+    assert persisted_user.auth_session_version == 3
 
 
 def test_vendor_cannot_manage_users(
