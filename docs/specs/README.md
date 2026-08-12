@@ -107,8 +107,7 @@ None.
 
 ## Approved specifications
 
-- [`CRM-013`](013-concurrency-hardening.md) — Approved — backend concurrency,
-  idempotency, lock-order, and Broadcast projection hardening.
+None.
 
 ## Implemented specifications
 
@@ -138,3 +137,5 @@ These specifications capture behavior already implemented and tested:
   backend completion: Opportunity Notes, automatic Legendary qualification, Lost
   Opportunities workspace and reopen, Customer import, and WordPress production
   operations.
+- [`CRM-013`](013-concurrency-hardening.md) — Implemented — backend concurrency,
+  idempotency, lock-order, and Broadcast projection hardening.

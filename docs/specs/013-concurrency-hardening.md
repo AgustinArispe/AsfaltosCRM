@@ -1,9 +1,9 @@
 # CRM-013 — Backend Concurrency Hardening
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-11
-Implementation commit: N/A
+Last updated: 2026-08-12
+Implementation commit: 6b44d8f
 
 ## Goal
 
