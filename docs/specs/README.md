@@ -103,7 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-None.
+- [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
+  operations, recovery, and backend-freeze contract.
 
 ## Approved specifications
 
