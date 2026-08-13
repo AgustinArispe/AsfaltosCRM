@@ -183,7 +183,7 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
 
     expect(await screen.findByText('Motivo de pérdida')).toBeInTheDocument()
-    expect(screen.getByText('Precio')).toBeInTheDocument()
+    expect(screen.getAllByText('Precio')[0]).toBeInTheDocument()
     expect(screen.getByText('Perdida')).toBeInTheDocument()
   })
 
@@ -234,5 +234,182 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(backLink)
 
     expect(window.location.pathname).toBe('/pipeline')
+  })
+
+  it('loads Notes only when opened and saves a multiline Note with Ctrl+Enter', async () => {
+    const note = {
+      id: 5,
+      opportunity_id: 42,
+      author_user_id: 8,
+      author_name: 'Martín Vendedor',
+      created_at: '2026-08-12T18:00:00Z',
+      current_revision: {
+        id: 6,
+        revision_number: 1,
+        body: 'Seguimiento interno',
+        is_pinned: false,
+        actor_user_id: 8,
+        actor_name: 'Martín Vendedor',
+        created_at: '2026-08-12T18:00:00Z',
+      },
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
+      .mockResolvedValueOnce(jsonResponse(200, { items: [note], next_cursor: null }))
+      .mockResolvedValueOnce(jsonResponse(201, note))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Notas' }))
+    expect(await screen.findByText('Seguimiento interno')).toBeInTheDocument()
+    const composer = screen.getByLabelText('Agregar nota')
+    fireEvent.change(composer, { target: { value: 'Primera línea\nSegunda línea' } })
+    fireEvent.keyDown(composer, { key: 'Enter' })
+    expect(composer).toHaveValue('Primera línea\nSegunda línea')
+    fireEvent.keyDown(composer, { key: 'Enter', ctrlKey: true })
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/opportunities/42/notes')
+    expect(screen.getByText('Seguimiento interno')).toBeInTheDocument()
+  })
+
+  it('preserves a Note draft after a recoverable save failure', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
+      .mockResolvedValueOnce(jsonResponse(200, { items: [], next_cursor: null }))
+      .mockRejectedValueOnce(new TypeError('network'))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    fireEvent.click(screen.getByRole('button', { name: 'Notas' }))
+    await screen.findByText('Aún no hay notas.')
+    const composer = screen.getByLabelText('Agregar nota')
+    fireEvent.change(composer, { target: { value: 'No perder esta nota' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar nota' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar la nota')
+    expect(composer).toHaveValue('No perder esta nota')
+  })
+
+  it('shows Reopen only for a lost opportunity with a retained quote and routes after success', async () => {
+    const reopened = makeDetail({ status: 'NEGOCIACION' })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, makeDetail({ status: 'PERDIDA', loss_reason: 'PRECIO' })),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, reopened))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} surface='lost' />)
+    expect(await screen.findByRole('button', { name: 'Reabrir' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
+    expect(screen.getByRole('heading', { name: 'Reabrir oportunidad' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reabrir en negociación' }))
+    await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/42'))
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/reopen')
+  })
+
+  it('does not offer Reopen when a lost opportunity has no retained quote', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(200, makeDetail({ status: 'PERDIDA', products: [], loss_reason: 'PRECIO' })),
+        ),
+    )
+    render(<OpportunityDetailPage opportunityId={42} surface='lost' />)
+    await screen.findByText('Motivo de pérdida')
+    expect(screen.queryByRole('button', { name: 'Reabrir' })).not.toBeInTheDocument()
+  })
+
+  it('exposes the applicable commercial actions and confirms a new quote without changing status first', async () => {
+    const newDetail = makeDetail({
+      status: 'NUEVA',
+      products: [],
+      history: [makeDetail().history[0]],
+    })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, newDetail))
+      .mockResolvedValueOnce(jsonResponse(200, [{ id: 10, name: 'SuperPhalt', is_active: true }]))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { ...newDetail, status: 'COTIZADA', products: makeDetail().products }),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'COTIZADA' })))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    expect(screen.getByRole('button', { name: 'Cotizar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Marcar perdida' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cotizar' }))
+    const product = await screen.findByLabelText('Producto')
+    fireEvent.change(product, { target: { value: '10' } })
+    fireEvent.change(screen.getByLabelText('Cantidad (kg)'), { target: { value: '1000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/opportunities/42/quote')
+  })
+
+  it('shows quote edit and forward-transition actions only in eligible active states', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'COTIZADA' })))
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'NEGOCIACION' })))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    expect(screen.getByRole('button', { name: 'Editar cotización' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Pasar a negociación' }))
+    await waitFor(() =>
+      expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/move-to-negotiation'),
+    )
+  })
+
+  it('navigates to the exact internal WhatsApp conversation and never uses an external fallback', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          items: [
+            {
+              id: 73,
+              external_phone: '+54 11 4444-5555',
+              customer: { id: 7 },
+            },
+          ],
+          next_page_cursor: null,
+          sync_cursor: 'cursor',
+        }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
+    await waitFor(() => expect(window.location.pathname).toBe('/whatsapp/conversations/73'))
+    expect(
+      document.querySelector('a[href^="https://wa.me"], a[href^="https://api.whatsapp.com"]'),
+    ).toBeNull()
+  })
+
+  it('explains when no internal WhatsApp conversation can be verified', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
+      .mockImplementation(() =>
+        Promise.resolve(
+          jsonResponse(200, { items: [], next_page_cursor: null, sync_cursor: 'cursor' }),
+        ),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No existe una conversación interna vinculada',
+    )
   })
 })

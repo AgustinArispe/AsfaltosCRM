@@ -166,10 +166,15 @@ export function listOpportunityNotes(opportunityId: number, session: ApiSession)
   return apiRequest<OpportunityNotePage>(`/opportunities/${opportunityId}/notes?limit=20`, session)
 }
 
-export function createOpportunityNote(opportunityId: number, body: string, session: ApiSession) {
+export function createOpportunityNote(
+  opportunityId: number,
+  body: string,
+  session: ApiSession,
+  clientGeneratedId?: string,
+) {
   return apiRequest<OpportunityNote>(`/opportunities/${opportunityId}/notes`, {
     ...session,
     method: 'POST',
-    body: { client_generated_id: crypto.randomUUID(), body },
+    body: { client_generated_id: clientGeneratedId ?? crypto.randomUUID(), body },
   })
 }

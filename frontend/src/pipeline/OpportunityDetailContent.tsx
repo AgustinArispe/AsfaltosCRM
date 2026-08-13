@@ -31,10 +31,12 @@ function MissingValue({ children }: { children: ReactNode }) {
 export function OpportunityDetailContent({
   opportunity,
   actions,
+  contextual,
   layout = 'page',
 }: {
   opportunity: OpportunityDetail
   actions?: ReactNode
+  contextual?: ReactNode
   layout?: 'drawer' | 'page'
 }) {
   const isDrawer = layout === 'drawer'
@@ -228,42 +230,44 @@ export function OpportunityDetailContent({
           </section>
         </div>
 
-        <section
-          aria-labelledby={`history-${opportunity.id}`}
-          className='ui-panel px-4 py-4 sm:px-5'
-        >
-          <h3 className='text-sm font-semibold text-slate-950' id={`history-${opportunity.id}`}>
-            Historial
-          </h3>
-          <ol className='mt-3'>
-            {opportunity.history.map((entry, index) => (
-              <li
-                className='relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-4 last:pb-0'
-                key={entry.id}
-              >
-                <div aria-hidden='true' className='relative flex justify-center'>
-                  <span className='mt-1.5 size-2 rounded-full bg-slate-500 ring-2 ring-white' />
-                  {index < opportunity.history.length - 1 ? (
-                    <span className='absolute bottom-0 top-4 w-px bg-slate-200' />
-                  ) : null}
-                </div>
-                <div>
-                  <time className='text-xs text-slate-500' dateTime={entry.changed_at}>
-                    {formatDateTime(entry.changed_at)}
-                  </time>
-                  <p className='mt-0.5 text-sm font-medium leading-5 text-slate-900'>
-                    {historyDescription(entry)}
-                  </p>
-                  {entry.from_status === null ? (
-                    <p className='mt-0.5 text-xs text-slate-500'>
-                      Estado inicial: {OPPORTUNITY_STATUS_LABELS[entry.to_status]}
+        {contextual ?? (
+          <section
+            aria-labelledby={`history-${opportunity.id}`}
+            className='ui-panel px-4 py-4 sm:px-5'
+          >
+            <h3 className='text-sm font-semibold text-slate-950' id={`history-${opportunity.id}`}>
+              Historial
+            </h3>
+            <ol className='mt-3'>
+              {opportunity.history.map((entry, index) => (
+                <li
+                  className='relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-4 last:pb-0'
+                  key={entry.id}
+                >
+                  <div aria-hidden='true' className='relative flex justify-center'>
+                    <span className='mt-1.5 size-2 rounded-full bg-slate-500 ring-2 ring-white' />
+                    {index < opportunity.history.length - 1 ? (
+                      <span className='absolute bottom-0 top-4 w-px bg-slate-200' />
+                    ) : null}
+                  </div>
+                  <div>
+                    <time className='text-xs text-slate-500' dateTime={entry.changed_at}>
+                      {formatDateTime(entry.changed_at)}
+                    </time>
+                    <p className='mt-0.5 text-sm font-medium leading-5 text-slate-900'>
+                      {historyDescription(entry)}
                     </p>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
+                    {entry.from_status === null ? (
+                      <p className='mt-0.5 text-xs text-slate-500'>
+                        Estado inicial: {OPPORTUNITY_STATUS_LABELS[entry.to_status]}
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
       </div>
     </article>
   )
