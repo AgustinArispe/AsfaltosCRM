@@ -103,6 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-021`](021-dashboard-metrics.md) — Draft — premium operational Dashboard and
+  authoritative commercial metrics, charts, and provincial insight.
 - [`CRM-020`](020-opportunity-detail-quote-flow.md) — Draft — centered Opportunity
   detail dialog, scoped editing, commercial actions, and progressive quote flow.
 - [`CRM-019`](019-pipeline-2.md) — Draft — premium, high-capacity Pipeline 2.0 Kanban
