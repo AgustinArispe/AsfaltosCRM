@@ -3,7 +3,7 @@
 Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-13
-Implementation commit: 6d2c07e
+Implementation commits: `6d2c07e`, `413a0d3`
 
 ## Goal
 
@@ -223,3 +223,13 @@ None
 ## Implementation notes
 
 Use existing React/Vite/TypeScript/Tailwind architecture. Replace current drawer and standalone dense quote form with CRM-018 shared dialog/confirmation/field primitives and feature-specific composed content. Keep route-level ownership of active Opportunity and Pipeline projection; keep drafts local to detail feature; keep typed API calls in existing API modules. Do not add a global store to bridge dialog and Pipeline—use explicit successful mutation/reload reconciliation instead.
+
+### Implementation reconciliation
+
+`413a0d3` completes the canonical Opportunity modal interaction surface: its
+Activity/Notes zone lazy-loads and creates Notes with multiline-safe keyboard behavior
+and idempotent retry identity; eligible lost Opportunities expose a deliberate reopen
+confirmation that routes to the canonical active Opportunity after the authoritative
+response; and the labelled WhatsApp handoff searches only the authenticated internal
+conversation projection, then routes to the exact canonical conversation or presents
+the defined no-conversation state. It never uses an external WhatsApp URL.
