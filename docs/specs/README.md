@@ -103,6 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-019`](019-pipeline-2.md) — Draft — premium, high-capacity Pipeline 2.0 Kanban
+  foundation for FAA's active commercial workspace.
 - [`CRM-018`](018-frontend-design-system.md) — Draft — permanent visual,
   interaction, accessibility, responsive, and component foundation for FAA CRM
   Frontend 2.0.
