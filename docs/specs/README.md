@@ -103,6 +103,9 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-018`](018-frontend-design-system.md) — Draft — permanent visual,
+  interaction, accessibility, responsive, and component foundation for FAA CRM
+  Frontend 2.0.
 - [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
   operations, recovery, and backend-freeze contract.
 
