@@ -1,6 +1,6 @@
 # CRM-018 — FAA CRM Frontend 2.0 Design System
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-13
 Implementation commit: N/A
