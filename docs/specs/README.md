@@ -103,6 +103,9 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-025`](025-whatsapp-broadcast-ui.md) — Draft — safe, premium FAA interface for
+  explicit WhatsApp Broadcast execution, consent review, processing, retries, and
+  auditable outcomes from already-approved marketing content.
 - [`CRM-024`](024-customers-products-lost-ui.md) — Draft — consistent, role-aware
   Customers, Products, and Lost commercial workspaces for Frontend 2.0.
 - [`CRM-023`](023-whatsapp-inbox-2.md) — Draft — FAA WhatsApp Inbox 2.0: a
