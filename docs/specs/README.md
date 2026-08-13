@@ -103,6 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-024`](024-customers-products-lost-ui.md) — Draft — consistent, role-aware
+  Customers, Products, and Lost commercial workspaces for Frontend 2.0.
 - [`CRM-023`](023-whatsapp-inbox-2.md) — Draft — FAA WhatsApp Inbox 2.0: a
   three-panel, commercially contextual, desktop-first messaging workspace.
 - [`CRM-022`](022-notifications-ui.md) — Draft — global operational notification
