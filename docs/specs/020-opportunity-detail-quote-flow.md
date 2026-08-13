@@ -1,9 +1,9 @@
 # CRM-020 — Opportunity Detail & Quote Flow
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-13
-Implementation commit: N/A
+Implementation commit: 6d2c07e
 
 ## Goal
 
