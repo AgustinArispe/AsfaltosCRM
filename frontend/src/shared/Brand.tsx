@@ -1,4 +1,10 @@
-export function Brand({ inverse = false }: { inverse?: boolean }) {
+export function Brand({
+  inverse = false,
+  collapsed = false,
+}: {
+  inverse?: boolean
+  collapsed?: boolean
+}) {
   return (
     <div className='flex items-center gap-2.5'>
       <span
@@ -12,7 +18,7 @@ export function Brand({ inverse = false }: { inverse?: boolean }) {
       >
         FAA
       </span>
-      <span className='leading-tight'>
+      <span className={collapsed ? 'sr-only' : 'leading-tight'}>
         <span
           className={`block text-sm font-semibold ${inverse ? 'text-slate-100' : 'text-slate-950'}`}
         >

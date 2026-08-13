@@ -62,11 +62,9 @@ export function PipelineBoard({
 
   return (
     <DragDropProvider onDragEnd={handleDragEnd} sensors={PIPELINE_SENSORS}>
-      <div
+      <section
         aria-label='Etapas del pipeline. Desplazamiento horizontal disponible en pantallas pequeñas.'
         className='max-w-full overflow-x-auto overscroll-x-contain pb-2 outline-none focus-visible:ring-2 focus-visible:ring-slate-500'
-        role='region'
-        tabIndex={0}
       >
         <div className='grid min-w-[68rem] grid-cols-4 gap-2.5'>
           {PIPELINE_STAGES.map((stage) => (
@@ -82,7 +80,7 @@ export function PipelineBoard({
             />
           ))}
         </div>
-      </div>
+      </section>
 
       <DragOverlay dropAnimation={null}>
         {(source) => (

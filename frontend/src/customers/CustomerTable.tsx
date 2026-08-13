@@ -23,11 +23,9 @@ export function CustomerTable({
   onDelete: (customer: CustomerSummary) => void
 }) {
   return (
-    <div
+    <section
       aria-label='Listado de clientes. Desplazá horizontalmente para ver todas las columnas.'
       className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500'
-      role='region'
-      tabIndex={0}
     >
       <table className='w-full min-w-[68rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Clientes activos del CRM</caption>
@@ -65,7 +63,8 @@ export function CustomerTable({
               <th className='px-4 py-3 font-semibold text-slate-950' scope='row'>
                 <AppLink
                   className='inline-flex min-h-11 items-center underline decoration-slate-300 underline-offset-4 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
-                  to={`/customers/${customer.id}`}
+                  origin={{ kind: 'workspace', workspace: 'customers' }}
+                  to={{ kind: 'customer', customerId: customer.id }}
                 >
                   {customer.name}
                 </AppLink>
@@ -127,6 +126,6 @@ export function CustomerTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </section>
   )
 }

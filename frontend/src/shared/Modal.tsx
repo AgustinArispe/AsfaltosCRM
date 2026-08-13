@@ -1,4 +1,5 @@
 import {
+  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
   type SyntheticEvent,
@@ -31,15 +32,10 @@ export function Modal({
     const dialog = dialogRef.current
     if (!dialog) return
 
-    let focusTimeoutId: number | undefined
-
     if (isOpen && !dialog.open) {
       previousFocusRef.current = document.activeElement as HTMLElement | null
       dialog.showModal()
-      focusTimeoutId = window.setTimeout(() => {
-        dialog.querySelector<HTMLElement>('[data-modal-initial-focus]')?.focus()
-      }, 0)
-      return () => window.clearTimeout(focusTimeoutId)
+      dialog.querySelector<HTMLElement>('[data-modal-initial-focus]')?.focus()
     }
 
     if (!isOpen && dialog.open) {
@@ -65,30 +61,58 @@ export function Modal({
     if (event.target === event.currentTarget && !closeDisabled) onClose()
   }
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key !== 'Tab') return
+    const dialog = dialogRef.current
+    if (!dialog) return
+    const focusable = [
+      ...dialog.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      ),
+    ].filter((element) => !element.hasAttribute('hidden'))
+    if (focusable.length === 0) {
+      event.preventDefault()
+      return
+    }
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className='m-auto w-[min(34rem,calc(100%-2rem))] border-0 bg-transparent p-0 text-slate-900 backdrop:bg-slate-950/45'
+      className='m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100%-2rem))] border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55'
       onCancel={handleCancel}
       onClick={handleBackdropClick}
+      onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <div className='overflow-hidden rounded-[6px] border border-slate-200 bg-white shadow-[0_14px_36px_rgb(15_23_42_/_0.18)]'>
-        <header className='flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-3.5'>
+      <div className='max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-overlay)] border border-[var(--border-default)] bg-[var(--surface-overlay)] shadow-[var(--shadow-overlay)]'>
+        <header className='flex items-start justify-between gap-4 border-b border-[var(--border-default)] px-5 py-3.5'>
           <div>
-            <h2 className='text-base font-semibold tracking-tight text-slate-950' id={titleId}>
+            <h2
+              className='text-base font-semibold tracking-tight text-[var(--text-primary)]'
+              id={titleId}
+            >
               {title}
             </h2>
             {description ? (
-              <p className='mt-1 text-sm leading-5 text-slate-600' id={descriptionId}>
+              <p className='mt-1 text-sm leading-5 text-[var(--text-secondary)]' id={descriptionId}>
                 {description}
               </p>
             ) : null}
           </div>
           <button
             aria-label={`Cerrar ${title.toLowerCase()}`}
-            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[4px] text-slate-500 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:opacity-40'
+            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--hover)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-40'
             disabled={closeDisabled}
             onClick={onClose}
             type='button'

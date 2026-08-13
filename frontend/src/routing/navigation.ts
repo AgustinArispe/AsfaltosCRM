@@ -14,9 +14,14 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
     description: 'El pipeline comercial se implementará en el siguiente módulo.',
   },
   {
-    path: '/customers',
-    label: 'Clientes',
-    description: 'Gestión de clientes y su historial comercial.',
+    path: '/dashboard',
+    label: 'Dashboard',
+    description: 'Indicadores comerciales y operativos.',
+  },
+  {
+    path: '/notifications',
+    label: 'Notificaciones',
+    description: 'Seguimientos y alertas operativas.',
   },
   {
     path: '/whatsapp',
@@ -24,9 +29,24 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
     description: 'Conversaciones de WhatsApp y contexto comercial.',
   },
   {
+    path: '/customers',
+    label: 'Clientes',
+    description: 'Gestión de clientes y su historial comercial.',
+  },
+  {
     path: '/products',
     label: 'Productos',
     description: 'Catálogo de productos disponibles para cotizaciones.',
+  },
+  {
+    path: '/lost',
+    label: 'Perdidas',
+    description: 'Oportunidades comerciales perdidas.',
+  },
+  {
+    path: '/whatsapp-sends',
+    label: 'Envíos WhatsApp',
+    description: 'Ejecuciones auditables de envíos aprobados.',
   },
   {
     path: '/users',

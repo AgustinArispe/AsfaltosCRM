@@ -9,61 +9,82 @@ import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { WhatsAppInboxPage } from './pages/WhatsAppInboxPage'
 import { getNavigationItem } from './routing/navigation'
+import { parseRoute, pathForRoute } from './routing/route-model'
 import { Redirect, usePathname } from './routing/router'
-import { matchCustomerDetailRoute, matchOpportunityDetailRoute } from './routing/routes'
 import { LoadingState } from './shared/LoadingState'
+import { ThemeProvider } from './theme/ThemeProvider'
+
+function legacyCanonicalPath(pathname: string): string | null {
+  const opportunity = /^\/opportunities\/([1-9]\d*)$/.exec(pathname)
+  if (opportunity) return `/pipeline/opportunities/${opportunity[1]}`
+  return null
+}
 
 function RoutedApp() {
   const { isAuthenticated, isLoading, user } = useAuth()
   const pathname = usePathname()
 
-  if (isLoading) {
-    return <LoadingState fullscreen label='Restaurando sesión…' />
-  }
+  if (isLoading) return <LoadingState fullscreen label='Restaurando sesión…' />
+  if (!isAuthenticated) return pathname === '/login' ? <LoginPage /> : <Redirect to='/login' />
+  if (pathname === '/' || pathname === '/login') return <Redirect to='/pipeline' />
 
-  if (!isAuthenticated) {
-    return pathname === '/login' ? <LoginPage /> : <Redirect to='/login' />
-  }
+  const legacyPath = legacyCanonicalPath(pathname)
+  if (legacyPath) return <Redirect to={legacyPath} />
 
-  if (pathname === '/' || pathname === '/login') {
-    return <Redirect to='/pipeline' />
-  }
+  const route = parseRoute(pathname)
+  if (!route) return <Redirect to='/pipeline' />
 
-  const opportunityDetailRoute = matchOpportunityDetailRoute(pathname)
-  if (opportunityDetailRoute) {
+  if (route.kind === 'opportunity') {
     return (
-      <AppShell activeNavigationPath='/pipeline' pageTitle='Detalle de oportunidad'>
-        <OpportunityDetailPage opportunityId={opportunityDetailRoute.opportunityId} />
+      <AppShell
+        activeNavigationPath={route.surface === 'lost' ? '/lost' : '/pipeline'}
+        pageTitle='Detalle de oportunidad'
+      >
+        <OpportunityDetailPage opportunityId={route.opportunityId} surface={route.surface} />
       </AppShell>
     )
   }
-
-  const customerDetailRoute = matchCustomerDetailRoute(pathname)
-  if (customerDetailRoute) {
+  if (route.kind === 'customer') {
     return (
       <AppShell activeNavigationPath='/customers' pageTitle='Ficha de cliente'>
-        <CustomerDetailPage customerId={customerDetailRoute.customerId} />
+        <CustomerDetailPage customerId={route.customerId} />
+      </AppShell>
+    )
+  }
+  if (route.kind === 'conversation') {
+    return (
+      <AppShell activeNavigationPath='/whatsapp' pageTitle='WhatsApp'>
+        <WhatsAppInboxPage
+          initialConversationId={route.conversationId}
+          key={route.conversationId}
+        />
+      </AppShell>
+    )
+  }
+  if (route.kind === 'broadcast') {
+    return (
+      <AppShell activeNavigationPath='/whatsapp-sends' pageTitle='Envíos WhatsApp'>
+        <PlaceholderPage
+          description={`La ejecución ${route.broadcastId} estará disponible cuando se implemente CRM-025.`}
+          title='Envíos WhatsApp'
+        />
       </AppShell>
     )
   }
 
-  const navigationItem = getNavigationItem(pathname)
-  if (!navigationItem) {
+  const navigationItem = getNavigationItem(pathForRoute(route))
+  if (!navigationItem) return <Redirect to='/pipeline' />
+  if (navigationItem.supervisorOnly && user?.role !== 'SUPERVISOR')
     return <Redirect to='/pipeline' />
-  }
-
-  if (navigationItem.supervisorOnly && user?.role !== 'SUPERVISOR') {
-    return <Redirect to='/pipeline' />
-  }
 
   const pageContent =
-    pathname === '/pipeline' ? (
+    route.workspace === 'pipeline' ? (
       <PipelinePage />
-    ) : pathname === '/customers' ? (
+    ) : route.workspace === 'customers' ? (
       <CustomersPage />
-    ) : pathname === '/products' ? (
+    ) : route.workspace === 'products' ? (
       <ProductsPage />
-    ) : pathname === '/whatsapp' ? (
+    ) : route.workspace === 'whatsapp' ? (
       <WhatsAppInboxPage />
     ) : (
       <PlaceholderPage description={navigationItem.description} title={navigationItem.label} />
@@ -73,5 +94,9 @@ function RoutedApp() {
 }
 
 export default function App() {
-  return <RoutedApp />
+  return (
+    <ThemeProvider>
+      <RoutedApp />
+    </ThemeProvider>
+  )
 }

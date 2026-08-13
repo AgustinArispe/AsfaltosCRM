@@ -32,11 +32,9 @@ export function ProductTable({
   onReactivate: (product: Product) => void
 }) {
   return (
-    <div
+    <section
       aria-label='Listado de productos FAA'
       className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500'
-      role='region'
-      tabIndex={0}
     >
       <table className='w-full min-w-[38rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Productos disponibles en el CRM</caption>
@@ -109,6 +107,6 @@ export function ProductTable({
           })}
         </tbody>
       </table>
-    </div>
+    </section>
   )
 }

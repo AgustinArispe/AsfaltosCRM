@@ -76,7 +76,6 @@ export function ProductFormModal({
               aria-describedby={nameError ? `${formId}-name-error` : undefined}
               aria-invalid={Boolean(nameError)}
               autoComplete='off'
-              autoFocus
               className='ui-field text-base'
               data-modal-initial-focus
               disabled={isSubmitting}

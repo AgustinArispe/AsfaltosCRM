@@ -41,6 +41,7 @@ export function PipelineColumn({
         <span
           aria-label={`${opportunities.length} ${opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}`}
           className={`min-w-7 rounded-full border px-2 py-0.5 text-center text-xs font-semibold tabular-nums ${stage.countClassName}`}
+          role='status'
         >
           {opportunities.length}
         </span>

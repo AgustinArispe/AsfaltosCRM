@@ -137,7 +137,6 @@ export function CustomerFormModal({
               aria-describedby={fieldErrors.name ? `${formId}-name-error` : undefined}
               aria-invalid={Boolean(fieldErrors.name)}
               autoComplete='name'
-              autoFocus
               className={inputClasses}
               data-modal-initial-focus
               disabled={isSubmitting}

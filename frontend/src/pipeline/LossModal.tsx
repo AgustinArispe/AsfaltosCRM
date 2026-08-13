@@ -67,7 +67,6 @@ export function LossModal({
             <select
               aria-describedby={error ? 'loss-reason-error' : undefined}
               aria-invalid={Boolean(error)}
-              autoFocus
               className='ui-field text-base'
               data-modal-initial-focus
               disabled={isSubmitting}

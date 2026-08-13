@@ -59,7 +59,7 @@ function createClientGeneratedId(): string {
   return crypto.randomUUID()
 }
 
-export function useWhatsAppInbox() {
+export function useWhatsAppInbox(initialConversationId?: number) {
   const { token, logout } = useAuth()
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -74,7 +74,9 @@ export function useWhatsAppInbox() {
   const [search, setSearch] = useState('')
   const [waitingOnly, setWaitingOnly] = useState(false)
   const [unreadOnly, setUnreadOnly] = useState(false)
-  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(
+    initialConversationId ?? null,
+  )
   const [selectedDetail, setSelectedDetail] = useState<WhatsAppConversationDetail | null>(null)
   const [detailStatus, setDetailStatus] = useState<LoadStatus>('idle')
   const [detailError, setDetailError] = useState<string | null>(null)
@@ -104,7 +106,7 @@ export function useWhatsAppInbox() {
   const messageSyncCursorRef = useRef<string | null>(null)
   const conversationPollingRef = useRef(false)
   const messagePollingRef = useRef(false)
-  const initialSelectionMadeRef = useRef(false)
+  const initialSelectionMadeRef = useRef(Boolean(initialConversationId))
   const selectedConversationIdRef = useRef<number | null>(null)
 
   const filters = useMemo<WhatsAppFilters>(
@@ -316,6 +318,8 @@ export function useWhatsAppInbox() {
         if (isAbortError(error)) return
         if (error instanceof ApiError && error.status === 404) {
           setSelectedConversationId(null)
+          setDetailStatus('idle')
+          setMessageStatus('idle')
           return
         }
         const message = errorMessage(error, 'No pudimos cargar esta conversación.')

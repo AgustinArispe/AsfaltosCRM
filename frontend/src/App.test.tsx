@@ -230,6 +230,12 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Envíos WhatsApp' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }))
+    expect(screen.getByRole('button', { name: 'Expandir navegación' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('title', 'Pipeline')
+    fireEvent.click(screen.getByRole('button', { name: 'Expandir navegación' }))
+    expect(screen.getByLabelText('Tema')).toBeInTheDocument()
   })
 
   it('opens the pipeline drawer, restores focus, and keeps the deep-link route', async () => {

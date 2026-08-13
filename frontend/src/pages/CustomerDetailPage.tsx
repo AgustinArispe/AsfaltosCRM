@@ -11,7 +11,7 @@ import {
   SOURCE_LABELS,
 } from '../pipeline/config'
 import type { OpportunitySummary } from '../pipeline/types'
-import { AppLink } from '../routing/router'
+import { AppLink, navigateToHistoryOrigin } from '../routing/router'
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatQuantityKg } from '../shared/formatters'
@@ -21,7 +21,11 @@ function BackToCustomersLink() {
   return (
     <AppLink
       className='ui-pressable inline-flex min-h-11 items-center gap-2 rounded-[4px] px-2 text-sm font-semibold text-slate-600 outline-none hover:bg-white hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
-      to='/customers'
+      onClick={(event) => {
+        event.preventDefault()
+        navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
+      }}
+      to={{ kind: 'workspace', workspace: 'customers' }}
     >
       <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>
         <path
@@ -76,7 +80,13 @@ function OpportunityProducts({ opportunity }: { opportunity: OpportunitySummary 
   )
 }
 
-function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySummary[] }) {
+function CustomerOpportunities({
+  customerId,
+  opportunities,
+}: {
+  customerId: number
+  opportunities: OpportunitySummary[]
+}) {
   if (opportunities.length === 0) {
     return (
       <p className='mt-3 text-sm leading-6 text-slate-600'>
@@ -86,11 +96,9 @@ function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySu
   }
 
   return (
-    <div
+    <section
       aria-label='Oportunidades del cliente. Desplazá horizontalmente para ver todas las columnas.'
       className='mt-4 overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500'
-      role='region'
-      tabIndex={0}
     >
       <table className='w-full min-w-[58rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Historial de oportunidades del cliente</caption>
@@ -138,7 +146,12 @@ function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySu
                 <AppLink
                   aria-label={`Ver detalle de oportunidad ${opportunity.id}`}
                   className='inline-flex min-h-11 items-center px-2 font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
-                  to={`/opportunities/${opportunity.id}`}
+                  origin={{ kind: 'customer', customerId }}
+                  to={{
+                    kind: 'opportunity',
+                    opportunityId: opportunity.id,
+                    surface: opportunity.status === 'PERDIDA' ? 'lost' : 'pipeline',
+                  }}
                 >
                   Ver detalle
                 </AppLink>
@@ -147,7 +160,7 @@ function CustomerOpportunities({ opportunities }: { opportunities: OpportunitySu
           ))}
         </tbody>
       </table>
-    </div>
+    </section>
   )
 }
 
@@ -298,7 +311,7 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
             {opportunities.length} {opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}
           </p>
         </div>
-        <CustomerOpportunities opportunities={opportunities} />
+        <CustomerOpportunities customerId={customer.id} opportunities={opportunities} />
       </section>
     </article>
   )

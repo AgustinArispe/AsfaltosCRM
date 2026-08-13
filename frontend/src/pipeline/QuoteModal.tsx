@@ -49,6 +49,7 @@ export function QuoteModal({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const nextKeyRef = useRef(1)
+  const firstProductRef = useRef<HTMLSelectElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the modal identity or mode changes.
   useEffect(() => {
@@ -59,6 +60,10 @@ export function QuoteModal({
     setIsSubmitting(false)
     nextKeyRef.current = nextLines.length
   }, [opportunity?.id, mode])
+
+  useEffect(() => {
+    if (opportunity && products && !isLoadingProducts) firstProductRef.current?.focus()
+  }, [isLoadingProducts, opportunity, products])
 
   const updateLine = (key: number, field: 'productId' | 'quantity', value: string) => {
     setLines((current) =>
@@ -195,11 +200,12 @@ export function QuoteModal({
                       <select
                         aria-describedby={errors?.product ? productErrorId : undefined}
                         aria-invalid={Boolean(errors?.product)}
-                        autoFocus={index === 0}
                         className='ui-field text-base'
+                        data-modal-initial-focus={index === 0 ? true : undefined}
                         disabled={isSubmitting}
                         id={`quote-product-${line.key}`}
                         onChange={(event) => updateLine(line.key, 'productId', event.target.value)}
+                        ref={index === 0 ? firstProductRef : undefined}
                         value={line.productId}
                       >
                         <option value=''>Seleccionar</option>

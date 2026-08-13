@@ -1,28 +1,51 @@
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { useAuth } from '../auth/AuthContext'
 import { navigationForRole } from '../routing/navigation'
 import { AppLink, usePathname } from '../routing/router'
 import { Brand } from '../shared/Brand'
-import { Button } from '../shared/Button'
+import { Icon, type IconName } from '../shared/Icon'
+import { IconButton } from '../shared/IconButton'
+import { NotificationBadge } from '../shared/StatusStates'
+import { useTheme } from '../theme/ThemeProvider'
 
-const ROLE_LABELS = {
-  SUPERVISOR: 'Supervisor',
-  VENDEDOR: 'Vendedor',
-} as const
+const ROLE_LABELS = { SUPERVISOR: 'Supervisor', VENDEDOR: 'Vendedor' } as const
+const SIDEBAR_STORAGE_KEY = 'faa-crm.sidebar-collapsed'
+
+const NAVIGATION_ICONS: Record<string, IconName> = {
+  '/pipeline': 'pipeline',
+  '/dashboard': 'dashboard',
+  '/notifications': 'inbox',
+  '/whatsapp': 'inbox',
+  '/customers': 'users',
+  '/products': 'products',
+  '/lost': 'pipeline',
+  '/whatsapp-sends': 'send',
+  '/users': 'users',
+}
 
 export function AppShell({
   pageTitle,
   activeNavigationPath,
+  notificationCount = 0,
   children,
 }: {
   pageTitle: string
   activeNavigationPath?: string
+  notificationCount?: number
   children: ReactNode
 }) {
   const { user, logout } = useAuth()
+  const { preference, setPreference } = useTheme()
   const pathname = usePathname()
   const mainRef = useRef<HTMLElement>(null)
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true',
+  )
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isCollapsed))
+  }, [isCollapsed])
 
   useEffect(() => {
     void pathname
@@ -33,80 +56,103 @@ export function AppShell({
   const navigation = navigationForRole(user.role)
 
   return (
-    <div className='min-h-dvh bg-slate-100 text-slate-900 lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]'>
-      <a
-        className='fixed left-3 top-3 z-50 -translate-y-20 rounded-[4px] bg-white px-3 py-2 text-sm font-semibold text-slate-950 shadow-sm focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-slate-500 motion-reduce:transition-none'
-        href='#main-content'
-      >
+    <div
+      className='grid min-h-dvh bg-[var(--canvas)] text-[var(--text-primary)] transition-[grid-template-columns] duration-200 motion-reduce:transition-none lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]'
+      style={{ '--sidebar-width': isCollapsed ? '4.75rem' : '16rem' } as React.CSSProperties}
+    >
+      <a className='ui-skip-link' href='#main-content'>
         Saltar al contenido
       </a>
-
-      <aside className='border-b border-slate-700 bg-slate-800 text-slate-200 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:border-b-0 lg:border-r'>
-        <div className='border-b border-slate-700 px-4 py-3.5 lg:px-5 lg:py-4'>
-          <Brand inverse />
+      <aside className='sticky top-0 hidden h-dvh flex-col border-r border-[var(--border-default)] bg-[var(--surface)] lg:flex'>
+        <div className='flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-[var(--border-default)] px-3'>
+          <Brand collapsed={isCollapsed} />
+          <IconButton
+            icon='menu'
+            label={isCollapsed ? 'Expandir navegación' : 'Contraer navegación'}
+            onClick={() => setIsCollapsed((current) => !current)}
+          />
         </div>
-
-        <nav
-          className='overflow-x-auto px-2 py-1.5 lg:flex-1 lg:overflow-visible lg:px-3 lg:py-4'
-          aria-label='Navegación principal'
-        >
-          <ul className='flex min-w-max gap-1 lg:min-w-0 lg:flex-col'>
+        <nav aria-label='Navegación principal' className='min-h-0 flex-1 overflow-y-auto px-2 py-3'>
+          <ul className='space-y-1'>
             {navigation.map((item) => {
               const isActive = (activeNavigationPath ?? pathname) === item.path
+              const icon = NAVIGATION_ICONS[item.path] ?? 'dashboard'
               return (
                 <li key={item.path}>
                   <AppLink
                     aria-current={isActive ? 'page' : undefined}
+                    aria-label={isCollapsed ? item.label : undefined}
                     className={[
-                      'ui-pressable block min-h-11 rounded-[4px] border-l-2 px-3 py-2.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-300',
-                      isActive
-                        ? 'border-slate-100 bg-slate-700 text-white'
-                        : 'border-transparent text-slate-300 hover:bg-slate-700/60 hover:text-white',
+                      'ui-sidebar-link ui-pressable',
+                      isCollapsed ? 'justify-center px-0' : 'justify-start px-3',
+                      isActive ? 'ui-sidebar-link--active' : '',
                     ].join(' ')}
+                    title={isCollapsed ? item.label : undefined}
                     to={item.path}
                   >
-                    {item.label}
+                    <Icon className='size-5 shrink-0' name={icon} />
+                    {isCollapsed ? null : <span className='truncate'>{item.label}</span>}
+                    {!isCollapsed && item.path === '/notifications' ? (
+                      <NotificationBadge count={notificationCount} />
+                    ) : null}
+                    {isCollapsed && item.path === '/notifications' ? (
+                      <span className='absolute right-1 top-1'>
+                        <NotificationBadge count={notificationCount} />
+                      </span>
+                    ) : null}
                   </AppLink>
                 </li>
               )
             })}
           </ul>
         </nav>
-
-        <p className='hidden border-t border-slate-700 px-5 py-3.5 text-[0.6875rem] leading-relaxed text-slate-400 lg:block'>
-          Fábrica Argentina de Asfaltos
-        </p>
-      </aside>
-
-      <div className='min-w-0'>
-        <header className='flex min-h-[3.75rem] flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 sm:px-6 lg:px-7'>
-          <h1 className='text-lg font-semibold tracking-tight text-slate-950'>{pageTitle}</h1>
-
-          <div className='flex min-w-0 items-center gap-2 sm:gap-3'>
-            <div className='min-w-0 text-right'>
-              <p
-                className='truncate text-xs font-semibold text-slate-900 sm:text-sm'
-                title={user.full_name}
+        <div className='border-t border-[var(--border-default)] p-2'>
+          {isCollapsed ? (
+            <IconButton icon='logout' label='Cerrar sesión' onClick={logout} />
+          ) : (
+            <>
+              <div className='mb-2 px-2 py-1'>
+                <p className='truncate text-sm font-semibold'>{user.full_name}</p>
+                <p className='text-xs text-[var(--text-secondary)]'>{ROLE_LABELS[user.role]}</p>
+              </div>
+              <label className='sr-only' htmlFor='theme-preference'>
+                Tema
+              </label>
+              <select
+                className='ui-sidebar-theme-select'
+                id='theme-preference'
+                onChange={(event) => setPreference(event.target.value as typeof preference)}
+                value={preference}
               >
-                {user.full_name}
-              </p>
-              <p className='text-[0.6875rem] text-slate-500'>{ROLE_LABELS[user.role]}</p>
-            </div>
-            <Button onClick={logout} size='compact' variant='ghost'>
-              Cerrar sesión
-            </Button>
+                <option value='system'>Tema: sistema</option>
+                <option value='light'>Tema: claro</option>
+                <option value='dark'>Tema: oscuro</option>
+              </select>
+              <button className='ui-sidebar-logout' onClick={logout} type='button'>
+                <Icon name='logout' /> Cerrar sesión
+              </button>
+            </>
+          )}
+        </div>
+      </aside>
+      <main
+        className='min-w-0 px-4 py-5 sm:px-6 lg:px-8 lg:py-7'
+        id='main-content'
+        ref={mainRef}
+        tabIndex={-1}
+      >
+        <div className='mb-6 flex min-h-11 items-center gap-3'>
+          <div className='min-w-0'>
+            <p className='text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)]'>
+              FAA CRM
+            </p>
+            <h1 className='truncate text-xl font-semibold tracking-tight sm:text-2xl'>
+              {pageTitle}
+            </h1>
           </div>
-        </header>
-
-        <main
-          className='px-4 py-5 outline-none sm:px-6 lg:px-7 lg:py-6'
-          id='main-content'
-          ref={mainRef}
-          tabIndex={-1}
-        >
-          {children}
-        </main>
-      </div>
+        </div>
+        {children}
+      </main>
     </div>
   )
 }

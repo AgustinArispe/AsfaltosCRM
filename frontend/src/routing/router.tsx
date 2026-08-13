@@ -1,13 +1,14 @@
 import { type AnchorHTMLAttributes, type MouseEvent, useEffect, useSyncExternalStore } from 'react'
 
 import { LoadingState } from '../shared/LoadingState'
-
-function normalizePath(pathname: string): string {
-  if (pathname.length > 1 && pathname.endsWith('/')) {
-    return pathname.slice(0, -1)
-  }
-  return pathname || '/'
-}
+import {
+  type CrmHistoryState,
+  type CrmRoute,
+  normalizePath,
+  pathForRoute,
+  type RouteOrigin,
+  readHistoryOrigin,
+} from './route-model'
 
 function subscribeToLocation(onStoreChange: () => void) {
   window.addEventListener('popstate', onStoreChange)
@@ -34,11 +35,32 @@ export function navigate(to: string, options: { replace?: boolean } = {}) {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-type AppLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
-  to: string
+export function navigateRoute(
+  route: CrmRoute,
+  options: { replace?: boolean; origin?: RouteOrigin } = {},
+) {
+  const target = pathForRoute(route)
+  const state: CrmHistoryState | null = options.origin ? { crmOrigin: options.origin } : null
+  if (options.replace) {
+    window.history.replaceState(state, '', target)
+  } else {
+    window.history.pushState(state, '', target)
+  }
+  window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-export function AppLink({ to, onClick, ...props }: AppLinkProps) {
+export function navigateToHistoryOrigin(fallback: CrmRoute) {
+  const origin = readHistoryOrigin(window.history.state)
+  navigateRoute(origin ?? fallback)
+}
+
+type AppLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  to: string | CrmRoute
+  origin?: RouteOrigin
+}
+
+export function AppLink({ to, origin, onClick, ...props }: AppLinkProps) {
+  const target = typeof to === 'string' ? normalizePath(to) : pathForRoute(to)
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event)
     if (
@@ -52,10 +74,11 @@ export function AppLink({ to, onClick, ...props }: AppLinkProps) {
       return
     }
     event.preventDefault()
-    navigate(to)
+    if (typeof to === 'string') navigate(target)
+    else navigateRoute(to, { origin })
   }
 
-  return <a {...props} href={to} onClick={handleClick} />
+  return <a {...props} href={target} onClick={handleClick} />
 }
 
 export function Redirect({ to }: { to: string }) {

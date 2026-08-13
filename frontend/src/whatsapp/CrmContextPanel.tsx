@@ -32,10 +32,12 @@ function OpportunityCard({
   opportunity,
   detail,
   action,
+  conversationId,
 }: {
   opportunity: WhatsAppOpportunitySummary
   detail: OpportunityDetail | null
   action?: React.ReactNode
+  conversationId: number
 }) {
   return (
     <article className='rounded-[4px] border border-slate-200 bg-slate-50 px-3 py-3'>
@@ -74,7 +76,12 @@ function OpportunityCard({
       ) : null}
       <AppLink
         className='mt-3 inline-flex min-h-11 items-center text-xs font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
-        to={`/opportunities/${opportunity.id}`}
+        origin={{ kind: 'conversation', conversationId }}
+        to={{
+          kind: 'opportunity',
+          opportunityId: opportunity.id,
+          surface: opportunity.status === 'PERDIDA' ? 'lost' : 'pipeline',
+        }}
       >
         Abrir oportunidad
       </AppLink>
@@ -148,7 +155,8 @@ export function CrmContextPanel({
             {customer?.is_available ? (
               <AppLink
                 className='inline-flex min-h-11 items-center text-xs font-semibold text-slate-600 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
-                to={`/customers/${customer.id}`}
+                origin={{ kind: 'conversation', conversationId: conversation.id }}
+                to={{ kind: 'customer', customerId: customer.id }}
               >
                 Abrir ficha
               </AppLink>
@@ -200,6 +208,7 @@ export function CrmContextPanel({
                   </Button>
                 }
                 detail={opportunityDetail}
+                conversationId={conversation.id}
                 opportunity={active}
               />
             </div>

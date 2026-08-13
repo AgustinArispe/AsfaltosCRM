@@ -72,6 +72,7 @@ function ConversationRow({
           <span
             aria-label={`${conversation.unread_count} mensajes sin leer`}
             className='grid min-h-5 min-w-5 shrink-0 place-items-center rounded-full bg-slate-800 px-1.5 text-[0.6875rem] font-bold text-white'
+            role='status'
           >
             {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
           </span>
@@ -142,7 +143,8 @@ export function ConversationList({
             value={search}
           />
         </label>
-        <div aria-label='Filtros de conversaciones' className='mt-2 flex gap-2' role='group'>
+        <fieldset className='mt-2 flex gap-2'>
+          <legend className='sr-only'>Filtros de conversaciones</legend>
           <button
             aria-pressed={waitingOnly}
             className={[
@@ -169,7 +171,7 @@ export function ConversationList({
           >
             No leídas
           </button>
-        </div>
+        </fieldset>
       </div>
 
       {error && conversations.length > 0 ? (

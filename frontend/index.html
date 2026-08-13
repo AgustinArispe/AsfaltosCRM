@@ -5,6 +5,20 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fábrica Argentina de Asfaltos | CRM</title>
+    <script>
+      (() => {
+        const stored = localStorage.getItem('faa-crm.theme')
+        const preference = stored === 'light' || stored === 'dark' ? stored : 'system'
+        const resolved =
+          preference === 'system'
+            ? matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+            : preference
+        document.documentElement.dataset.theme = resolved
+        document.documentElement.style.colorScheme = resolved
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

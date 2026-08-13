@@ -1,13 +1,17 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'compact' | 'default'
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: 'border-slate-800 bg-slate-800 text-white hover:border-slate-700 hover:bg-slate-700',
-  secondary: 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
-  ghost: 'border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-  danger: 'border-red-700 bg-red-700 text-white hover:border-red-800 hover:bg-red-800',
+  primary:
+    'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)]',
+  secondary:
+    'border-[var(--border-default)] bg-[var(--surface-raised)] text-[var(--text-primary)] hover:bg-[var(--surface-subtle)]',
+  ghost:
+    'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]',
+  danger:
+    'border-[var(--destructive-solid)] bg-[var(--destructive-solid)] text-[var(--on-destructive)] hover:brightness-95',
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -25,7 +29,7 @@ export function buttonClassName({
   className?: string
 } = {}): string {
   return [
-    'ui-pressable inline-flex items-center justify-center gap-2 rounded-[4px] border font-semibold leading-5 outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45',
+    'ui-pressable inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border font-semibold leading-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] disabled:cursor-not-allowed disabled:opacity-45',
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     className,

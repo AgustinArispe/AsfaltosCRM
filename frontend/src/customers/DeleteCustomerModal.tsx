@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button } from '../shared/Button'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { Modal } from '../shared/Modal'
+import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import type { CustomerSummary } from './types'
 
 export function DeleteCustomerModal({
@@ -35,27 +33,21 @@ export function DeleteCustomerModal({
   }
 
   return (
-    <Modal
-      closeDisabled={isDeleting}
+    <ConfirmationDialog
+      confirmLabel='Eliminar cliente'
       description='El cliente dejará de aparecer en el CRM, pero su historial comercial se conservará.'
-      isOpen={customer !== null}
-      onClose={onClose}
+      error={error}
+      isOpen={Boolean(customer)}
+      isPending={isDeleting}
+      onCancel={onClose}
+      onConfirm={() => void handleConfirm()}
+      pendingLabel='Eliminando…'
       title={customer ? `¿Eliminar a ${customer.name}?` : 'Eliminar cliente'}
+      variant='danger'
     >
-      <div className='px-5 py-5'>
-        {error ? <InlineFeedback message={error} /> : null}
-        <p className='text-sm leading-6 text-slate-700'>
-          Esta acción realiza un borrado lógico y no elimina sus oportunidades.
-        </p>
-      </div>
-      <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
-        <Button autoFocus data-modal-initial-focus disabled={isDeleting} onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button disabled={isDeleting} onClick={() => void handleConfirm()} variant='danger'>
-          {isDeleting ? 'Eliminando…' : 'Eliminar cliente'}
-        </Button>
-      </footer>
-    </Modal>
+      <p className='text-sm leading-6 text-slate-700'>
+        Esta acción realiza un borrado lógico y no elimina sus oportunidades.
+      </p>
+    </ConfirmationDialog>
   )
 }

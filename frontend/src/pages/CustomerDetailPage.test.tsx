@@ -131,7 +131,7 @@ describe('CustomerDetailPage', () => {
     expect(within(section).getByText('2 oportunidades')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver detalle de oportunidad 2' })).toHaveAttribute(
       'href',
-      '/opportunities/2',
+      '/lost/opportunities/2',
     )
   })
 

@@ -5,15 +5,19 @@ import { type ApiSession, getOpportunityDetail } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { OpportunityDetailContent } from '../pipeline/OpportunityDetailContent'
 import type { OpportunityDetail } from '../pipeline/types'
-import { AppLink } from '../routing/router'
+import { AppLink, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
 import { Button } from '../shared/Button'
 import { LoadingState } from '../shared/LoadingState'
 
-function BackToPipelineLink() {
+function BackToPipelineLink({ surface }: { surface: 'pipeline' | 'lost' }) {
   return (
     <AppLink
       className='ui-pressable inline-flex min-h-11 items-center gap-2 rounded-[4px] px-2 text-sm font-semibold text-slate-600 outline-none hover:bg-white hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
-      to='/pipeline'
+      onClick={(event) => {
+        event.preventDefault()
+        navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
+      }}
+      to={{ kind: 'workspace', workspace: surface }}
     >
       <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>
         <path
@@ -24,15 +28,23 @@ function BackToPipelineLink() {
           strokeWidth='1.8'
         />
       </svg>
-      Volver al Pipeline
+      {surface === 'lost' ? 'Volver a Perdidas' : 'Volver al Pipeline'}
     </AppLink>
   )
 }
 
-function DetailError({ notFound, onRetry }: { notFound: boolean; onRetry: () => void }) {
+function DetailError({
+  notFound,
+  onRetry,
+  surface,
+}: {
+  notFound: boolean
+  onRetry: () => void
+  surface: 'pipeline' | 'lost'
+}) {
   return (
     <section aria-labelledby='opportunity-error-title' className='max-w-3xl'>
-      <BackToPipelineLink />
+      <BackToPipelineLink surface={surface} />
       <div className='ui-panel mt-3 px-5 py-6'>
         <h2 className='text-lg font-semibold text-slate-950' id='opportunity-error-title'>
           {notFound ? 'Oportunidad no encontrada' : 'No pudimos cargar la oportunidad'}
@@ -52,7 +64,13 @@ function DetailError({ notFound, onRetry }: { notFound: boolean; onRetry: () => 
   )
 }
 
-export function OpportunityDetailPage({ opportunityId }: { opportunityId: number }) {
+export function OpportunityDetailPage({
+  opportunityId,
+  surface = 'pipeline',
+}: {
+  opportunityId: number
+  surface?: 'pipeline' | 'lost'
+}) {
   const { token, logout } = useAuth()
   const [opportunity, setOpportunity] = useState<OpportunityDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -72,7 +90,12 @@ export function OpportunityDetailPage({ opportunityId }: { opportunityId: number
     setIsLoading(true)
 
     getOpportunityDetail(opportunityId, { ...apiSession, signal: controller.signal })
-      .then(setOpportunity)
+      .then((detail) => {
+        if (detail.status === 'PERDIDA' && surface !== 'lost') {
+          navigateRoute({ kind: 'opportunity', opportunityId, surface: 'lost' }, { replace: true })
+        }
+        setOpportunity(detail)
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
         setLoadError(error instanceof ApiError && error.status === 404 ? 'not-found' : 'request')
@@ -82,7 +105,7 @@ export function OpportunityDetailPage({ opportunityId }: { opportunityId: number
       })
 
     return () => controller.abort()
-  }, [apiSession, opportunityId, reloadKey])
+  }, [apiSession, opportunityId, reloadKey, surface])
 
   if (isLoading) return <LoadingState label='Cargando oportunidad…' />
 
@@ -91,13 +114,14 @@ export function OpportunityDetailPage({ opportunityId }: { opportunityId: number
       <DetailError
         notFound={loadError === 'not-found'}
         onRetry={() => setReloadKey((current) => current + 1)}
+        surface={surface}
       />
     )
   }
 
   return (
     <div className='mx-auto max-w-6xl'>
-      <BackToPipelineLink />
+      <BackToPipelineLink surface={surface} />
       <div className='mt-3'>
         <OpportunityDetailContent opportunity={opportunity} />
       </div>

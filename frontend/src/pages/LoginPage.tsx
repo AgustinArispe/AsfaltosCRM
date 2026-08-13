@@ -1,4 +1,4 @@
-import { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
@@ -20,6 +20,10 @@ export function LoginPage() {
   const [error, setError] = useState<LoginError>(null)
   const emailRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    if (error) emailRef.current?.focus()
+  }, [error])
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
@@ -31,7 +35,6 @@ export function LoginPage() {
       setError(
         requestError instanceof ApiError && requestError.status === 401 ? 'invalid' : 'unexpected',
       )
-      emailRef.current?.focus()
     } finally {
       setIsSubmitting(false)
     }
@@ -85,7 +88,6 @@ export function LoginPage() {
                 aria-describedby={errorMessage ? 'login-error' : undefined}
                 aria-invalid={Boolean(errorMessage)}
                 autoComplete='username'
-                autoFocus
                 className='ui-field text-base'
                 disabled={isSubmitting}
                 id='email'

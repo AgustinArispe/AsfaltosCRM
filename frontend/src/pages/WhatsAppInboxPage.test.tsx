@@ -93,12 +93,15 @@ function summary(
 }
 
 function detail(overrides: Partial<WhatsAppConversationDetail> = {}): WhatsAppConversationDetail {
+  const activeOpportunity = summary(1).active_opportunity
+  if (!activeOpportunity)
+    throw new Error('La conversación de prueba requiere una oportunidad activa.')
   return {
     ...summary(1),
     opportunity_links: [
       {
         id: 10,
-        opportunity: summary(1).active_opportunity!,
+        opportunity: activeOpportunity,
         linked_at: '2026-08-01T12:00:00Z',
         unlinked_at: null,
         linked_by: { id: 2, full_name: 'Vendedor FAA', role: 'VENDEDOR' },
@@ -289,7 +292,8 @@ function mockInboxApi({
         const payload = JSON.parse(String(init?.body)) as { opportunity_id: number }
         const opportunity = conversationDetail.opportunity_suggestions.find(
           (item) => item.id === payload.opportunity_id,
-        )!
+        )
+        if (!opportunity) return jsonResponse(404, { detail: 'Oportunidad no encontrada' })
         return jsonResponse(200, {
           ...conversationDetail,
           active_opportunity: opportunity,

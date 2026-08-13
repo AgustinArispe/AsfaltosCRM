@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
+import { navigateRoute } from '../routing/router'
 import { Drawer } from '../shared/Drawer'
 import { ChatPanel } from '../whatsapp/ChatPanel'
 import { ConversationList } from '../whatsapp/ConversationList'
 import { CrmContextPanel } from '../whatsapp/CrmContextPanel'
 import { useWhatsAppInbox } from '../whatsapp/useWhatsAppInbox'
 
-export function WhatsAppInboxPage() {
-  const inbox = useWhatsAppInbox()
+export function WhatsAppInboxPage({ initialConversationId }: { initialConversationId?: number }) {
+  const inbox = useWhatsAppInbox(initialConversationId)
   const [isContextOpen, setIsContextOpen] = useState(false)
 
   useEffect(() => {
@@ -14,9 +15,16 @@ export function WhatsAppInboxPage() {
     setIsContextOpen(false)
   }, [inbox.selectedConversationId])
 
+  useEffect(() => {
+    if (initialConversationId && !inbox.selectedConversationId && inbox.detailStatus === 'idle') {
+      navigateRoute({ kind: 'workspace', workspace: 'whatsapp' }, { replace: true })
+    }
+  }, [inbox.detailStatus, inbox.selectedConversationId, initialConversationId])
+
   const returnToConversationList = () => {
     const conversationId = inbox.selectedConversationId
     inbox.selectConversation(null)
+    navigateRoute({ kind: 'workspace', workspace: 'whatsapp' }, { replace: true })
     if (!conversationId) return
     window.requestAnimationFrame(() => {
       document
@@ -56,7 +64,13 @@ export function WhatsAppInboxPage() {
             onLoadMore={() => void inbox.loadMoreConversations()}
             onRetry={inbox.retryConversationLoad}
             onSearchChange={inbox.setSearchDraft}
-            onSelect={inbox.selectConversation}
+            onSelect={(conversationId) => {
+              inbox.selectConversation(conversationId)
+              navigateRoute(
+                { kind: 'conversation', conversationId },
+                { origin: { kind: 'workspace', workspace: 'whatsapp' } },
+              )
+            }}
             onUnreadChange={inbox.setUnreadOnly}
             onWaitingChange={inbox.setWaitingOnly}
             search={inbox.searchDraft}

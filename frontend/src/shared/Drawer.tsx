@@ -1,4 +1,5 @@
 import {
+  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
   type SyntheticEvent,
@@ -94,6 +95,10 @@ export function Drawer({
     if (event.target === event.currentTarget && !closeDisabled) onClose()
   }
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key === 'Escape' && closeDisabled) event.preventDefault()
+  }
+
   return (
     <dialog
       aria-describedby={description ? descriptionId : undefined}
@@ -102,6 +107,7 @@ export function Drawer({
       data-closing={isClosing ? 'true' : 'false'}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
+      onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
       <div className='drawer-panel flex flex-col border-l border-slate-200'>
