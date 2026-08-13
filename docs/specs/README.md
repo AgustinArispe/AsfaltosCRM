@@ -103,6 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-026`](026-frontend-final-polish.md) — Draft — final cross-product Frontend 2.0
+  accessibility, responsive, interaction, browser, and visual-quality pass.
 - [`CRM-025`](025-whatsapp-broadcast-ui.md) — Draft — safe, premium FAA interface for
   explicit WhatsApp Broadcast execution, consent review, processing, retries, and
   auditable outcomes from already-approved marketing content.
