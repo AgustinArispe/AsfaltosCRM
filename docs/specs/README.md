@@ -103,6 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-023`](023-whatsapp-inbox-2.md) — Draft — FAA WhatsApp Inbox 2.0: a
+  three-panel, commercially contextual, desktop-first messaging workspace.
 - [`CRM-022`](022-notifications-ui.md) — Draft — global operational notification
   workspace, history, acknowledgement, sidebar attention badge, and safe Opportunity
   navigation.
