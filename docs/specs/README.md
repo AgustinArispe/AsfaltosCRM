@@ -103,6 +103,9 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-022`](022-notifications-ui.md) — Draft — global operational notification
+  workspace, history, acknowledgement, sidebar attention badge, and safe Opportunity
+  navigation.
 - [`CRM-021`](021-dashboard-metrics.md) — Draft — premium operational Dashboard and
   authoritative commercial metrics, charts, and provincial insight.
 - [`CRM-020`](020-opportunity-detail-quote-flow.md) — Draft — centered Opportunity
