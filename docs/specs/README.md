@@ -103,6 +103,8 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-020`](020-opportunity-detail-quote-flow.md) — Draft — centered Opportunity
+  detail dialog, scoped editing, commercial actions, and progressive quote flow.
 - [`CRM-019`](019-pipeline-2.md) — Draft — premium, high-capacity Pipeline 2.0 Kanban
   foundation for FAA's active commercial workspace.
 - [`CRM-018`](018-frontend-design-system.md) — Draft — permanent visual,
