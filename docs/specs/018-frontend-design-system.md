@@ -1,9 +1,9 @@
 # CRM-018 — FAA CRM Frontend 2.0 Design System
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-13
-Implementation commit: N/A
+Implementation commit: `370005d65c684c29d8fd9a255f4c728623d32200`
 
 ## Goal
 
@@ -27,8 +27,7 @@ business behavior, API ownership, backend route semantics, polling semantics, gl
 notification read semantics, permissions, or security rules defined by implemented
 specs. It owns the smallest shared internal path and typed navigation representation
 needed by Frontend 2.0; that client-side composition does not create a backend contract.
-In
-particular, frontend state must continue to render backend-authoritative business and
+In particular, frontend state must continue to render backend-authoritative business and
 provider evidence rather than recreating it.
 
 The production CSP from CRM-016 permits same-origin fonts only. A font CDN must not be

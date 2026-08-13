@@ -121,9 +121,6 @@ must describe implemented behavior only.
   detail dialog, scoped editing, commercial actions, and progressive quote flow.
 - [`CRM-019`](019-pipeline-2.md) — Draft — premium, high-capacity Pipeline 2.0 Kanban
   foundation for FAA's active commercial workspace.
-- [`CRM-018`](018-frontend-design-system.md) — Draft — permanent visual,
-  interaction, accessibility, responsive, and component foundation for FAA CRM
-  Frontend 2.0.
 - [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
   operations, recovery, and backend-freeze contract.
 
@@ -136,6 +133,9 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-018`](018-frontend-design-system.md) — Implemented — permanent visual,
+  interaction, accessibility, responsive, and component foundation for FAA CRM
+  Frontend 2.0.
 - [`CRM-001`](001-core-crm.md) — Implemented — core CRM domain, authentication, and
   roles.
 - [`CRM-002`](002-web-lead-intake.md) — Implemented — authenticated server-to-server
