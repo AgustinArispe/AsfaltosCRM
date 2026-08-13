@@ -26,9 +26,9 @@ habilitados. La suite actual usa jsdom, no tiene runner browser/E2E ni framework
 adicional.
 
 La aplicación actual todavía refleja la UI anterior en varios lugares. Este pase ocurre
-después de implementar CRM-018 a CRM-025 y no convierte sus actuales implementaciones,
-sus Open decisions ni sus contratos backend en requisitos nuevos. La UI debe seguir
-renderizando evidencia backend autoritativa, no duplicar reglas comerciales.
+después de implementar CRM-018 a CRM-025 y no convierte sus implementaciones ni sus
+contratos backend feature-specific en requisitos nuevos. La UI debe seguir renderizando
+evidencia backend autoritativa, no duplicar reglas comerciales.
 
 ## Dependencies
 
@@ -56,8 +56,8 @@ renderizando evidencia backend autoritativa, no duplicar reglas comerciales.
   navegador y flujos representativos mediante Docker Compose.
 - Revisión de dependencias y rendimiento frontend después de las implementaciones de
   CRM-019 a CRM-025.
-- Revisión de un modelo interno de navegación/deep link común para los handoffs que
-  cruzan workspaces.
+- Validación de CRM-018 como dueño del modelo interno tipado de navegación/deep link
+  común para los handoffs que cruzan workspaces.
 
 ## Non-goals
 
@@ -255,10 +255,20 @@ sigue cambio de preferencia según CRM-018 sin quebrar trabajo activo.
 
 ## Functional browser QA and quality gates
 
-Los journeys se ejercitan contra la aplicación real levantada por Docker Compose y
-localhost:5173/localhost:8000, según la política del repositorio. Datos de QA son
-controlados y se eliminan mediante procedimiento seguro y acotado después de cada
-ejecución. La matriz funcional incluye:
+Los journeys se ejercitan con Playwright contra la aplicación real levantada por Docker
+Compose y localhost:5173/localhost:8000, según la política del repositorio. Cada
+ejecución usa un proyecto Compose y base de datos aislados de QA: crea volumen/base
+nuevos, aplica migraciones frescas y carga únicamente datos sintéticos controlados por
+un fixture o vía API aprobada. Las aserciones son semánticas y de flujo (roles, estados,
+navegación y resultados autoritativos); screenshots son sólo diagnóstico, nunca gate
+pixel-perfect.
+
+Al finalizar, el procedimiento baja exclusivamente ese proyecto aislado con
+`docker compose down -v`. Nunca comparte, enumera, resetea ni elimina la base, volumen
+o datos de desarrollo/negocio de una persona. Si los contratos existentes no alcanzan
+para sembrar un journey, se agrega el fixture mínimo aislado y aprobado; no se crea una
+API de limpieza productiva ni se reutilizan Customers/WhatsApp reales. La matriz
+funcional incluye:
 
 - login/logout/restauración de sesión;
 - Pipeline filtros/sort, transición drag y alternativa teclado;
@@ -278,17 +288,13 @@ justificación medida.
 
 ## Cross-spec routing review
 
-CRM-019, CRM-020, CRM-022, CRM-023, CRM-024 y CRM-025 deben converger en una única
-representación interna tipada de navegación. Debe poder abrir contexto exacto de
-Opportunity activa, Opportunity perdida, Customer y conversación WhatsApp, preservar
-return/origen razonable y no crear combinaciones independientes de query params, estado
-efímero o hacks por feature.
-
-La revisión determina el cambio mínimo sobre el router interno actual: URL/ruta,
-parámetros validados, estado de retorno transitorio cuando aporte valor, restauración de
-foco y fallback seguro ante entidad no disponible. No agrega endpoint ni cambia contratos
-de negocio. CRM-026 no elige silenciosamente esta representación mientras las specs
-dueñas la mantengan abierta.
+CRM-018 es dueño de la única representación interna tipada. CRM-019, CRM-020, CRM-022,
+CRM-023, CRM-024 y CRM-025 consumen sus paths canónicos para Opportunity activa/perdida,
+Customer, Conversation exacta y Broadcast, más origen/fallback mismo-app tipado en
+`history.state` cuando aporta valor. La QA verifica parámetros validados, foco/retorno,
+fallback de deep link directo y entidad no disponible; no admite query params, URLs de
+retorno arbitrarias ni hacks por feature. No agrega endpoint ni cambia contratos de
+negocio.
 
 ## Acceptance criteria
 
@@ -325,30 +331,23 @@ dueñas la mantengan abierta.
   incluyen según baseline operacional, sin promesa legacy.
 - AC-14: Light, Dark y System pasan rutas, charts/tooltips/dialogs/focus/status con
   contraste correcto, sin theme flash ni pérdida de workflow.
-- AC-15: Journeys Docker Compose cubren login, Pipeline, Opportunity/Quote/Lost,
+- AC-15: Playwright contra un proyecto/base Docker Compose aislados aplica migraciones
+  frescas, seed sintético controlado, aserciones semánticas de flujo y limpieza aislada
+  con `docker compose down -v` mientras cubre login, Pipeline, Opportunity/Quote/Lost,
   Customer/Product/Import, Notifications, Dashboard, WhatsApp, Broadcast cuando sea
-  posible, sidebar y theme con datos QA limpiados de forma segura.
+  posible, sidebar y tema; screenshots son sólo diagnóstico.
 - AC-16: TypeScript, Biome, tests/coverage, build, audit y smoke CRM-015 siguen como
   gates; pruebas browser/a11y nuevas son estables, proporcionadas y no pixel-perfect.
-- AC-17: Navegación interna coherente cubre Opportunity activa/perdida, Customer e
-  Inbox exacto, con return/focus seguro y sin hacks por feature.
+- AC-17: Navegación tipada CRM-018 cubre Opportunity activa/perdida, Customer,
+  Conversation Inbox exacta y Broadcast, con return/focus seguro y sin hacks por
+  feature ni return URLs arbitrarias.
 - AC-18: Un vendedor se orienta sin entrenamiento de estructura, encuentra acciones
   frecuentes con poca búsqueda, acelera con teclado y percibe FAA, Dashboard e Inbox
   como partes intencionales de un producto incluso con zoom.
 
 ## Open decisions
 
-1. **Navegación transversal tipada.** CRM-022, CRM-023, CRM-024 y CRM-025 ya registran
-   como bloqueo una representación común Opportunity/Customer/Inbox. Antes de aprobar
-   CRM-026 debe resolverse por la spec/decisión dueña; CRM-026 sólo valida su aplicación
-   transversal y no duplica contratos.
-2. **Entorno y datos repetibles de browser QA.** Existen Vitest/jsdom y Docker Compose,
-   pero no un runner browser ni fixture/cleanup aprobado para journeys Frontend 2.0.
-   Antes de convertir la matriz en gate, aprobar la menor estrategia reproducible que
-   use Docker, datos controlados y limpieza segura, junto con baseline FAA Chrome/Edge y
-   cualquier necesidad Firefox/Safari.
-
-Una spec no puede pasar a Approved mientras estas decisiones sigan abiertas.
+None
 
 ## Follow-up / future specs
 

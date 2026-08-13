@@ -31,7 +31,8 @@ docs/BUSINESS_RULES.md remains authoritative for commercial states, global stale
 - Define /dashboard as the App Shell analytical workspace and its compact hierarchy: identity and filters, operational attention, KPIs, evolution, conversion/Pipeline, product/source performance, and geographic insight.
 - Define the Dashboard's use of existing metrics, notification, opportunity, and WhatsApp read contracts without changing their business semantics or adding backend endpoints.
 - Define chart visual/accessibility behavior, Light/Dark treatment, responsive layout, loading/refresh/empty/error states, useful interaction, and bounded functional motion.
-- Define Dashboard feature/API/component ownership within the existing frontend architecture and the criteria for choosing one charting approach.
+- Define Dashboard feature/API/component ownership within the existing frontend
+  architecture and its focused custom SVG/DOM chart approach.
 
 ## Non-goals
 
@@ -194,18 +195,20 @@ Every KPI has a screen-reader name/value/unit/context. Every chart surface inclu
 
 ## Chart technology decision
 
-The dependency audit finds only React, React DOM, and @dnd-kit/react in the current production frontend; no charting library is installed. Generic CRM-018 chart surfaces, KPI cards, segmented controls, skeletons, and feedback primitives are shared UI responsibilities. Simple ranked bars and Pipeline stage blocks should use semantic HTML/CSS where that is clearer than a chart runtime.
+Dashboard uses focused custom SVG/DOM charts. Simple ranked bars, Pipeline stage
+blocks, legends, and exact values use semantic HTML/CSS where that is clearer; the
+timeline and conversion ring use limited feature-owned SVG compositions. CRM-018 owns
+the shared chart surface, token, loading, error, legend, and exact text/table-alternative
+contract, not a generic chart builder.
 
-For the timeline and conversion ring, implementation must choose one consistent SVG-first approach after a small measured prototype—not install a dependency by default:
-
-| Option | Assessment |
-| --- | --- |
-| Handwritten, limited SVG primitives | No dependency and maximum token control, but tooltip, scale, responsive, and keyboard/table behavior can become duplicated maintenance risk. It is acceptable only if the prototype stays deliberately small. |
-| Modular @visx/* SVG primitives | Leading candidate when the prototype needs reusable scales, shapes, and tooltips. It can be code-split and themed through FAA tokens, but accessibility remains Dashboard-owned through semantic summaries/tables and must be verified rather than assumed. |
-| Recharts declarative chart library | Easier conventional React composition, but must prove a materially acceptable production bundle and complete token/accessibility integration. Built-in visual output is not accepted as the accessibility alternative. |
-| Large canvas-first/dashboard libraries | Not recommended: they add unnecessary bundle/visual abstraction and make exact keyboard/screen-reader data harder to guarantee. |
-
-Selection criteria are maintained React compatibility at selected version, actual route-chunk/gzip impact measured in this Vite application, no degradation to Pipeline/Inbox interaction, Light/Dark token theming, SVG/DOM access to focusable data, required table alternative, and lower long-term complexity than a limited custom SVG implementation. One approach must serve the whole Dashboard; no mixed chart stacks or external runtime chart/map API are allowed.
+Do not install `@visx`, Recharts, or another chart library for Frontend 2.0. The
+Dashboard chart set is deliberately narrow, and its required accessible summaries,
+keyboard behavior, and exact table/list alternatives remain FAA-owned regardless of a
+rendering library. Reconsider this decision only if measured implementation complexity,
+accessibility evidence, or route-chunk/bundle evidence shows that the limited custom
+approach cannot meet this spec without greater maintenance or user cost. Any such later
+change requires a separately approved amendment; no mixed chart stacks, canvas-first
+runtime, external chart/map API, or incidental dependency is permitted.
 
 ## Frontend architecture, security, and performance
 
@@ -243,11 +246,13 @@ Selection criteria are maintained React compatibility at selected version, actua
 - AC-15: KPI/chart data and controls meet documented keyboard, focus, textual equivalent, semantic HTML, contrast, live-region, and WCAG 2.2 AA requirements.
 - AC-16: Frontend consumes only aggregated typed APIs, bounds/cancels concurrent work, avoids N+1 data loading/unnecessary chart rerenders, and keeps core CRM work responsive.
 - AC-17: Dashboard remains within React/Vite/TypeScript/Tailwind shared/feature/API/route ownership boundaries and introduces no global state library.
-- AC-18: One measured, accessible, SVG-first chart approach is selected under documented dependency criteria before implementation; no unmeasured heavy or mixed chart stack is introduced.
+- AC-18: Dashboard uses the documented focused custom SVG/DOM approach; no chart
+  library, unmeasured heavy/mixed chart stack, canvas-first runtime, or external chart/
+  map API is introduced unless later measured evidence and an approved amendment require it.
 
 ## Open decisions
 
-- **Chart implementation choice is a blocker.** The current frontend has no chart runtime, and the maintained-package, actual route-chunk, token, and keyboard/table accessibility trade-off cannot be truthfully decided without the measured prototype defined above. Before CRM-021 can be Approved, choose and record either a deliberately limited custom SVG implementation or one measured modular SVG library; do not add a dependency merely to close this decision.
+None
 
 ## Follow-up / future specs
 
@@ -257,4 +262,9 @@ Selection criteria are maintained React compatibility at selected version, actua
 
 ## Implementation notes
 
-Implement only after this Draft is approved and the chart decision is resolved. Start with typed API-contract tests based on CRM-004 responses and isolated Dashboard component/feature-hook tests for filters, null values, stale requests, summaries, and accessible data alternatives. Preserve existing frontend architecture and backend-authoritative metric definitions; do not make a dependency, state-management, map, or backend-contract change incidental to visual work.
+Implement only after this Draft is approved. Start with typed API-contract tests based on
+CRM-004 responses and isolated Dashboard component/feature-hook tests for filters, null
+values, stale requests, summaries, and accessible custom SVG/DOM data alternatives.
+Preserve existing frontend architecture and backend-authoritative metric definitions; do
+not make a dependency, state-management, map, or backend-contract change incidental to
+visual work.

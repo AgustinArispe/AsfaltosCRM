@@ -13,7 +13,11 @@ Create a simple, premium operational notification workspace that attracts attent
 
 CRM-003 owns the only implemented notification type, OPPORTUNITY_STALE. Notifications are global team records with independent read_at and resolved_at timestamps: reading acknowledges attention, while an Opportunity status change or soft deletion resolves active stale evidence. The backend preserves the row and offers authenticated paginated listing, single read, and active-only read-all commands.
 
-The current frontend has no notification API module, page, list, sidebar badge, or notification route. Its AppShell/navigation and internal router are the future integration boundaries. The current direct Opportunity route, /opportunities/:id, fetches a non-deleted Opportunity including PERDIDA; Pipeline list queries exclude PERDIDA. CRM-018 is mandatory for the permanent sidebar, themes, tokens, accessibility, responsive behavior, shared components, motion, and performance. CRM-019 and CRM-020 own the future Pipeline and centered Opportunity detail experience.
+The current frontend has no notification API module, page, list, sidebar badge, or
+notification route. Its AppShell/navigation and internal router are the future
+integration boundaries. CRM-018 owns the canonical typed navigation paths; Pipeline
+list queries exclude `PERDIDA`. CRM-019 and CRM-020 own the future Pipeline and
+centered Opportunity detail experience.
 
 ## Dependencies
 
@@ -121,11 +125,15 @@ A notification's primary row activation is an Opportunity-context request; its r
 
 | Referenced state | Required destination behavior |
 | --- | --- |
-| NUEVA, COTIZADA, NEGOCIACION, or GANADA | When an approved CRM-019/CRM-020 route-selection contract exists, open the matching Opportunity in the Pipeline context and centered CRM-020 detail. Do not fabricate a new Pipeline status or move a card. |
-| PERDIDA | Do not route to the active Pipeline Kanban. Use the Lost workspace/detail contract only when CRM-024 owns it; until then use the current direct Opportunity detail route if the entity is available. |
+| NUEVA, COTIZADA, NEGOCIACION, or GANADA | Use CRM-018's `/pipeline/opportunities/:id` route to open Pipeline context and centered CRM-020 detail. Do not fabricate a new Pipeline status or move a card. |
+| PERDIDA | Use CRM-018's `/lost/opportunities/:id` route. It never routes to the active Pipeline Kanban. |
 | Deleted/unavailable or failed detail fetch | Preserve the notification as a historical row and show a precise, safe Oportunidad no disponible state. Do not crash, infer a replacement Customer, or navigate to a nonexistent Pipeline column. |
 
-The current reliable route is /opportunities/:id, which can fetch any non-deleted Opportunity including PERDIDA but renders the legacy full-page detail. It is the safe fallback while the required route-to-centered-detail selection contract is unresolved. A 404 after activation keeps the user in a safe historical-target state and restores logical focus to the Notifications list/relevant row on return. Notification rows never cause status, quote, loss, reopen, or Customer mutations.
+CRM-018 owns typed same-app origin/fallback history state. A direct notification target
+has its owning-workspace fallback; a 404 after activation keeps the user in a safe
+historical-target state and restores logical focus to the Notifications list/relevant row
+on return. Notification rows never cause status, quote, loss, reopen, or Customer
+mutations.
 
 ## Relationship to Dashboard and other workspaces
 
@@ -176,7 +184,8 @@ Motion is minimal and functional: short opacity/transform feedback for new-row i
 - The notification response has no availability/deleted flag for its referenced Opportunity. The UI can safely discover an unavailable entity only when the selected detail request returns 404; it must preserve the historical row rather than claiming availability.
 - There is no notification change cursor or count-only endpoint. The exact active-unread badge total is still available through the existing bounded page_size=1 response; list refresh uses bounded polling and stable-ID reconciliation rather than inventing realtime semantics.
 - POST /notifications/read-all intentionally affects only active unread rows. It cannot truthfully be labelled as marking all historical unread rows read, so the UI uses Marcar activas como leídas.
-- The existing response does not offer an Opportunity-to-Pipeline centered-dialog route/selection representation. This is a frontend cross-spec gap, not authorization to add a backend endpoint.
+- Opportunity route selection is a frontend concern resolved by CRM-018's typed manual-
+  router contract; it requires no backend endpoint.
 
 ## Acceptance criteria
 
@@ -187,7 +196,10 @@ Motion is minimal and functional: short opacity/transform feedback for new-row i
 - AC-05: Opening one row invokes idempotent backend read acknowledgement, reconciles only authoritative success, refreshes attention state, and keeps navigation usable/recoverable if acknowledgement fails.
 - AC-06: The explicitly labelled active-only read-all action uses the existing backend command, prevents duplicates, does not delete/resolve history, and never claims to acknowledge resolved unread records.
 - AC-07: Compact Todas/Sin leer segmented views use the documented API combinations, no manual ordering, and no complex filtering system.
-- AC-08: Active Opportunity notifications use Pipeline plus CRM-020 detail only after an approved route-selection contract; PERDIDA never routes to the active Kanban, and unavailable targets remain safe historical rows.
+- AC-08: Active Opportunity notifications use CRM-018's
+  `/pipeline/opportunities/:id` route and CRM-020 detail; `PERDIDA` uses
+  `/lost/opportunities/:id`, never the active Kanban, and unavailable targets remain
+  safe historical rows.
 - AC-09: CRM-021 Dashboard, the sidebar badge, and this workspace share the exact active-unread attention definition and do not mutate/read notifications by rendering summaries.
 - AC-10: Initial, refresh, new-item, load-more, offline/reconnect, no-history, no-unread, and error states preserve list stability and use scoped feedback without routine full-page spinners.
 - AC-11: Visible/online polling is bounded, non-overlapping, abortable, focus/scroll-preserving, and does not announce every update or perform N+1 requests.
@@ -197,14 +209,18 @@ Motion is minimal and functional: short opacity/transform feedback for new-row i
 
 ## Open decisions
 
-- **Opportunity context routing is a blocker.** CRM-019 and CRM-020 require active Opportunities to use Pipeline plus a centered detail dialog, but neither currently owns a route/URL selection contract for an Opportunity ID. CRM-024 has not yet defined the Lost workspace route/detail handoff. The existing direct /opportunities/:id route is a safe fallback but does not meet that preferred Frontend 2.0 presentation. Before CRM-022 can be Approved, approve one cross-spec owner and deterministic route contract for active, lost, and unavailable notification targets; do not invent a query parameter or backend endpoint to close the gap.
+None
 
 ## Follow-up / future specs
 
 - CRM-023 — WhatsApp Inbox 2.0: may share AppShell badge/polling infrastructure only if its existing global conversation semantics remain independent.
-- CRM-024 — Customers / Products / Lost: owns Lost workspace and its selected-Opportunity navigation contract.
+- CRM-024 — Customers / Products / Lost: consumes CRM-018's Lost Opportunity route.
 - CRM-026 — Final Accessibility & UX Polish: verifies list, badge, polling, and cross-route focus conformance.
 
 ## Implementation notes
 
-Implement only after this Draft is approved and the cross-spec Opportunity routing decision is resolved. Preserve CRM-003 global read/resolved semantics and existing API pagination. Add focused API/hook/component tests for exact badge totals, history/read transitions, bulk active-only acknowledgement, stable polling reconciliation, 404 target safety, keyboard focus, and no-N+1 behavior; do not alter notification generation or backend contracts as incidental UI work.
+Implement only after this Draft is approved. Preserve CRM-003 global read/resolved
+semantics and existing API pagination. Add focused API/hook/component tests for exact
+badge totals, history/read transitions, bulk active-only acknowledgement, stable polling
+reconciliation, 404 target safety, keyboard focus, and no-N+1 behavior; do not alter
+notification generation or backend contracts as incidental UI work.

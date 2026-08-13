@@ -23,8 +23,11 @@ establishes a desktop WhatsApp Inbox with cursor polling, stable selection, glob
 unread semantics, accessible controls, and smaller-laptop context adaptation.
 
 This specification defines the Frontend 2.0 foundation only. It does not change the
-business behavior, API ownership, routes, polling semantics, global notification
-read semantics, permissions, or security rules defined by implemented specs. In
+business behavior, API ownership, backend route semantics, polling semantics, global
+notification read semantics, permissions, or security rules defined by implemented
+specs. It owns the smallest shared internal path and typed navigation representation
+needed by Frontend 2.0; that client-side composition does not create a backend contract.
+In
 particular, frontend state must continue to render backend-authoritative business and
 provider evidence rather than recreating it.
 
@@ -50,6 +53,8 @@ introduced as an implementation shortcut.
 - Global keyboard, modal, loading, error, empty, and perceived-performance behavior.
 - React/Tailwind component, feature, hook, API-client, state, and route-composition
   boundaries for Frontend 2.0.
+- The shared typed navigation model, canonical internal paths, and same-app return
+  semantics consumed by CRM-019 through CRM-026.
 - The visual and interaction contract required by the CRM-019 through CRM-026 specs.
 
 ## Non-goals
@@ -62,8 +67,8 @@ introduced as an implementation shortcut.
 - A native mobile product, mobile-only navigation, or fixed-resolution-only layouts.
 - Marketing-site styling, industrial decoration, a literal Apple UI copy, or broad
   yellow surfaces.
-- Replacing the existing router, API modules, or feature boundaries merely to adopt
-  the design system.
+- Replacing the existing manual router, API modules, or feature boundaries merely to
+  adopt the design system; no routing dependency is introduced for this contract.
 
 ## Design principles
 
@@ -197,6 +202,43 @@ navigation pattern.
 - Main content has a skip link and semantic `main` landmark. Route changes move focus
   to the page/main heading without unexpectedly changing user selection, scroll, or
   in-progress work.
+
+### Shared typed internal navigation
+
+The existing manual router remains the Frontend 2.0 router. It gains one typed,
+centralized route parser/serializer and navigation helper; feature modules must not
+invent query-string, local-state, or ad-hoc pathname conventions for entity handoffs.
+The helper represents only validated positive internal IDs and the following
+discriminated route intents:
+
+| Route intent | Canonical path | Owning workspace/detail surface |
+| --- | --- | --- |
+| Active Opportunity | `/pipeline/opportunities/:id` | Pipeline with CRM-020 centered detail. |
+| Lost Opportunity | `/lost/opportunities/:id` | Lost with CRM-020 centered detail. |
+| Customer | `/customers/:id` | Customers workspace/detail. |
+| Exact WhatsApp conversation | `/whatsapp/conversations/:id` | WhatsApp Inbox with that conversation selected. |
+| Broadcast execution | `/whatsapp-sends/:id` | Envíos WhatsApp execution detail. |
+
+The implementation uses a TypeScript discriminated union equivalent to
+`workspace`, `opportunity`, `customer`, `conversation`, and `broadcast`; IDs are
+numeric internal identifiers, never phone numbers, provider identifiers, or external
+URLs. Workspace roots remain `/pipeline`, `/lost`, `/customers`, `/whatsapp`, and
+`/whatsapp-sends`.
+
+Normal browser history remains the default return mechanism. When an explicit
+cross-workspace handoff benefits from a fallback, the navigation helper may place a
+typed, same-app origin/fallback route in `history.state`. It contains only another
+validated route intent and may be used for close/back focus restoration. It never
+accepts, stores, or follows arbitrary return URLs, external locations, phone numbers,
+filter blobs, or temporary feature state. A direct deep link has no origin and falls
+back to its owning workspace.
+
+The backend entity remains authoritative after navigation. If a loaded Opportunity is
+currently `PERDIDA`, the client replaces an active-Opportunity location with its Lost
+canonical location; a Lost location resolving to a non-lost entity returns to its safe
+owning context. An unavailable entity preserves the source workspace and gives scoped
+feedback. Route-level focus follows the existing heading/main rule, while a detail
+dialog restores focus to its typed origin trigger when that trigger is still available.
 
 ## Responsive and overflow behavior
 
@@ -377,8 +419,8 @@ Frontend 2.0 preserves the fast backend experience.
 Architecture remains React, Vite, TypeScript, and Tailwind. The intended one-way
 composition is:
 
-1. route-level composition chooses the authenticated page/workspace and owns URL-level
-   navigation state;
+1. route-level composition uses the shared typed navigation helper to choose the
+   authenticated page/workspace, canonical entity selection, and URL-level state;
 2. feature hooks/services own typed API calls, feature-local request/projection state,
    polling, mutations, and error translation;
 3. feature views compose shared primitives and receive typed data/callbacks, with no
@@ -459,6 +501,10 @@ no secrets/provider URLs/storage keys in visual components or browser state.
 - AC-16: CRM-019 through CRM-026 explicitly depend on and may specialize this contract,
   but may not silently contradict its token, accessibility, interaction, responsive,
   theme, or architecture rules.
+- AC-17: One manual-router typed navigation helper serializes/parses the documented
+  canonical Pipeline, Lost, Customer, WhatsApp, and Broadcast paths; it validates
+  internal IDs, supports only typed same-app `history.state` origin/fallback, rejects
+  arbitrary return URLs, and gives direct deep links their owning-workspace fallback.
 
 ## Open decisions
 

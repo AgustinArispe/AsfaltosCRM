@@ -49,7 +49,8 @@ CRM-011.
   mobile-native application.
 - Template editing, Broadcast redesign, manual conversation ordering, or external
   `wa.me` flows.
-- New backend endpoints except those recorded under Open decisions as prerequisites.
+- Backend changes other than the explicit provider-neutral human-template contracts in
+  this specification.
 
 ## Product and visual direction
 
@@ -118,9 +119,9 @@ the selected row may defer its visual repositioning until send, discard, blur, o
 next non-disruptive reconciliation; its data state still updates immediately.
 
 CRM-006 summaries currently contain activity timestamps and states but no latest message
-body/preview. The UI must not load messages for every row to synthesize that preview;
-until the Open-decision contract is resolved, use a concise, seller-facing activity
-label as the honest fallback.
+body/preview. The UI must not load messages for every row to synthesize that preview.
+Frontend 2.0 deliberately uses a concise, seller-facing activity label as the honest
+fallback; no new conversation-list preview projection is required.
 
 ### Search and filters
 
@@ -203,10 +204,11 @@ storage URLs are never rendered, persisted, or exposed.
 The backend `window_decision` is authoritative. React neither calculates a duration nor
 hardcodes provider policy. When freeform is allowed, show the ordinary composer. When
 it is blocked, disable freeform input and explain plainly that an approved template is
-required. The template picker, parameter validation, and sender-facing preview are
-defined to show only backend-confirmed usable templates; they cannot be implemented
-until the human-conversation template API in Open decisions exists. Broadcast marketing
-templates must not be repurposed for this flow.
+required. The template picker and parameter validation use only the provider-neutral
+human-template contracts below. Broadcast marketing templates must not be repurposed
+for this flow. A readable body preview remains deferred when the backend cannot safely
+normalize it; friendly identity, language, category, and required supported parameters/
+header are sufficient for the initial picker.
 
 There is no template editor in this workspace. Once the required contract is approved,
 template parameter errors appear adjacent to the affected value, focus moves to the
@@ -288,20 +290,35 @@ an independent list or message failure must not erase already usable chat conten
 
 ## Internal navigation contract
 
-CRM-019, CRM-020, CRM-022, and CRM-023 must share one route-facing, typed navigation
-intent for `open Opportunity`, `open exact WhatsApp conversation`, and return to an
-originating workspace when practical. The intent includes only stable internal entity
-IDs and optional origin context; it must not encode phone numbers, external URLs, or
-temporary UI state.
+CRM-018 owns the shared typed internal navigation contract. The exact Conversation
+selection path is `/whatsapp/conversations/:id`; it contains a validated local
+Conversation ID only. Opportunity, Customer, Notification, and Broadcast handoffs use
+the same canonical paths and typed same-app `history.state` origin/fallback semantics.
+No feature accepts arbitrary return URLs, external locations, phone numbers, or
+temporary UI state. A direct Conversation link falls back to `/whatsapp`; missing or
+unavailable entities retain the source workspace with safe feedback.
 
-From Opportunity detail, the WhatsApp action opens the CRM WhatsApp workspace with the
-exact existing conversation selected. From a notification or Pipeline context, opening
-an Opportunity uses CRM-020's detail surface; if the Opportunity is Lost or otherwise
-outside the active Kanban, resolve it through an existing safe detail route rather than
-pretending it is in a column. On return, retain origin context where the router can do
-so without stale state. The current router has no finalized cross-workspace selection
-contract, so its stable representation is an Open decision shared with CRM-019,
-CRM-020, and CRM-022.
+From Opportunity detail, the WhatsApp action opens `/whatsapp/conversations/:id` with
+the exact existing Conversation selected. From Inbox context, Opportunity navigation
+uses CRM-018's active or Lost canonical path after backend-authoritative status is
+known; it never pretends a Lost Opportunity is in a Pipeline column.
+
+## Required backend contract: human conversation templates
+
+The authenticated CRM API must add a provider-neutral human-template discovery endpoint
+and a human template-send command scoped to an existing Conversation. Discovery returns
+only currently usable variants with safe friendly identity, language, category, required
+supported parameters, and header/media requirements; provider IDs, raw payloads, and
+Meta transport details are not frontend-facing data. The send command accepts a typed
+template selection, supported values/header media reference where required, and the
+existing client-generated idempotency identity.
+
+The backend remains responsible for fresh provider/template eligibility, conversation
+window policy, validation, authorization, provider dispatch, idempotency, and normal
+persisted `HUMAN` message identity/outcome. It returns the standard safe outbound
+message projection for Inbox reconciliation. This contract does not create a template
+editor, reuse Broadcast marketing discovery, or require a body preview that cannot be
+safely normalized.
 
 ## Responsive and zoom behavior
 
@@ -370,8 +387,9 @@ conversation evidence readable with safe unavailable context.
 
 - AC-01: The WhatsApp workspace follows CRM-018 and presents Inbox, active Chat, and
   independently collapsible CRM context as a usable three-panel desktop layout.
-- AC-02: Conversation rows are compact and show safe identity, latest activity,
-  waiting, unread, and an authoritative preview or the documented honest fallback.
+- AC-02: Conversation rows are compact and show safe identity, documented activity-label
+  fallback, waiting, and unread without per-row message fetching or a new preview
+  projection.
 - AC-03: Backend ordering and bounded search/waiting/unread filters remain
   authoritative; no manual order or unsupported message-body search exists.
 - AC-04: Selecting a conversation updates chat and context, then applies existing
@@ -384,7 +402,9 @@ conversation evidence readable with safe unavailable context.
 - AC-07: Enter sends a valid normal message, Shift+Enter adds a newline, and Escape or
   panel changes never silently discard a draft.
 - AC-08: Freeform availability follows only the backend window decision; blocked state
-  clearly requires a template and human templates are not improvised from Broadcasts.
+  clearly requires a template, and the provider-neutral human-template discovery/send
+  contract preserves window, idempotency, provider, and persisted-message authority
+  without improvising from Broadcasts.
 - AC-09: Seller-facing message states distinguish sending, sent, delivered, read,
   definitive failure, and delivery uncertainty; UNKNOWN is never automatically retried.
 - AC-10: CRM context safely represents resolved, unresolved, linked, unlinked,
@@ -399,8 +419,9 @@ conversation evidence readable with safe unavailable context.
   position without flashing or routine full reloads.
 - AC-14: Large, laptop/zoom, and narrower supported layouts prioritize chat and adapt
   panels/overlays without page horizontal overflow or a mobile-native redesign.
-- AC-15: Pipeline, Opportunity detail, Notifications, and Inbox use one approved
-  internal deep-link/navigation contract for exact conversation and Opportunity context.
+- AC-15: Pipeline, Opportunity detail, Notifications, Broadcasts, and Inbox use
+  CRM-018's canonical `/whatsapp/conversations/:id` and related typed deep-link/
+  navigation contract for exact context.
 - AC-16: Keyboard, focus, names, live-region restraint, non-color state communication,
   dialog behavior, contrast, targets, and reduced-motion behavior satisfy CRM-018/WCAG
   requirements.
@@ -412,27 +433,12 @@ conversation evidence readable with safe unavailable context.
 
 ## Open decisions
 
-1. **Human conversation templates are not exposed by CRM-006.** The Meta provider can
-   list and send templates internally, but the authenticated CRM API has no endpoint
-   to list usable human-conversation templates or submit a typed template send;
-   CRM-011's available endpoint is explicitly marketing Broadcast-only. Before a
-   blocked-window template picker can be implemented, approve a contract covering
-   eligible template variants, safe content/parameter preview, validation, message
-   persistence identity, and idempotent send behavior.
-2. **Conversation summary lacks a latest-message preview.** `GET /conversations` and
-   its changes projection currently omit a safe preview field. Add an authoritative,
-   privacy-reviewed summary projection (or explicitly remove this product requirement)
-   before Inbox rows can display previews without forbidden per-conversation message
-   requests.
-3. **Cross-workspace deep-link representation is not finalized.** The current frontend
-   router has no stable route/query/state contract to select an exact conversation from
-   CRM-019/CRM-020 or to return safely to its origin. Approve one typed, route-facing
-   internal navigation representation shared with CRM-019, CRM-020, and CRM-022 before
-   implementing those handoffs.
+None
 
 ## Follow-up / future specs
 
-- An approved human-template API/UI contract after Open decision 1 is resolved.
+- Readable human-template body preview only if a later provider-neutral contract can
+  safely normalize it.
 - Customer-resolution workflow only if a backend contract is explicitly approved.
 - Message search, realtime transport, audio/video, or other messaging capabilities only
   through separately approved specs.

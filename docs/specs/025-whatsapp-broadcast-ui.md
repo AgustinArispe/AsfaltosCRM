@@ -57,9 +57,9 @@ los gaps de edición, validación y paginación registrados en esta spec.
 
 - Crear campañas, redactar copy, diseñar creatividades, aprobar contenido o editar
   templates de Meta/proveedor.
-- Editor o catálogo persistente de templates, constructor de audiencias, segmentación,
-  audiencias guardadas, selección inferida, filtros por vendedor o programación no
-  respaldada por backend.
+- Editor o catálogo persistente de templates, constructor de audiencias, segmentación
+  avanzada, audiencias guardadas, selección inferida, filtros por vendedor o programación
+  no respaldada por backend.
 - Cambiar consentimiento, estados, semántica del procesador, permisos, proveedor,
   contratos de Inbox, ni enviar email/SMS.
 - Analítica comercial, atribución, conversión o ROI. CRM-021 puede resumir salud
@@ -93,23 +93,27 @@ temas, sin sustitutos feature-locales.
 aplicación multicanal. Es un destino propio, al nivel de `WhatsApp`, no una vista
 dentro del Inbox ni una alteración de su selección de conversaciones.
 
-La ruta futura `/whatsapp-sends` abre historial de ejecuciones recientes y la acción
-primaria `Nuevo envío`. Cada fila/tarjeta compacta presenta etiqueta, nombre
+La ruta canónica `/whatsapp-sends` abre historial de ejecuciones recientes y la acción
+primaria `Nuevo envío`; `/whatsapp-sends/:id` abre el detalle de una ejecución. Cada
+fila/tarjeta compacta presenta etiqueta, nombre
 amigable e idioma de template, estado, creado/confirmado/iniciado cuando existan,
 total de Customers y outcomes aceptado/enviado/entregado/leído/fallido/desconocido
 cuando la proyección backend exista. No muestra cada Recipient por defecto.
 
 Sólo se agregan búsqueda o filtros server-side que los contratos respalden. Abrir una
-ejecución conserva el contexto de historial. Un Draft puede retomarse; uno confirmado
-abre en modo lectura/operación y sus inputs están inequívocamente bloqueados.
+ejecución conserva el contexto de historial mediante el origen/fallback tipado de
+CRM-018. Un Draft puede retomarse; uno confirmado abre en modo lectura/operación y sus
+inputs están inequívocamente bloqueados.
 
 ## Creation flow
 
 La creación es una secuencia progresiva, no un formulario gigante: pasos numerados,
 un resumen persistente y una única siguiente acción segura. Volver conserva el trabajo
-seguro del Draft; abandonar/cerrar pide confirmación sólo ante cambios sin guardar. El
-contrato aprobado determinará cuándo se crea el recurso persistente y cómo se editan
-sus inputs mientras sigue en `DRAFT`.
+seguro del Draft; abandonar/cerrar pide confirmación sólo ante cambios sin guardar. Se
+crea/retoma un recurso persistente `DRAFT` y un comando DRAFT-only versionado permite
+editar etiqueta, template, parámetros y header media hasta la confirmación; cada edición
+válida invalida el token de validación anterior. Descartar/archivar un Draft no pertenece
+a este alcance.
 
 1. **Contenido preparado.** Elegir un template marketing informado por backend como
    actualmente utilizable. Explicar que fue preparado/aprobado fuera del CRM, sin
@@ -188,10 +192,12 @@ cualquiera se crea un Broadcast nuevo, según CRM-011.
 | `PROCESSING` | Procesando por lotes; los resultados avanzan gradualmente. |
 | `COMPLETED` | No hay Recipient listo/en progreso; pueden quedar fallidos, desconocidos o bloqueados. |
 
-`POST /process` solicita sólo un lote limitado. La UI no itera ni paraleliza llamadas
-hasta completar. Si el flujo operacional aprobado requiere operador, `Procesar
-siguiente lote` muestra reclamados/completados/restantes; si el scheduler es dueño,
-el detalle refleja estado persistido. La política concreta sigue abierta.
+`POST /process` solicita sólo un lote limitado. La UI ofrece explícitamente `Procesar
+siguiente lote` cuando una ejecución iniciada requiere trabajo; muestra el resultado
+persistido del lote y vuelve a habilitar una acción deliberada posterior sólo después de
+reconciliarlo. No itera hasta vaciar, no paraleliza llamadas, no realiza dispatch de
+provider desde browser, ni supone un scheduler automático. La eventual ownership de un
+scheduler es una mejora operativa futura y no cambia este modelo inicial.
 
 Polling es moderado, sólo para ejecución activa/detalle abierto, se pausa al ocultar la
 página y cancela al cambiar de ejecución. Actualiza estado persistido sin reanimar o
@@ -265,37 +271,48 @@ oculta historia.
 - Motion funcional de 150–220 ms, sin layout, loop ni falsa sensación de tiempo real.
   `prefers-reduced-motion` elimina movimiento espacial y deja datos disponibles.
 
-## Backend and product gaps
+## Required backend contracts
 
-- El listado Broadcast no incluye outcomes por fila. El historial requiere summary
-  paginado por estado sin descargar detalles.
-- `POST /validate` devuelve strings internos y `PUT /recipients` listas de IDs.
-  Falta proyección tipada/segura/categorizada de elegibilidad, conteos, razones y fila
-  afectada; frontend no debe reconstruir reglas ni exponer nombres internos.
-- Templates no incluyen preview legible seguro, etiquetas de componentes ni distinción
-  completa de header permitido/requerido. No existe catálogo persistente, intencional en
-  CRM-011: UI usa discovery fresca y no ofrece selección offline. Preview requeriría
-  contrato efímero provider-neutral, nunca editor ni cache presentada como aprobación.
-- API crea Draft y reemplaza recipients, pero no edita template, parámetros, medio,
-  etiqueta/referencia ni descarta Draft. No soporta retroceso/reemplazo seguro actual.
-- Detalle serializa todos los Recipients/audits sin cursor, búsqueda, filtros ni Message
-  attempts paginados: no escala a ejecuciones grandes.
-- CRM-008 ofrece upload/lectura autenticados opacos, pero falta confirmar que el mismo
-  `media_ref` y límites aplican al header Broadcast UI y cómo quitar/reemplazar antes
-  de confirmar.
-- Backend tiene consentimiento por Customer, pero no superficie frontend aprobada. Esta
-  spec sólo explica elegibilidad; corregir opt-in necesita dueño/superficie aparte.
-- Backend permite API, CLI o scheduler, pero no comunica política operacional activa ni
-  ownership del scheduler por entorno. Browser no puede inferirla ni correr loops.
-- Router actual carece de destino Broadcast y contrato de handoff Recipient->Inbox;
-  requiere coordinación con deep links pendientes de CRM-023.
+The following minimum contracts are prerequisites for this UI. They preserve CRM-011
+business authority and do not broaden marketing, consent, processor, or provider scope.
+
+- A DRAFT-only optimistic update command for label, prepared template, broadcast-level
+  parameters, and header media. It requires the current expected version, rejects stale
+  edits with typed 409, permits no edit after confirmation, and invalidates any prior
+  validation token atomically on a successful edit.
+- A typed safe validation projection with category counts and affected-recipient
+  evidence. It expresses understandable eligibility/exclusion categories and safe
+  explanations, rather than raw domain strings, provider details, or internal IDs.
+- Broadcast history rows include bounded outcome aggregates so history can show counts
+  without one delivery-summary request per row or detail downloads.
+- Cursor-paginated Recipient detail with bounded search and status filters, returning
+  only safe Customer/outcome/retry information needed by this spec.
+- Paginated safe Message-attempt history for a Recipient and paginated Broadcast audit
+  events, both without raw provider payloads, storage URLs, or unbounded initial loads.
+
+CRM-008 authenticated media upload/read is the approved header-media boundary; the
+backend validates the selected opaque reference and compatibility. Recipient-to-Inbox
+handoff uses the returned internal Conversation ID and CRM-018's canonical
+`/whatsapp/conversations/:id` route. No new routing endpoint is required.
+
+## Safe deferrals
+
+- Generic consent-management workspace; Broadcast only renders the consent evidence
+  needed for eligibility and never offers an override.
+- Readable template body/component preview unless a later provider-neutral contract can
+  safely normalize it; the initial selector uses fresh identity, language, category,
+  sendability, parameters, and header requirements.
+- Draft discard/archive lifecycle.
+- Automatic scheduler ownership, scheduler UI, and browser draining loops.
+- Advanced segmentation, saved audiences, and inferred audiences.
 
 ## Acceptance criteria
 
 - AC-01: Sidebar ofrece `Envíos WhatsApp` como destino propio; la vista inicial es
   historial compacto, paginado y escaneable, no Inbox.
 - AC-02: Cada ejecución expresa estado, fechas, template amigable, destinatarios y
-  outcomes respaldados por backend, sin enumerar Recipients por defecto.
+  outcomes agregados y acotados respaldados por backend, sin enumerar Recipients por
+  defecto.
 - AC-03: `Nuevo envío` sigue contenido, parámetros/medio, Customers, elegibilidad,
   resumen, confirmación e inicio, sin formulario gigante ni autoría de marketing.
 - AC-04: Sólo templates marketing utilizables/frescos aparecen; IDs no son primarios y
@@ -306,16 +323,19 @@ oculta historia.
   filter, audiencia inferida ni render ilimitado.
 - AC-07: Consentimiento muestra conteos/razones seguras, conserva inelegibles visibles,
   no tiene bypass y no confirma parcialmente.
-- AC-08: Confirmación es deliberada/idempotente/separada de inicio y deja inputs
-  visiblemente bloqueados; cambiarlos exige Broadcast nuevo.
-- AC-09: Inicio, estado, proceso manual acotado cuando corresponda y polling reflejan
-  procesador backend, sin promesa instantánea ni loop/dispatch browser-side.
-- AC-10: Detalle tiene progreso/KPIs textuales, lista paginada/filtrable, teléfono
-  protegido, errores seguros e intentos/auditoría bajo demanda, sin payload provider.
+- AC-08: Ediciones `DRAFT` versionadas preservan trabajo seguro e invalidan validación
+  obsoleta; confirmación es deliberada/idempotente/separada de inicio y deja inputs
+  visiblemente bloqueados.
+- AC-09: Inicio, `Procesar siguiente lote` explícito, estado y polling reflejan el
+  procesador backend, sin promesa instantánea, supuesto de scheduler, loop, paralelismo
+  o dispatch browser-side.
+- AC-10: Detalle tiene progreso/KPIs textuales, lista cursor-paginada/buscable/
+  filtrable, teléfono protegido, errores seguros e intentos/auditoría paginados bajo
+  demanda, sin payload provider.
 - AC-11: Sólo fallos definitivos elegibles permiten retry; `UNKNOWN` advierte duplicado
   y nunca puede reenviarse, preservando intentos previos.
-- AC-12: Handoffs Inbox distinguen Broadcast de respuesta humana y nunca resuelven
-  `waiting_for_response`.
+- AC-12: Handoffs Inbox usan `/whatsapp/conversations/:id` de CRM-018, distinguen
+  Broadcast de respuesta humana y nunca resuelven `waiting_for_response`.
 - AC-13: Polling, red, validación, conflicto token/version y retries preservan último
   dato bueno/Draft seguro y no duplican efectos.
 - AC-14: Teclado, foco, diálogos, anuncios, contraste, texto equivalente y reduced
@@ -329,32 +349,20 @@ oculta historia.
 
 ## Open decisions
 
-1. **Edición y descarte de Draft.** Definir contrato idempotente/versionado para editar
-   o descartar inputs `DRAFT` (template, parámetros, medio, etiqueta y referencia), o
-   aprobar otro momento de persistencia que permita volver sin Draft ineditable.
-2. **Proyecciones de validación, historial y detalle.** Aprobar contratos para
-   elegibilidad segura categorizada, summary de historial y Recipients/intentos/audit
-   paginados, buscables y filtrables. Sin ellos no se cumplen revisión/rendimiento.
-3. **Preview template/header.** Decidir si provider puede exponer preview/componentes
-   seguros provider-neutral; si no, aprobar fallback exacto sin fabricar copy/preview.
-4. **Routing de procesamiento.** Definir por entorno scheduler, proceso manual o ambos,
-   y la única acción/estado que la UI puede representar honestamente.
-5. **Navegación a Inbox.** Aprobar ruta/estado para conversación vinculada de Recipient,
-   coordinada con deep-link pendiente CRM-023.
-
-Una spec no puede pasar a `Approved` mientras estas decisiones sigan abiertas.
+None
 
 ## Follow-up / future specs
 
 - Superficie de consentimiento por Customer sólo si producto aprueba registro/revisión
   de evidencia desde frontend; no pertenece al Broadcast genérico.
 - Salud operacional WhatsApp en CRM-021 si se aprueban contratos agregados, sin ROI.
-- Scheduler, alertas, throughput y runbook tras decidir routing de procesamiento.
+- Scheduler, alertas, throughput y runbook bajo un contrato operativo futuro.
 - Catálogo persistente sólo si necesidad medida demuestra que discovery fresca no basta.
 
 ## Implementation notes
 
-Implementar sólo después de aprobar CRM-018, CRM-025 y resolver Open decisions.
+Implementar sólo después de aprobar CRM-018 y CRM-025 e implementar los contratos
+backend requeridos en esta spec.
 Mantener estado visual/acceso a datos en feature tipada; reglas de consentimiento,
 sendability, locks, retry y dispatch permanecen en servicios backend. La futura
 implementación prueba cada AC con tests de feature y journeys Docker Compose permitidos.

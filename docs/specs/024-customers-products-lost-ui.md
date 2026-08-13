@@ -29,7 +29,7 @@ not change business rules, authorization, or backend data definitions.
   import flow.
 - A deliberately small, role-aware Product catalog workspace.
 - A dedicated Lost workspace for current lost Opportunities, bounded filters, existing
-  statistics, and explicit reopen handoff.
+  aggregate history, and explicit reopen handoff.
 - Shared loading, responsive, keyboard, visual, route-composition, and performance
   conventions for the three workspaces.
 
@@ -41,7 +41,8 @@ not change business rules, authorization, or backend data definitions.
   stock, seller filtering, mobile-native UI, or a replacement Dashboard.
 - Returning `PERDIDA` to Pipeline, duplicate Opportunity detail forms, a hidden Customer
   restore workflow, or module-specific deep-link hacks.
-- New backend endpoints except genuine gaps recorded under Open decisions.
+- A global browseable historical-loss episode catalogue. Frontend 2.0 owns current Lost
+  Opportunities plus the existing aggregate historical/reopened statistics only.
 
 ## Shared visual, layout, and architecture contract
 
@@ -130,8 +131,10 @@ Fetch Customer detail only when opened. Use bounded existing Opportunity and Los
 projections for that one selected Customer; never fetch detail per Customer row. Each
 Opportunity row is compact—status, source, relevant date, and already-projected
 product/quantity evidence—and opens CRM-020 rather than embedding Opportunity detail.
-Current lost Opportunities may be included through the current Lost projection; a
-browseable history of reopened loss episodes depends on Open decision 1.
+Current lost Opportunities may be included through the current Lost projection.
+Browsable historical/reopened loss episodes are deliberately outside Frontend 2.0;
+aggregate history remains the existing statistics projection and individual Opportunity
+history remains available after that entity is opened.
 
 ### Customer CSV import
 
@@ -250,11 +253,15 @@ is a distinct historical episode, never visually merged with the prior loss.
 
 ## Shared navigation, loading, responsive, and accessibility behavior
 
-Customer-to-Opportunity and Lost-to-Opportunity open CRM-020. CRM-020's Customer and
-WhatsApp actions use the shared typed route-facing internal navigation intent being
-defined across CRM-020, CRM-022, and CRM-023. It contains stable internal IDs and
-optional origin context—not phone numbers or module-local UI hacks. Return behavior
-preserves filtered list, cursor/page, and focused trigger where practical.
+CRM-018 owns the shared typed manual-router contract. Customers use `/customers/:id`;
+active Opportunities use `/pipeline/opportunities/:id`; current Lost Opportunities use
+`/lost/opportunities/:id`; and exact WhatsApp Conversations use
+`/whatsapp/conversations/:id`. Customer-to-Opportunity and Lost-to-Opportunity open
+CRM-020 through those canonical paths, never through module-specific query parameters
+or legacy direct-detail routes. Typed same-app `history.state` origin/fallback preserves
+the originating workspace and focused trigger where practical; it contains no arbitrary
+return URL, filter blob, phone number, or temporary feature state. Direct links fall
+back to their owning workspace.
 
 Initial loads use contextual list/table, Product, Lost, detail, and import skeletons,
 not full-page spinners. Distinguish initial empty data, search/filter no results,
@@ -314,8 +321,9 @@ Reduced motion, contrast, and reasonable desktop pointer targets remain intact.
   evidence clearly, preserve Decimal display, and do not duplicate CRM-021.
 - AC-11: Reopen is explicit, confirms the sole `NEGOCIACION` result, preserves loss
   evidence, uses the idempotent command/status contract, and reconciles only after success.
-- AC-12: Customers, Lost, Opportunity detail, and WhatsApp share the approved internal
-  route/deep-link contract and preserve return context without module-specific hacks.
+- AC-12: Customers, Lost, Opportunity detail, and WhatsApp use CRM-018 canonical
+  Customer/active-Opportunity/Lost-Opportunity/Conversation paths and typed same-app
+  return context without module-specific hacks.
 - AC-13: Initial, background, empty, filter-empty, permission, unavailable, validation,
   and API-error states use CRM-018 patterns without routine full-page flashing.
 - AC-14: Tables/lists/dialogs adapt to viewport and zoom with readable identity,
@@ -330,20 +338,12 @@ Reduced motion, contrast, and reasonable desktop pointer targets remain intact.
 
 ## Open decisions
 
-1. **Browsable historical loss episodes are not exposed.** `GET /lost-opportunities`
-   intentionally returns only Opportunities currently in `PERDIDA`; statistics exposes
-   historical/reopened counts but no cursor-paginated episode list. Resolve whether Lost
-   must browse reopened historical episodes (requiring an immutable episode projection)
-   or whether current Lost plus aggregate history is the intended workspace scope.
-2. **Shared cross-workspace deep-link representation is not finalized.** CRM-020,
-   CRM-022, and CRM-023 require one stable typed route/query/state intent for exact
-   Customer, Opportunity, and WhatsApp conversation selection and safe return context.
-   The current router lacks that contract; approve it before implementing handoffs.
+None
 
 ## Follow-up / future specs
 
 - CRM-021 may surface existing commercial aggregates; CRM-024 does not broaden them.
-- Customer restore, segmentation, historical-loss browser, or downloadable import report
-  require their own approved backend/UI contracts.
+- Customer restore, segmentation, browseable historical-loss episodes, or downloadable
+  import report require their own approved backend/UI contracts.
 - CRM-026 verifies cross-workspace accessibility and interaction consistency without
   weakening these requirements.

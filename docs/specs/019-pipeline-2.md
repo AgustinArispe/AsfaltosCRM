@@ -29,6 +29,8 @@ The Pipeline is the CRM home workspace. The current implementation already loads
 - Define dense, minimal Opportunity cards, objective per-column ordering, compact controls, card activation, accessible DnD, and explicit non-drag progression.
 - Apply the shared FAA App Shell, Light/Dark/System themes, semantic tokens, IBM Plex Sans typography, rounded geometry, loading states, and accessibility behavior from CRM-018.
 - Define the handoff from a card to the future CRM-020 centered Opportunity Detail modal, including the WhatsApp shortcut contract it will own.
+- Use CRM-018's canonical active-Opportunity path
+  `/pipeline/opportunities/:id` for that detail selection.
 - Preserve the existing typed Opportunity, Customer, Product, and commercial command APIs. The spec identifies how their currently available data is used; it does not authorize a new endpoint, a new global state library, or a backend redesign.
 
 ## Non-goals
@@ -95,7 +97,11 @@ Counts always describe the same currently visible filtered projection as the car
 
 ### Card activation and detail handoff
 
-The primary usable card surface opens the centered CRM-020 Opportunity Detail modal; it is not a permanent drawer. Enter opens the focused card. Normal pointer activation remains reliable because a discernible drag movement threshold separates click from drag; users never need a tiny drag handle.
+The primary usable card surface navigates through CRM-018 to
+`/pipeline/opportunities/:id`, which opens the centered CRM-020 Opportunity Detail
+modal over Pipeline; it is not a permanent drawer. Enter opens the focused card.
+Normal pointer activation remains reliable because a discernible drag movement threshold
+separates click from drag; users never need a tiny drag handle.
 
 CRM-019 does not define the detail body. It requires CRM-020 to provide a generous, read-first dialog with a clear explicit `Editar` action, commercial actions, history/notes access, and the WhatsApp shortcut described below. Detail data may be fetched when that modal opens; the board summary is not enriched one card at a time.
 
@@ -119,7 +125,8 @@ The card never exposes a phone number or WhatsApp number. CRM-020 may expose one
 
 1. use the existing authenticated WhatsApp conversation listing/search contract only on this explicit action, searching the normalized Customer phone first when present and Customer/company identity otherwise;
 2. accept an exact normalized external-phone match first, otherwise a result whose returned Customer ID equals the Opportunity Customer ID. If more than one Customer match remains, preserve the existing Inbox priority order rather than inventing a local ranking; and
-3. hand its local conversation ID to the internal conversation-selection navigation contract owned by CRM-023, which opens that existing conversation in the CRM WhatsApp workspace.
+3. navigate through CRM-018's canonical `/whatsapp/conversations/:id` contract, which
+   opens that existing conversation in the CRM WhatsApp workspace.
 
 The action never opens `wa.me` or another external flow. If no safely verified internal conversation is found, it shows the backend-supported safe state `No existe una conversación interna vinculada` and offers no invented send/create action. It does not alter the WhatsApp backend contract.
 
@@ -161,7 +168,9 @@ Cards use shared spacing and surface tokens to maximize useful vertical density 
 - AC-05: Every column uses objective stable ordering with `Más recientes` as `created_at DESC, id DESC`; users can select oldest and both documented time-in-stage orders, and a same-column drop never persists order.
 - AC-06: Search, sort, source, Product, active-filter indication, `Más filtros`, and reset follow the compact CRM-018 filter pattern. Source uses its existing list contract; search/Product/sort use only the complete loaded projection and do not claim unsupported backend filtering.
 - AC-07: Exact filtered column counts match visible cards after all result pages load; a partial future projection uses an honest loaded-count or no aggregate count.
-- AC-08: Card activation opens the centered, read-first CRM-020 detail modal; it does not define a competing drawer/detail layout and retains an explicit non-drag action path through detail.
+- AC-08: Card activation uses CRM-018's `/pipeline/opportunities/:id` route to open the
+  centered, read-first CRM-020 detail modal; it does not define a competing
+  drawer/detail layout and retains an explicit non-drag action path through detail.
 - AC-09: The whole usable card surface supports reliable pointer DnD while normal click and Enter open detail. Keyboard users can pick up, move among valid destinations, complete, and cancel DnD with the documented Space/arrow/Enter/Escape model.
 - AC-10: Only valid commercial transitions are presented; `NUEVA -> COTIZADA` opens quote flow without premature movement, subsequent valid moves reconcile with the backend, rejection rolls back, and loss is outside normal DnD.
 - AC-11: The CRM-020 WhatsApp action never displays a card phone number or opens an external flow; it verifies an existing internal conversation before handing it to CRM-023 selection, otherwise presents the defined safe state.

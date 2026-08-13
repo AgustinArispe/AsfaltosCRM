@@ -11,7 +11,14 @@ Define the primary Opportunity interaction surface: a premium centered detail di
 
 ## Context
 
-CRM-019 makes the Pipeline card the entry point for Opportunity detail. The current frontend opens a right drawer and a separate dense quote dialog; the backend already owns detail, status history, quote create/update, loss, reopen, Customer update, Opportunity Notes, and internal WhatsApp conversation queries. CRM-020 redesigns the frontend interaction over those authoritative contracts. It neither changes commercial rules nor adds pricing, quote versions, or a WhatsApp provider flow.
+CRM-019 makes the Pipeline card the entry point for Opportunity detail through
+CRM-018's canonical `/pipeline/opportunities/:id` route; Lost uses
+`/lost/opportunities/:id`. The current frontend opens a right drawer and a separate
+dense quote dialog; the backend already owns detail, status history, quote
+create/update, loss, reopen, Customer update, Opportunity Notes, and internal WhatsApp
+conversation queries. CRM-020 redesigns the frontend interaction over those
+authoritative contracts. It neither changes commercial rules nor adds pricing, quote
+versions, or a WhatsApp provider flow.
 
 `docs/BUSINESS_RULES.md` remains authoritative. CRM-018 and CRM-019 are mandatory dependencies: their semantic FAA design system, centered-dialog philosophy, accessibility/keyboard rules, Pipeline transitions, card handoff, and WhatsApp selection contract apply without exception.
 
@@ -22,6 +29,7 @@ CRM-019 makes the Pipeline card the entry point for Opportunity detail. The curr
 - CRM-006 — WhatsApp Internal API
 - CRM-010 — WhatsApp Inbox Frontend
 - CRM-012 — CRM Commercial Completion
+- CRM-013 — Concurrency Hardening
 - CRM-018 — Frontend Design System
 - CRM-019 — Pipeline 2.0
 
@@ -35,7 +43,9 @@ CRM-019 makes the Pipeline card the entry point for Opportunity detail. The curr
 
 ## Non-goals
 
-- Redesigning Opportunity, Customer, quote, loss, Legendary, reopen, or role business rules; adding backend fields/endpoints; or changing API ownership.
+- Redesigning Opportunity, Customer, quote, loss, Legendary, reopen, or role business
+  rules, or changing API ownership beyond the explicit conditional-write contracts in
+  this spec.
 - A drawer, full-page replacement detail screen, generic multipurpose form framework, pricing, monetary totals, SKU, stock, quote version history, or arbitrary activity records not supplied by existing contracts.
 - Redesigning the Pipeline, Lost workspace, Customer workspace, or WhatsApp Inbox.
 - External WhatsApp/`wa.me` navigation, a new frontend framework, or a global state library without measured evidence and separate approval.
@@ -77,6 +87,28 @@ The header `Editar` action opens a focused edit state within the same dialog lay
 - Source, Opportunity status, effective Legendary evidence, commercial history, and quote lines are not generic editable fields. Quote changes use the dedicated quote flow; manual Legendary administration remains Customer-owned rather than exposing automatic/manual mechanics here.
 
 Edit state starts with original server values and isolates only the selected scope. It has clear Save/Cancel actions, adjacent validation errors, pending feedback, and authoritative reconciliation after save. Escape or close returns to read-first detail when clean; with modifications it asks for deliberate discard versus continue editing. Enter may submit only a valid single-line safe scoped form, never a multiline Note or destructive action. Validation, permission, conflict, or network errors leave inputs intact and explain the next safe action.
+
+### Conditional mutation concurrency
+
+Customer identity/contact updates, Opportunity assignee updates, and quote-product
+replacement are conditional writes. Their typed requests require the authoritative
+`expected_updated_at` value that was rendered for the edited entity. The backend compares
+that value only after acquiring its existing ordered locks; a mismatch returns a typed
+HTTP 409 conflict and applies none of the stale mutation.
+
+- Customer update requests and Customer summary/update responses expose `updated_at`
+  wherever the UI needs to initiate or reconcile an edit.
+- Assignee update and quote-product replacement requests carry the Opportunity's
+  `expected_updated_at`; their authoritative responses return the refreshed Opportunity
+  detail/projection with its new value.
+- A successful quote-product replacement also updates the parent
+  `Opportunity.updated_at`, so subsequent conditional writes observe the replacement.
+
+On a typed conflict, the frontend preserves the user's unsaved values, refreshes the
+authoritative detail, clearly identifies that another change was saved first, and offers
+a deliberate refresh/review/retry path. It never silently reapplies, overwrites, or
+discards the user's edit. This is optimistic lost-update protection, not a new quote
+version history, generic revision framework, or client-side locking scheme.
 
 ### State-aware actions
 
@@ -132,7 +164,8 @@ WhatsApp is an obvious but restrained labelled action in detail, not a phone num
 
 1. query the existing authenticated conversation list/search contract, using normalized Customer phone first when present and Customer/company identity otherwise;
 2. prefer an exact normalized external-phone match, otherwise a returned matching Customer ID, preserving existing Inbox priority when multiple Customer matches remain; and
-3. hand the verified local conversation ID to CRM-023's internal conversation-selection navigation contract so CRM WhatsApp opens that exact conversation.
+3. navigate through CRM-018's canonical `/whatsapp/conversations/:id` contract so CRM
+   WhatsApp opens that exact conversation.
 
 It never uses `wa.me` or creates/sends a conversation. With no safely verified internal conversation, it displays `No existe una conversación interna vinculada` and no unsupported fallback action.
 
@@ -141,7 +174,9 @@ It never uses `wa.me` or creates/sends a conversation. With no safely verified i
 - The dialog renders immediately from Pipeline summary, then fetches detail. A skeleton occupies only unavailable data; Activity uses the returned detail history and Notes load independently when their context is opened. A 404/unavailable resource closes to a safe state with feedback and focus restoration; recoverable errors offer local retry.
 - Every mutation disables only its affected action/scope, preserves unaffected detail, and reconciles authoritative response data. Background refreshes do not flash the full dialog, steal focus, or discard local dirty work.
 - API validation errors stay adjacent to the relevant control. A 403 removes or stops the unavailable action with a useful explanation; a 404/409 state conflict refreshes detail and tells the user what changed. No client fabricates success.
-- Current Note revision and reopen contracts carry explicit expected values and must surface conflicts without overwrite. Quote, Customer, and assignee writes require the unresolved conditional-update decision below before this spec can be approved.
+- Current Note revision and reopen contracts carry explicit expected values and must
+  surface conflicts without overwrite. Customer, assignee, and quote replacement use
+  the conditional-write contract above.
 
 ## Accessibility, permissions, and performance
 
@@ -156,7 +191,10 @@ It never uses `wa.me` or creates/sends a conversation. With no safely verified i
 - AC-01: A Pipeline card opens one centered, large, bounded CRM-020 dialog—not a drawer—with a primary commercial zone and narrower Activity/Notes zone on available desktop space.
 - AC-02: At narrow available widths or zoom, the dialog falls back to ordered single column with bounded internal scroll and no page-level horizontal overflow.
 - AC-03: Detail opens read-first, shows useful Customer/company identity, status, source, effective Legendary state, current commercial data, relevant dates, and no internal IDs or invented commercial fields.
-- AC-04: `Editar` is explicit and scoped to Customer-owned contact identity and, for supervisors, assignee; it preserves original values, has Save/Cancel and adjacent validation, and never makes full detail a permanent form.
+- AC-04: `Editar` is explicit and scoped to Customer-owned contact identity and, for
+  supervisors, assignee; it preserves original values, has Save/Cancel and adjacent
+  validation, uses `expected_updated_at` conditional writes with preserved conflict
+  recovery, and never makes full detail a permanent form.
 - AC-05: Action group shows only current valid state/role actions, performs valid negotiation/win transitions, and uses focused confirmation for destructive loss.
 - AC-06: WhatsApp finds and verifies existing internal conversation before handing local ID to CRM-023 selection; it never opens `wa.me` and exposes defined safe no-conversation state.
 - AC-07: Activity uses supplied status history without fictional quote versions; Notes shows current pinned/newest order, author/time, loading/error/pagination states, and supports multiline add-note with explicit safe shortcut.
@@ -172,12 +210,13 @@ It never uses `wa.me` or creates/sends a conversation. With no safely verified i
 
 ## Open decisions
 
-- **Conditional mutation concurrency is a blocker.** Existing Customer update, Opportunity assignee update, and quote-product replacement endpoints do not accept an expected `updated_at`/revision value. A client-side refresh cannot close the time-of-check/time-of-use gap, so it cannot guarantee the required non-overwrite of a newer Customer, assignee, or quote change. Before CRM-020 can be Approved, an explicit backend-authoritative conditional-update/conflict contract must be approved for these writes, or the user must explicitly relax that requirement.
+None
 
 ## Follow-up / future specs
 
 - CRM-021 — Dashboard & Metrics: may consume authoritative commercial data but does not add pricing or quote history here.
-- CRM-023 — WhatsApp Inbox 2.0: owns internal selected-conversation navigation representation consumed by this detail dialog.
+- CRM-023 — WhatsApp Inbox 2.0: consumes CRM-018 canonical Conversation navigation
+  from this detail dialog.
 - CRM-024 — Customers / Products / Lost: owns specialized Customer and Lost screens; Customer manual Legendary administration remains Customer-owned.
 - CRM-026 — Final Accessibility & UX Polish: verifies cross-module conformance without weakening criteria above.
 
