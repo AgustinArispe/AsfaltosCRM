@@ -40,7 +40,8 @@ introduced as an implementation shortcut.
 ## Scope
 
 - Semantic visual tokens and their Light, Dark, and System-theme mappings.
-- A distinctive, all-day typography direction and a safe font-loading decision path.
+- IBM Plex Sans as the distinctive, all-day primary UI font, self-hosted with a safe
+  loading and licensing-attribution contract.
 - A consistent rounded shape, spacing, elevation, icon, focus, motion, and layering
   language.
 - A permanent collapsible sidebar App Shell and responsive working-area rules.
@@ -111,15 +112,19 @@ reserved for non-text emphasis; it is never assumed to support white text.
 
 ### Typography
 
-The proposal is **IBM Plex Sans** as the primary UI family: it is expressive without
-being fashionable-for-fashion's-sake, has strong small-text and Spanish readability,
-open counters, tabular figures, a useful weight range, and calm numeric rendering for
-kilograms, counts, dates, and metrics. It must be evaluated against a representative
-FAA data screen before adoption; its character must aid reading rather than suggest an
-industrial aesthetic.
+**IBM Plex Sans** is the FAA CRM primary UI family. It is expressive without being
+fashionable-for-fashion's-sake, has strong small-text and Spanish readability, open
+counters, tabular figures, and calm numeric rendering for kilograms, counts, dates,
+and metrics. Its character supports FAA's premium commercial workspace without
+suggesting an industrial aesthetic.
 
 - Use one UI family with optical hierarchy through size, weight, line-height, and
   contrast; do not add a display-font pairing.
+- The initial self-hosted payload contains only WOFF2 files for weights **400**
+  (body), **500** (labels/controls), and **600** (headings and emphasized data). Weight
+  700 is intentionally excluded: 600 supplies the required hierarchy, and a later
+  addition requires measured visual need and payload review rather than a speculative
+  download.
 - Define named text roles for display, page title, section title, body, body-small,
   label, metadata, and numeric data. Body text stays at a readable default and body
   line-height remains comfortable in dense views; text below 12 CSS pixels is not
@@ -128,11 +133,23 @@ industrial aesthetic.
   and tables where alignment improves scanning. Preserve locale-aware existing
   formatters.
 - Provide a metric-compatible system fallback stack (`ui-sans-serif`, system UI,
-  Segoe UI, sans-serif). Avoid synthetic bold/italic and reserve space to reduce
-  layout shift.
-- If adopted, serve the minimum licensed WOFF2 subset/weights from the same origin
-  with `font-display: swap` or `optional`; do not add a Google Fonts or other runtime
-  font request. The final source/licensing decision is an approval blocker below.
+  `-apple-system`, BlinkMacSystemFont, `Segoe UI`, sans-serif). Avoid synthetic
+  bold/italic and reserve space to reduce layout shift.
+- Serve the selected weights from the frontend's same origin only, with no Google
+  Fonts, CDN, analytics, or other runtime third party. Use `font-display: swap` (or
+  `optional` only if its tested fallback metric behavior is acceptable), preload at
+  most the critical 400 face, and apply the root `color-scheme`/theme before first
+  meaningful paint. Font loading must neither create invisible text nor contribute to
+  a theme flash.
+- Obtain the unmodified font files from the reviewed upstream IBM Plex release. IBM
+  Plex Sans is licensed under the SIL Open Font License 1.1 (OFL-1.1), with `Plex` a
+  Reserved Font Name. When the files are added, the repository must include the full
+  unmodified upstream license and copyright notice next to the redistributed font
+  assets (for example `frontend/public/fonts/IBM-Plex-Sans-OFL-1.1.txt`) and a concise
+  provenance notice recording the upstream release/version, source URL, selected
+  files/weights, and any subsetting tool. Any modified or subsetted font remains under
+  OFL-1.1, must retain the required notice, and must not use the Reserved Font Name
+  unless IBM grants written permission. The font files are never sold separately.
 
 ### Shape, spacing, elevation, and icons
 
@@ -404,8 +421,10 @@ no secrets/provider URLs/storage keys in visual components or browser state.
 - AC-02: Light, Dark, and System mappings have defined persistence/override behavior,
   independently meet intended WCAG 2.2 AA contrast, and avoid startup theme flash where
   practical.
-- AC-03: The typography contract defines readable Spanish UI roles, tabular numeric
-  treatment, fallback/loading behavior, and a same-origin-safe font decision path.
+- AC-03: IBM Plex Sans is self-hosted in WOFF2 weights 400, 500, and 600 only; the
+  typography contract defines readable Spanish UI roles, tabular numeric treatment,
+  system fallbacks, non-blocking loading, no runtime third party, and OFL-1.1
+  attribution/redistribution requirements.
 - AC-04: Shared radius, spacing, elevation, icon, and segmentation rules produce
   consistently rounded—but not universally pill-shaped—controls and surfaces.
 - AC-05: The App Shell provides an accessible, permanent expanded/collapsed sidebar,
@@ -443,12 +462,7 @@ no secrets/provider URLs/storage keys in visual components or browser state.
 
 ## Open decisions
 
-- Confirm FAA's approval to self-host the proposed IBM Plex Sans WOFF2 files under the
-  existing same-origin CSP, including the permitted source/license and weight/subset
-  set; otherwise choose an equivalently tested, licensed same-origin family before this
-  spec can be Approved. This is a genuine implementation blocker because no external
-  font CDN is permitted and the visual foundation must have a legally and technically
-  viable primary family.
+None
 
 ## Follow-up / future specs
 
@@ -467,9 +481,10 @@ be explicit, justified, and approved rather than silently diverging.
 
 ## Implementation notes
 
-Implementation follows only after this Draft is approved and its font decision is
-resolved. Start by inventorying and migrating the existing `styles.css`, `AppShell`,
-`shared` controls, and feature-level visual duplication incrementally; preserve all
-implemented business/API behaviors and existing test coverage while doing so. Do not
-make a global state, router, external font, component-library, or dependency decision
-as an incidental redesign step.
+Implementation follows only after this Draft is approved. Start by inventorying and
+migrating the existing `styles.css`, `AppShell`, `shared` controls, and feature-level
+visual duplication incrementally; preserve all implemented business/API behaviors and
+existing test coverage while doing so. Add the selected self-hosted IBM Plex Sans
+assets, OFL-1.1 text, and provenance notice together in the implementation change; do
+not make a global state, router, external font, component-library, or dependency
+decision as an incidental redesign step.
