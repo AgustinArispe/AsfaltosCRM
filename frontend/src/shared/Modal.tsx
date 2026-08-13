@@ -14,6 +14,7 @@ export function Modal({
   description,
   onClose,
   closeDisabled = false,
+  size = 'default',
   children,
 }: {
   isOpen: boolean
@@ -21,6 +22,7 @@ export function Modal({
   description?: string
   onClose: () => void
   closeDisabled?: boolean
+  size?: 'default' | 'large'
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -89,7 +91,7 @@ export function Modal({
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className='m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100%-2rem))] border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55'
+      className={`m-auto max-h-[calc(100dvh-2rem)] ${size === 'large' ? 'w-[min(72rem,calc(100%-2rem))]' : 'w-[min(34rem,calc(100%-2rem))]'} border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55`}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}

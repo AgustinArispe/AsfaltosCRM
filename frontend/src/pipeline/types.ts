@@ -33,6 +33,8 @@ export type OpportunitySummary = {
   assigned_user: OpportunityUser | null
   products: QuotedProduct[]
   created_at: string
+  is_reopened?: boolean
+  reopen_count?: number
 }
 
 export type OpportunityStatusHistory = {
@@ -60,3 +62,22 @@ export type QuoteProductInput = {
   product_id: number
   quantity_kg: number
 }
+
+export type OpportunityNote = {
+  id: number
+  opportunity_id: number
+  author_user_id: number
+  author_name: string
+  created_at: string
+  current_revision: {
+    id: number
+    revision_number: number
+    body: string
+    is_pinned: boolean
+    actor_user_id: number
+    actor_name: string
+    created_at: string
+  }
+}
+
+export type OpportunityNotePage = { items: OpportunityNote[]; next_cursor: string | null }

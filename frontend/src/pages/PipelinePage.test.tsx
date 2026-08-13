@@ -500,6 +500,7 @@ describe('PipelinePage', () => {
     )
     expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
       products: [{ product_id: 10, quantity_kg: 3000 }],
+      expected_updated_at: '2026-08-01T12:00:00Z',
     })
   })
 

@@ -38,6 +38,7 @@ class QuoteRequest(StrictRequestModel):
 
 
 class QuoteProductsUpdate(StrictRequestModel):
+    expected_updated_at: datetime
     products: list[QuoteProductRequest] = Field(min_length=1)
 
 
@@ -56,6 +57,7 @@ class ReopenOpportunityRequest(StrictRequestModel):
 
 class AssigneeUpdate(StrictRequestModel):
     assigned_user_id: PositiveId | None
+    expected_updated_at: datetime
 
 
 class UserSummary(BaseModel):

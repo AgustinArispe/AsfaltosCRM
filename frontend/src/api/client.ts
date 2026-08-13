@@ -13,17 +13,21 @@ type ApiBinaryRequestOptions = Omit<RequestInit, 'body' | 'headers'> & {
   onUnauthorized?: () => void
 }
 
-type ErrorPayload = {
-  detail?: string
-}
+export type ApiErrorDetail =
+  | string
+  | { code?: string; resource?: string; current_updated_at?: string }
+
+type ErrorPayload = { detail?: ApiErrorDetail }
 
 export class ApiError extends Error {
   readonly status: number
+  readonly detail: ApiErrorDetail | undefined
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, detail?: ApiErrorDetail) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.detail = detail
   }
 }
 
@@ -45,7 +49,20 @@ async function throwApiError(
   if (response.status === 401) onUnauthorized?.()
   const payload = await readJson(response)
   const detail = (payload as ErrorPayload | null)?.detail
-  throw new ApiError(response.status, detail || 'Request failed')
+  throw new ApiError(
+    response.status,
+    typeof detail === 'string' ? detail : 'Request failed',
+    detail,
+  )
+}
+
+export function isStaleWriteConflict(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError &&
+    error.status === 409 &&
+    typeof error.detail === 'object' &&
+    error.detail?.code === 'STALE_WRITE'
+  )
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {

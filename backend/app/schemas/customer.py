@@ -19,6 +19,7 @@ class CustomerCreate(StrictRequestModel):
 
 
 class CustomerUpdate(StrictRequestModel):
+    expected_updated_at: datetime
     name: NonBlankString | None = None
     company: OptionalNonBlankString = None
     email: EmailInput | None = None
@@ -51,6 +52,7 @@ class CustomerSummary(BaseModel):
     legendary_automatic: bool
     legendary_automatic_evaluated_at: datetime | None
     is_legendary: bool
+    updated_at: datetime
 
 
 class CustomerDetail(CustomerSummary):

@@ -106,7 +106,8 @@ def update_customer(
         )
     customer = CustomerService(session).update_customer(
         customer_id,
-        payload.model_dump(exclude_unset=True),
+        payload.model_dump(exclude={"expected_updated_at"}, exclude_unset=True),
+        expected_updated_at=payload.expected_updated_at,
         actor_user_id=current_user.id,
     )
     return CustomerSummary.model_validate(customer)

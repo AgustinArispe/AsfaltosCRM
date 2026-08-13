@@ -87,7 +87,11 @@ export function CustomersPage() {
   const handleSave = async (payload: CustomerWritePayload) => {
     try {
       const savedCustomer = formCustomer
-        ? await updateCustomer(formCustomer.id, payload, apiSession)
+        ? await updateCustomer(
+            formCustomer.id,
+            { ...payload, expected_updated_at: formCustomer.updated_at ?? '' },
+            apiSession,
+          )
         : await createCustomer(payload, apiSession)
       closeForm()
       setAnnouncement(

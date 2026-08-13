@@ -267,13 +267,13 @@ describe('authenticated frontend', () => {
     cardButton.focus()
     fireEvent.click(cardButton)
 
-    expect(window.location.pathname).toBe('/pipeline')
+    expect(window.location.pathname).toBe('/pipeline/opportunities/77')
     const drawer = await screen.findByRole('dialog', {
       name: 'Detalle de oportunidad',
     })
     expect(within(drawer).getByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
     fireEvent(drawer, new Event('cancel', { cancelable: true }))
-    await waitFor(() => expect(cardButton).toHaveFocus())
+    await waitFor(() => expect(window.location.pathname).toBe('/pipeline'))
 
     act(() => {
       window.history.pushState(null, '', '/opportunities/77')
@@ -281,9 +281,7 @@ describe('authenticated frontend', () => {
     })
 
     expect(await screen.findByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: 'Detalle de oportunidad', level: 1 }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Detalle de oportunidad' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('aria-current', 'page')
 
     fireEvent.click(screen.getByRole('link', { name: 'Volver al Pipeline' }))

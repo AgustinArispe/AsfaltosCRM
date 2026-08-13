@@ -116,7 +116,11 @@ def test_customer_crud_search_and_soft_delete(api_client: TestClient) -> None:
 
     updated = api_client.patch(
         f"/api/customers/{customer_id}",
-        json={"company": None, "province": "Neuquén"},
+        json={
+            "company": None,
+            "province": "Neuquén",
+            "expected_updated_at": detail.json()["updated_at"],
+        },
     )
     assert updated.status_code == 200
     assert updated.json()["company"] is None
@@ -367,16 +371,21 @@ def test_update_quote_products_and_unassign_user(
         assigned_user_id=user.id,
     )
     quote_opportunity(api_client, opportunity.id, first_product.id)
+    current = api_client.get(f"/api/opportunities/{opportunity.id}").json()
 
     update = api_client.put(
         f"/api/opportunities/{opportunity.id}/quote-products",
         json={
-            "products": [{"product_id": second_product.id, "quantity_kg": "875.500"}]
+            "expected_updated_at": current["updated_at"],
+            "products": [{"product_id": second_product.id, "quantity_kg": "875.500"}],
         },
     )
     unassigned = api_client.put(
         f"/api/opportunities/{opportunity.id}/assignee",
-        json={"assigned_user_id": None},
+        json={
+            "assigned_user_id": None,
+            "expected_updated_at": update.json()["updated_at"],
+        },
     )
 
     assert update.status_code == 200

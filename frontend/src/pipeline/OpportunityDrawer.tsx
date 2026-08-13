@@ -4,8 +4,8 @@ import { ApiError } from '../api/client'
 import { type ApiSession, getOpportunityDetail } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { Button } from '../shared/Button'
-import { Drawer } from '../shared/Drawer'
 import { LoadingState } from '../shared/LoadingState'
+import { Modal } from '../shared/Modal'
 import { STAGE_BY_STATUS } from './config'
 import { OpportunityDetailContent } from './OpportunityDetailContent'
 import type { OpportunityDetail, PipelineStatus } from './types'
@@ -77,12 +77,13 @@ export function OpportunityDrawer({
 
   const runAfterClose = (action: () => void) => {
     pendingActionRef.current = action
-    onClose()
+    handleAfterClose()
   }
 
   const handleAfterClose = () => {
     const pendingAction = pendingActionRef.current
     pendingActionRef.current = null
+    onClose()
     onAfterClose()
     pendingAction?.()
   }
@@ -129,12 +130,12 @@ export function OpportunityDrawer({
   ) : null
 
   return (
-    <Drawer
+    <Modal
       closeDisabled={isBusy}
       description='Información comercial completa'
       isOpen={isOpen}
-      onAfterClose={handleAfterClose}
-      onClose={onClose}
+      onClose={handleAfterClose}
+      size='large'
       title='Detalle de oportunidad'
     >
       {isLoading && !opportunity ? (
@@ -163,6 +164,6 @@ export function OpportunityDrawer({
       ) : opportunity ? (
         <OpportunityDetailContent actions={actions} layout='drawer' opportunity={opportunity} />
       ) : null}
-    </Drawer>
+    </Modal>
   )
 }

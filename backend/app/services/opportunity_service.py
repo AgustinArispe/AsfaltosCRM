@@ -31,6 +31,7 @@ from app.services.errors import (
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
+    StaleWriteConflictError,
 )
 from app.services.legendary_service import LegendaryService
 from app.services.notification_service import NotificationService
@@ -226,6 +227,8 @@ class OpportunityService:
         self,
         opportunity_id: int,
         products: list[QuoteProductInput],
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> Opportunity:
         """Replaces the current quote without creating a quote revision.
 
@@ -234,6 +237,10 @@ class OpportunityService:
         """
         with self._session.begin():
             opportunity = self._get_opportunity_for_update(opportunity_id)
+            self._require_fresh_update(
+                opportunity,
+                expected_updated_at=expected_updated_at,
+            )
             self._require_quote_editable(opportunity)
             existing_lines = self._get_quote_products(opportunity.id)
             validated_products = self._validate_quote_products(
@@ -245,6 +252,7 @@ class OpportunityService:
                 validated_products,
                 existing_lines=existing_lines,
             )
+            opportunity.updated_at = datetime.now(UTC)
             self._session.flush()
 
         return opportunity
@@ -253,9 +261,15 @@ class OpportunityService:
         self,
         opportunity_id: int,
         assigned_user_id: int | None,
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             opportunity = self._get_opportunity_for_update(opportunity_id)
+            self._require_fresh_update(
+                opportunity,
+                expected_updated_at=expected_updated_at,
+            )
             self._validate_assigned_user(assigned_user_id)
             opportunity.assigned_user_id = assigned_user_id
             opportunity.updated_at = datetime.now(UTC)
@@ -362,6 +376,21 @@ class OpportunityService:
         if customer.deleted_at is not None:
             raise DeletedCustomerError(customer_id)
         return customer
+
+    def _require_fresh_update(
+        self,
+        opportunity: Opportunity,
+        *,
+        expected_updated_at: datetime | None,
+    ) -> None:
+        if (
+            expected_updated_at is not None
+            and opportunity.updated_at != expected_updated_at
+        ):
+            raise StaleWriteConflictError(
+                resource="Opportunity",
+                current_updated_at=opportunity.updated_at,
+            )
 
     def _get_opportunity_for_update(self, opportunity_id: int) -> Opportunity:
         opportunity = self._session.scalar(

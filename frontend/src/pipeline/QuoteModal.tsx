@@ -34,6 +34,7 @@ export function QuoteModal({
   onClose,
   onConfirm,
   mode = 'create',
+  isOpen,
 }: {
   opportunity: OpportunitySummary | null
   products: Product[] | null
@@ -43,6 +44,7 @@ export function QuoteModal({
   onClose: () => void
   onConfirm: (products: QuoteProductInput[]) => Promise<void>
   mode?: 'create' | 'edit'
+  isOpen?: boolean
 }) {
   const [lines, setLines] = useState<QuoteLine[]>(() => initialLines(opportunity))
   const [lineErrors, setLineErrors] = useState<LineErrors>({})
@@ -159,7 +161,7 @@ export function QuoteModal({
           ? `Registrá los productos cotizados para ${opportunity.customer.name}.`
           : undefined
       }
-      isOpen={Boolean(opportunity)}
+      isOpen={isOpen ?? Boolean(opportunity)}
       onClose={onClose}
       title={mode === 'edit' ? 'Editar cotización' : 'Cotizar oportunidad'}
     >

@@ -2,6 +2,8 @@ import { PIPELINE_STAGES } from '../pipeline/config'
 import type {
   LossReason,
   OpportunityDetail,
+  OpportunityNote,
+  OpportunityNotePage,
   OpportunitySummary,
   PaginatedResponse,
   PipelineStatus,
@@ -101,12 +103,26 @@ export function quoteOpportunity(
 export function updateOpportunityQuoteProducts(
   opportunityId: number,
   products: QuoteProductInput[],
+  expectedUpdatedAt: string,
   session: ApiSession,
 ) {
-  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/quote-products`, {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/quote-products`, {
     ...session,
     method: 'PUT',
-    body: { products },
+    body: { products, expected_updated_at: expectedUpdatedAt },
+  })
+}
+
+export function updateOpportunityAssignee(
+  opportunityId: number,
+  assignedUserId: number | null,
+  expectedUpdatedAt: string,
+  session: ApiSession,
+) {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/assignee`, {
+    ...session,
+    method: 'PUT',
+    body: { assigned_user_id: assignedUserId, expected_updated_at: expectedUpdatedAt },
   })
 }
 
@@ -135,5 +151,25 @@ export function loseOpportunity(
     ...session,
     method: 'POST',
     body: { loss_reason: lossReason },
+  })
+}
+
+export function reopenOpportunity(opportunityId: number, session: ApiSession) {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/reopen`, {
+    ...session,
+    method: 'POST',
+    body: { command_id: crypto.randomUUID(), expected_status: 'PERDIDA' },
+  })
+}
+
+export function listOpportunityNotes(opportunityId: number, session: ApiSession) {
+  return apiRequest<OpportunityNotePage>(`/opportunities/${opportunityId}/notes?limit=20`, session)
+}
+
+export function createOpportunityNote(opportunityId: number, body: string, session: ApiSession) {
+  return apiRequest<OpportunityNote>(`/opportunities/${opportunityId}/notes`, {
+    ...session,
+    method: 'POST',
+    body: { client_generated_id: crypto.randomUUID(), body },
   })
 }

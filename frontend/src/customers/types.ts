@@ -6,6 +6,7 @@ export type CustomerSummary = {
   phone: string | null
   province: string | null
   legendary_historical_override: boolean
+  updated_at?: string
 }
 
 export type CustomerDetail = CustomerSummary & {
@@ -30,4 +31,6 @@ export type CustomerWritePayload = {
   legendary_historical_override?: boolean
 }
 
-export type CustomerUpdatePayload = Partial<CustomerWritePayload>
+export type CustomerUpdatePayload = Partial<CustomerWritePayload> & {
+  expected_updated_at: string
+}

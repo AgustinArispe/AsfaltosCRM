@@ -356,14 +356,20 @@ def test_customer_permissions_by_role(
     assert (
         api_client.patch(
             f"/api/customers/{customer_id}",
-            json={"phone": "1123456789"},
+            json={
+                "phone": "1123456789",
+                "expected_updated_at": created.json()["updated_at"],
+            },
         ).status_code
         == 200
     )
     assert (
         api_client.patch(
             f"/api/customers/{customer_id}",
-            json={"legendary_historical_override": True},
+            json={
+                "legendary_historical_override": True,
+                "expected_updated_at": created.json()["updated_at"],
+            },
         ).status_code
         == 403
     )
@@ -380,9 +386,13 @@ def test_customer_permissions_by_role(
     assert api_client.delete(f"/api/customers/{customer_id}").status_code == 403
 
     authenticate_as(api_client, supervisor_user)
+    customer_detail = api_client.get(f"/api/customers/{customer_id}")
     override = api_client.patch(
         f"/api/customers/{customer_id}",
-        json={"legendary_historical_override": True},
+        json={
+            "legendary_historical_override": True,
+            "expected_updated_at": customer_detail.json()["updated_at"],
+        },
     )
     assert override.status_code == 200
     assert override.json()["legendary_historical_override"] is True
@@ -474,10 +484,14 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
         json={"customer_id": customer.json()["id"], "source": "WHATSAPP"},
     )
     second_id = second_opportunity.json()["id"]
+    second_detail = api_client.get(f"/api/opportunities/{second_id}").json()
     assert (
         api_client.put(
             f"/api/opportunities/{second_id}/assignee",
-            json={"assigned_user_id": vendor.id},
+            json={
+                "assigned_user_id": vendor.id,
+                "expected_updated_at": second_detail["updated_at"],
+            },
         ).status_code
         == 403
     )
@@ -496,7 +510,10 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
     authenticate_as(api_client, supervisor_user)
     assigned = api_client.put(
         f"/api/opportunities/{second_id}/assignee",
-        json={"assigned_user_id": vendor.id},
+        json={
+            "assigned_user_id": vendor.id,
+            "expected_updated_at": second_detail["updated_at"],
+        },
     )
     assert assigned.status_code == 200
     assert assigned.json()["assigned_user"]["id"] == vendor.id

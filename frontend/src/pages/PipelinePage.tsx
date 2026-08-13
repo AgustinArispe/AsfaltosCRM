@@ -25,6 +25,7 @@ import type {
   Product,
   QuoteProductInput,
 } from '../pipeline/types'
+import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
@@ -49,7 +50,7 @@ export function PipelinePage() {
   const [quoteOpportunityId, setQuoteOpportunityId] = useState<number | null>(null)
   const [quoteMode, setQuoteMode] = useState<'create' | 'edit'>('create')
   const [quoteOpportunitySnapshot, setQuoteOpportunitySnapshot] =
-    useState<OpportunitySummary | null>(null)
+    useState<OpportunityDetail | null>(null)
   const [lossOpportunityId, setLossOpportunityId] = useState<number | null>(null)
   const [products, setProducts] = useState<Product[] | null>(null)
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
@@ -175,7 +176,12 @@ export function PipelinePage() {
     try {
       const updatedOpportunity =
         quoteMode === 'edit'
-          ? await updateOpportunityQuoteProducts(opportunity.id, quoteProducts, apiSession)
+          ? await updateOpportunityQuoteProducts(
+              opportunity.id,
+              quoteProducts,
+              quoteOpportunitySnapshot?.updated_at ?? '',
+              apiSession,
+            )
           : await quoteOpportunity(opportunity.id, quoteProducts, apiSession)
       setOpportunities((current) => replaceOpportunity(current, updatedOpportunity))
       setQuoteOpportunityId(null)
@@ -201,6 +207,10 @@ export function PipelinePage() {
   const openOpportunityDetail = (opportunityId: number) => {
     setSelectedOpportunityId(opportunityId)
     setIsDetailDrawerOpen(true)
+    navigateRoute(
+      { kind: 'opportunity', opportunityId, surface: 'pipeline' },
+      { origin: { kind: 'workspace', workspace: 'pipeline' } },
+    )
   }
 
   const handleLoss = async (lossReason: LossReason) => {

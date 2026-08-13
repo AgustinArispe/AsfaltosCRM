@@ -28,7 +28,7 @@ from app.models import (
     UserRole,
 )
 from app.services.customer_service import CustomerService
-from app.services.errors import DuplicateEntityError
+from app.services.errors import DuplicateEntityError, StaleWriteConflictError
 from app.services.opportunity_query_service import OpportunityQueryService
 from app.services.product_service import ProductService
 from app.services.user_service import UserService
@@ -154,7 +154,10 @@ def test_soft_deleted_customer_rejects_edits_and_new_opportunities(
     assert (
         api_client.patch(
             f"/api/customers/{customer['id']}",
-            json={"phone": "11 5555 5555"},
+            json={
+                "phone": "11 5555 5555",
+                "expected_updated_at": customer["updated_at"],
+            },
         ).status_code
         == 409
     )
@@ -230,7 +233,10 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
     )
     changed_quantity = api_client.put(
         f"/api/opportunities/{quoted_opportunity['id']}/quote-products",
-        json={"products": [{"product_id": product["id"], "quantity_kg": "750.000"}]},
+        json={
+            "expected_updated_at": historical_detail["updated_at"],
+            "products": [{"product_id": product["id"], "quantity_kg": "750.000"}],
+        },
     )
     assert changed_quantity.status_code == 200
 
@@ -300,13 +306,45 @@ def test_inactive_assignee_remains_visible_but_cannot_be_assigned_again(
         "/api/opportunities",
         json={"customer_id": customer["id"], "source": "WHATSAPP"},
     ).json()
+    unassigned_detail = api_client.get(f"/api/opportunities/{unassigned['id']}").json()
     assert (
         api_client.put(
             f"/api/opportunities/{unassigned['id']}/assignee",
-            json={"assigned_user_id": user["id"]},
+            json={
+                "assigned_user_id": user["id"],
+                "expected_updated_at": unassigned_detail["updated_at"],
+            },
         ).status_code
         == 409
     )
+
+
+def test_customer_update_rejects_stale_expected_updated_at(db_session: Session) -> None:
+    service = CustomerService(db_session)
+    customer = service.create_customer(
+        name=unique_label("Cliente concurrente"),
+        company=None,
+        email=None,
+        phone=None,
+        province=None,
+        legendary_historical_override=False,
+    )
+    original_updated_at = customer.updated_at
+    service.update_customer(
+        customer.id,
+        {"phone": "11 4444 4444"},
+        expected_updated_at=original_updated_at,
+    )
+
+    with pytest.raises(StaleWriteConflictError) as stale_write:
+        service.update_customer(
+            customer.id,
+            {"province": "Buenos Aires"},
+            expected_updated_at=original_updated_at,
+        )
+
+    assert stale_write.value.current_updated_at == customer.updated_at
+    assert customer.phone == "11 4444 4444"
 
 
 def test_crud_updates_are_atomic_and_advance_aware_timestamps(

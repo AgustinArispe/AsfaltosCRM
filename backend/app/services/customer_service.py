@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import Customer
-from app.services.errors import DeletedCustomerError, EntityNotFoundError
+from app.services.errors import (
+    DeletedCustomerError,
+    EntityNotFoundError,
+    StaleWriteConflictError,
+)
 from app.services.legendary_service import LegendaryService
 
 CUSTOMER_UPDATE_FIELDS = frozenset(
@@ -114,6 +118,7 @@ class CustomerService:
         customer_id: int,
         updates: dict[str, str | bool | None],
         *,
+        expected_updated_at: datetime | None = None,
         actor_user_id: int | None = None,
     ) -> Customer:
         with self._session.begin():
@@ -124,6 +129,14 @@ class CustomerService:
                 raise EntityNotFoundError("Customer", customer_id)
             if customer.deleted_at is not None:
                 raise DeletedCustomerError(customer_id)
+            if (
+                expected_updated_at is not None
+                and customer.updated_at != expected_updated_at
+            ):
+                raise StaleWriteConflictError(
+                    resource="Customer",
+                    current_updated_at=customer.updated_at,
+                )
 
             manual_value = updates.get("legendary_historical_override")
             for field_name, value in updates.items():

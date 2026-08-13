@@ -207,6 +207,7 @@ def update_quote_products(
     OpportunityService(session).update_quote_products(
         opportunity_id,
         _quote_inputs(payload),
+        expected_updated_at=payload.expected_updated_at,
     )
     return _detail(session, opportunity_id)
 
@@ -225,6 +226,7 @@ def update_assignee(
     OpportunityService(session).assign_user(
         opportunity_id,
         payload.assigned_user_id,
+        expected_updated_at=payload.expected_updated_at,
     )
     return _detail(session, opportunity_id)
 

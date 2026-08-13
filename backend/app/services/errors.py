@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.models import OpportunityStatus
 
 
@@ -142,6 +144,15 @@ class InvalidLossReasonError(DomainError):
 
 class RevisionConflictError(DomainError):
     """Raised for a stale append-only note command."""
+
+
+class StaleWriteConflictError(DomainError):
+    """Raised when a conditional Customer or Opportunity mutation is stale."""
+
+    def __init__(self, *, resource: str, current_updated_at: datetime) -> None:
+        self.resource = resource
+        self.current_updated_at = current_updated_at
+        super().__init__(f"{resource} was updated by another change")
 
 
 class IdempotencyConflictError(DomainError):

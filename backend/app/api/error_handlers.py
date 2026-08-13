@@ -25,6 +25,7 @@ from app.services import (
     MetricsTimelinePeriodTooLargeError,
     PermissionDeniedError,
     RevisionConflictError,
+    StaleWriteConflictError,
     WhatsAppBroadcastConflictError,
     WhatsAppConversationResolutionError,
     WhatsAppFreeformWindowClosedError,
@@ -50,6 +51,7 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (WhatsAppBroadcastConflictError, status.HTTP_409_CONFLICT),
     (IdempotencyConflictError, status.HTTP_409_CONFLICT),
     (RevisionConflictError, status.HTTP_409_CONFLICT),
+    (StaleWriteConflictError, status.HTTP_409_CONFLICT),
     (InactiveUserError, status.HTTP_409_CONFLICT),
     (InactiveProductError, status.HTTP_409_CONFLICT),
     (InvalidStateTransitionError, status.HTTP_409_CONFLICT),
@@ -87,6 +89,17 @@ async def domain_error_handler(_: Request, error: Exception) -> JSONResponse:
                     "granularity": error.granularity,
                     "requested_bucket_count": error.requested_bucket_count,
                     "maximum_bucket_count": error.maximum_bucket_count,
+                }
+            },
+        )
+    if isinstance(error, StaleWriteConflictError):
+        return JSONResponse(
+            status_code=response_status,
+            content={
+                "detail": {
+                    "code": "STALE_WRITE",
+                    "resource": error.resource,
+                    "current_updated_at": error.current_updated_at.isoformat(),
                 }
             },
         )

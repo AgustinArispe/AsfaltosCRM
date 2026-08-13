@@ -29,6 +29,7 @@ from app.services import (
     InvalidStateTransitionError,
     OpportunityService,
     QuoteProductInput,
+    StaleWriteConflictError,
 )
 
 
@@ -577,6 +578,52 @@ def test_update_quote_products_replaces_current_set_without_status_change(
         added_product.id: Decimal("750.000"),
     }
     assert len(history) == 2
+
+
+def test_conditional_assignee_update_rejects_stale_snapshot(
+    db_session: Session,
+) -> None:
+    service, opportunity, _products = create_quoted_opportunity(db_session)
+    original_updated_at = opportunity.updated_at
+
+    service.assign_user(
+        opportunity.id,
+        None,
+        expected_updated_at=original_updated_at,
+    )
+    assigned_updated_at = opportunity.updated_at
+    assert assigned_updated_at > original_updated_at
+
+    with pytest.raises(StaleWriteConflictError) as stale_assignee:
+        service.assign_user(
+            opportunity.id,
+            None,
+            expected_updated_at=original_updated_at,
+        )
+    assert stale_assignee.value.current_updated_at == assigned_updated_at
+
+
+def test_conditional_quote_update_rejects_stale_snapshot_and_bumps_opportunity(
+    db_session: Session,
+) -> None:
+    service, opportunity, products = create_quoted_opportunity(db_session)
+    product = products[0]
+    original_updated_at = opportunity.updated_at
+
+    service.update_quote_products(
+        opportunity.id,
+        [quote_item(product, "2400")],
+        expected_updated_at=original_updated_at,
+    )
+    quote_updated_at = opportunity.updated_at
+    assert quote_updated_at > original_updated_at
+
+    with pytest.raises(StaleWriteConflictError):
+        service.update_quote_products(
+            opportunity.id,
+            [quote_item(product, "2500")],
+            expected_updated_at=original_updated_at,
+        )
 
 
 def test_update_quote_products_is_allowed_in_negotiation(
