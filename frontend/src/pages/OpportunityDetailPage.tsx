@@ -258,11 +258,15 @@ export function OpportunityDetailPage({
               ? 'Oportunidad no encontrada'
               : 'No pudimos cargar la oportunidad'}
           </h3>
-          {error !== 'not-found' ? (
+          {error === 'not-found' ? (
+            <p className='mt-2 text-sm text-[var(--text-secondary)]'>
+              La oportunidad no está disponible.
+            </p>
+          ) : (
             <Button className='mt-4' onClick={() => setKey((value) => value + 1)}>
               Reintentar
             </Button>
-          ) : null}
+          )}
         </div>
       ) : (
         <div className='max-h-[calc(100dvh-10rem)] overflow-y-auto p-4'>

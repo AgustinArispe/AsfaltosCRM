@@ -44,9 +44,11 @@ describe('shared CRM-018 primitives', () => {
     expect(onClick).toHaveBeenCalledTimes(2)
     expect(screen.getByText('Ganada')).toHaveClass('rounded-full')
     expect(screen.getByRole('img', { name: 'María del Carmen' })).toHaveTextContent('MD')
-    expect(screen.getByRole('status', { name: '3 notificaciones sin leer' })).toHaveTextContent('3')
     expect(
-      screen.getByRole('status', { name: '99 o más notificaciones sin leer' }),
+      screen.getByRole('status', { name: '3 notificaciones activas sin leer' }),
+    ).toHaveTextContent('3')
+    expect(
+      screen.getByRole('status', { name: '100 notificaciones activas sin leer' }),
     ).toHaveTextContent('99+')
     expect(screen.getByRole('heading', { name: 'Actividad' })).toBeInTheDocument()
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')

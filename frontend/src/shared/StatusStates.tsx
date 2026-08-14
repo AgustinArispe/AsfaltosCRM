@@ -54,7 +54,7 @@ export function Avatar({ name, className = '' }: { name: string; className?: str
 
 export function NotificationBadge({ count }: { count: number }) {
   if (count <= 0) return null
-  const label = count > 99 ? '99 o más notificaciones sin leer' : `${count} notificaciones sin leer`
+  const label = `${count} notificaciones activas sin leer`
   return (
     <span aria-label={label} className='ui-notification-badge' role='status'>
       {count > 99 ? '99+' : count}

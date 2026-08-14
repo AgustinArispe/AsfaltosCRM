@@ -195,6 +195,7 @@ describe('OpportunityDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Oportunidad no encontrada' }),
     ).toBeInTheDocument()
+    expect(screen.getByText(/La oportunidad no está disponible/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Volver al Pipeline' })).toHaveAttribute(
       'href',
       '/pipeline',

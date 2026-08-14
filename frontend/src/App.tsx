@@ -4,6 +4,7 @@ import { CustomerDetailPage } from './pages/CustomerDetailPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
@@ -84,6 +85,8 @@ function RoutedApp() {
       <PipelinePage />
     ) : route.workspace === 'dashboard' ? (
       <DashboardPage />
+    ) : route.workspace === 'notifications' ? (
+      <NotificationsPage />
     ) : route.workspace === 'customers' ? (
       <CustomersPage />
     ) : route.workspace === 'products' ? (

@@ -238,6 +238,30 @@ describe('authenticated frontend', () => {
     expect(screen.getByLabelText('Tema')).toBeInTheDocument()
   })
 
+  it('shows the exact active-unread badge in expanded and collapsed Notifications navigation', async () => {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = new URL(String(input), 'http://localhost')
+        if (url.pathname === '/api/auth/me') return Promise.resolve(jsonResponse(200, supervisor))
+        if (url.pathname === '/api/notifications') {
+          return Promise.resolve(jsonResponse(200, { items: [], page: 1, page_size: 1, total: 7 }))
+        }
+        return Promise.resolve(jsonResponse(200, emptyOpportunityPage))
+      }),
+    )
+    renderApp('/pipeline')
+
+    expect(
+      await screen.findByRole('status', { name: '7 notificaciones activas sin leer' }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }))
+    expect(
+      screen.getByRole('link', { name: 'Notificaciones, 7 notificaciones activas sin leer' }),
+    ).toHaveAttribute('title', 'Notificaciones, 7 notificaciones activas sin leer')
+  })
+
   it('opens the CRM-020 modal over Pipeline, restores focus, and keeps the deep-link route', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
     const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {

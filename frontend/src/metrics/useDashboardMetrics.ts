@@ -8,7 +8,7 @@ import {
   getSourceMetrics,
   getTimelineMetrics,
 } from '../api/metrics'
-import { getActiveNotificationTotal } from '../api/notifications'
+import { getActiveNotificationTotal, getNotificationTotal } from '../api/notifications'
 import type { ApiSession } from '../api/opportunities'
 import { listProducts } from '../api/products'
 import { listWhatsAppConversations } from '../api/whatsapp'
@@ -84,8 +84,8 @@ export function useDashboardMetrics(filters: DashboardFilters, session: ApiSessi
       getProvinceMetrics(filters, requestSession),
       getTimelineMetrics(filters, granularity, requestSession),
       getPipelineMetrics(filters, requestSession),
-      getActiveNotificationTotal(false, requestSession),
-      getActiveNotificationTotal(true, requestSession),
+      getNotificationTotal(false, requestSession),
+      getActiveNotificationTotal(requestSession),
       listWhatsAppConversations(
         { limit: 1, pageCursor: null, waitingOnly: true, unreadOnly: false, search: '' },
         requestSession,
