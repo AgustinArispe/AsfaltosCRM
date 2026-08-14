@@ -1,9 +1,9 @@
 # CRM-022 — Notifications UI
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-13
-Implementation commit: N/A
+Implementation commit: `d8a5c9f`
 
 ## Goal
 
