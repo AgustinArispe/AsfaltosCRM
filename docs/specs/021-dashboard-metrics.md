@@ -1,9 +1,9 @@
 # CRM-021 — Dashboard & Metrics
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-13
-Implementation commit: N/A
+Last updated: 2026-08-14
+Implementation commit: 3edf94ba4f93587b33b3488e753b5a32e223666a
 
 ## Goal
 
