@@ -1133,3 +1133,96 @@ def _confirm_and_start(
     )
     assert started.status_code == 200
     assert started.json()["status"] == WhatsAppBroadcastStatus.PROCESSING.value
+
+
+def test_draft_update_is_versioned_and_invalidates_validation(
+    broadcast_context: BroadcastContext,
+) -> None:
+    context = broadcast_context
+    created = _create_broadcast(context)
+    updated = context.client.put(
+        f"/api/whatsapp/broadcasts/{created.id}",
+        json={
+            "expected_version": created.version,
+            "label": "Envío corregido",
+            "template_external_id": "marketing-1",
+            "parameters": [{"name": "fecha", "value": "01/09"}],
+            "header_media_ref": None,
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["label"] == "Envío corregido"
+    assert updated.json()["version"] == created.version + 1
+    assert updated.json()["validated_at"] is None
+
+    stale = context.client.put(
+        f"/api/whatsapp/broadcasts/{created.id}",
+        json={
+            "expected_version": created.version,
+            "label": "Edición obsoleta",
+            "template_external_id": "marketing-1",
+            "parameters": [{"name": "fecha", "value": "02/09"}],
+            "header_media_ref": None,
+        },
+    )
+    assert stale.status_code == 409
+
+
+def test_validation_uses_typed_safe_category_for_empty_selection(
+    broadcast_context: BroadcastContext,
+) -> None:
+    created = _create_broadcast(broadcast_context)
+    response = broadcast_context.client.post(
+        f"/api/whatsapp/broadcasts/{created.id}/validate",
+        json={"expected_version": created.version},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["valid"] is False
+    assert payload["eligible_count"] == 0
+    assert payload["excluded_count"] == 0
+    assert payload["issue_categories"] == [
+        {"category": "NO_RECIPIENTS", "count": 1, "recipient_ids": []}
+    ]
+
+
+def test_paginated_operational_projections_are_safe(
+    broadcast_context: BroadcastContext,
+    db_session: Session,
+) -> None:
+    context = broadcast_context
+    customer = _customer(db_session, "Resultados", "+54 11 6700-0001")
+    _consent(context, customer.id, WhatsAppConsentDecision.OPT_IN)
+    broadcast_id, recipient_id = _ready_broadcast(context, customer.id)
+    processed = context.client.post(
+        f"/api/whatsapp/broadcasts/{broadcast_id}/process",
+        json={"command_id": str(uuid4())},
+    )
+    assert processed.status_code == 200
+
+    history = context.client.get("/api/whatsapp/broadcasts?limit=10")
+    assert history.status_code == 200
+    row = next(item for item in history.json()["items"] if item["id"] == broadcast_id)
+    assert row["outcomes"]["selected"] == 1
+
+    recipients = context.client.get(
+        f"/api/whatsapp/broadcasts/{broadcast_id}/recipients?limit=1"
+    )
+    assert recipients.status_code == 200
+    item = recipients.json()["items"][0]
+    assert item["id"] == recipient_id
+    assert item["phone_display"].endswith("0001")
+    assert "normalized_phone" not in item
+
+    attempts = context.client.get(
+        f"/api/whatsapp/broadcasts/{broadcast_id}/recipients/{recipient_id}/attempts?limit=1"
+    )
+    assert attempts.status_code == 200
+    assert len(attempts.json()["items"]) == 1
+    assert "provider_payload" not in attempts.json()["items"][0]
+
+    audit = context.client.get(
+        f"/api/whatsapp/broadcasts/{broadcast_id}/audit-events?limit=1"
+    )
+    assert audit.status_code == 200
+    assert len(audit.json()["items"]) == 1

@@ -9,28 +9,39 @@ from app.models import (
     WhatsAppBroadcast,
     WhatsAppBroadcastAuditEvent,
     WhatsAppBroadcastRecipient,
+    WhatsAppBroadcastRecipientStatus,
     WhatsAppBroadcastStatus,
+    WhatsAppDispatchState,
     WhatsAppMarketingConsentEvent,
+    WhatsAppMessage,
 )
 from app.schemas.whatsapp_broadcast import (
+    BroadcastAttemptPageResponse,
+    BroadcastAttemptResponse,
     BroadcastAuditEventResponse,
+    BroadcastAuditPageResponse,
     BroadcastCommandRequest,
     BroadcastConfirmRequest,
     BroadcastCreateRequest,
     BroadcastDeliverySummaryResponse,
     BroadcastDetailResponse,
+    BroadcastOutcomeAggregateResponse,
     BroadcastPageResponse,
     BroadcastParameterResponse,
     BroadcastProcessResponse,
     BroadcastReasonCountResponse,
+    BroadcastRecipientPageItemResponse,
+    BroadcastRecipientPageResponse,
     BroadcastRecipientResponse,
     BroadcastResponse,
     BroadcastRetryRequest,
     BroadcastRetryResponse,
     BroadcastStateCountResponse,
     BroadcastTemplateResponse,
+    BroadcastUpdateRequest,
     BroadcastValidateRequest,
-    BroadcastValidationResponse,
+    BroadcastValidationIssueResponse,
+    BroadcastValidationProjectionResponse,
     ConsentEventRequest,
     ConsentEventResponse,
     ConsentEventResultResponse,
@@ -41,7 +52,9 @@ from app.schemas.whatsapp_broadcast import (
 from app.services.errors import InvalidWhatsAppBroadcastError
 from app.services.whatsapp_broadcast_service import (
     BroadcastCreateInput,
+    BroadcastOutcomeAggregate,
     BroadcastParameterInput,
+    BroadcastUpdateInput,
     WhatsAppBroadcastService,
 )
 from app.services.whatsapp_consent_service import (
@@ -170,10 +183,43 @@ def create_whatsapp_broadcast_router(runtime: WhatsAppRuntime) -> APIRouter:
             limit=limit,
             before_id=_decode_cursor(cursor),
         )
+        aggregates = {
+            item.broadcast_id: item
+            for item in _service(session, runtime).outcome_aggregates(
+                tuple(item.id for item in items)
+            )
+        }
         return BroadcastPageResponse(
-            items=[_broadcast_response(item) for item in items],
+            items=[
+                _broadcast_response(item, outcome=aggregates.get(item.id))
+                for item in items
+            ],
             next_cursor=(_encode_cursor(items[-1].id) if len(items) == limit else None),
         )
+
+    @router.put("/broadcasts/{broadcast_id}", response_model=BroadcastResponse)
+    def update_broadcast_draft(
+        broadcast_id: int,
+        payload: BroadcastUpdateRequest,
+        session: DatabaseSession,
+        current_user: CurrentUser,
+    ) -> BroadcastResponse:
+        broadcast = _service(session, runtime).update_draft(
+            broadcast_id,
+            BroadcastUpdateInput(
+                label=payload.label,
+                external_campaign_reference=payload.external_campaign_reference,
+                template_external_id=payload.template_external_id,
+                parameters=tuple(
+                    BroadcastParameterInput(item.name, item.value)
+                    for item in payload.parameters
+                ),
+                header_media_ref=payload.header_media_ref,
+                expected_version=payload.expected_version,
+                updated_by_user_id=current_user.id,
+            ),
+        )
+        return _broadcast_response(broadcast)
 
     @router.get("/broadcasts/{broadcast_id}", response_model=BroadcastDetailResponse)
     def get_broadcast(
@@ -213,27 +259,32 @@ def create_whatsapp_broadcast_router(runtime: WhatsAppRuntime) -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/validate",
-        response_model=BroadcastValidationResponse,
+        response_model=BroadcastValidationProjectionResponse,
     )
     def validate_broadcast(
         broadcast_id: int,
         payload: BroadcastValidateRequest,
         session: DatabaseSession,
         current_user: CurrentUser,
-    ) -> BroadcastValidationResponse:
+    ) -> BroadcastValidationProjectionResponse:
         result = _service(session, runtime).validate(
             broadcast_id,
             expected_version=payload.expected_version,
             actor_user_id=current_user.id,
         )
-        return BroadcastValidationResponse(
+        categories = _validation_issue_categories(result.issues)
+        excluded_count = sum(len(category.recipient_ids) for category in categories)
+        return BroadcastValidationProjectionResponse(
             broadcast_id=result.broadcast_id,
             version=result.version,
             valid=result.valid,
             recipient_count=result.recipient_count,
-            issues=list(result.issues),
             validation_token=result.validation_token,
             expires_at=result.expires_at,
+            issues=list(result.issues),
+            issue_categories=categories,
+            eligible_count=max(result.recipient_count - excluded_count, 0),
+            excluded_count=excluded_count,
         )
 
     @router.post(
@@ -320,6 +371,78 @@ def create_whatsapp_broadcast_router(runtime: WhatsAppRuntime) -> APIRouter:
         )
 
     @router.get(
+        "/broadcasts/{broadcast_id}/recipients",
+        response_model=BroadcastRecipientPageResponse,
+    )
+    def list_broadcast_recipients(
+        broadcast_id: int,
+        session: DatabaseSession,
+        _current_user: CurrentUser,
+        recipient_status: Annotated[
+            WhatsAppBroadcastRecipientStatus | None,
+            Query(alias="status"),
+        ] = None,
+        search: str | None = None,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        cursor: str | None = None,
+    ) -> BroadcastRecipientPageResponse:
+        items = _service(session, runtime).recipients_page(
+            broadcast_id,
+            status=recipient_status,
+            search=search,
+            limit=limit,
+            before_id=_decode_cursor(cursor),
+        )
+        return BroadcastRecipientPageResponse(
+            items=[_recipient_page_item(item) for item in items],
+            next_cursor=(_encode_cursor(items[-1].id) if len(items) == limit else None),
+        )
+
+    @router.get(
+        "/broadcasts/{broadcast_id}/recipients/{recipient_id}/attempts",
+        response_model=BroadcastAttemptPageResponse,
+    )
+    def list_broadcast_attempts(
+        broadcast_id: int,
+        recipient_id: int,
+        session: DatabaseSession,
+        _current_user: CurrentUser,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        cursor: str | None = None,
+    ) -> BroadcastAttemptPageResponse:
+        items = _service(session, runtime).attempts_page(
+            broadcast_id,
+            recipient_id,
+            limit=limit,
+            before_id=_decode_cursor(cursor),
+        )
+        return BroadcastAttemptPageResponse(
+            items=[_attempt(item, index) for index, item in enumerate(items, start=1)],
+            next_cursor=(_encode_cursor(items[-1].id) if len(items) == limit else None),
+        )
+
+    @router.get(
+        "/broadcasts/{broadcast_id}/audit-events",
+        response_model=BroadcastAuditPageResponse,
+    )
+    def list_broadcast_audit_events(
+        broadcast_id: int,
+        session: DatabaseSession,
+        _current_user: CurrentUser,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        cursor: str | None = None,
+    ) -> BroadcastAuditPageResponse:
+        items = _service(session, runtime).audit_page(
+            broadcast_id,
+            limit=limit,
+            before_id=_decode_cursor(cursor),
+        )
+        return BroadcastAuditPageResponse(
+            items=[_audit_event(item) for item in items],
+            next_cursor=(_encode_cursor(items[-1].id) if len(items) == limit else None),
+        )
+
+    @router.get(
         "/broadcasts/{broadcast_id}/delivery-summary",
         response_model=BroadcastDeliverySummaryResponse,
     )
@@ -382,7 +505,11 @@ def _consent_event(event: WhatsAppMarketingConsentEvent) -> ConsentEventResponse
     )
 
 
-def _broadcast_response(broadcast: WhatsAppBroadcast) -> BroadcastResponse:
+def _broadcast_response(
+    broadcast: WhatsAppBroadcast,
+    *,
+    outcome: BroadcastOutcomeAggregate | None = None,
+) -> BroadcastResponse:
     return BroadcastResponse(
         id=broadcast.id,
         client_generated_id=broadcast.client_generated_id,
@@ -403,6 +530,20 @@ def _broadcast_response(broadcast: WhatsAppBroadcast) -> BroadcastResponse:
             for item in broadcast.parameters
         ],
         recipient_count=len(broadcast.recipients),
+        outcomes=(
+            BroadcastOutcomeAggregateResponse(
+                selected=outcome.selected,
+                accepted=outcome.accepted,
+                sent=outcome.sent,
+                delivered=outcome.delivered,
+                read=outcome.read,
+                failed=outcome.failed,
+                unknown=outcome.unknown,
+                skipped=outcome.skipped,
+            )
+            if outcome is not None
+            else None
+        ),
         created_by_user_id=broadcast.created_by_user_id,
         confirmed_by_user_id=broadcast.confirmed_by_user_id,
         started_by_user_id=broadcast.started_by_user_id,
@@ -450,6 +591,30 @@ def _recipient(recipient: WhatsAppBroadcastRecipient) -> BroadcastRecipientRespo
     )
 
 
+def _recipient_page_item(
+    recipient: WhatsAppBroadcastRecipient,
+) -> BroadcastRecipientPageItemResponse:
+    return BroadcastRecipientPageItemResponse(
+        id=recipient.id,
+        customer_id=recipient.customer_id,
+        customer_display_name=recipient.customer_display_name,
+        phone_display=_masked_phone(recipient.normalized_phone),
+        status=recipient.status,
+        safe_reason=recipient.safe_error_message or recipient.reason_code,
+        retry_eligible=(recipient.status == WhatsAppBroadcastRecipientStatus.FAILED),
+        conversation_id=recipient.conversation_id,
+        latest_attempt_at=recipient.latest_attempt_at,
+        delivered_at=recipient.delivered_at,
+        read_at=recipient.read_at,
+        failed_at=recipient.failed_at,
+    )
+
+
+def _masked_phone(normalized_phone: str) -> str:
+    visible_suffix = normalized_phone[-4:]
+    return f"•••• {visible_suffix}" if len(normalized_phone) > 4 else "••••"
+
+
 def _audit_event(event: WhatsAppBroadcastAuditEvent) -> BroadcastAuditEventResponse:
     return BroadcastAuditEventResponse(
         id=event.id,
@@ -462,6 +627,62 @@ def _audit_event(event: WhatsAppBroadcastAuditEvent) -> BroadcastAuditEventRespo
         affected_count=event.affected_count,
         occurred_at=event.occurred_at,
     )
+
+
+def _attempt(message: WhatsAppMessage, attempt_number: int) -> BroadcastAttemptResponse:
+    if message.dispatch_state == WhatsAppDispatchState.UNKNOWN:
+        outcome = "DELIVERY_UNCERTAIN"
+    elif message.dispatch_state == WhatsAppDispatchState.DEFINITIVE_FAILED:
+        outcome = "FAILED"
+    elif message.provider_state is not None:
+        outcome = message.provider_state.value
+    else:
+        outcome = "SENDING"
+    return BroadcastAttemptResponse(
+        id=message.id,
+        attempt_number=attempt_number,
+        occurred_at=message.updated_at,
+        outcome=outcome,
+        safe_reason=message.provider_error_message,
+    )
+
+
+def _validation_issue_categories(
+    issues: tuple[str, ...],
+) -> list[BroadcastValidationIssueResponse]:
+    grouped: dict[str, list[int]] = {}
+    for issue in issues:
+        if issue.endswith("_NO_OPT_IN") and issue.startswith("RECIPIENT_"):
+            category = "NO_VALID_OPT_IN"
+        elif issue.endswith("_PHONE_INVALID") and issue.startswith("RECIPIENT_"):
+            category = "INVALID_OR_MISSING_PHONE"
+        elif issue == "NO_RECIPIENTS":
+            category = "NO_RECIPIENTS"
+        elif issue.startswith("HEADER_MEDIA"):
+            category = "HEADER_MEDIA"
+        elif issue == "TEMPLATE_UNAVAILABLE_OR_CHANGED":
+            category = "TEMPLATE_UNAVAILABLE"
+        else:
+            category = "OTHER"
+        recipient_id = _validation_recipient_id(issue)
+        grouped.setdefault(category, []).extend(
+            () if recipient_id is None else (recipient_id,)
+        )
+    return [
+        BroadcastValidationIssueResponse(
+            category=category,
+            count=max(len(recipient_ids), 1),
+            recipient_ids=recipient_ids,
+        )
+        for category, recipient_ids in sorted(grouped.items())
+    ]
+
+
+def _validation_recipient_id(issue: str) -> int | None:
+    if not issue.startswith("RECIPIENT_"):
+        return None
+    identifier = issue.removeprefix("RECIPIENT_").split("_", maxsplit=1)[0]
+    return int(identifier) if identifier.isdigit() else None
 
 
 def _encode_cursor(identifier: int) -> str:

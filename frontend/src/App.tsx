@@ -10,6 +10,7 @@ import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProductsPage } from './pages/ProductsPage'
+import { WhatsAppBroadcastsPage } from './pages/WhatsAppBroadcastsPage'
 import { WhatsAppInboxPage } from './pages/WhatsAppInboxPage'
 import { getNavigationItem } from './routing/navigation'
 import { parseRoute, pathForRoute } from './routing/route-model'
@@ -68,10 +69,7 @@ function RoutedApp() {
   if (route.kind === 'broadcast') {
     return (
       <AppShell activeNavigationPath='/whatsapp-sends' pageTitle='Envíos WhatsApp'>
-        <PlaceholderPage
-          description={`La ejecución ${route.broadcastId} estará disponible cuando se implemente CRM-025.`}
-          title='Envíos WhatsApp'
-        />
+        <WhatsAppBroadcastsPage broadcastId={route.broadcastId} />
       </AppShell>
     )
   }
@@ -96,6 +94,8 @@ function RoutedApp() {
       <LostPage />
     ) : route.workspace === 'whatsapp' ? (
       <WhatsAppInboxPage />
+    ) : route.workspace === 'whatsapp-sends' ? (
+      <WhatsAppBroadcastsPage />
     ) : (
       <PlaceholderPage description={navigationItem.description} title={navigationItem.label} />
     )

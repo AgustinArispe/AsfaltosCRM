@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.orm import Session, raiseload
 
 from app.models import (
@@ -84,6 +84,17 @@ class BroadcastCreateInput:
 
 
 @dataclass(frozen=True, slots=True)
+class BroadcastUpdateInput:
+    label: str
+    external_campaign_reference: str | None
+    template_external_id: str
+    parameters: tuple[BroadcastParameterInput, ...]
+    header_media_ref: UUID | None
+    expected_version: int
+    updated_by_user_id: int
+
+
+@dataclass(frozen=True, slots=True)
 class RecipientSelectionResult:
     broadcast_id: int
     version: int
@@ -149,6 +160,19 @@ class BroadcastDeliverySummary:
     failed_at: datetime | None
     first_completed_at: datetime | None
     last_completed_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class BroadcastOutcomeAggregate:
+    broadcast_id: int
+    selected: int
+    accepted: int
+    sent: int
+    delivered: int
+    read: int
+    failed: int
+    unknown: int
+    skipped: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -335,6 +359,7 @@ class WhatsAppBroadcastService:
                     .options(raiseload("*"))
                 )
             )
+
             customers_by_id = {customer.id: customer for customer in customers}
             selected: list[tuple[Customer, str]] = []
             duplicate_ids: list[int] = []
@@ -410,6 +435,79 @@ class WhatsAppBroadcastService:
                 tuple(missing_consent_ids),
                 False,
             )
+
+    def update_draft(
+        self,
+        broadcast_id: int,
+        update_input: BroadcastUpdateInput,
+        *,
+        now: datetime | None = None,
+    ) -> WhatsAppBroadcast:
+        updated_at = self._aware_utc(now or datetime.now(UTC))
+        label = self._required_text(update_input.label, "Broadcast label")
+        external_reference = self._optional_text(
+            update_input.external_campaign_reference
+        )
+        template = self._find_template(update_input.template_external_id)
+        parameters = self._normalize_parameters(update_input.parameters)
+        self._validate_parameters(template, parameters)
+        media = self._header_media(template, update_input.header_media_ref)
+        with self._session.begin():
+            broadcast = self._broadcast_for_update(broadcast_id)
+            self._require_draft_version(broadcast, update_input.expected_version)
+            broadcast.label = label
+            broadcast.external_campaign_reference = external_reference
+            broadcast.template_external_id = template.external_id
+            broadcast.template_name = template.name
+            broadcast.template_language = template.language
+            broadcast.template_category = template.category
+            broadcast.template_provider_status = template.status
+            broadcast.template_header_type = self._message_type(template.header_type)
+            broadcast.template_header_media_required = template.header_media_required
+            broadcast.template_component_signature = self._template_signature(template)
+            broadcast.header_media_ref = media.media_ref if media is not None else None
+            broadcast.header_media_storage_key = (
+                media.storage_key if media is not None else None
+            )
+            broadcast.header_media_mime_type = (
+                media.mime_type if media is not None else None
+            )
+            broadcast.header_media_filename = (
+                media.filename if media is not None else None
+            )
+            broadcast.header_media_size_bytes = (
+                media.size_bytes if media is not None else None
+            )
+            broadcast.header_media_sha256 = media.sha256 if media is not None else None
+            self._session.execute(
+                delete(WhatsAppBroadcastTemplateParameter).where(
+                    WhatsAppBroadcastTemplateParameter.broadcast_id == broadcast.id
+                )
+            )
+            self._session.add_all(
+                WhatsAppBroadcastTemplateParameter(
+                    broadcast_id=broadcast.id,
+                    position=position,
+                    name=parameter.name,
+                    value=parameter.value,
+                )
+                for position, parameter in enumerate(parameters)
+            )
+            broadcast.version += 1
+            broadcast.validation_token = None
+            broadcast.validation_digest = None
+            broadcast.validation_expires_at = None
+            broadcast.validated_at = None
+            broadcast.updated_at = updated_at
+            self._audit(
+                broadcast.id,
+                WhatsAppBroadcastAuditEventType.RECIPIENTS_REPLACED,
+                occurred_at=updated_at,
+                actor_user_id=update_input.updated_by_user_id,
+                reason_code="DRAFT_EDITED",
+            )
+            self._session.flush()
+            return broadcast
 
     def validate(
         self,
@@ -935,6 +1033,164 @@ class WhatsAppBroadcastService:
             timestamps[4],
             broadcast.first_completed_at,
             broadcast.last_completed_at,
+        )
+
+    def outcome_aggregates(
+        self,
+        broadcast_ids: tuple[int, ...],
+    ) -> tuple[BroadcastOutcomeAggregate, ...]:
+        if not broadcast_ids:
+            return ()
+        recipient = WhatsAppBroadcastRecipient
+        rows = self._session.execute(
+            select(
+                recipient.broadcast_id,
+                func.count(recipient.id),
+                func.coalesce(
+                    func.sum(case((recipient.accepted_at.is_not(None), 1), else_=0)), 0
+                ),
+                func.coalesce(
+                    func.sum(case((recipient.sent_at.is_not(None), 1), else_=0)), 0
+                ),
+                func.coalesce(
+                    func.sum(case((recipient.delivered_at.is_not(None), 1), else_=0)),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(case((recipient.read_at.is_not(None), 1), else_=0)), 0
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                recipient.status
+                                == WhatsAppBroadcastRecipientStatus.FAILED,
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                recipient.status
+                                == WhatsAppBroadcastRecipientStatus.UNKNOWN,
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                recipient.status
+                                == WhatsAppBroadcastRecipientStatus.BLOCKED,
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+            )
+            .where(recipient.broadcast_id.in_(broadcast_ids))
+            .group_by(recipient.broadcast_id)
+        ).all()
+        return tuple(
+            BroadcastOutcomeAggregate(
+                broadcast_id=row[0],
+                selected=row[1],
+                accepted=row[2],
+                sent=row[3],
+                delivered=row[4],
+                read=row[5],
+                failed=row[6],
+                unknown=row[7],
+                skipped=row[8],
+            )
+            for row in rows
+        )
+
+    def recipients_page(
+        self,
+        broadcast_id: int,
+        *,
+        status: WhatsAppBroadcastRecipientStatus | None,
+        search: str | None,
+        limit: int,
+        before_id: int | None,
+    ) -> tuple[WhatsAppBroadcastRecipient, ...]:
+        self.get(broadcast_id)
+        statement = select(WhatsAppBroadcastRecipient).where(
+            WhatsAppBroadcastRecipient.broadcast_id == broadcast_id
+        )
+        if status is not None:
+            statement = statement.where(WhatsAppBroadcastRecipient.status == status)
+        normalized_search = self._optional_text(search)
+        if normalized_search is not None:
+            statement = statement.where(
+                WhatsAppBroadcastRecipient.customer_display_name.ilike(
+                    f"%{normalized_search}%"
+                )
+            )
+        if before_id is not None:
+            statement = statement.where(WhatsAppBroadcastRecipient.id < before_id)
+        return tuple(
+            self._session.scalars(
+                statement.order_by(WhatsAppBroadcastRecipient.id.desc()).limit(limit)
+            )
+        )
+
+    def attempts_page(
+        self,
+        broadcast_id: int,
+        recipient_id: int,
+        *,
+        limit: int,
+        before_id: int | None,
+    ) -> tuple[WhatsAppMessage, ...]:
+        recipient = self._session.scalar(
+            select(WhatsAppBroadcastRecipient).where(
+                WhatsAppBroadcastRecipient.id == recipient_id,
+                WhatsAppBroadcastRecipient.broadcast_id == broadcast_id,
+            )
+        )
+        if recipient is None:
+            raise EntityNotFoundError("WhatsAppBroadcastRecipient", recipient_id)
+        statement = select(WhatsAppMessage).where(
+            WhatsAppMessage.broadcast_recipient_id == recipient.id
+        )
+        if before_id is not None:
+            statement = statement.where(WhatsAppMessage.id < before_id)
+        return tuple(
+            self._session.scalars(
+                statement.order_by(WhatsAppMessage.id.desc()).limit(limit)
+            )
+        )
+
+    def audit_page(
+        self,
+        broadcast_id: int,
+        *,
+        limit: int,
+        before_id: int | None,
+    ) -> tuple[WhatsAppBroadcastAuditEvent, ...]:
+        self.get(broadcast_id)
+        statement = select(WhatsAppBroadcastAuditEvent).where(
+            WhatsAppBroadcastAuditEvent.broadcast_id == broadcast_id
+        )
+        if before_id is not None:
+            statement = statement.where(WhatsAppBroadcastAuditEvent.id < before_id)
+        return tuple(
+            self._session.scalars(
+                statement.order_by(WhatsAppBroadcastAuditEvent.id.desc()).limit(limit)
+            )
         )
 
     def _claim_candidates(

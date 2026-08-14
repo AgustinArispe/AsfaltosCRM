@@ -86,6 +86,15 @@ class BroadcastCreateRequest(StrictRequestModel):
     header_media_ref: UUID | None = None
 
 
+class BroadcastUpdateRequest(StrictRequestModel):
+    expected_version: PositiveId
+    label: NonBlankText
+    external_campaign_reference: NonBlankText | None = None
+    template_external_id: NonBlankText
+    parameters: list[BroadcastParameterRequest] = Field(default_factory=list)
+    header_media_ref: UUID | None = None
+
+
 class BroadcastParameterResponse(BaseModel):
     name: str
     value: str
@@ -126,6 +135,17 @@ class BroadcastAuditEventResponse(BaseModel):
     occurred_at: datetime
 
 
+class BroadcastOutcomeAggregateResponse(BaseModel):
+    selected: int
+    accepted: int
+    sent: int
+    delivered: int
+    read: int
+    failed: int
+    unknown: int
+    skipped: int
+
+
 class BroadcastResponse(BaseModel):
     id: int
     client_generated_id: UUID
@@ -143,6 +163,7 @@ class BroadcastResponse(BaseModel):
     header_media_ref: UUID | None
     parameters: list[BroadcastParameterResponse]
     recipient_count: int
+    outcomes: BroadcastOutcomeAggregateResponse | None = None
     created_by_user_id: int
     confirmed_by_user_id: int | None
     started_by_user_id: int | None
@@ -194,6 +215,27 @@ class BroadcastValidationResponse(BaseModel):
     issues: list[str]
     validation_token: UUID | None
     expires_at: datetime | None
+
+
+class BroadcastValidationIssueResponse(BaseModel):
+    category: str
+    count: int
+    recipient_ids: list[int]
+
+
+class BroadcastValidationProjectionResponse(BaseModel):
+    broadcast_id: int
+    version: int
+    valid: bool
+    recipient_count: int
+    validation_token: UUID | None
+    expires_at: datetime | None
+    # Legacy field retained for existing API consumers; CRM-025 UI consumes the
+    # typed category projection below and never parses these domain strings.
+    issues: list[str]
+    issue_categories: list[BroadcastValidationIssueResponse]
+    eligible_count: int
+    excluded_count: int
 
 
 class BroadcastConfirmRequest(StrictRequestModel):
@@ -249,3 +291,41 @@ class BroadcastDeliverySummaryResponse(BaseModel):
     failed_at: datetime | None
     first_completed_at: datetime | None
     last_completed_at: datetime | None
+
+
+class BroadcastRecipientPageItemResponse(BaseModel):
+    id: int
+    customer_id: int
+    customer_display_name: str
+    phone_display: str
+    status: WhatsAppBroadcastRecipientStatus
+    safe_reason: str | None
+    retry_eligible: bool
+    conversation_id: int | None
+    latest_attempt_at: datetime | None
+    delivered_at: datetime | None
+    read_at: datetime | None
+    failed_at: datetime | None
+
+
+class BroadcastRecipientPageResponse(BaseModel):
+    items: list[BroadcastRecipientPageItemResponse]
+    next_cursor: str | None
+
+
+class BroadcastAttemptResponse(BaseModel):
+    id: int
+    attempt_number: int
+    occurred_at: datetime
+    outcome: str
+    safe_reason: str | None
+
+
+class BroadcastAttemptPageResponse(BaseModel):
+    items: list[BroadcastAttemptResponse]
+    next_cursor: str | None
+
+
+class BroadcastAuditPageResponse(BaseModel):
+    items: list[BroadcastAuditEventResponse]
+    next_cursor: str | None
