@@ -1,9 +1,9 @@
 # CRM-019 — Pipeline 2.0
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-13
-Implementation commit: N/A
+Last updated: 2026-08-14
+Implementation commit: dffc5a7
 
 ## Goal
 
