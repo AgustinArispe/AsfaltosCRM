@@ -1,9 +1,9 @@
 # CRM-025 — Interfaz de Envíos WhatsApp
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-13
-Implementation commit: N/A
+Last updated: 2026-08-14
+Implementation commit: 97ce5be
 
 ## Goal
 
