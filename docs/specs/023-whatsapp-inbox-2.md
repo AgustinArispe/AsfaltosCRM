@@ -1,6 +1,6 @@
 # CRM-023 — WhatsApp Inbox 2.0
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-13
 
