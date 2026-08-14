@@ -118,7 +118,10 @@ export type WhatsAppMessage = {
   client_generated_id: string | null
   direction: WhatsAppDirection
   message_type: WhatsAppMessageType
+  origin: 'HUMAN' | 'BROADCAST'
   body: string | null
+  template_name: string | null
+  template_language: string | null
   sent_by: WhatsAppUserSummary | null
   retry_of_message_id: number | null
   is_retry: boolean
@@ -128,6 +131,21 @@ export type WhatsAppMessage = {
   created_at: string
   updated_at: string
   resource_updated_at: string
+}
+
+export type WhatsAppHumanTemplate = {
+  name: string
+  language: string
+  category: string
+  parameter_names: string[]
+  header_type: 'NONE' | 'TEXT' | 'IMAGE' | 'DOCUMENT'
+  header_media_required: boolean
+  body_preview: null
+}
+
+export type WhatsAppHumanTemplateParameter = {
+  name: string
+  value: string
 }
 
 export type WhatsAppMessagePage = {
@@ -177,4 +195,10 @@ export type StagedWhatsAppAttachment = {
   file: File
   messageType: 'IMAGE' | 'DOCUMENT'
   previewUrl: string | null
+}
+
+export type HumanTemplateSendInput = {
+  template: WhatsAppHumanTemplate
+  parameters: WhatsAppHumanTemplateParameter[]
+  headerAttachment: StagedWhatsAppAttachment | null
 }

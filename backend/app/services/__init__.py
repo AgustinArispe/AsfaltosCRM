@@ -38,6 +38,12 @@ from app.services.lead_intake_service import (
 from app.services.notification_service import NotificationService
 from app.services.opportunity_service import OpportunityService, QuoteProductInput
 from app.services.whatsapp_conversation_service import WhatsAppConversationService
+from app.services.whatsapp_human_template_service import (
+    HumanTemplateParameterInput,
+    HumanTemplateSelection,
+    HumanTemplateSendPreparation,
+    WhatsAppHumanTemplateService,
+)
 from app.services.whatsapp_inbound_service import (
     InboundAttachmentInput,
     InboundMessageInput,
@@ -124,6 +130,9 @@ __all__ = [
     "DomainError",
     "DuplicateEntityError",
     "EntityNotFoundError",
+    "HumanTemplateParameterInput",
+    "HumanTemplateSelection",
+    "HumanTemplateSendPreparation",
     "IdempotencyConflictError",
     "InactiveProductError",
     "InactiveUserError",
@@ -178,6 +187,7 @@ __all__ = [
     "WhatsAppCursorKind",
     "WhatsAppCursorRejectionReason",
     "WhatsAppFreeformWindowClosedError",
+    "WhatsAppHumanTemplateService",
     "WhatsAppIdempotencyConflictError",
     "WhatsAppInboundService",
     "WhatsAppMediaService",

@@ -49,12 +49,12 @@ export function messageStatusPresentation(
   if (provider === 'DELIVERED') return { label: 'Entregado', tone: 'success' }
   if (provider === 'SENT') return { label: 'Enviado', tone: 'neutral' }
   if (provider === 'FAILED' || dispatch === 'DEFINITIVE_FAILED') {
-    return { label: 'Falló', tone: 'danger' }
+    return { label: 'No se envió', tone: 'danger' }
   }
   if (dispatch === 'UNKNOWN') {
-    return { label: 'Aceptación sin confirmar', tone: 'warning' }
+    return { label: 'Entrega sin confirmar', tone: 'warning' }
   }
-  if (dispatch === 'ACCEPTED') return { label: 'Aceptado', tone: 'neutral' }
+  if (dispatch === 'ACCEPTED') return { label: 'Enviado', tone: 'neutral' }
   return { label: 'Enviando', tone: 'neutral' }
 }
 

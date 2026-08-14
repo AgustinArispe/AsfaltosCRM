@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
 import { getCustomer } from '../api/customers'
-import { type ApiSession, getOpportunityDetail } from '../api/opportunities'
+import {
+  type ApiSession,
+  createWhatsAppOpportunity,
+  getOpportunityDetail,
+} from '../api/opportunities'
 import {
   getWhatsAppConversation,
   getWhatsAppMediaBlob,
   linkWhatsAppOpportunity,
   listWhatsAppConversationChanges,
   listWhatsAppConversations,
+  listWhatsAppHumanTemplates,
   listWhatsAppMessageChanges,
   listWhatsAppMessages,
   markWhatsAppConversationRead,
+  sendWhatsAppHumanTemplate,
   sendWhatsAppMessage,
   unlinkWhatsAppOpportunity,
   uploadWhatsAppMedia,
@@ -20,10 +26,12 @@ import type { CustomerDetail } from '../customers/types'
 import type { OpportunityDetail } from '../pipeline/types'
 import { filterConversations, upsertConversations, upsertMessages } from './inbox-state'
 import type {
+  HumanTemplateSendInput,
   StagedWhatsAppAttachment,
   WhatsAppConversationDetail,
   WhatsAppConversationSummary,
   WhatsAppFilters,
+  WhatsAppHumanTemplate,
   WhatsAppMessage,
   WhatsAppMessageType,
   WhatsAppSendIntent,
@@ -89,8 +97,12 @@ export function useWhatsAppInbox(initialConversationId?: number) {
   const [isSending, setIsSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null)
+  const [humanTemplates, setHumanTemplates] = useState<WhatsAppHumanTemplate[]>([])
+  const [humanTemplateStatus, setHumanTemplateStatus] = useState<LoadStatus>('idle')
+  const [humanTemplateError, setHumanTemplateError] = useState<string | null>(null)
   const [isLinking, setIsLinking] = useState(false)
   const [linkError, setLinkError] = useState<string | null>(null)
+  const [isCreatingOpportunity, setIsCreatingOpportunity] = useState(false)
   const [customerDetail, setCustomerDetail] = useState<CustomerDetail | null>(null)
   const [opportunityDetail, setOpportunityDetail] = useState<OpportunityDetail | null>(null)
   const [contextStatus, setContextStatus] = useState<LoadStatus>('idle')
@@ -559,6 +571,76 @@ export function useWhatsAppInbox(initialConversationId?: number) {
     [apiSession, sendNewMessage],
   )
 
+  const loadHumanTemplates = useCallback(async (): Promise<void> => {
+    const conversationId = selectedConversationIdRef.current
+    if (!conversationId) return
+    setHumanTemplateStatus('loading')
+    setHumanTemplateError(null)
+    try {
+      const templates = await listWhatsAppHumanTemplates(conversationId, apiSession)
+      if (selectedConversationIdRef.current !== conversationId) return
+      setHumanTemplates(templates)
+      setHumanTemplateStatus('ready')
+    } catch (error: unknown) {
+      if (selectedConversationIdRef.current !== conversationId) return
+      setHumanTemplateStatus('error')
+      setHumanTemplateError(errorMessage(error, 'No pudimos cargar las plantillas aprobadas.'))
+    }
+  }, [apiSession])
+
+  const sendHumanTemplate = useCallback(
+    async (input: HumanTemplateSendInput): Promise<boolean> => {
+      const conversationId = selectedConversationIdRef.current
+      if (!conversationId) return false
+      setIsSending(true)
+      setSendError(null)
+      try {
+        const headerMedia = input.headerAttachment
+          ? await uploadWhatsAppMedia(
+              input.headerAttachment.file,
+              input.headerAttachment.messageType,
+              apiSession,
+            )
+          : null
+        const response = await sendWhatsAppHumanTemplate(
+          conversationId,
+          input,
+          createClientGeneratedId(),
+          headerMedia?.media_ref ?? null,
+          apiSession,
+        )
+        if (selectedConversationIdRef.current === conversationId) {
+          setMessages((current) => upsertMessages(current, [response.message]))
+          setSelectedDetail((current) =>
+            current && current.id === conversationId
+              ? {
+                  ...current,
+                  can_send_freeform: response.can_send_freeform,
+                  window_expires_at: response.window_expires_at,
+                  template_required: response.template_required,
+                  reason: response.reason,
+                }
+              : current,
+          )
+          void refreshSelectedConversation().catch((error: unknown) => {
+            setConversationError(
+              errorMessage(error, 'El mensaje se envió, pero falta actualizar la bandeja.'),
+            )
+          })
+        }
+        return true
+      } catch (error: unknown) {
+        if (selectedConversationIdRef.current === conversationId) {
+          setSendError(errorMessage(error, 'No pudimos enviar la plantilla.'))
+        }
+        return false
+      } finally {
+        setIsSending(false)
+      }
+    },
+    [apiSession, refreshSelectedConversation],
+  )
+
   const updateOpportunityLink = useCallback(
     async (opportunityId: number | null) => {
       if (!selectedConversationId) return
@@ -578,6 +660,25 @@ export function useWhatsAppInbox(initialConversationId?: number) {
     },
     [apiSession, selectedConversationId],
   )
+
+  const createOpportunity = useCallback(async () => {
+    if (
+      selectedDetail?.resolution_status !== 'RESOLVED' ||
+      !selectedDetail.customer?.is_available
+    ) {
+      return
+    }
+    setIsCreatingOpportunity(true)
+    setLinkError(null)
+    try {
+      await createWhatsAppOpportunity(selectedDetail.customer.id, apiSession)
+      await refreshSelectedConversation()
+    } catch (error: unknown) {
+      setLinkError(errorMessage(error, 'No pudimos crear la oportunidad.'))
+    } finally {
+      setIsCreatingOpportunity(false)
+    }
+  }, [apiSession, refreshSelectedConversation, selectedDetail])
 
   return {
     conversations: visibleConversations,
@@ -603,7 +704,11 @@ export function useWhatsAppInbox(initialConversationId?: number) {
     isSending,
     sendError,
     failedSend,
+    humanTemplates,
+    humanTemplateStatus,
+    humanTemplateError,
     isLinking,
+    isCreatingOpportunity,
     linkError,
     customerDetail,
     opportunityDetail,
@@ -624,6 +729,9 @@ export function useWhatsAppInbox(initialConversationId?: number) {
     sendNewMessage,
     retryFailedSend,
     resendMessage,
+    loadHumanTemplates,
+    sendHumanTemplate,
     updateOpportunityLink,
+    createOpportunity,
   }
 }

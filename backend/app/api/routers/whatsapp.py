@@ -28,6 +28,8 @@ from app.schemas.whatsapp import (
     ConversationPageResponse,
     ConversationSummaryResponse,
     DocumentOutboundRequest,
+    HumanTemplateResponse,
+    HumanTemplateSendRequest,
     ImageOutboundRequest,
     MediaUploadMetadata,
     MediaUploadResponse,
@@ -43,11 +45,13 @@ from app.services import (
     ConversationListFilters,
     ConversationPageRequest,
     ConversationQueryService,
+    HumanTemplateParameterInput,
     MessagePageRequest,
     MessageQueryService,
     OutboundMessageInput,
     PollingQueryService,
     WhatsAppConversationService,
+    WhatsAppHumanTemplateService,
     WhatsAppMessageService,
 )
 from app.services.whatsapp_api_media_service import (
@@ -142,6 +146,34 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         return presenter.conversation_detail(detail, now=datetime.now(UTC))
 
     @router.get(
+        "/conversations/{conversation_id}/templates",
+        response_model=list[HumanTemplateResponse],
+    )
+    def list_human_templates(
+        conversation_id: int,
+        session: DatabaseSession,
+        _current_user: CurrentUser,
+    ) -> list[HumanTemplateResponse]:
+        ConversationQueryService(session, runtime.metrics).get_conversation_detail(
+            conversation_id
+        )
+        templates = WhatsAppHumanTemplateService(
+            runtime.provider,
+            WhatsAppApiMediaService(session, runtime),
+        ).list_usable()
+        return [
+            HumanTemplateResponse(
+                name=item.name,
+                language=item.language,
+                category=item.category,
+                parameter_names=list(item.parameter_names),
+                header_type=item.header_type,
+                header_media_required=item.header_media_required,
+            )
+            for item in templates
+        ]
+
+    @router.get(
         "/conversations/{conversation_id}/messages",
         response_model=MessagePageResponse,
     )
@@ -219,6 +251,59 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         )
         result = WhatsAppMessageService(session, runtime.provider).send(
             message_input,
+            now=requested_at,
+        )
+        projection = MessageQueryService(session, runtime.metrics).get_message(
+            result.message_id
+        )
+        conversation = ConversationQueryService(
+            session,
+            runtime.metrics,
+        ).get_conversation_detail(conversation_id)
+        response.status_code = _outbound_status(result.created, result.dispatch_state)
+        return presenter.outbound_message(
+            projection,
+            conversation.summary,
+            now=requested_at,
+        )
+
+    @router.post(
+        "/conversations/{conversation_id}/templates/send",
+        response_model=OutboundMessageResponse,
+    )
+    def send_human_template(
+        conversation_id: int,
+        payload: HumanTemplateSendRequest,
+        response: Response,
+        session: DatabaseSession,
+        current_user: CurrentUser,
+    ) -> OutboundMessageResponse:
+        requested_at = datetime.now(UTC)
+        media = WhatsAppApiMediaService(session, runtime)
+        prepared = WhatsAppHumanTemplateService(
+            runtime.provider,
+            media,
+        ).prepare_send(
+            template_name=payload.template_name,
+            language=payload.language,
+            parameters=tuple(
+                HumanTemplateParameterInput(name=item.name, value=item.value)
+                for item in payload.parameters
+            ),
+            header_media_ref=payload.header_media_ref,
+        )
+        result = WhatsAppMessageService(session, runtime.provider).send(
+            OutboundMessageInput(
+                conversation_id=conversation_id,
+                client_generated_id=payload.client_generated_id,
+                sent_by_user_id=current_user.id,
+                message_type=WhatsAppMessageType.TEXT,
+                body=None,
+                attachment=prepared.attachment,
+                template_name=prepared.selection.name,
+                template_language=prepared.selection.language,
+                template_parameters=prepared.parameters,
+            ),
             now=requested_at,
         )
         projection = MessageQueryService(session, runtime.metrics).get_message(

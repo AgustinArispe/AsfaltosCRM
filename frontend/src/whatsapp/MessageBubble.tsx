@@ -123,6 +123,12 @@ export function MessageBubble({
           {message.body}
         </p>
       ) : null}
+      {message.template_name ? (
+        <p className='text-sm leading-5 text-slate-900'>
+          Plantilla aprobada: {message.template_name}
+          {message.template_language ? ` · ${message.template_language}` : ''}
+        </p>
+      ) : null}
       <AttachmentContent message={message} />
       <footer className='mt-1.5 flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[0.6875rem]'>
         {message.sent_by ? (
@@ -140,6 +146,12 @@ export function MessageBubble({
           </span>
         ) : null}
       </footer>
+      {message.status.dispatch_state === 'UNKNOWN' ? (
+        <p className='mt-1 text-xs leading-5 text-amber-900'>
+          No podemos confirmar la entrega. El mensaje podría haber llegado; no se reenviará
+          automáticamente.
+        </p>
+      ) : null}
       {resend ? (
         <div className='mt-2 border-t border-slate-300/70 pt-2 text-right'>
           <Button

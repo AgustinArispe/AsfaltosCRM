@@ -37,6 +37,9 @@ if TYPE_CHECKING:
     from app.models.whatsapp_attachment import WhatsAppAttachment
     from app.models.whatsapp_broadcast import WhatsAppBroadcastRecipient
     from app.models.whatsapp_conversation import WhatsAppConversation
+    from app.models.whatsapp_human_template_parameter import (
+        WhatsAppHumanTemplateParameter,
+    )
 
 
 class WhatsAppMessage(TimestampMixin, Base):
@@ -57,13 +60,14 @@ class WhatsAppMessage(TimestampMixin, Base):
             name="ck_whatsapp_messages_direction_contract",
         ),
         CheckConstraint(
-            "message_type <> 'TEXT' OR origin = 'BROADCAST' "
+            "message_type <> 'TEXT' OR template_name IS NOT NULL "
             "OR (body IS NOT NULL AND btrim(body) <> '')",
             name="ck_whatsapp_messages_text_body",
         ),
         CheckConstraint(
             "(origin = 'HUMAN' AND broadcast_recipient_id IS NULL "
-            "AND template_name IS NULL AND template_language IS NULL) OR "
+            "AND ((template_name IS NULL AND template_language IS NULL) OR "
+            "(template_name IS NOT NULL AND template_language IS NOT NULL))) OR "
             "(origin = 'BROADCAST' AND direction = 'OUTBOUND' "
             "AND broadcast_recipient_id IS NOT NULL "
             "AND template_name IS NOT NULL AND template_language IS NOT NULL)",
@@ -206,6 +210,13 @@ class WhatsAppMessage(TimestampMixin, Base):
         back_populates="message",
         passive_deletes=True,
         uselist=False,
+    )
+    human_template_parameters: Mapped[list[WhatsAppHumanTemplateParameter]] = (
+        relationship(
+            back_populates="message",
+            passive_deletes=True,
+            order_by="WhatsAppHumanTemplateParameter.position",
+        )
     )
     status_events: Mapped[list[WhatsAppMessageStatusEvent]] = relationship(
         back_populates="message",

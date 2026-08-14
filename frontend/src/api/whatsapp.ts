@@ -1,8 +1,10 @@
 import type {
+  HumanTemplateSendInput,
   WhatsAppConversationChangePage,
   WhatsAppConversationDetail,
   WhatsAppConversationPage,
   WhatsAppConversationSummary,
+  WhatsAppHumanTemplate,
   WhatsAppMediaUpload,
   WhatsAppMessageChangePage,
   WhatsAppMessagePage,
@@ -45,6 +47,36 @@ export function getWhatsAppConversation(conversationId: number, session: ApiSess
   return apiRequest<WhatsAppConversationDetail>(
     `/whatsapp/conversations/${conversationId}`,
     session,
+  )
+}
+
+export function listWhatsAppHumanTemplates(conversationId: number, session: ApiSession) {
+  return apiRequest<WhatsAppHumanTemplate[]>(
+    `/whatsapp/conversations/${conversationId}/templates`,
+    session,
+  )
+}
+
+export function sendWhatsAppHumanTemplate(
+  conversationId: number,
+  input: HumanTemplateSendInput,
+  clientGeneratedId: string,
+  headerMediaRef: string | null,
+  session: ApiSession,
+) {
+  return apiRequest<WhatsAppOutboundResponse>(
+    `/whatsapp/conversations/${conversationId}/templates/send`,
+    {
+      ...session,
+      method: 'POST',
+      body: {
+        template_name: input.template.name,
+        language: input.template.language,
+        parameters: input.parameters,
+        ...(headerMediaRef ? { header_media_ref: headerMediaRef } : {}),
+        client_generated_id: clientGeneratedId,
+      },
+    },
   )
 }
 

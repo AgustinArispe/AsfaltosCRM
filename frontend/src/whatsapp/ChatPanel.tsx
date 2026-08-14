@@ -23,9 +23,11 @@ export function ChatPanel({
   hasFailedSend,
   isOnline,
   isContextOpen,
+  isContextCollapsed,
   onBack,
   onOpenContext,
   onLoadOlder,
+  onOpenTemplates,
   onRetryLoad,
   onSend,
   onRetryFailed,
@@ -45,9 +47,11 @@ export function ChatPanel({
   hasFailedSend: boolean
   isOnline: boolean
   isContextOpen: boolean
+  isContextCollapsed: boolean
   onBack: () => void
   onOpenContext: () => void
   onLoadOlder: () => Promise<void>
+  onOpenTemplates: () => void
   onRetryLoad: () => void
   onSend: (input: NewMessageInput) => Promise<boolean>
   onRetryFailed: () => Promise<boolean>
@@ -132,7 +136,7 @@ export function ChatPanel({
           onClick={onOpenContext}
           size='compact'
           variant='ghost'
-          className='2xl:hidden'
+          className={isContextCollapsed ? '' : '2xl:hidden'}
         >
           Ver contexto CRM
         </Button>
@@ -186,6 +190,7 @@ export function ChatPanel({
         isOnline={isOnline}
         isSending={isSending}
         onDiscardFailed={onDiscardFailed}
+        onOpenTemplates={onOpenTemplates}
         onRetryFailed={onRetryFailed}
         onSend={onSend}
         sendError={sendError}

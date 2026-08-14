@@ -31,6 +31,7 @@ export function MessageComposer({
   onSend,
   onRetryFailed,
   onDiscardFailed,
+  onOpenTemplates,
 }: {
   conversation: WhatsAppConversationDetail
   isOnline: boolean
@@ -40,6 +41,7 @@ export function MessageComposer({
   onSend: (input: NewMessageInput) => Promise<boolean>
   onRetryFailed: () => Promise<boolean>
   onDiscardFailed: () => void
+  onOpenTemplates: () => void
 }) {
   const [body, setBody] = useState('')
   const [attachment, setAttachment] = useState<StagedWhatsAppAttachment | null>(null)
@@ -54,6 +56,12 @@ export function MessageComposer({
     : backendDisabledReason
   const hasContent = Boolean(body.trim()) || Boolean(attachment)
   const canSend = !disabledReason && hasContent
+  const canUseTemplates =
+    isOnline &&
+    !isSending &&
+    !hasFailedSend &&
+    conversation.resolution_status === 'RESOLVED' &&
+    Boolean(conversation.customer?.is_available)
 
   useEffect(
     () => () => {
@@ -222,34 +230,45 @@ export function MessageComposer({
       ) : null}
 
       <div className='mt-2 flex items-center justify-between gap-3'>
-        <label
-          className={buttonClassName({
-            size: 'compact',
-            variant: 'ghost',
-            className:
-              disabledReason || attachment
-                ? 'pointer-events-none opacity-45'
-                : 'cursor-pointer focus-within:ring-2 focus-within:ring-slate-500 focus-within:ring-offset-2',
-          })}
-        >
-          <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>
-            <path
-              d='m6 10.5 4.8-4.8a2.3 2.3 0 1 1 3.2 3.2l-6 6a3.5 3.5 0 0 1-5-5l6.4-6.4'
-              stroke='currentColor'
-              strokeLinecap='round'
-              strokeWidth='1.5'
+        <div className='flex min-w-0 flex-wrap gap-1'>
+          <label
+            className={buttonClassName({
+              size: 'compact',
+              variant: 'ghost',
+              className:
+                disabledReason || attachment
+                  ? 'pointer-events-none opacity-45'
+                  : 'cursor-pointer focus-within:ring-2 focus-within:ring-slate-500 focus-within:ring-offset-2',
+            })}
+          >
+            <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>
+              <path
+                d='m6 10.5 4.8-4.8a2.3 2.3 0 1 1 3.2 3.2l-6 6a3.5 3.5 0 0 1-5-5l6.4-6.4'
+                stroke='currentColor'
+                strokeLinecap='round'
+                strokeWidth='1.5'
+              />
+            </svg>
+            Adjuntar imagen o PDF
+            <input
+              accept='image/jpeg,image/png,image/webp,application/pdf'
+              className='sr-only'
+              disabled={Boolean(disabledReason) || Boolean(attachment)}
+              onChange={(event) => handleFile(event.target.files?.[0])}
+              ref={fileInputRef}
+              type='file'
             />
-          </svg>
-          Adjuntar imagen o PDF
-          <input
-            accept='image/jpeg,image/png,image/webp,application/pdf'
-            className='sr-only'
-            disabled={Boolean(disabledReason) || Boolean(attachment)}
-            onChange={(event) => handleFile(event.target.files?.[0])}
-            ref={fileInputRef}
-            type='file'
-          />
-        </label>
+          </label>
+          <Button
+            disabled={!canUseTemplates}
+            onClick={onOpenTemplates}
+            size='compact'
+            type='button'
+            variant='ghost'
+          >
+            Usar plantilla
+          </Button>
+        </div>
         <Button disabled={!canSend} size='compact' type='submit' variant='primary'>
           {isSending ? 'Enviando…' : 'Enviar'}
         </Button>

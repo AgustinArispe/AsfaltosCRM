@@ -20,7 +20,7 @@ from app.models import (
     WhatsAppProviderState,
 )
 from app.schemas.common import StrictRequestModel
-from app.whatsapp import ProviderErrorKind
+from app.whatsapp import ProviderErrorKind, TemplateHeaderType
 
 PositiveId = Annotated[int, Field(gt=0)]
 NonBlankText = Annotated[
@@ -174,6 +174,29 @@ class OutboundMessageResponse(BaseModel):
     window_expires_at: datetime | None
     template_required: bool
     reason: WhatsAppWindowReason | None
+
+
+class HumanTemplateResponse(BaseModel):
+    name: str
+    language: str
+    category: str
+    parameter_names: list[str]
+    header_type: TemplateHeaderType
+    header_media_required: bool
+    body_preview: None = None
+
+
+class HumanTemplateParameterRequest(StrictRequestModel):
+    name: NonBlankText
+    value: NonBlankText
+
+
+class HumanTemplateSendRequest(StrictRequestModel):
+    template_name: NonBlankText
+    language: NonBlankText
+    parameters: list[HumanTemplateParameterRequest] = Field(default_factory=list)
+    header_media_ref: UUID | None = None
+    client_generated_id: UUID
 
 
 class TextOutboundRequest(StrictRequestModel):

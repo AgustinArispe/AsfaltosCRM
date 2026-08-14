@@ -5,6 +5,7 @@ import type { OpportunityDetail } from '../pipeline/types'
 import type {
   WhatsAppConversationDetail,
   WhatsAppConversationSummary,
+  WhatsAppHumanTemplate,
   WhatsAppMessage,
   WhatsAppMessageType,
 } from '../whatsapp/types'
@@ -124,7 +125,10 @@ function message(id: number, overrides: Partial<WhatsAppMessage> = {}): WhatsApp
     client_generated_id: null,
     direction: 'INBOUND',
     message_type: 'TEXT',
+    origin: 'HUMAN',
     body: id === 1 ? 'Necesito una cotización' : `Mensaje ${id}`,
+    template_name: null,
+    template_language: null,
     sent_by: null,
     retry_of_message_id: null,
     is_retry: false,
@@ -194,6 +198,8 @@ type MockApiOptions = {
   send?: (payload: Record<string, unknown>, call: number) => Response | Promise<Response>
   conversationChanges?: WhatsAppConversationSummary[][]
   olderMessages?: WhatsAppMessage[]
+  humanTemplates?: WhatsAppHumanTemplate[]
+  templateSend?: (payload: Record<string, unknown>) => Response | Promise<Response>
 }
 
 function mockInboxApi({
@@ -204,6 +210,8 @@ function mockInboxApi({
   send,
   conversationChanges = [[]],
   olderMessages = [],
+  humanTemplates = [],
+  templateSend,
 }: MockApiOptions = {}) {
   let shouldFailInitial = initialFailure
   let sendCalls = 0
@@ -236,6 +244,31 @@ function mockInboxApi({
       if (url.pathname === '/api/whatsapp/conversations/1' && method === 'GET') {
         return jsonResponse(200, conversationDetail)
       }
+      if (url.pathname === '/api/whatsapp/conversations/1/templates' && method === 'GET') {
+        return jsonResponse(200, humanTemplates)
+      }
+      if (url.pathname === '/api/whatsapp/conversations/1/templates/send' && method === 'POST') {
+        const payload = JSON.parse(String(init?.body)) as Record<string, unknown>
+        if (templateSend) return templateSend(payload)
+        return jsonResponse(201, {
+          message: message(30, {
+            direction: 'OUTBOUND',
+            body: null,
+            template_name: String(payload.template_name),
+            template_language: String(payload.language),
+            sent_by: { id: 2, full_name: 'Vendedor FAA', role: 'VENDEDOR' },
+            status: {
+              ...message(30).status,
+              dispatch_state: 'ACCEPTED',
+              provider_state: 'SENT',
+            },
+          }),
+          can_send_freeform: false,
+          window_expires_at: null,
+          template_required: true,
+          reason: 'APPROVED_TEMPLATE_REQUIRED',
+        })
+      }
       if (url.pathname === '/api/whatsapp/conversations/1/messages' && method === 'GET') {
         const isOlderPage = url.searchParams.has('before_cursor')
         return jsonResponse(200, {
@@ -259,6 +292,9 @@ function mockInboxApi({
       }
       if (url.pathname === '/api/opportunities/77') {
         return jsonResponse(200, opportunityDetail)
+      }
+      if (url.pathname === '/api/opportunities' && method === 'POST') {
+        return jsonResponse(201, opportunityDetail)
       }
       if (url.pathname === '/api/whatsapp/conversations/1/messages' && method === 'POST') {
         sendCalls += 1
@@ -468,6 +504,62 @@ describe('WhatsAppInboxPage', () => {
     expect(composer).toHaveValue('')
   })
 
+  it('selects and sends a human-approved template without exposing provider metadata', async () => {
+    const sent: Record<string, unknown>[] = []
+    mockInboxApi({
+      humanTemplates: [
+        {
+          name: 'seguimiento_obra',
+          language: 'es_AR',
+          category: 'UTILITY',
+          parameter_names: ['cliente'],
+          header_type: 'NONE',
+          header_media_required: false,
+          body_preview: null,
+        },
+      ],
+      templateSend: (payload) => {
+        sent.push(payload)
+        return jsonResponse(201, {
+          message: message(30, {
+            direction: 'OUTBOUND',
+            body: null,
+            template_name: 'seguimiento_obra',
+            template_language: 'es_AR',
+            sent_by: { id: 2, full_name: 'Vendedor FAA', role: 'VENDEDOR' },
+            status: {
+              ...message(30).status,
+              dispatch_state: 'ACCEPTED',
+              provider_state: 'SENT',
+            },
+          }),
+          can_send_freeform: false,
+          window_expires_at: null,
+          template_required: true,
+          reason: 'APPROVED_TEMPLATE_REQUIRED',
+        })
+      },
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usar plantilla' }))
+    fireEvent.click(await screen.findByRole('button', { name: /seguimiento_obra/i }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'cliente' }), {
+      target: { value: 'Constructora Uno' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar plantilla' }))
+
+    await screen.findByText('Plantilla aprobada: seguimiento_obra · es_AR')
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toMatchObject({
+      template_name: 'seguimiento_obra',
+      language: 'es_AR',
+      parameters: [{ name: 'cliente', value: 'Constructora Uno' }],
+    })
+    expect(JSON.stringify(sent[0])).not.toContain('external_id')
+  })
+
   it.each([
     ['application/pdf', 'ficha.pdf', 'DOCUMENT'],
     ['image/png', 'muestra.png', 'IMAGE'],
@@ -586,6 +678,33 @@ describe('WhatsAppInboxPage', () => {
     )
   })
 
+  it('creates an unlinked WhatsApp opportunity only for the resolved customer', async () => {
+    const conversationDetail = detail({ active_opportunity: null, opportunity_links: [] })
+    const fetchMock = mockInboxApi({ conversationDetail })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver contexto CRM' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Contexto CRM' })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Crear oportunidad' }))
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([input, init]) =>
+            String(input).endsWith('/api/opportunities') && init?.method === 'POST',
+        ),
+      ).toBe(true)
+    })
+    const call = fetchMock.mock.calls.find(
+      ([input, init]) => String(input).endsWith('/api/opportunities') && init?.method === 'POST',
+    )
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+      customer_id: 11,
+      source: 'WHATSAPP',
+    })
+  })
+
   it('renders authenticated image/document content and durable status evidence safely', async () => {
     const failed = outboundMessage(4)
     failed.status = {
@@ -602,7 +721,7 @@ describe('WhatsAppInboxPage', () => {
 
     expect(await screen.findByAltText('Imagen muestra.png')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /ficha.pdf/ })).toBeInTheDocument()
-    expect(screen.getByText('Aceptación sin confirmar')).toBeInTheDocument()
+    expect(screen.getByText('Entrega sin confirmar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reenviar explícitamente' })).toBeInTheDocument()
     const mediaCalls = fetchMock.mock.calls.filter(([input]) =>
       String(input).includes('/api/whatsapp/attachments/'),

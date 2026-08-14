@@ -54,6 +54,7 @@ from app.models.whatsapp_conversation import WhatsAppConversation
 from app.models.whatsapp_conversation_opportunity import (
     WhatsAppConversationOpportunity,
 )
+from app.models.whatsapp_human_template_parameter import WhatsAppHumanTemplateParameter
 from app.models.whatsapp_marketing_consent_event import WhatsAppMarketingConsentEvent
 from app.models.whatsapp_message import WhatsAppMessage
 from app.models.whatsapp_message_status_event import WhatsAppMessageStatusEvent
@@ -102,6 +103,7 @@ __all__ = [
     "WhatsAppConversationResolution",
     "WhatsAppDirection",
     "WhatsAppDispatchState",
+    "WhatsAppHumanTemplateParameter",
     "WhatsAppMarketingConsentEvent",
     "WhatsAppMessage",
     "WhatsAppMessageOrigin",

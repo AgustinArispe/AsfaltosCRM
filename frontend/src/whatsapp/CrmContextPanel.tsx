@@ -96,10 +96,13 @@ export function CrmContextPanel({
   status,
   error,
   isLinking,
+  isCreatingOpportunity,
   linkError,
   headingId = 'whatsapp-context-title',
   onRetryContext,
   onUpdateLink,
+  onCreateOpportunity,
+  onCollapse,
 }: {
   conversation: WhatsAppConversationDetail
   customerDetail: CustomerDetail | null
@@ -107,10 +110,13 @@ export function CrmContextPanel({
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
   isLinking: boolean
+  isCreatingOpportunity: boolean
   linkError: string | null
   headingId?: string
   onRetryContext: () => void
   onUpdateLink: (opportunityId: number | null) => Promise<void>
+  onCreateOpportunity: () => Promise<void>
+  onCollapse?: () => void
 }) {
   const [confirmation, setConfirmation] = useState<LinkConfirmation | null>(null)
   const customer = conversation.customer
@@ -130,11 +136,18 @@ export function CrmContextPanel({
 
   return (
     <aside aria-labelledby={headingId} className='flex min-h-0 flex-col bg-white'>
-      <header className='shrink-0 border-b border-slate-200 px-4 py-3'>
-        <h2 className='text-sm font-semibold text-slate-950' id={headingId}>
-          Contexto CRM
-        </h2>
-        <p className='mt-0.5 text-xs text-slate-500'>Información para responder mejor</p>
+      <header className='flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-3'>
+        <div>
+          <h2 className='text-sm font-semibold text-slate-950' id={headingId}>
+            Contexto CRM
+          </h2>
+          <p className='mt-0.5 text-xs text-slate-500'>Información para responder mejor</p>
+        </div>
+        {onCollapse ? (
+          <Button onClick={onCollapse} size='compact' type='button' variant='ghost'>
+            Ocultar contexto
+          </Button>
+        ) : null}
       </header>
       <div className='min-h-0 flex-1 overflow-y-auto px-4 py-4'>
         {conversation.resolution_status === 'NEEDS_REVIEW' ? (
@@ -213,9 +226,23 @@ export function CrmContextPanel({
               />
             </div>
           ) : (
-            <p className='mt-2 text-xs leading-5 text-slate-500'>
-              No hay una oportunidad activa vinculada. El CRM no crea una automáticamente.
-            </p>
+            <div className='mt-2'>
+              <p className='text-xs leading-5 text-slate-500'>
+                No hay una oportunidad activa vinculada. El CRM no crea una automáticamente.
+              </p>
+              {conversation.resolution_status === 'RESOLVED' && customer?.is_available ? (
+                <Button
+                  className='mt-2'
+                  disabled={isCreatingOpportunity}
+                  onClick={() => void onCreateOpportunity()}
+                  size='compact'
+                  type='button'
+                  variant='ghost'
+                >
+                  {isCreatingOpportunity ? 'Creando…' : 'Crear oportunidad'}
+                </Button>
+              ) : null}
+            </div>
           )}
 
           {conversation.opportunity_suggestions.length > 0 ? (

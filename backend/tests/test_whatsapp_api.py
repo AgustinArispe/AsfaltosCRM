@@ -24,6 +24,7 @@ from app.models import (
     WhatsAppConversation,
     WhatsAppConversationOpportunity,
     WhatsAppConversationResolution,
+    WhatsAppHumanTemplateParameter,
 )
 from app.schemas.whatsapp import (
     ConversationChangePageResponse,
@@ -48,6 +49,7 @@ from app.whatsapp import (
     SendImageRequest,
     SendTemplateRequest,
     SendTextRequest,
+    TemplateHeaderType,
     WhatsAppMediaPolicy,
     WindowDecision,
     WindowEvaluationContext,
@@ -383,6 +385,222 @@ def test_text_send_idempotency_and_documented_http_outcomes(
     assert result.message.client_generated_id == client_id
     assert result.message.status.dispatch_state is not None
     assert result.can_send_freeform is True
+
+
+def test_human_templates_are_safe_fresh_and_idempotent(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+) -> None:
+    """CRM-023 AC-08: a human template remains provider-neutral and durable."""
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.human-template",
+        phone="+54 11 6000-0031",
+        provider_message_at=_NOW - timedelta(days=2),
+    )
+    whatsapp_api.provider.set_templates(
+        (
+            ProviderTemplateSnapshot(
+                external_id="utility-follow-up-v1",
+                name="seguimiento_obra",
+                language="es_AR",
+                category="UTILITY",
+                status="APPROVED",
+                header_type=TemplateHeaderType.NONE,
+                parameter_names=("cliente",),
+            ),
+            ProviderTemplateSnapshot(
+                external_id="marketing-only-v1",
+                name="oferta",
+                language="es_AR",
+                category="MARKETING",
+                status="APPROVED",
+                header_type=TemplateHeaderType.NONE,
+            ),
+        )
+    )
+    templates_url = (
+        f"/api/whatsapp/conversations/{inbound.message.conversation_id}/templates"
+    )
+    listed = whatsapp_api.client.get(templates_url)
+    assert listed.status_code == 200
+    assert listed.json() == [
+        {
+            "name": "seguimiento_obra",
+            "language": "es_AR",
+            "category": "UTILITY",
+            "parameter_names": ["cliente"],
+            "header_type": "NONE",
+            "header_media_required": False,
+            "body_preview": None,
+        }
+    ]
+    assert "utility-follow-up-v1" not in listed.text
+
+    client_id = uuid4()
+    payload = {
+        "template_name": "seguimiento_obra",
+        "language": "es_AR",
+        "parameters": [{"name": "cliente", "value": "Constructora FAA"}],
+        "client_generated_id": str(client_id),
+    }
+    send_url = f"{templates_url}/send"
+    created = whatsapp_api.client.post(send_url, json=payload)
+    replay = whatsapp_api.client.post(send_url, json=payload)
+    conflict = whatsapp_api.client.post(
+        send_url,
+        json={
+            **payload,
+            "parameters": [{"name": "cliente", "value": "Otro cliente"}],
+        },
+    )
+
+    assert created.status_code == 201
+    assert replay.status_code == 200
+    assert conflict.status_code == 409
+    parsed = OutboundMessageResponse.model_validate(created.json())
+    assert parsed.message.template_name == "seguimiento_obra"
+    assert parsed.message.template_language == "es_AR"
+    assert parsed.message.sent_by is not None
+    assert parsed.template_required is True
+    assert len(whatsapp_api.provider.requests) == 1
+    request = whatsapp_api.provider.requests[0]
+    assert isinstance(request, SendTemplateRequest)
+    assert request.parameters[0].value == "Constructora FAA"
+    assert (
+        db_session.scalar(
+            select(func.count(WhatsAppHumanTemplateParameter.id)).where(
+                WhatsAppHumanTemplateParameter.message_id == parsed.message.id
+            )
+        )
+        == 1
+    )
+
+
+def test_human_template_rejects_unusable_or_invalid_parameters(
+    whatsapp_api: WhatsAppApiContext,
+) -> None:
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.human-template-invalid",
+        phone="+54 11 6000-0032",
+    )
+    whatsapp_api.provider.set_templates(
+        (
+            ProviderTemplateSnapshot(
+                external_id="utility-v1",
+                name="seguimiento",
+                language="es_AR",
+                category="UTILITY",
+                status="APPROVED",
+                header_type=TemplateHeaderType.NONE,
+                parameter_names=("cliente",),
+            ),
+            ProviderTemplateSnapshot(
+                external_id="paused-v1",
+                name="pausada",
+                language="es_AR",
+                category="UTILITY",
+                status="PAUSED",
+                header_type=TemplateHeaderType.NONE,
+            ),
+        )
+    )
+    url = (
+        f"/api/whatsapp/conversations/{inbound.message.conversation_id}/templates/send"
+    )
+    invalid_parameters = whatsapp_api.client.post(
+        url,
+        json={
+            "template_name": "seguimiento",
+            "language": "es_AR",
+            "parameters": [],
+            "client_generated_id": str(uuid4()),
+        },
+    )
+    unavailable = whatsapp_api.client.post(
+        url,
+        json={
+            "template_name": "pausada",
+            "language": "es_AR",
+            "parameters": [],
+            "client_generated_id": str(uuid4()),
+        },
+    )
+    assert invalid_parameters.status_code == 422
+    assert unavailable.status_code == 422
+    assert whatsapp_api.provider.requests == []
+
+
+def test_human_template_header_media_and_unknown_acceptance_are_safe(
+    whatsapp_api: WhatsAppApiContext,
+) -> None:
+    """CRM-023: template headers use opaque media and never retry ambiguity."""
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.human-template-media",
+        phone="+54 11 6000-0033",
+        provider_message_at=_NOW - timedelta(days=2),
+    )
+    whatsapp_api.provider.set_templates(
+        (
+            ProviderTemplateSnapshot(
+                external_id="utility-document-v1",
+                name="ficha_tecnica",
+                language="es_AR",
+                category="UTILITY",
+                status="APPROVED",
+                header_type=TemplateHeaderType.DOCUMENT,
+                header_media_required=True,
+            ),
+        )
+    )
+    url = (
+        f"/api/whatsapp/conversations/{inbound.message.conversation_id}/templates/send"
+    )
+    missing_media = whatsapp_api.client.post(
+        url,
+        json={
+            "template_name": "ficha_tecnica",
+            "language": "es_AR",
+            "parameters": [],
+            "client_generated_id": str(uuid4()),
+        },
+    )
+    assert missing_media.status_code == 422
+
+    uploaded = _upload_document(whatsapp_api, b"%PDF-1.7 ficha")
+    client_id = uuid4()
+    configured = whatsapp_api.client.put(
+        f"/api/whatsapp/dev/provider-behaviors/{client_id}",
+        json={
+            "kind": "TIMEOUT_UNKNOWN_ACCEPTANCE",
+            "code": "SAFE_TEMPLATE_UNKNOWN",
+            "safe_message": "Safe simulated provider timeout",
+        },
+    )
+    payload = {
+        "template_name": "ficha_tecnica",
+        "language": "es_AR",
+        "parameters": [],
+        "header_media_ref": str(uploaded.media_ref),
+        "client_generated_id": str(client_id),
+    }
+    unknown = whatsapp_api.client.post(url, json=payload)
+    replay = whatsapp_api.client.post(url, json=payload)
+
+    assert configured.status_code == 200
+    assert unknown.status_code == 202
+    assert replay.status_code == 202
+    parsed = OutboundMessageResponse.model_validate(unknown.json())
+    assert parsed.message.status.dispatch_state is not None
+    assert parsed.message.status.dispatch_state.value == "UNKNOWN"
+    assert parsed.template_required is True
+    assert len(whatsapp_api.provider.requests) == 1
+    request = whatsapp_api.provider.requests[0]
+    assert isinstance(request, SendTemplateRequest)
+    assert request.header_media is not None
+    assert request.header_media.provider_media_id or request.header_media.storage_key
 
 
 @pytest.mark.parametrize(

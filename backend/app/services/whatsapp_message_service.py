@@ -21,6 +21,7 @@ from app.models import (
     WhatsAppConversationResolution,
     WhatsAppDirection,
     WhatsAppDispatchState,
+    WhatsAppHumanTemplateParameter,
     WhatsAppMessage,
     WhatsAppMessageOrigin,
     WhatsAppMessageType,
@@ -76,6 +77,7 @@ class OutboundAttachmentInput:
     mime_type: str
     filename: str | None
     size_bytes: int | None = None
+    media_type: WhatsAppMessageType | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -345,7 +347,10 @@ class WhatsAppMessageService:
                 )
             self._validate_conversation(conversation)
             self._validate_user(message_input.sent_by_user_id)
-            if message_input.origin is WhatsAppMessageOrigin.HUMAN:
+            if (
+                message_input.origin is WhatsAppMessageOrigin.HUMAN
+                and message_input.template_name is None
+            ):
                 decision = self._provider.evaluate_window(
                     WindowEvaluationContext(
                         last_inbound_at=conversation.last_inbound_at,
@@ -423,7 +428,7 @@ class WhatsAppMessageService:
                     WhatsAppAttachment(
                         message_id=message.id,
                         provider_media_id=attachment.provider_media_id,
-                        media_type=message_input.message_type,
+                        media_type=attachment.media_type or message_input.message_type,
                         mime_type=attachment.mime_type,
                         filename=attachment.filename,
                         size_bytes=attachment.size_bytes,
@@ -433,6 +438,21 @@ class WhatsAppMessageService:
                             if attachment.storage_key is not None
                             else WhatsAppStorageStatus.PENDING
                         ),
+                    )
+                )
+            if (
+                message_input.origin is WhatsAppMessageOrigin.HUMAN
+                and message_input.template_name is not None
+            ):
+                self._session.add_all(
+                    WhatsAppHumanTemplateParameter(
+                        message_id=message.id,
+                        position=position,
+                        name=parameter.name,
+                        value=parameter.value,
+                    )
+                    for position, parameter in enumerate(
+                        message_input.template_parameters
                     )
                 )
             conversation.updated_at = later_datetime(
@@ -485,6 +505,34 @@ class WhatsAppMessageService:
                 )
             return SendTemplateRequest(
                 recipient=recipient,
+                client_generated_id=message.client_generated_id,
+                template_name=message.template_name,
+                language=message.template_language,
+                parameters=parameters,
+                header_media=header_media,
+            )
+        if message.template_name is not None:
+            if message.template_language is None:
+                raise RuntimeError("Persisted human template has no language")
+            header_media = None
+            if message.attachment is not None:
+                header_attachment = message.attachment
+                header_media = ProviderMediaReference(
+                    provider_media_id=header_attachment.provider_media_id,
+                    storage_key=header_attachment.storage_key,
+                    mime_type=header_attachment.mime_type,
+                    filename=header_attachment.filename,
+                )
+            parameters = tuple(
+                TemplateParameter(name=item.name, value=item.value)
+                for item in self._session.scalars(
+                    select(WhatsAppHumanTemplateParameter)
+                    .where(WhatsAppHumanTemplateParameter.message_id == message.id)
+                    .order_by(WhatsAppHumanTemplateParameter.position)
+                )
+            )
+            return SendTemplateRequest(
+                recipient=ProviderRecipient(phone=conversation.external_phone),
                 client_generated_id=message.client_generated_id,
                 template_name=message.template_name,
                 language=message.template_language,
@@ -677,6 +725,16 @@ class WhatsAppMessageService:
         message_input: OutboundMessageInput,
     ) -> None:
         attachment = message.attachment
+        existing_parameters = (
+            tuple((item.name, item.value) for item in message.human_template_parameters)
+            if message.origin is WhatsAppMessageOrigin.HUMAN
+            else ()
+        )
+        incoming_parameters = (
+            tuple((item.name, item.value) for item in message_input.template_parameters)
+            if message_input.origin is WhatsAppMessageOrigin.HUMAN
+            else ()
+        )
         same_attachment = (
             message_input.attachment is None
             if attachment is None
@@ -698,6 +756,7 @@ class WhatsAppMessageService:
             and message.broadcast_recipient_id == message_input.broadcast_recipient_id
             and message.template_name == message_input.template_name
             and message.template_language == message_input.template_language
+            and existing_parameters == incoming_parameters
             and same_attachment
         ):
             raise WhatsAppIdempotencyConflictError(
@@ -805,13 +864,16 @@ class WhatsAppMessageService:
     ) -> OutboundMessageInput:
         body = WhatsAppMessageService._optional_text(message_input.body)
         attachment = message_input.attachment
+        template_name = WhatsAppMessageService._optional_text(
+            message_input.template_name
+        )
+        template_language = WhatsAppMessageService._optional_text(
+            message_input.template_language
+        )
+        is_template = template_name is not None or template_language is not None
+        if is_template and (template_name is None or template_language is None):
+            raise InvalidWhatsAppMessageError("Template identity is incomplete")
         if message_input.origin is WhatsAppMessageOrigin.BROADCAST:
-            template_name = WhatsAppMessageService._optional_text(
-                message_input.template_name
-            )
-            template_language = WhatsAppMessageService._optional_text(
-                message_input.template_language
-            )
             if (
                 message_input.broadcast_recipient_id is None
                 or template_name is None
@@ -825,19 +887,23 @@ class WhatsAppMessageService:
                     "Broadcast template body is provider-owned"
                 )
         else:
-            template_name = None
-            template_language = None
             if message_input.broadcast_recipient_id is not None:
                 raise InvalidWhatsAppMessageError(
                     "Human outbound cannot reference a broadcast recipient"
                 )
         if message_input.message_type is WhatsAppMessageType.TEXT:
-            if message_input.origin is WhatsAppMessageOrigin.HUMAN and body is None:
+            if (
+                message_input.origin is WhatsAppMessageOrigin.HUMAN
+                and not is_template
+                and body is None
+            ):
                 raise InvalidWhatsAppMessageError("Text outbound requires a body")
-            if attachment is not None:
+            if attachment is not None and not is_template:
                 raise InvalidWhatsAppMessageError(
                     "Text outbound cannot include an attachment"
                 )
+            if is_template and body is not None:
+                raise InvalidWhatsAppMessageError("Template body is provider-owned")
         elif attachment is None:
             raise InvalidWhatsAppMessageError(
                 "Media outbound requires attachment metadata"
@@ -863,6 +929,7 @@ class WhatsAppMessageService:
                 mime_type=mime_type,
                 filename=filename,
                 size_bytes=attachment.size_bytes,
+                media_type=attachment.media_type,
             )
         return OutboundMessageInput(
             conversation_id=message_input.conversation_id,
