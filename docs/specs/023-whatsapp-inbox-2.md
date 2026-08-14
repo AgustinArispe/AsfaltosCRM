@@ -1,8 +1,9 @@
 # CRM-023 — WhatsApp Inbox 2.0
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-13
+Last updated: 2026-08-14
+Implementation commit: `68350be6a29a092579e469c636a748bf90b705a1`
 
 ## Goal
 
