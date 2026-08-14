@@ -238,7 +238,7 @@ describe('authenticated frontend', () => {
     expect(screen.getByLabelText('Tema')).toBeInTheDocument()
   })
 
-  it('opens the pipeline drawer, restores focus, and keeps the deep-link route', async () => {
+  it('opens the CRM-020 modal over Pipeline, restores focus, and keeps the deep-link route', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
     const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
@@ -262,7 +262,7 @@ describe('authenticated frontend', () => {
     renderApp('/pipeline')
 
     const cardButton = await screen.findByRole('button', {
-      name: /Abrir detalle de la oportunidad de Cliente navegación/,
+      name: /Abrir oportunidad de Navegación SA/,
     })
     cardButton.focus()
     fireEvent.click(cardButton)
@@ -287,7 +287,7 @@ describe('authenticated frontend', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Volver al Pipeline' }))
 
     expect(window.location.pathname).toBe('/pipeline')
-    expect(await screen.findByRole('heading', { name: 'Nuevos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nueva' })).toBeInTheDocument()
   })
 
   it('hides Users and redirects its route for sellers', async () => {

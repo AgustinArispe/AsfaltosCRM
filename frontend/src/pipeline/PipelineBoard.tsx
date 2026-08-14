@@ -1,3 +1,4 @@
+import { PointerActivationConstraints } from '@dnd-kit/dom'
 import {
   DragDropProvider,
   type DragEndEvent,
@@ -6,13 +7,16 @@ import {
   PointerSensor,
 } from '@dnd-kit/react'
 
+import { opportunitiesForStage } from './board-state'
 import { canMoveTo, isPipelineStatus, PIPELINE_STAGES } from './config'
 import type { PipelineDragData } from './OpportunityCard'
 import { PipelineColumn } from './PipelineColumn'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
 const PIPELINE_SENSORS = [
-  PointerSensor,
+  PointerSensor.configure({
+    activationConstraints: [new PointerActivationConstraints.Distance({ value: 6 })],
+  }),
   KeyboardSensor.configure({
     offset: { x: 280, y: 10 },
     keyboardCodes: {
@@ -32,15 +36,16 @@ export function PipelineBoard({
   busyOpportunityIds,
   onMove,
   onOpenDetail,
+  showStageAge,
 }: {
   opportunities: OpportunitySummary[]
   busyOpportunityIds: ReadonlySet<number>
   onMove: (opportunityId: number, targetStatus: PipelineStatus) => void
   onOpenDetail: (opportunityId: number) => void
+  showStageAge: boolean
 }) {
-  const visibleOpportunities = opportunities.filter(
-    (opportunity): opportunity is OpportunitySummary & { status: PipelineStatus } =>
-      isPipelineStatus(opportunity.status),
+  const visibleOpportunities = opportunities.filter((opportunity) =>
+    isPipelineStatus(opportunity.status),
   )
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -64,18 +69,16 @@ export function PipelineBoard({
     <DragDropProvider onDragEnd={handleDragEnd} sensors={PIPELINE_SENSORS}>
       <section
         aria-label='Etapas del pipeline. Desplazamiento horizontal disponible en pantallas pequeñas.'
-        className='max-w-full overflow-x-auto overscroll-x-contain pb-2 outline-none focus-visible:ring-2 focus-visible:ring-slate-500'
+        className='pipeline-board'
       >
-        <div className='grid min-w-[68rem] grid-cols-4 gap-2.5'>
+        <div className='pipeline-board__grid'>
           {PIPELINE_STAGES.map((stage) => (
             <PipelineColumn
               busyOpportunityIds={busyOpportunityIds}
               key={stage.status}
-              onMove={onMove}
               onOpenDetail={onOpenDetail}
-              opportunities={visibleOpportunities.filter(
-                (opportunity) => opportunity.status === stage.status,
-              )}
+              opportunities={opportunitiesForStage(visibleOpportunities, stage.status)}
+              showStageAge={showStageAge}
               stage={stage}
             />
           ))}

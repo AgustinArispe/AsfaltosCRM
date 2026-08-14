@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type {
-  OpportunityDetail,
   OpportunityStatus,
   OpportunitySummary,
   PipelineStatus,
@@ -10,21 +10,12 @@ import type {
 } from '../pipeline/types'
 import { PipelinePage } from './PipelinePage'
 
-const dndState = vi.hoisted(() => ({
-  onDragEnd: null as ((event: unknown) => void) | null,
-  draggableRef: vi.fn(),
-}))
-
-const authState = vi.hoisted(() => ({
-  role: 'SUPERVISOR' as 'SUPERVISOR' | 'VENDEDOR',
-  logout: vi.fn(),
-}))
+const dndState = vi.hoisted(() => ({ onDragEnd: null as ((event: unknown) => void) | null }))
+const logout = vi.hoisted(() => vi.fn())
 
 vi.mock('@dnd-kit/react', () => ({
-  PointerSensor: function PointerSensor() {},
-  KeyboardSensor: {
-    configure: vi.fn(() => function ConfiguredKeyboardSensor() {}),
-  },
+  PointerSensor: { configure: vi.fn(() => function ConfiguredPointerSensor() {}) },
+  KeyboardSensor: { configure: vi.fn(() => function ConfiguredKeyboardSensor() {}) },
   DragDropProvider: ({
     children,
     onDragEnd,
@@ -36,150 +27,68 @@ vi.mock('@dnd-kit/react', () => ({
     return children
   },
   DragOverlay: () => null,
-  useDraggable: () => ({
-    ref: dndState.draggableRef,
-    handleRef: vi.fn(),
-    isDragging: false,
-    isDropping: false,
-    isDragSource: false,
-    draggable: {},
-  }),
-  useDroppable: () => ({
-    ref: vi.fn(),
-    isDropTarget: false,
-    droppable: {},
-  }),
+  useDraggable: () => ({ ref: vi.fn(), isDragging: false }),
+  useDroppable: () => ({ ref: vi.fn(), isDropTarget: false }),
 }))
 
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({
-    token: 'pipeline-token',
-    logout: authState.logout,
-    user: { role: authState.role },
-  }),
+  useAuth: () => ({ token: 'pipeline-token', logout, user: { role: 'SUPERVISOR' } }),
 }))
 
-const activeProducts: Product[] = [
+const products: Product[] = [
   { id: 10, name: 'SuperPhalt', is_active: true },
   { id: 11, name: 'Bituplast', is_active: true },
 ]
 
-function makeOpportunity(status: OpportunityStatus, id = 1): OpportunitySummary {
+function opportunity(
+  status: OpportunityStatus,
+  id: number,
+  overrides: Partial<OpportunitySummary> = {},
+): OpportunitySummary {
   return {
     id,
     status,
-    source: 'WEB',
-    current_status_entered_at: '2026-08-01T12:00:00Z',
+    source: id % 2 === 0 ? 'WHATSAPP' : 'WEB',
+    current_status_entered_at: `2026-08-0${id}T12:00:00Z`,
     customer: {
       id: id + 100,
-      name: `Cliente ${status}`,
-      company: 'Constructora FAA',
-      email: null,
-      phone: null,
-      province: null,
+      name: `Cliente ${id}`,
+      company: id === 4 ? null : `Empresa ${id}`,
+      email: 'no-mostrar@faa.test',
+      phone: '+54 11 5555 0101',
+      province: 'Buenos Aires',
       legendary_historical_override: false,
+      is_legendary: id === 1,
     },
-    assigned_user: {
-      id: 8,
-      full_name: 'Martín Vendedor',
-      email: 'martin@faa.test',
-    },
-    products:
-      status === 'NUEVA'
-        ? []
-        : [
-            {
-              product: activeProducts[0],
-              quantity_kg: '2500.000',
-            },
-          ],
-    created_at: '2026-08-01T12:00:00Z',
+    assigned_user: { id: 8, full_name: 'Vendedor no visible', email: 'seller@faa.test' },
+    products: status === 'NUEVA' ? [] : [{ product: products[0], quantity_kg: '2500.000' }],
+    created_at: `2026-08-0${id}T12:00:00Z`,
+    ...overrides,
   }
 }
 
-function jsonResponse(status: number, body: unknown): Response {
+function response(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
   })
 }
 
-function movedOpportunity(
-  opportunity: OpportunitySummary,
-  status: OpportunityStatus,
-  products = opportunity.products,
-): OpportunitySummary {
-  return {
-    ...opportunity,
-    status,
-    products,
-    current_status_entered_at: '2026-08-04T15:00:00Z',
-  }
-}
-
-function detailFromSummary(opportunity: OpportunitySummary): OpportunityDetail {
-  return {
-    ...opportunity,
-    history: [
-      {
-        id: opportunity.id * 10,
-        from_status: null,
-        to_status: 'NUEVA',
-        changed_at: opportunity.created_at,
-        changed_by_user_id: 8,
-      },
-    ],
-    loss_reason: null,
-    updated_at: opportunity.created_at,
-  }
-}
-
-type ApiMockOptions = {
-  opportunities?: OpportunitySummary[]
-  products?: Product[]
-  failLoad?: () => boolean
-  actionResponse?: (
-    url: URL,
-    init: RequestInit | undefined,
-  ) => Response | Promise<Response> | undefined
-}
-
-function mockApi({
-  opportunities = [],
-  products = activeProducts,
-  failLoad,
-  actionResponse,
-}: ApiMockOptions = {}) {
+function mockApi(items: OpportunitySummary[], transition?: (url: URL) => Response | undefined) {
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
-
       if (url.pathname === '/api/opportunities' && init?.method !== 'POST') {
-        if (failLoad?.()) throw new TypeError('network unavailable')
-        const status = url.searchParams.get('status')
-        const items = opportunities.filter((opportunity) => opportunity.status === status)
-        return jsonResponse(200, {
-          items,
-          page: Number(url.searchParams.get('page')),
-          page_size: 100,
-          total: items.length,
-        })
+        const stage = url.searchParams.get('status')
+        const source = url.searchParams.get('source')
+        const filtered = items.filter(
+          (item) => item.status === stage && (!source || item.source === source),
+        )
+        return response(200, { items: filtered, page: 1, page_size: 100, total: filtered.length })
       }
-
-      if (url.pathname === '/api/products') {
-        return jsonResponse(200, products)
-      }
-
-      const detailMatch = url.pathname.match(/^\/api\/opportunities\/(\d+)$/)
-      if (detailMatch) {
-        const opportunity = opportunities.find((item) => item.id === Number(detailMatch[1]))
-        return opportunity
-          ? jsonResponse(200, detailFromSummary(opportunity))
-          : jsonResponse(404, { detail: 'Not found' })
-      }
-
-      const customResponse = actionResponse?.(url, init)
-      if (customResponse) return customResponse
+      if (url.pathname === '/api/products') return response(200, products)
+      const custom = transition?.(url)
+      if (custom) return custom
       throw new Error(`Unexpected request: ${url.pathname}`)
     },
   )
@@ -187,465 +96,266 @@ function mockApi({
   return fetchMock
 }
 
-function getStage(container: HTMLElement, status: PipelineStatus): HTMLElement {
-  const stage = container.querySelector<HTMLElement>(`[data-stage="${status}"]`)
-  if (!stage) throw new Error(`Missing stage ${status}`)
-  return stage
+function stage(container: HTMLElement, status: PipelineStatus): HTMLElement {
+  const element = container.querySelector<HTMLElement>(`[data-stage="${status}"]`)
+  if (!element) throw new Error(`Missing ${status}`)
+  return element
 }
 
-function simulateDrop(opportunity: OpportunitySummary, targetStatus: PipelineStatus) {
-  const nextByStatus: Partial<Record<PipelineStatus, PipelineStatus>> = {
-    NUEVA: 'COTIZADA',
-    COTIZADA: 'NEGOCIACION',
-    NEGOCIACION: 'GANADA',
-  }
+function drop(item: OpportunitySummary, target: PipelineStatus) {
   act(() => {
     dndState.onDragEnd?.({
       canceled: false,
       operation: {
         source: {
-          id: opportunity.id,
           data: {
-            opportunityId: opportunity.id,
-            customerName: opportunity.customer.name,
-            fromStatus: opportunity.status,
-            toStatus: nextByStatus[opportunity.status as PipelineStatus],
+            opportunityId: item.id,
+            customerName: item.customer.name,
+            fromStatus: item.status,
+            toStatus: target,
           },
         },
-        target: { id: targetStatus },
+        target: { id: target },
       },
     })
   })
 }
 
-async function waitForPipeline() {
-  await screen.findByRole('heading', { name: 'Nuevos' })
+async function ready() {
+  await screen.findByRole('heading', { name: 'Nueva' })
 }
 
 describe('PipelinePage', () => {
   beforeEach(() => {
     dndState.onDragEnd = null
-    dndState.draggableRef.mockReset()
-    authState.role = 'SUPERVISOR'
-    authState.logout.mockReset()
+    logout.mockReset()
+    window.history.replaceState(null, '', '/pipeline')
   })
 
-  it('renders configured columns, counters, reusable cards, and empty states', async () => {
-    const newOpportunity = makeOpportunity('NUEVA', 1)
-    newOpportunity.customer.legendary_historical_override = true
-    const quotedOpportunity = makeOpportunity('COTIZADA', 2)
-    mockApi({ opportunities: [newOpportunity, quotedOpportunity] })
+  it('renders the four active columns, omits Lost, and keeps cards intentionally minimal', async () => {
+    const items = [
+      opportunity('NUEVA', 1),
+      opportunity('COTIZADA', 2),
+      opportunity('NEGOCIACION', 3),
+      opportunity('GANADA', 4),
+    ]
+    mockApi(items)
     const { container } = render(<PipelinePage />)
+    await ready()
 
-    await waitForPipeline()
-    expect(screen.getByRole('heading', { name: 'Cotizados' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Negociación' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Ganados' })).toBeInTheDocument()
-
-    expect(within(getStage(container, 'NUEVA')).getByLabelText('1 oportunidad')).toHaveTextContent(
-      '1',
-    )
-    expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
-    expect(within(getStage(container, 'NUEVA')).getByText('Legendario')).toBeInTheDocument()
-    expect(
-      within(getStage(container, 'COTIZADA')).queryByText('SuperPhalt'),
-    ).not.toBeInTheDocument()
-    expect(within(getStage(container, 'COTIZADA')).queryByText('2.500 kg')).not.toBeInTheDocument()
-    expect(
-      within(getStage(container, 'NEGOCIACION')).getByText('No hay oportunidades'),
-    ).toBeInTheDocument()
-    expect(
-      within(getStage(container, 'GANADA')).getByText('No hay oportunidades'),
-    ).toBeInTheDocument()
-    const compactCard = within(getStage(container, 'COTIZADA')).getByRole('button', {
-      name: /Abrir detalle/,
+    for (const status of ['NUEVA', 'COTIZADA', 'NEGOCIACION', 'GANADA'] as const) {
+      expect(stage(container, status)).toBeInTheDocument()
+    }
+    expect(container.querySelector('[data-stage="PERDIDA"]')).not.toBeInTheDocument()
+    const card = within(stage(container, 'COTIZADA')).getByRole('button', {
+      name: /Abrir oportunidad/,
     })
-    expect(compactCard).not.toHaveTextContent('SuperPhalt')
-    expect(compactCard).not.toHaveTextContent('Martín Vendedor')
-    expect(dndState.draggableRef).toHaveBeenCalledWith(compactCard)
+    expect(card).toHaveTextContent('Empresa 2')
+    expect(card).toHaveTextContent('WhatsApp')
+    expect(card).not.toHaveTextContent('Vendedor no visible')
+    expect(card).not.toHaveTextContent('2500')
+    expect(card).not.toHaveTextContent('Buenos Aires')
+    expect(card).not.toHaveTextContent('no-mostrar')
+    expect(screen.getByText('Legendario')).toBeInTheDocument()
   })
 
-  it('shows the initial loading state', () => {
+  it('uses deterministic identity fallback and opens the canonical CRM-020 route on card activation', async () => {
+    const item = opportunity('NUEVA', 4)
+    item.customer = { ...item.customer, id: 0, name: '', company: null }
+    mockApi([item])
+    render(<PipelinePage />)
+    await ready()
+    const card = screen.getByRole('button', { name: /Cliente #0/ })
+    fireEvent.click(card)
+    expect(window.location.pathname).toBe('/pipeline/opportunities/4')
+  })
+
+  it('shows skeletons, column empties, and no-results distinctly', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise<Response>(() => undefined)),
     )
-    render(<PipelinePage />)
+    const pending = render(<PipelinePage />)
+    expect(screen.getByRole('status', { name: 'Cargando pipeline' })).toBeInTheDocument()
+    pending.unmount()
 
-    expect(screen.getByRole('status')).toHaveTextContent('Cargando pipeline…')
+    const item = opportunity('NUEVA', 1)
+    mockApi([item])
+    render(<PipelinePage />)
+    await ready()
+    fireEvent.change(screen.getByLabelText('Buscar oportunidades'), {
+      target: { value: 'inexistente' },
+    })
+    await waitFor(() => expect(screen.getByText('Sin resultados')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
   })
 
-  it('offers retry after a loading error', async () => {
+  it('offers retry after a failed initial load', async () => {
     let shouldFail = true
-    mockApi({ failLoad: () => shouldFail })
+    const item = opportunity('NUEVA', 1)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        if (shouldFail) throw new TypeError('network unavailable')
+        const url = new URL(String(input), 'http://localhost')
+        const stage = url.searchParams.get('status')
+        const items = stage === 'NUEVA' ? [item] : []
+        return response(200, { items, page: 1, page_size: 100, total: items.length })
+      }),
+    )
     render(<PipelinePage />)
-
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No pudimos conectar con el servidor',
     )
     shouldFail = false
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-
-    await waitForPipeline()
+    await ready()
   })
 
-  it('opens quote modal on NUEVA drop and does not move before confirmation', async () => {
-    const opportunity = makeOpportunity('NUEVA')
-    mockApi({ opportunities: [opportunity] })
+  it('orders each column objectively and supports compact search, source, product, and reset filters', async () => {
+    const newest = opportunity('COTIZADA', 3)
+    const oldest = opportunity('COTIZADA', 1)
+    const whatsapp = opportunity('COTIZADA', 2)
+    mockApi([newest, oldest, whatsapp])
     const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    simulateDrop(opportunity, 'COTIZADA')
-
-    expect(await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })).toBeInTheDocument()
-    expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
+    await ready()
     expect(
-      within(getStage(container, 'COTIZADA')).queryByText('Cliente NUEVA'),
-    ).not.toBeInTheDocument()
-    expect(await screen.findByLabelText('Producto')).toHaveFocus()
-  })
+      within(stage(container, 'COTIZADA')).getAllByRole('button', { name: /Abrir oportunidad/ })[0],
+    ).toHaveTextContent('Empresa 3')
 
-  it('validates duplicate products and quantities, then quotes multiple products', async () => {
-    const opportunity = makeOpportunity('NUEVA')
-    const fetchMock = mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) => {
-        if (url.pathname.endsWith('/quote')) {
-          return jsonResponse(
-            200,
-            movedOpportunity(opportunity, 'COTIZADA', [
-              { product: activeProducts[0], quantity_kg: '2500.000' },
-              { product: activeProducts[1], quantity_kg: '1000.000' },
-            ]),
-          )
-        }
-      },
-    })
-    const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    simulateDrop(opportunity, 'COTIZADA')
-    const firstProduct = await screen.findByLabelText('Producto')
-    fireEvent.change(firstProduct, { target: { value: '10' } })
-    fireEvent.change(screen.getByLabelText('Cantidad (kg)'), {
-      target: { value: '2500' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '+ Agregar producto' }))
-
-    const productSelects = screen.getAllByLabelText('Producto')
-    const quantityInputs = screen.getAllByLabelText('Cantidad (kg)')
-    fireEvent.change(productSelects[1], { target: { value: '10' } })
-    fireEvent.change(quantityInputs[1], { target: { value: '0' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Revisá los productos y cantidades')
-
-    fireEvent.change(productSelects[1], { target: { value: '11' } })
-    fireEvent.change(quantityInputs[1], { target: { value: '1000' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
-
+    fireEvent.change(screen.getByLabelText('Orden'), { target: { value: 'oldest' } })
+    expect(
+      within(stage(container, 'COTIZADA')).getAllByRole('button', { name: /Abrir oportunidad/ })[0],
+    ).toHaveTextContent('Empresa 1')
+    fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'WHATSAPP' } })
     await waitFor(() =>
       expect(
-        within(getStage(container, 'COTIZADA')).getByText('Cliente NUEVA'),
-      ).toBeInTheDocument(),
+        within(stage(container, 'COTIZADA')).getAllByRole('button', { name: /Abrir oportunidad/ }),
+      ).toHaveLength(1),
     )
-    const quoteCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/quote'))
-    const quoteBody = JSON.parse(String(quoteCall?.[1]?.body)) as {
-      products: unknown[]
-    }
-    expect(quoteBody.products).toHaveLength(2)
+    expect(screen.getByText(/Más filtros · 2/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText(/Más filtros/))
+    fireEvent.change(screen.getByLabelText('Producto'), { target: { value: '10' } })
+    expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar' }))
+    await waitFor(() => expect(screen.getByText('Más filtros')).toBeInTheDocument())
   })
 
-  it('keeps a failed quote in NUEVA and shows a useful error', async () => {
-    const opportunity = makeOpportunity('NUEVA')
-    mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/quote')
-          ? jsonResponse(409, { detail: 'Product is inactive' })
-          : undefined,
-    })
-    const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Mover a Cotizada:/ }))
-    fireEvent.change(await screen.findByLabelText('Producto'), {
-      target: { value: '10' },
-    })
-    fireEvent.change(screen.getByLabelText('Cantidad (kg)'), {
-      target: { value: '2500' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('ya no está activo')
-    expect(within(getStage(container, 'NUEVA')).getByText('Cliente NUEVA')).toBeInTheDocument()
-  })
-
-  it('excludes inactive products from a new quote', async () => {
-    const opportunity = makeOpportunity('NUEVA')
-    mockApi({
-      opportunities: [opportunity],
-      products: [...activeProducts, { id: 12, name: 'Producto inactivo', is_active: false }],
-    })
+  it('keeps time in stage hidden until the optional view setting is enabled', async () => {
+    mockApi([opportunity('NUEVA', 1)])
     render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Mover a Cotizada:/ }))
-    const productSelect = await screen.findByLabelText('Producto')
-    expect(within(productSelect).getByRole('option', { name: 'SuperPhalt' })).toBeInTheDocument()
-    expect(
-      within(productSelect).queryByRole('option', { name: 'Producto inactivo' }),
-    ).not.toBeInTheDocument()
+    await ready()
+    expect(screen.queryByText(/En etapa:/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Más filtros'))
+    fireEvent.click(screen.getByLabelText('Mostrar antigüedad de etapa'))
+    expect(screen.getByText(/En etapa:/)).toBeInTheDocument()
   })
 
-  it('keeps historical inactive products out of the compact card and visible in detail', async () => {
-    const opportunity = makeOpportunity('COTIZADA')
-    opportunity.products = [
-      {
-        product: { id: 12, name: 'Producto histórico', is_active: false },
-        quantity_kg: '750.000',
-      },
-    ]
-    mockApi({ opportunities: [opportunity] })
-    const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    const quotedStage = getStage(container, 'COTIZADA')
-    expect(within(quotedStage).queryByText('Producto histórico')).not.toBeInTheDocument()
-    fireEvent.click(within(quotedStage).getByRole('button', { name: /Abrir detalle/ }))
-    const drawer = await screen.findByRole('dialog', { name: 'Detalle de oportunidad' })
-    expect(within(drawer).getByText('Producto histórico')).toBeInTheDocument()
-    expect(within(drawer).getAllByText('750 kg')).toHaveLength(2)
-    expect(within(drawer).getByText('Inactivo')).toBeInTheDocument()
-  })
-
-  it('moves COTIZADA to NEGOCIACION optimistically and confirms the API result', async () => {
-    const opportunity = makeOpportunity('COTIZADA')
-    mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/move-to-negotiation')
-          ? jsonResponse(200, movedOpportunity(opportunity, 'NEGOCIACION'))
-          : undefined,
-    })
-    const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Mover a Negociación:/ }))
-
-    await waitFor(() =>
-      expect(
-        within(getStage(container, 'NEGOCIACION')).getByText('Cliente COTIZADA'),
-      ).toBeInTheDocument(),
+  it('moves only valid transitions, rolls back rejected mutations, and ignores same-column drops', async () => {
+    const quoted = opportunity('COTIZADA', 2)
+    const fetchMock = mockApi([quoted], (url) =>
+      url.pathname.endsWith('/move-to-negotiation')
+        ? response(409, { detail: 'Invalid transition' })
+        : undefined,
     )
+    const { container } = render(<PipelinePage />)
+    await ready()
+    const callsBeforeSameColumn = fetchMock.mock.calls.length
+    drop(quoted, 'COTIZADA')
+    expect(fetchMock).toHaveBeenCalledTimes(callsBeforeSameColumn)
+    drop(quoted, 'GANADA')
+    expect(fetchMock).toHaveBeenCalledTimes(callsBeforeSameColumn)
+    drop(quoted, 'NEGOCIACION')
+    expect(await screen.findByRole('alert')).toHaveTextContent('se mantuvo sin cambios')
+    expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
   })
 
-  it('reuses the transition flow from the detail drawer', async () => {
-    const opportunity = makeOpportunity('COTIZADA')
-    const fetchMock = mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/move-to-negotiation')
-          ? jsonResponse(200, movedOpportunity(opportunity, 'NEGOCIACION'))
-          : undefined,
-    })
+  it('optimistically moves a valid DnD transition and reconciles the authoritative response', async () => {
+    const quoted = opportunity('COTIZADA', 2)
+    const moved = { ...quoted, status: 'NEGOCIACION' as const }
+    const fetchMock = mockApi([quoted], (url) =>
+      url.pathname.endsWith('/move-to-negotiation') ? response(200, moved) : undefined,
+    )
     const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /Abrir detalle/ }))
-    const drawer = await screen.findByRole('dialog', {
-      name: 'Detalle de oportunidad',
-    })
-    fireEvent.click(within(drawer).getByRole('button', { name: 'Pasar a negociación' }))
-
+    await ready()
+    drop(quoted, 'NEGOCIACION')
     await waitFor(() =>
-      expect(
-        within(getStage(container, 'NEGOCIACION')).getByText('Cliente COTIZADA'),
-      ).toBeInTheDocument(),
+      expect(within(stage(container, 'NEGOCIACION')).getByText('Empresa 2')).toBeInTheDocument(),
     )
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/move-to-negotiation')),
     ).toBe(true)
   })
 
-  it('edits an existing quote from the detail drawer', async () => {
-    const opportunity = makeOpportunity('COTIZADA')
-    const fetchMock = mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/quote-products') ? jsonResponse(200, opportunity) : undefined,
-    })
-    render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /Abrir detalle/ }))
-    const drawer = await screen.findByRole('dialog', {
-      name: 'Detalle de oportunidad',
-    })
-    fireEvent.click(within(drawer).getByRole('button', { name: 'Editar cotización' }))
-    const quoteDialog = await screen.findByRole('dialog', {
-      name: 'Editar cotización',
-    })
-    expect(within(quoteDialog).getByLabelText('Producto')).toHaveValue('10')
-    fireEvent.change(within(quoteDialog).getByLabelText('Cantidad (kg)'), {
-      target: { value: '3000' },
-    })
-    fireEvent.click(within(quoteDialog).getByRole('button', { name: 'Guardar cambios' }))
-
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Editar cotización' })).not.toBeInTheDocument(),
+  it('uses the shared quote flow for NUEVA to COTIZADA and reconciles cancellation or rejection', async () => {
+    const item = opportunity('NUEVA', 1)
+    mockApi([item], (url) =>
+      url.pathname.endsWith('/quote')
+        ? response(409, { detail: 'Product is inactive' })
+        : undefined,
     )
-    const updateCall = fetchMock.mock.calls.find(([input]) =>
-      String(input).endsWith('/quote-products'),
-    )
-    expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
-      products: [{ product_id: 10, quantity_kg: 3000 }],
-      expected_updated_at: '2026-08-01T12:00:00Z',
-    })
-  })
-
-  it('moves NEGOCIACION to GANADA', async () => {
-    const opportunity = makeOpportunity('NEGOCIACION')
-    mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/win')
-          ? jsonResponse(200, movedOpportunity(opportunity, 'GANADA'))
-          : undefined,
-    })
     const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Mover a Ganada:/ }))
-
-    await waitFor(() =>
-      expect(
-        within(getStage(container, 'GANADA')).getByText('Cliente NEGOCIACION'),
-      ).toBeInTheDocument(),
-    )
-  })
-
-  it('keeps a terminal opportunity available for read-only detail', async () => {
-    const opportunity = makeOpportunity('GANADA')
-    mockApi({ opportunities: [opportunity] })
-    render(<PipelinePage />)
-    await waitForPipeline()
-
-    const cardButton = screen.getByRole('button', { name: /Abrir detalle/ })
-    expect(cardButton).toBeEnabled()
-    fireEvent.click(cardButton)
-
-    expect(
-      await screen.findByRole('dialog', { name: 'Detalle de oportunidad' }),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Mover a/ })).not.toBeInTheDocument()
-  })
-
-  it('reverts an optimistic transition when the API rejects it', async () => {
-    const opportunity = makeOpportunity('COTIZADA')
-    mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/move-to-negotiation')
-          ? jsonResponse(409, { detail: 'Invalid transition' })
-          : undefined,
-    })
-    const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Mover a Negociación:/ }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('se mantuvo sin cambios')
-    expect(
-      within(getStage(container, 'COTIZADA')).getByText('Cliente COTIZADA'),
-    ).toBeInTheDocument()
-  })
-
-  it('blocks an invalid drag target without calling a transition', async () => {
-    const opportunity = makeOpportunity('NUEVA')
-    const fetchMock = mockApi({ opportunities: [opportunity] })
-    render(<PipelinePage />)
-    await waitForPipeline()
-    const callsBeforeDrop = fetchMock.mock.calls.length
-
-    simulateDrop(opportunity, 'GANADA')
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledTimes(callsBeforeDrop)
-  })
-
-  it('requires a loss reason and removes a successfully lost opportunity', async () => {
-    const opportunity = makeOpportunity('NUEVA')
-    const fetchMock = mockApi({
-      opportunities: [opportunity],
-      actionResponse: (url) =>
-        url.pathname.endsWith('/lose')
-          ? jsonResponse(200, movedOpportunity(opportunity, 'PERDIDA'))
-          : undefined,
-    })
-    const { container } = render(<PipelinePage />)
-    await waitForPipeline()
-
-    fireEvent.click(screen.getByRole('button', { name: /Abrir detalle/ }))
-    const detailDrawer = await screen.findByRole('dialog', {
-      name: 'Detalle de oportunidad',
-    })
-    fireEvent.click(within(detailDrawer).getByRole('button', { name: 'Marcar perdida' }))
-    const lossDialog = await screen.findByRole('dialog', {
-      name: 'Marcar como perdida',
-    })
-    await waitFor(() => expect(within(lossDialog).getByLabelText('Motivo')).toHaveFocus())
-    fireEvent.click(within(lossDialog).getByRole('button', { name: 'Confirmar pérdida' }))
-    expect(await within(lossDialog).findByRole('alert')).toHaveTextContent('Seleccioná un motivo')
-
-    fireEvent.change(within(lossDialog).getByLabelText('Motivo'), {
-      target: { value: 'PRECIO' },
-    })
-    fireEvent.click(within(lossDialog).getByRole('button', { name: 'Confirmar pérdida' }))
-
-    await waitFor(() =>
-      expect(
-        within(getStage(container, 'NUEVA')).queryByText('Cliente NUEVA'),
-      ).not.toBeInTheDocument(),
-    )
-    const loseCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/lose'))
-    expect(JSON.parse(String(loseCall?.[1]?.body))).toEqual({
-      loss_reason: 'PRECIO',
-    })
-  })
-
-  it.each(['SUPERVISOR', 'VENDEDOR'] as const)(
-    'keeps the accessible movement controls available to %s',
-    async (role) => {
-      authState.role = role
-      mockApi({ opportunities: [makeOpportunity('COTIZADA')] })
-      render(<PipelinePage />)
-
-      expect(
-        await screen.findByRole('button', { name: /^Mover a Negociación:/ }),
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', {
-          name: /Abrir detalle de la oportunidad de Cliente COTIZADA.*arrastrar/,
-        }),
-      ).toBeInTheDocument()
-    },
-  )
-
-  it('restores focus to the movement trigger when the quote dialog closes', async () => {
-    mockApi({ opportunities: [makeOpportunity('NUEVA')] })
-    render(<PipelinePage />)
-    const moveButton = await screen.findByRole('button', {
-      name: /^Mover a Cotizada:/,
-    })
-    moveButton.focus()
-    fireEvent.click(moveButton)
-    const dialog = await screen.findByRole('dialog', {
-      name: 'Cotizar oportunidad',
-    })
-
+    await ready()
+    drop(item, 'COTIZADA')
+    const dialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
+    expect(within(stage(container, 'NUEVA')).getByText('Empresa 1')).toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog', { name: 'Cotizar oportunidad' })).not.toBeInTheDocument()
 
-    await waitFor(() => expect(moveButton).toHaveFocus())
+    drop(item, 'COTIZADA')
+    const secondDialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
+    fireEvent.change(await within(secondDialog).findByLabelText('Producto'), {
+      target: { value: '10' },
+    })
+    fireEvent.change(within(secondDialog).getByLabelText('Cantidad (kg)'), {
+      target: { value: '10' },
+    })
+    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Confirmar cotización' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ya no está activo')
+    expect(within(stage(container, 'NUEVA')).getByText('Empresa 1')).toBeInTheDocument()
+  })
+
+  it('reconciles a successful quote without reloading the whole Pipeline', async () => {
+    const item = opportunity('NUEVA', 1)
+    const quoted = {
+      ...item,
+      status: 'COTIZADA' as const,
+      products: [{ product: products[0], quantity_kg: '10.000' }],
+    }
+    const fetchMock = mockApi([item], (url) =>
+      url.pathname.endsWith('/quote') ? response(200, quoted) : undefined,
+    )
+    const { container } = render(<PipelinePage />)
+    await ready()
+    drop(item, 'COTIZADA')
+    const dialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
+    fireEvent.change(await within(dialog).findByLabelText('Producto'), {
+      target: { value: '10' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Cantidad (kg)'), { target: { value: '10' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar cotización' }))
+    await waitFor(() =>
+      expect(within(stage(container, 'COTIZADA')).getByText('Empresa 1')).toBeInTheDocument(),
+    )
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?'))
+        .length,
+    ).toBe(4)
+  })
+
+  it('does not make per-card requests and marks server-backed source filtering in the list query', async () => {
+    const fetchMock = mockApi([opportunity('NUEVA', 1), opportunity('COTIZADA', 2)])
+    render(<PipelinePage />)
+    await ready()
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities')).length,
+    ).toBe(4)
+    fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'WEB' } })
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([input]) => String(input).includes('source=WEB'))).toBe(
+        true,
+      ),
+    )
   })
 })

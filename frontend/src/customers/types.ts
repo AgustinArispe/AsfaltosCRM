@@ -6,6 +6,8 @@ export type CustomerSummary = {
   phone: string | null
   province: string | null
   legendary_historical_override: boolean
+  /** Effective server-provided legendary qualification for operational surfaces. */
+  is_legendary?: boolean
   updated_at?: string
 }
 

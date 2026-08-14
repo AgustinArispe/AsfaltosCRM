@@ -6,47 +6,37 @@ export type PipelineStage = {
   label: string
   singularLabel: string
   nextStatus: PipelineStatus | null
-  accentClassName: string
-  countClassName: string
-  cardAccentClassName: string
+  tone: 'neutral' | 'success'
 }
 
 export const PIPELINE_STAGES: readonly PipelineStage[] = [
   {
     status: 'NUEVA',
-    label: 'Nuevos',
+    label: 'Nueva',
     singularLabel: 'Nueva',
     nextStatus: 'COTIZADA',
-    accentClassName: 'border-t-slate-400',
-    countClassName: 'border-slate-200 bg-slate-100 text-slate-700',
-    cardAccentClassName: 'border-l-slate-400',
+    tone: 'neutral',
   },
   {
     status: 'COTIZADA',
-    label: 'Cotizados',
+    label: 'Cotizada',
     singularLabel: 'Cotizada',
     nextStatus: 'NEGOCIACION',
-    accentClassName: 'border-t-blue-400',
-    countClassName: 'border-blue-200 bg-blue-50 text-blue-800',
-    cardAccentClassName: 'border-l-blue-400',
+    tone: 'neutral',
   },
   {
     status: 'NEGOCIACION',
     label: 'Negociación',
     singularLabel: 'Negociación',
     nextStatus: 'GANADA',
-    accentClassName: 'border-t-amber-500',
-    countClassName: 'border-amber-200 bg-amber-50 text-amber-900',
-    cardAccentClassName: 'border-l-amber-500',
+    tone: 'neutral',
   },
   {
     status: 'GANADA',
-    label: 'Ganados',
+    label: 'Ganada',
     singularLabel: 'Ganada',
     nextStatus: null,
-    accentClassName: 'border-t-emerald-600',
-    countClassName: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    cardAccentClassName: 'border-l-emerald-600',
+    tone: 'success',
   },
 ] as const
 

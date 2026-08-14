@@ -53,6 +53,7 @@ export function getOpportunityDetail(opportunityId: number, session: ApiSession)
 
 async function listOpportunityStage(
   stage: PipelineStatus,
+  source: OpportunitySummary['source'] | 'ALL',
   session: ApiSession,
 ): Promise<OpportunitySummary[]> {
   const items: OpportunitySummary[] = []
@@ -65,6 +66,7 @@ async function listOpportunityStage(
       page: String(page),
       page_size: String(PIPELINE_PAGE_SIZE),
     })
+    if (source !== 'ALL') query.set('source', source)
     const response = await apiRequest<PaginatedResponse<OpportunitySummary>>(
       `/opportunities?${query}`,
       session,
@@ -81,9 +83,10 @@ async function listOpportunityStage(
 
 export async function listPipelineOpportunities(
   session: ApiSession,
+  source: OpportunitySummary['source'] | 'ALL' = 'ALL',
 ): Promise<OpportunitySummary[]> {
   const opportunitiesByStage = await Promise.all(
-    PIPELINE_STAGES.map((stage) => listOpportunityStage(stage.status, session)),
+    PIPELINE_STAGES.map((stage) => listOpportunityStage(stage.status, source, session)),
   )
   return opportunitiesByStage.flat()
 }

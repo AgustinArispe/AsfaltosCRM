@@ -38,8 +38,9 @@ function RoutedApp() {
     return (
       <AppShell
         activeNavigationPath={route.surface === 'lost' ? '/lost' : '/pipeline'}
-        pageTitle='Detalle de oportunidad'
+        pageTitle={route.surface === 'lost' ? 'Perdidas' : 'Pipeline'}
       >
+        {route.surface === 'pipeline' ? <PipelinePage /> : null}
         <OpportunityDetailPage opportunityId={route.opportunityId} surface={route.surface} />
       </AppShell>
     )
