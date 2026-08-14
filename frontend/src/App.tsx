@@ -4,6 +4,7 @@ import { CustomerDetailPage } from './pages/CustomerDetailPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { LostPage } from './pages/LostPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
@@ -91,6 +92,8 @@ function RoutedApp() {
       <CustomersPage />
     ) : route.workspace === 'products' ? (
       <ProductsPage />
+    ) : route.workspace === 'lost' ? (
+      <LostPage />
     ) : route.workspace === 'whatsapp' ? (
       <WhatsAppInboxPage />
     ) : (

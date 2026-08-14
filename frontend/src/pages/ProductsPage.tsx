@@ -9,7 +9,7 @@ import { ProductTable } from '../products/ProductTable'
 import type { Product } from '../products/types'
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
-import { LoadingState } from '../shared/LoadingState'
+import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 function sortProducts(products: Product[]): Product[] {
   return [...products].sort((first, second) => first.name.localeCompare(second.name, 'es-AR'))
@@ -201,7 +201,7 @@ export function ProductsPage() {
             </Button>
           </div>
         ) : isLoading ? (
-          <LoadingState label='Cargando productos…' />
+          <WorkspaceSkeleton label='Cargando productos…' />
         ) : products.length === 0 ? (
           <div className='ui-panel px-5 py-9 text-center'>
             <h3 className='text-base font-semibold text-slate-950'>No hay productos disponibles</h3>

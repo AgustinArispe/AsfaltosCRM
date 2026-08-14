@@ -1,11 +1,13 @@
 import type {
   CustomerDetail,
+  CustomerImportCommitResult,
+  CustomerImportReport,
   CustomerSummary,
   CustomerUpdatePayload,
   CustomerWritePayload,
 } from '../customers/types'
 import type { PaginatedResponse } from '../pipeline/types'
-import { apiRequest } from './client'
+import { apiFormRequest, apiRequest } from './client'
 import type { ApiSession } from './opportunities'
 
 export type CustomerListParams = {
@@ -52,5 +54,35 @@ export function deleteCustomer(customerId: number, session: ApiSession) {
   return apiRequest<null>(`/customers/${customerId}`, {
     ...session,
     method: 'DELETE',
+  })
+}
+
+export function dryRunCustomerImport(file: File, clientImportId: string, session: ApiSession) {
+  const formData = new FormData()
+  formData.set('client_import_id', clientImportId)
+  formData.set('file', file)
+  return apiFormRequest<CustomerImportReport>('/customer-imports/dry-run', formData, {
+    ...session,
+    method: 'POST',
+  })
+}
+
+export function getCustomerImport(batchId: number, session: ApiSession) {
+  return apiRequest<CustomerImportReport>(`/customer-imports/${batchId}`, session)
+}
+
+export function commitCustomerImport(
+  report: CustomerImportReport,
+  commandId: string,
+  session: ApiSession,
+) {
+  return apiRequest<CustomerImportCommitResult>(`/customer-imports/${report.id}/commit`, {
+    ...session,
+    method: 'POST',
+    body: {
+      command_id: commandId,
+      expected_version: report.version,
+      file_sha256: report.file_sha256,
+    },
   })
 }

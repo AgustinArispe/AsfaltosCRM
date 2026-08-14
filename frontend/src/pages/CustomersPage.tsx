@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
-
-import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from '../api/customers'
+import { isStaleWriteConflict } from '../api/client'
+import {
+  createCustomer,
+  deleteCustomer,
+  getCustomer,
+  listCustomers,
+  updateCustomer,
+} from '../api/customers'
 import type { ApiSession } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { CustomerFormModal } from '../customers/CustomerFormModal'
+import { CustomerImportModal } from '../customers/CustomerImportModal'
 import { CustomerTable } from '../customers/CustomerTable'
 import { DeleteCustomerModal } from '../customers/DeleteCustomerModal'
 import { customerErrorMessage } from '../customers/errors'
-import type { CustomerSummary, CustomerWritePayload } from '../customers/types'
+import type {
+  CustomerImportReport,
+  CustomerSummary,
+  CustomerWritePayload,
+} from '../customers/types'
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
-import { LoadingState } from '../shared/LoadingState'
+import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300
@@ -28,6 +39,7 @@ export function CustomersPage() {
   const [formCustomer, setFormCustomer] = useState<CustomerSummary | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CustomerSummary | null>(null)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [announcement, setAnnouncement] = useState('')
 
   const apiSession = useMemo<ApiSession>(
@@ -93,14 +105,38 @@ export function CustomersPage() {
             apiSession,
           )
         : await createCustomer(payload, apiSession)
+      setCustomers((current) => {
+        if (formCustomer) {
+          return current.map((customer) =>
+            customer.id === savedCustomer.id ? savedCustomer : customer,
+          )
+        }
+        return [savedCustomer, ...current].slice(0, PAGE_SIZE)
+      })
+      setTotal((current) => (formCustomer ? current : current + 1))
       closeForm()
       setAnnouncement(
         formCustomer
           ? `${savedCustomer.name} fue actualizado.`
           : `${savedCustomer.name} fue creado.`,
       )
-      setReloadKey((current) => current + 1)
     } catch (error) {
+      if (formCustomer && isStaleWriteConflict(error)) {
+        try {
+          const authoritativeCustomer = await getCustomer(formCustomer.id, apiSession)
+          setFormCustomer(authoritativeCustomer)
+          setCustomers((current) =>
+            current.map((customer) =>
+              customer.id === authoritativeCustomer.id ? authoritativeCustomer : customer,
+            ),
+          )
+        } catch {
+          // The editor still preserves the user's values and reports the original conflict.
+        }
+        throw new Error(
+          'Otro cambio fue guardado antes. Actualizamos la versión del cliente; revisá tus cambios y volvé a guardar.',
+        )
+      }
       throw new Error(customerErrorMessage(error, 'save'))
     }
   }
@@ -113,10 +149,20 @@ export function CustomersPage() {
       setDeleteTarget(null)
       setAnnouncement(`${deletedName} fue eliminado del CRM.`)
       if (customers.length === 1 && page > 1) setPage((current) => current - 1)
-      else setReloadKey((current) => current + 1)
+      else {
+        setCustomers((current) => current.filter((customer) => customer.id !== deleteTarget.id))
+        setTotal((current) => Math.max(0, current - 1))
+      }
     } catch (error) {
       throw new Error(customerErrorMessage(error, 'delete'))
     }
+  }
+  const handleImportCommitted = (report: CustomerImportReport) => {
+    setAnnouncement(
+      `Se importaron ${report.create_count + report.enrich_count} cambios de clientes de forma atómica.`,
+    )
+    setIsImportOpen(false)
+    setReloadKey((current) => current + 1)
   }
 
   return (
@@ -134,9 +180,14 @@ export function CustomersPage() {
             Consultá y mantené actualizados los datos comerciales de FAA.
           </p>
         </div>
-        <Button onClick={openCreate} variant='primary'>
-          Nuevo cliente
-        </Button>
+        <div className='flex flex-wrap gap-2'>
+          {user.role === 'SUPERVISOR' ? (
+            <Button onClick={() => setIsImportOpen(true)}>Importar CSV</Button>
+          ) : null}
+          <Button onClick={openCreate} variant='primary'>
+            Nuevo cliente
+          </Button>
+        </div>
       </div>
 
       <div className='ui-panel mt-4 p-3.5'>
@@ -178,7 +229,7 @@ export function CustomersPage() {
             </Button>
           </div>
         ) : isLoading ? (
-          <LoadingState label='Cargando clientes…' />
+          <WorkspaceSkeleton label='Cargando clientes…' />
         ) : customers.length === 0 ? (
           <div className='ui-panel px-5 py-9 text-center'>
             <h3 className='text-base font-semibold text-slate-950'>
@@ -203,7 +254,9 @@ export function CustomersPage() {
               className='ui-panel mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5'
             >
               <p className='text-sm text-slate-600'>
-                {total} {total === 1 ? 'cliente' : 'clientes'}
+                {total === 0
+                  ? 'Sin clientes'
+                  : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} de ${total} clientes`}
               </p>
               <div className='flex items-center gap-3'>
                 <Button
@@ -241,6 +294,14 @@ export function CustomersPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
+      {user.role === 'SUPERVISOR' ? (
+        <CustomerImportModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          onCommitted={handleImportCommitted}
+          session={apiSession}
+        />
+      ) : null}
     </section>
   )
 }

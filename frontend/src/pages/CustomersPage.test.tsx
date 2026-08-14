@@ -55,12 +55,15 @@ function mockCustomerApi({
   initialCustomers = customers,
   total = initialCustomers.length,
   failList,
+  staleFirstUpdate = false,
 }: {
   initialCustomers?: CustomerSummary[]
   total?: number
   failList?: () => boolean
+  staleFirstUpdate?: boolean
 } = {}) {
   let currentCustomers = [...initialCustomers]
+  let shouldReturnStaleConflict = staleFirstUpdate
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
@@ -90,12 +93,59 @@ function mockCustomerApi({
         return jsonResponse(201, created)
       }
 
+      if (url.pathname === '/api/customer-imports/dry-run' && init?.method === 'POST') {
+        return jsonResponse(201, {
+          id: 10,
+          client_import_id: '11111111-1111-4111-8111-111111111111',
+          file_sha256: 'a'.repeat(64),
+          source_filename: 'clientes.csv',
+          status: 'VALID',
+          version: 1,
+          row_count: 2,
+          create_count: 1,
+          enrich_count: 1,
+          unchanged_count: 0,
+          error_count: 0,
+          rows: [],
+          created_at: '2026-08-14T12:00:00Z',
+          committed_at: null,
+        })
+      }
+      if (url.pathname === '/api/customer-imports/10/commit' && init?.method === 'POST') {
+        return jsonResponse(200, {
+          batch_id: 10,
+          status: 'COMMITTED',
+          created_count: 1,
+          enriched_count: 1,
+          unchanged_count: 0,
+          customer_ids: [3],
+          committed_at: '2026-08-14T12:01:00Z',
+        })
+      }
+
       const customerMatch = /^\/api\/customers\/(\d+)$/.exec(url.pathname)
+      if (customerMatch && !init?.method) {
+        const customerId = Number(customerMatch[1])
+        const existing = currentCustomers.find((customer) => customer.id === customerId)
+        return existing
+          ? jsonResponse(200, { ...existing, created_at: '2026-08-01T12:00:00Z' })
+          : jsonResponse(404, { detail: 'Not found' })
+      }
       if (customerMatch && init?.method === 'PATCH') {
         const customerId = Number(customerMatch[1])
         const body = JSON.parse(String(init.body)) as Partial<CustomerSummary>
         const existing = currentCustomers.find((customer) => customer.id === customerId)
         if (!existing) return jsonResponse(404, { detail: 'Not found' })
+        if (shouldReturnStaleConflict) {
+          shouldReturnStaleConflict = false
+          const refreshed = { ...existing, updated_at: '2026-08-14T12:00:00Z' }
+          currentCustomers = currentCustomers.map((customer) =>
+            customer.id === customerId ? refreshed : customer,
+          )
+          return jsonResponse(409, {
+            detail: { code: 'STALE_WRITE', resource: 'Customer' },
+          })
+        }
         const updated = { ...existing, ...body }
         currentCustomers = currentCustomers.map((customer) =>
           customer.id === customerId ? updated : customer,
@@ -131,18 +181,14 @@ describe('CustomersPage', () => {
       'href',
       '/customers/1',
     )
-    expect(screen.getByRole('columnheader', { name: 'Empresa' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Identidad' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Categoría' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'ventas@austral.test' })).toHaveAttribute(
       'href',
       'mailto:ventas@austral.test',
     )
-    expect(screen.getByRole('link', { name: '+54 11 4444-5555' })).toHaveAttribute(
-      'href',
-      'tel:+541144445555',
-    )
     expect(screen.getByText('Legendario')).toBeInTheDocument()
-    expect(screen.getByText('2 clientes')).toBeInTheDocument()
+    expect(screen.getByText('1–2 de 2 clientes')).toBeInTheDocument()
     expect(screen.getByText('Página 1 de 1')).toBeInTheDocument()
   })
 
@@ -236,6 +282,30 @@ describe('CustomersPage', () => {
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(true)
   })
 
+  it('preserves edits and refreshes the expected version after a stale customer update', async () => {
+    const fetchMock = mockCustomerApi({ staleFirstUpdate: true })
+    render(<CustomersPage />)
+    await screen.findByRole('link', { name: 'Constructora Austral' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Constructora Austral' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Editar cliente' })
+    fireEvent.change(within(dialog).getByLabelText('Empresa'), {
+      target: { value: 'Austral con edición local' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Otro cambio fue guardado')
+    expect(within(dialog).getByLabelText('Empresa')).toHaveValue('Austral con edición local')
+    expect(
+      fetchMock.mock.calls.some(
+        ([input, init]) => String(input) === '/api/customers/1' && !init?.method,
+      ),
+    ).toBe(true)
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
   it('shows supervisor-only legendary and delete controls, but hides them from sellers', async () => {
     mockCustomerApi()
     const { unmount } = render(<CustomersPage />)
@@ -285,5 +355,29 @@ describe('CustomersPage', () => {
       expect(fetchMock.mock.calls.some(([input]) => String(input).includes('page=2'))).toBe(true),
     )
     expect(screen.getByText('Página 2 de 2')).toBeInTheDocument()
+  })
+
+  it('uses dry-run before an explicit atomic import confirmation', async () => {
+    const fetchMock = mockCustomerApi()
+    render(<CustomersPage />)
+    await screen.findByRole('link', { name: 'Constructora Austral' })
+    fireEvent.click(screen.getByRole('button', { name: 'Importar CSV' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Importar clientes' })
+    const csv = new File(
+      ['name,company,email,phone,province\nCliente Importado,,,,'],
+      'clientes.csv',
+      { type: 'text/csv' },
+    )
+    fireEvent.change(within(dialog).getByLabelText('Archivo CSV'), { target: { files: [csv] } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Validar archivo' }))
+    const review = await screen.findByRole('dialog', { name: 'Revisar importación' })
+    expect(within(review).getByText(/de forma atómica/)).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/customer-imports/dry-run')),
+    ).toBe(true)
+    fireEvent.click(within(review).getByRole('button', { name: 'Confirmar importación' }))
+    expect(await screen.findByRole('dialog', { name: 'Importación completada' })).toHaveTextContent(
+      'No hubo importaciones parciales',
+    )
   })
 })

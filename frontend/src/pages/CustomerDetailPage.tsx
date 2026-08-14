@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ApiError } from '../api/client'
-import { getCustomer } from '../api/customers'
+import { ApiError, isStaleWriteConflict } from '../api/client'
+import { deleteCustomer, getCustomer, updateCustomer } from '../api/customers'
 import { type ApiSession, listCustomerOpportunities } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
+import { CustomerFormModal } from '../customers/CustomerFormModal'
+import { DeleteCustomerModal } from '../customers/DeleteCustomerModal'
+import { customerErrorMessage } from '../customers/errors'
 import { LegendaryBadge } from '../customers/LegendaryBadge'
-import type { CustomerDetail } from '../customers/types'
+import type { CustomerDetail, CustomerWritePayload } from '../customers/types'
 import {
   OPPORTUNITY_STATUS_LABELS,
   OPPORTUNITY_STATUS_TONES,
@@ -16,6 +19,7 @@ import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatQuantityKg } from '../shared/formatters'
 import { LoadingState } from '../shared/LoadingState'
+import { Modal } from '../shared/Modal'
 
 function BackToCustomersLink() {
   return (
@@ -44,8 +48,7 @@ function BackToCustomersLink() {
 function DetailError({ notFound, onRetry }: { notFound: boolean; onRetry: () => void }) {
   return (
     <section aria-labelledby='customer-detail-error' className='max-w-3xl'>
-      <BackToCustomersLink />
-      <div className='ui-panel mt-3 px-5 py-6'>
+      <div className='px-5 py-6'>
         <h2 className='text-lg font-semibold text-slate-950' id='customer-detail-error'>
           {notFound ? 'Cliente no encontrado' : 'No pudimos cargar el cliente'}
         </h2>
@@ -165,12 +168,14 @@ function CustomerOpportunities({
 }
 
 export function CustomerDetailPage({ customerId }: { customerId: number }) {
-  const { token, logout } = useAuth()
+  const { token, logout, user } = useAuth()
   const [customer, setCustomer] = useState<CustomerDetail | null>(null)
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<'not-found' | 'request' | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
@@ -206,113 +211,176 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
     return () => controller.abort()
   }, [apiSession, customerId, reloadKey])
 
-  if (isLoading) return <LoadingState label='Cargando cliente…' />
-  if (loadError || !customer) {
-    return (
-      <DetailError
-        notFound={loadError === 'not-found'}
-        onRetry={() => setReloadKey((current) => current + 1)}
-      />
-    )
-  }
+  const close = () => navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
 
   return (
-    <article aria-labelledby='customer-name' className='mx-auto max-w-6xl'>
-      <BackToCustomersLink />
-
-      <header className='ui-panel mt-3 px-5 py-5 sm:px-6'>
-        <div className='flex flex-wrap items-start justify-between gap-4'>
-          <div>
-            <p className='text-xs font-bold uppercase tracking-wide text-slate-500'>
-              Cliente #{customer.id}
-            </p>
-            <div className='mt-1.5 flex flex-wrap items-center gap-2.5'>
-              <h2
-                className='text-2xl font-semibold tracking-tight text-slate-950'
-                id='customer-name'
-              >
-                {customer.name}
-              </h2>
-              {customer.legendary_historical_override ? <LegendaryBadge /> : null}
+    <Modal isOpen onClose={close} size='large' title='Ficha de cliente'>
+      <div className='px-4 pt-3'>
+        <BackToCustomersLink />
+      </div>
+      {isLoading ? (
+        <LoadingState label='Cargando cliente…' />
+      ) : loadError || !customer ? (
+        <div className='px-5 pb-5'>
+          <DetailError
+            notFound={loadError === 'not-found'}
+            onRetry={() => setReloadKey((current) => current + 1)}
+          />
+        </div>
+      ) : (
+        <article aria-labelledby='customer-name' className='px-5 pb-5 pt-3 sm:px-6'>
+          <header className='ui-panel px-5 py-5 sm:px-6'>
+            <div className='flex flex-wrap items-start justify-between gap-4'>
+              <div>
+                <div className='mt-1.5 flex flex-wrap items-center gap-2.5'>
+                  <h2
+                    className='text-2xl font-semibold tracking-tight text-slate-950'
+                    id='customer-name'
+                  >
+                    {customer.name}
+                  </h2>
+                  {customer.is_legendary || customer.legendary_historical_override ? (
+                    <LegendaryBadge />
+                  ) : null}
+                </div>
+                <p className='mt-1 text-sm text-slate-600'>
+                  {customer.company ?? 'Empresa no informada'}
+                </p>
+              </div>
+              <div className='flex flex-wrap gap-2'>
+                <Button onClick={() => setIsEditing(true)}>Editar</Button>
+                {user?.role === 'SUPERVISOR' ? (
+                  <Button onClick={() => setIsDeleting(true)} variant='danger'>
+                    Eliminar
+                  </Button>
+                ) : null}
+              </div>
             </div>
-            <p className='mt-1 text-sm text-slate-600'>
-              {customer.company ?? 'Empresa no informada'}
-            </p>
-          </div>
-          <div className='text-left sm:text-right'>
-            <p className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-              Fecha de alta
-            </p>
-            <time
-              className='mt-1 block text-sm font-medium text-slate-900'
-              dateTime={customer.created_at}
-            >
-              {formatDateTime(customer.created_at)}
-            </time>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      <section aria-labelledby='customer-contact-title' className='ui-panel mt-4 px-5 py-5 sm:px-6'>
-        <h3 className='text-base font-semibold text-slate-950' id='customer-contact-title'>
-          Información de contacto
-        </h3>
-        <dl className='mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3'>
-          <div>
-            <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>Email</dt>
-            <dd className='mt-1 break-words text-sm text-slate-900'>
-              {customer.email ? (
-                <a
-                  className='underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
-                  href={`mailto:${customer.email}`}
-                >
-                  {customer.email}
-                </a>
-              ) : (
-                'No informado'
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-              Teléfono
-            </dt>
-            <dd className='mt-1 text-sm text-slate-900'>
-              {customer.phone ? (
-                <a
-                  className='underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
-                  href={`tel:${customer.phone.replace(/[^\d+]/g, '')}`}
-                >
-                  {customer.phone}
-                </a>
-              ) : (
-                'No informado'
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-              Provincia
-            </dt>
-            <dd className='mt-1 text-sm text-slate-900'>{customer.province ?? 'No informada'}</dd>
-          </div>
-        </dl>
-      </section>
+          <section
+            aria-labelledby='customer-contact-title'
+            className='ui-panel mt-4 px-5 py-5 sm:px-6'
+          >
+            <h3 className='text-base font-semibold text-slate-950' id='customer-contact-title'>
+              Información de contacto
+            </h3>
+            <dl className='mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3'>
+              <div>
+                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+                  Email
+                </dt>
+                <dd className='mt-1 break-words text-sm text-slate-900'>
+                  {customer.email ? (
+                    <a
+                      className='underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
+                      href={`mailto:${customer.email}`}
+                    >
+                      {customer.email}
+                    </a>
+                  ) : (
+                    'No informado'
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+                  Teléfono
+                </dt>
+                <dd className='mt-1 text-sm text-slate-900'>
+                  {customer.phone ? (
+                    <a
+                      className='underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
+                      href={`tel:${customer.phone.replace(/[^\d+]/g, '')}`}
+                    >
+                      {customer.phone}
+                    </a>
+                  ) : (
+                    'No informado'
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+                  Provincia
+                </dt>
+                <dd className='mt-1 text-sm text-slate-900'>
+                  {customer.province ?? 'No informada'}
+                </dd>
+              </div>
+              <div>
+                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+                  Fecha de alta
+                </dt>
+                <dd className='mt-1 text-sm text-slate-900'>
+                  <time dateTime={customer.created_at}>{formatDateTime(customer.created_at)}</time>
+                </dd>
+              </div>
+            </dl>
+          </section>
 
-      <section
-        aria-labelledby='customer-opportunities-title'
-        className='ui-panel mt-4 px-5 py-5 sm:px-6'
-      >
-        <div className='flex flex-wrap items-baseline justify-between gap-2'>
-          <h3 className='text-base font-semibold text-slate-950' id='customer-opportunities-title'>
-            Oportunidades
-          </h3>
-          <p className='text-sm text-slate-600'>
-            {opportunities.length} {opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}
-          </p>
-        </div>
-        <CustomerOpportunities customerId={customer.id} opportunities={opportunities} />
-      </section>
-    </article>
+          <section
+            aria-labelledby='customer-opportunities-title'
+            className='ui-panel mt-4 px-5 py-5 sm:px-6'
+          >
+            <div className='flex flex-wrap items-baseline justify-between gap-2'>
+              <h3
+                className='text-base font-semibold text-slate-950'
+                id='customer-opportunities-title'
+              >
+                Oportunidades
+              </h3>
+              <p className='text-sm text-slate-600'>
+                {opportunities.length}{' '}
+                {opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}
+              </p>
+            </div>
+            <CustomerOpportunities customerId={customer.id} opportunities={opportunities} />
+          </section>
+          <CustomerFormModal
+            customer={customer}
+            isOpen={isEditing}
+            onClose={() => setIsEditing(false)}
+            onSubmit={async (payload: CustomerWritePayload) => {
+              try {
+                const updated = await updateCustomer(
+                  customer.id,
+                  { ...payload, expected_updated_at: customer.updated_at ?? '' },
+                  apiSession,
+                )
+                setCustomer((current) => (current ? { ...current, ...updated } : current))
+                setIsEditing(false)
+              } catch (caught) {
+                if (isStaleWriteConflict(caught)) {
+                  try {
+                    const authoritativeCustomer = await getCustomer(customer.id, apiSession)
+                    setCustomer(authoritativeCustomer)
+                  } catch {
+                    // The editor preserves its values even when the authoritative refresh fails.
+                  }
+                  throw new Error(
+                    'Otro cambio fue guardado antes. Actualizamos la versión del cliente; revisá tus cambios y volvé a guardar.',
+                  )
+                }
+                throw new Error(customerErrorMessage(caught, 'save'))
+              }
+            }}
+            role={user?.role ?? 'VENDEDOR'}
+          />
+          <DeleteCustomerModal
+            customer={isDeleting ? customer : null}
+            onClose={() => setIsDeleting(false)}
+            onConfirm={async () => {
+              try {
+                await deleteCustomer(customer.id, apiSession)
+                navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
+              } catch (caught) {
+                throw new Error(customerErrorMessage(caught, 'delete'))
+              }
+            }}
+          />
+        </article>
+      )}
+    </Modal>
   )
 }

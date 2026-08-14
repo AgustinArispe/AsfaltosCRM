@@ -247,4 +247,17 @@ describe('ProductsPage', () => {
     )
     expect(screen.getByRole('button', { name: 'Desactivar Producto antiguo' })).toBeInTheDocument()
   })
+
+  it('requires an explicit discard before closing a dirty product form', async () => {
+    mockProductApi()
+    render(<ProductsPage />)
+    await screen.findByText('SuperPhalt')
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Nuevo producto' })
+    fireEvent.change(within(dialog).getByLabelText(/Nombre/), { target: { value: 'Bacheo' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar nuevo producto' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('cambios sin guardar')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Descartar cambios' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
 })

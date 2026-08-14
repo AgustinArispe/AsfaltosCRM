@@ -54,24 +54,39 @@ export function CustomerFormModal({
   }>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const formId = useId()
   const nameInputRef = useRef<HTMLInputElement>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
   const isEditing = customer !== null
+  const customerRef = useRef(customer)
+  customerRef.current = customer
 
   useEffect(() => {
     if (!isOpen) return
-    setValues(valuesFromCustomer(customer))
+    setValues(valuesFromCustomer(customerRef.current))
     setFieldErrors({})
     setSubmitError(null)
     setIsSubmitting(false)
-  }, [customer, isOpen])
+    setIsDirty(false)
+  }, [isOpen])
 
   const updateValue = <Key extends keyof CustomerFormValues>(
     key: Key,
     value: CustomerFormValues[Key],
   ) => {
+    setIsDirty(true)
     setValues((current) => ({ ...current, [key]: value }))
+  }
+
+  const requestClose = () => {
+    if (isDirty) {
+      setSubmitError(
+        'Tenés cambios sin guardar. Elegí “Descartar cambios” para salir sin guardarlos.',
+      )
+      return
+    }
+    onClose()
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -122,7 +137,7 @@ export function CustomerFormModal({
           : 'Registrá la información disponible. Solo el nombre es obligatorio.'
       }
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={requestClose}
       title={isEditing ? 'Editar cliente' : 'Nuevo cliente'}
     >
       <form id={formId} noValidate onSubmit={handleSubmit}>
@@ -244,8 +259,8 @@ export function CustomerFormModal({
         </div>
 
         <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
-          <Button disabled={isSubmitting} onClick={onClose}>
-            Cancelar
+          <Button disabled={isSubmitting} onClick={isDirty ? onClose : requestClose}>
+            {isDirty ? 'Descartar cambios' : 'Cancelar'}
           </Button>
           <Button disabled={isSubmitting} type='submit' variant='primary'>
             {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear cliente'}

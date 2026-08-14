@@ -24,10 +24,10 @@ export function CustomerTable({
 }) {
   return (
     <section
-      aria-label='Listado de clientes. Desplazá horizontalmente para ver todas las columnas.'
-      className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500'
+      aria-label='Listado de clientes'
+      className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
     >
-      <table className='w-full min-w-[68rem] border-collapse text-left text-sm'>
+      <table className='w-full min-w-[42rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Clientes activos del CRM</caption>
         <thead>
           <tr className='border-b border-slate-200 bg-slate-50 text-xs text-slate-600'>
@@ -35,15 +35,9 @@ export function CustomerTable({
               Nombre
             </th>
             <th className='px-4 py-3 font-semibold' scope='col'>
-              Empresa
+              <span className='sr-only'>Identidad</span>
             </th>
-            <th className='px-4 py-3 font-semibold' scope='col'>
-              Email
-            </th>
-            <th className='px-4 py-3 font-semibold' scope='col'>
-              Teléfono
-            </th>
-            <th className='px-4 py-3 font-semibold' scope='col'>
+            <th className='hidden px-4 py-3 font-semibold lg:table-cell' scope='col'>
               Provincia
             </th>
             <th className='px-4 py-3 font-semibold' scope='col'>
@@ -57,37 +51,37 @@ export function CustomerTable({
         <tbody>
           {customers.map((customer) => (
             <tr
-              className='border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70'
+              className='border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--hover)]'
               key={customer.id}
             >
-              <th className='px-4 py-3 font-semibold text-slate-950' scope='row'>
+              <th className='px-4 py-3 font-semibold text-[var(--text-primary)]' scope='row'>
                 <AppLink
-                  className='inline-flex min-h-11 items-center underline decoration-slate-300 underline-offset-4 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
+                  aria-label={customer.name}
+                  className='inline-flex min-h-11 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                   origin={{ kind: 'workspace', workspace: 'customers' }}
                   to={{ kind: 'customer', customerId: customer.id }}
                 >
-                  {customer.name}
+                  <span>
+                    {customer.name}
+                    {customer.company ? (
+                      <span className='mt-0.5 block font-normal text-[var(--text-secondary)]'>
+                        {customer.company}
+                      </span>
+                    ) : null}
+                  </span>
                 </AppLink>
               </th>
-              <td className='max-w-52 px-4 py-3 text-slate-700'>
-                {customer.company ?? <MissingValue />}
-              </td>
-              <td className='max-w-60 px-4 py-3'>
+              <td className='px-4 py-3'>
                 {customer.email ? (
                   <a
-                    className='break-all text-slate-700 underline decoration-slate-300 underline-offset-2 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
+                    className='break-all text-[var(--text-secondary)] underline decoration-[var(--border-strong)] underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                     href={`mailto:${customer.email}`}
                   >
                     {customer.email}
                   </a>
-                ) : (
-                  <MissingValue />
-                )}
-              </td>
-              <td className='px-4 py-3'>
-                {customer.phone ? (
+                ) : customer.phone ? (
                   <a
-                    className='text-slate-700 underline decoration-slate-300 underline-offset-2 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
+                    className='text-[var(--text-secondary)] underline decoration-[var(--border-strong)] underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                     href={phoneHref(customer.phone)}
                   >
                     {customer.phone}
@@ -96,9 +90,15 @@ export function CustomerTable({
                   <MissingValue />
                 )}
               </td>
-              <td className='px-4 py-3 text-slate-700'>{customer.province ?? <MissingValue />}</td>
+              <td className='hidden px-4 py-3 text-[var(--text-secondary)] lg:table-cell'>
+                {customer.province ?? <MissingValue />}
+              </td>
               <td className='px-4 py-3'>
-                {customer.legendary_historical_override ? <LegendaryBadge /> : <MissingValue />}
+                {customer.is_legendary || customer.legendary_historical_override ? (
+                  <LegendaryBadge />
+                ) : (
+                  <MissingValue />
+                )}
               </td>
               <td className='px-4 py-3'>
                 <div className='flex min-w-max justify-end gap-2'>

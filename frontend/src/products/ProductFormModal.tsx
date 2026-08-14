@@ -19,6 +19,7 @@ export function ProductFormModal({
   const [nameError, setNameError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const formId = useId()
   const isEditing = product !== null
@@ -29,7 +30,18 @@ export function ProductFormModal({
     setNameError(null)
     setSubmitError(null)
     setIsSubmitting(false)
+    setIsDirty(false)
   }, [isOpen, product])
+
+  const requestClose = () => {
+    if (isDirty) {
+      setSubmitError(
+        'Tenés cambios sin guardar. Elegí “Descartar cambios” para salir sin guardarlos.',
+      )
+      return
+    }
+    onClose()
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -62,7 +74,7 @@ export function ProductFormModal({
           : 'El producto quedará disponible para nuevas cotizaciones.'
       }
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={requestClose}
       title={isEditing ? 'Editar producto' : 'Nuevo producto'}
     >
       <form noValidate onSubmit={handleSubmit}>
@@ -80,7 +92,10 @@ export function ProductFormModal({
               data-modal-initial-focus
               disabled={isSubmitting}
               id={`${formId}-name`}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value)
+                setIsDirty(true)
+              }}
               ref={nameInputRef}
               type='text'
               value={name}
@@ -94,8 +109,8 @@ export function ProductFormModal({
         </div>
 
         <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
-          <Button disabled={isSubmitting} onClick={onClose}>
-            Cancelar
+          <Button disabled={isSubmitting} onClick={isDirty ? onClose : requestClose}>
+            {isDirty ? 'Descartar cambios' : 'Cancelar'}
           </Button>
           <Button disabled={isSubmitting} type='submit' variant='primary'>
             {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear producto'}
