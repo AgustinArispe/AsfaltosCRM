@@ -62,10 +62,18 @@ export function NotificationBadge({ count }: { count: number }) {
   )
 }
 
-export function ChartSurface({ title, children }: { title: string; children: ReactNode }) {
+export function ChartSurface({
+  title,
+  children,
+  showTitle = true,
+}: {
+  title: string
+  children: ReactNode
+  showTitle?: boolean
+}) {
   return (
     <section aria-label={title} className='ui-chart-surface'>
-      <h2>{title}</h2>
+      {showTitle ? <h2>{title}</h2> : null}
       {children}
     </section>
   )

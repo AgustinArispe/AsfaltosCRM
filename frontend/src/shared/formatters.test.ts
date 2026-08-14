@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   formatDateTime,
+  formatDecimalKg,
+  formatDecimalRatioPercent,
   formatStageDuration,
   formatTimeInStage,
   sumQuantitiesKg,
@@ -24,5 +26,12 @@ describe('shared formatters', () => {
 
   it('adds quoted quantities represented as API decimals', () => {
     expect(sumQuantitiesKg(['2500.000', '1000.000'])).toBe(3500)
+  })
+
+  it('formats metric Decimals without recomputing them through floating-point arithmetic', () => {
+    expect(formatDecimalKg('2500.125')).toBe('2.500,125 kg')
+    expect(formatDecimalKg('10.000')).toBe('10 kg')
+    expect(formatDecimalRatioPercent('0.6250')).toBe('62,5 %')
+    expect(formatDecimalRatioPercent('1.0000')).toBe('100 %')
   })
 })

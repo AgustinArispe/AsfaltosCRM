@@ -2,6 +2,7 @@ import { useAuth } from './auth/AuthContext'
 import { AppShell } from './layout/AppShell'
 import { CustomerDetailPage } from './pages/CustomerDetailPage'
 import { CustomersPage } from './pages/CustomersPage'
+import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
@@ -81,6 +82,8 @@ function RoutedApp() {
   const pageContent =
     route.workspace === 'pipeline' ? (
       <PipelinePage />
+    ) : route.workspace === 'dashboard' ? (
+      <DashboardPage />
     ) : route.workspace === 'customers' ? (
       <CustomersPage />
     ) : route.workspace === 'products' ? (

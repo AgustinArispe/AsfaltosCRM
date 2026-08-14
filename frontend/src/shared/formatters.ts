@@ -15,8 +15,44 @@ const QUANTITY_FORMATTER = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 3,
 })
 
+const INTEGER_FORMATTER = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
+
 export function formatQuantityKg(quantity: string | number): string {
   return `${QUANTITY_FORMATTER.format(Number(quantity))} kg`
+}
+
+function decimalParts(value: string): { sign: string; integer: string; fraction: string } {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
+  if (!match) return { sign: '', integer: '0', fraction: '' }
+  return {
+    sign: match[1] === '-' ? '-' : '',
+    integer: match[2],
+    fraction: (match[3] ?? '').replace(/0+$/, ''),
+  }
+}
+
+function formatDecimal(value: string, maxFractionDigits: number): string {
+  const { sign, integer, fraction } = decimalParts(value)
+  const formattedInteger = INTEGER_FORMATTER.format(BigInt(integer))
+  const visibleFraction = fraction.slice(0, maxFractionDigits)
+  return `${sign}${formattedInteger}${visibleFraction ? `,${visibleFraction}` : ''}`
+}
+
+export function formatDecimalKg(quantity: string): string {
+  return `${formatDecimal(quantity, 3)} kg`
+}
+
+export function formatDecimalRatioPercent(ratio: string): string {
+  const { sign, integer, fraction } = decimalParts(ratio)
+  const raw = `${integer}${fraction}`
+  const decimalPosition = integer.length + 2
+  const padded = raw.padEnd(decimalPosition, '0')
+  const percentageInteger = padded.slice(0, decimalPosition)
+  const percentageFraction = padded.slice(decimalPosition).replace(/0+$/, '')
+  const percentage = percentageFraction
+    ? `${percentageInteger}.${percentageFraction}`
+    : percentageInteger
+  return `${sign}${formatDecimal(percentage, 2)} %`
 }
 
 export function sumQuantitiesKg(quantities: readonly (string | number)[]): number {
