@@ -1,6 +1,6 @@
 # CRM-024 — Customers, Products and Lost Workspaces UI
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-13
 
