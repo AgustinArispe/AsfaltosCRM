@@ -14,6 +14,7 @@ const broadcast: Broadcast = {
   label: 'Oferta agosto',
   status: 'DRAFT',
   version: 1,
+  template_external_id: 'marketing-1',
   template_name: 'oferta_asfalto',
   template_language: 'es_AR',
   template_category: 'MARKETING',
@@ -226,7 +227,7 @@ describe('WhatsAppBroadcastsPage', () => {
               occurred_at: '2026-08-14T12:00:00Z',
             },
           ],
-          next_cursor: null,
+          next_cursor: url.searchParams.has('cursor') ? null : 'audit-next',
         })
       if (url.pathname === '/api/whatsapp/broadcasts/9/recipients/3/attempts')
         return response({
@@ -239,7 +240,7 @@ describe('WhatsAppBroadcastsPage', () => {
               safe_reason: 'El proveedor rechazó el envío.',
             },
           ],
-          next_cursor: null,
+          next_cursor: url.searchParams.has('cursor') ? null : 'attempt-next',
         })
       if (url.pathname.endsWith('/process') || url.pathname.endsWith('/retries'))
         return response({
@@ -259,6 +260,8 @@ describe('WhatsAppBroadcastsPage', () => {
     fireEvent.change(screen.getByLabelText('Filtrar resultado'), { target: { value: 'FAILED' } })
     fireEvent.click(await screen.findByRole('button', { name: 'Ver intentos' }))
     expect(await screen.findByText(/Intentos de Cliente Fallido/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más intentos' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más eventos' }))
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar fallo definitivo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más resultados' }))
 
@@ -266,7 +269,7 @@ describe('WhatsAppBroadcastsPage', () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/retries'))).toBe(true)
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/process'))).toBe(true)
     })
-    expect(screen.getByText('PROCESSED')).toBeInTheDocument()
+    expect(screen.getAllByText('PROCESSED').length).toBeGreaterThan(0)
   })
 
   it('uploads required header media through the authenticated CRM boundary', async () => {
@@ -321,5 +324,38 @@ describe('WhatsAppBroadcastsPage', () => {
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/start'))).toBe(true),
     )
+  })
+
+  it('reopens a Draft with its safe values and allows removing header media', async () => {
+    const draftWithMedia: Broadcast = {
+      ...broadcast,
+      header_media_ref: '22222222-2222-4222-8222-222222222222',
+      template_external_id: 'marketing-document',
+      template_header_type: 'DOCUMENT',
+      template_header_media_required: true,
+    }
+    const documentTemplate: BroadcastTemplate = {
+      ...template,
+      external_id: 'marketing-document',
+      header_type: 'DOCUMENT',
+      header_media_required: true,
+    }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input), 'http://localhost').pathname
+      if (path === '/api/whatsapp/broadcasts/9' && init?.method === 'PUT')
+        return response({ ...draftWithMedia, version: 2, header_media_ref: null })
+      if (path === '/api/whatsapp/broadcasts/9') return response(draftWithMedia)
+      if (path === '/api/whatsapp/broadcast-templates') return response([documentTemplate])
+      if (path.endsWith('/recipients') || path.endsWith('/audit-events'))
+        return response({ items: [], next_cursor: null })
+      return response({ items: [], next_cursor: null })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<WhatsAppBroadcastsPage broadcastId={9} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar borrador' }))
+    expect(await screen.findByDisplayValue('Oferta agosto')).toBeInTheDocument()
+    await screen.findByRole('radio', { name: /oferta_asfalto/i })
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitar medio' }))
+    expect(screen.getByRole('button', { name: 'Continuar a clientes' })).toBeDisabled()
   })
 })

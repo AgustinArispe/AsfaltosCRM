@@ -177,10 +177,12 @@ function outcomeSummary(broadcast: Broadcast): string {
 
 function BroadcastCreation({
   isOpen,
+  initialDraft = null,
   onClose,
   session,
 }: {
   isOpen: boolean
+  initialDraft?: Broadcast | null
   onClose: () => void
   session: { token: string; onUnauthorized: () => void }
 }) {
@@ -205,6 +207,24 @@ function BroadcastCreation({
       .then(setTemplates)
       .catch((caught: unknown) => setError(errorText(caught)))
   }, [isOpen, session])
+  useEffect(() => {
+    if (!isOpen || !initialDraft) return
+    setStep(0)
+    setBroadcast(initialDraft)
+    setLabel(initialDraft.label)
+    setParameters(
+      Object.fromEntries(initialDraft.parameters.map((item) => [item.name, item.value])),
+    )
+    setHeaderMediaRef(initialDraft.header_media_ref)
+    setHeaderMediaName(initialDraft.header_media_ref ? 'Medio de encabezado seleccionado' : null)
+    setValidation(null)
+  }, [initialDraft, isOpen])
+  useEffect(() => {
+    if (!initialDraft || templates.length === 0) return
+    setSelectedTemplate(
+      templates.find((item) => item.external_id === initialDraft.template_external_id) ?? null,
+    )
+  }, [initialDraft, templates])
   useEffect(() => {
     if (step !== 2) return
     void listCustomers({ page: 1, pageSize: 30 }, session)
@@ -243,7 +263,7 @@ function BroadcastCreation({
           )
       setBroadcast(saved)
       setValidation(null)
-      setStep(2)
+      setStep(broadcast ? 3 : 2)
     } catch (caught) {
       setError(errorText(caught))
     } finally {
@@ -426,6 +446,19 @@ function BroadcastCreation({
                       />
                     ) : null}
                     {headerMediaName ? <p className='text-sm'>{headerMediaName}</p> : null}
+                    {headerMediaRef ? (
+                      <Button
+                        onClick={() => {
+                          setHeaderMediaRef(null)
+                          setHeaderMediaName(null)
+                          setHeaderMediaPreview(null)
+                        }}
+                        type='button'
+                        variant='ghost'
+                      >
+                        Quitar medio
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -499,7 +532,7 @@ function BroadcastCreation({
               El backend vuelve a validar consentimiento y datos antes de habilitar la confirmación.
             </p>
             <div className='mt-6 flex justify-between'>
-              <Button onClick={() => setStep(2)} type='button' variant='ghost'>
+              <Button onClick={() => setStep(broadcast ? 0 : 2)} type='button' variant='ghost'>
                 Volver
               </Button>
               <Button
@@ -575,7 +608,10 @@ function BroadcastDetail({
   const [recipientSearch, setRecipientSearch] = useState('')
   const [selectedRecipient, setSelectedRecipient] = useState<BroadcastRecipient | null>(null)
   const [attempts, setAttempts] = useState<BroadcastAttempt[]>([])
+  const [attemptCursor, setAttemptCursor] = useState<string | null>(null)
   const [auditEvents, setAuditEvents] = useState<BroadcastAuditEvent[]>([])
+  const [auditCursor, setAuditCursor] = useState<string | null>(null)
+  const [isEditingDraft, setIsEditingDraft] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const refreshRecipients = useCallback(async () => {
@@ -591,9 +627,19 @@ function BroadcastDetail({
   }, [refreshRecipients])
   useEffect(() => {
     void listBroadcastAuditEvents(broadcast.id, session)
-      .then((page) => setAuditEvents(page.items))
+      .then((page) => {
+        setAuditEvents(page.items)
+        setAuditCursor(page.next_cursor)
+      })
       .catch((caught: unknown) => setError(errorText(caught)))
   }, [broadcast.id, session])
+  useEffect(() => {
+    if (broadcast.status !== 'PROCESSING') return
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void onRefresh()
+    }, 15_000)
+    return () => window.clearInterval(interval)
+  }, [broadcast.status, onRefresh])
   const command = async (kind: 'start' | 'process') => {
     setPending(true)
     setError(null)
@@ -620,10 +666,29 @@ function BroadcastDetail({
   const showAttempts = async (recipient: BroadcastRecipient) => {
     setSelectedRecipient(recipient)
     try {
-      setAttempts((await listBroadcastAttempts(broadcast.id, recipient.id, session)).items)
+      const page = await listBroadcastAttempts(broadcast.id, recipient.id, session)
+      setAttempts(page.items)
+      setAttemptCursor(page.next_cursor)
     } catch (caught) {
       setError(errorText(caught))
     }
+  }
+  const loadMoreAttempts = async () => {
+    if (!selectedRecipient || !attemptCursor) return
+    const page = await listBroadcastAttempts(
+      broadcast.id,
+      selectedRecipient.id,
+      session,
+      attemptCursor,
+    )
+    setAttempts((current) => [...current, ...page.items])
+    setAttemptCursor(page.next_cursor)
+  }
+  const loadMoreAuditEvents = async () => {
+    if (!auditCursor) return
+    const page = await listBroadcastAuditEvents(broadcast.id, session, auditCursor)
+    setAuditEvents((current) => [...current, ...page.items])
+    setAuditCursor(page.next_cursor)
   }
   const retry = async (recipient: BroadcastRecipient) => {
     setPending(true)
@@ -676,6 +741,11 @@ function BroadcastDetail({
           variant='primary'
         >
           Iniciar procesamiento
+        </Button>
+      ) : null}
+      {broadcast.status === 'DRAFT' ? (
+        <Button onClick={() => setIsEditingDraft(true)} type='button' variant='primary'>
+          Editar borrador
         </Button>
       ) : null}
       {broadcast.status === 'PROCESSING' ? (
@@ -793,6 +863,11 @@ function BroadcastDetail({
               </li>
             ))}
           </ul>
+          {attemptCursor ? (
+            <Button onClick={() => void loadMoreAttempts()} type='button' variant='ghost'>
+              Cargar más intentos
+            </Button>
+          ) : null}
         </section>
       ) : null}
       <section className='ui-panel p-4' aria-labelledby='broadcast-audit-title'>
@@ -810,7 +885,21 @@ function BroadcastDetail({
             </li>
           ))}
         </ul>
+        {auditCursor ? (
+          <Button onClick={() => void loadMoreAuditEvents()} type='button' variant='ghost'>
+            Cargar más eventos
+          </Button>
+        ) : null}
       </section>
+      <BroadcastCreation
+        initialDraft={broadcast}
+        isOpen={isEditingDraft}
+        onClose={() => {
+          setIsEditingDraft(false)
+          void onRefresh()
+        }}
+        session={session}
+      />
     </section>
   )
 }

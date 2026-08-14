@@ -40,6 +40,7 @@ export type Broadcast = {
   label: string
   status: BroadcastStatus
   version: number
+  template_external_id: string
   template_name: string
   template_language: string
   template_category: string
