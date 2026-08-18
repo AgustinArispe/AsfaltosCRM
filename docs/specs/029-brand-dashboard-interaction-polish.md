@@ -3,7 +3,7 @@
 Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-18
-Implementation commit: 11ccafe
+Implementation commit: 82cd586
 
 ## Goal
 
@@ -506,8 +506,9 @@ None.
 
 ## Implementation notes
 
-Implementado en `11ccafe` sin dependencias ni migraciones nuevas y sin incluir alcance
-de CRM-026. El backend incorpora únicamente el contrato paginado diario
+Implementado en `11ccafe` y verificado en `82cd586` sin dependencias ni migraciones
+nuevas y sin incluir alcance de CRM-026. El backend incorpora únicamente el contrato
+paginado diario
 `GET /api/metrics/timeline/day-opportunities`; el frontend consume ese boundary acotado
 para el detalle por barra y mantiene los agregados existentes para las visualizaciones.
 
