@@ -103,9 +103,6 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-027`](027-visual-design-product-polish.md) — Draft — second visual/product-
-  design refinement over CRM-018–025; defines FAA surface, token, hierarchy, controls,
-  workspace, Light/Dark, motion, and Users/account polish before CRM-026.
 - [`CRM-026`](026-frontend-final-polish.md) — Draft — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-027 implementation.
@@ -114,7 +111,9 @@ must describe implemented behavior only.
 
 ## Approved specifications
 
-None.
+- [`CRM-027`](027-visual-design-product-polish.md) — Approved — second visual/product-
+  design refinement over CRM-018–025; defines FAA surface, token, hierarchy, controls,
+  workspace, Light/Dark, motion, and Users/account polish before CRM-026.
 
 ## Implemented specifications
 
