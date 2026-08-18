@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -21,6 +21,7 @@ from app.schemas.metrics import (
     ProductMetricsResponse,
     ProvinceMetricsResponse,
     SourceMetricsResponse,
+    TimelineDayOpportunitiesResponse,
     TimelineMetricsResponse,
 )
 
@@ -83,6 +84,17 @@ def test_period_metrics_require_authentication(
 def test_pipeline_metrics_require_authentication(api_client: TestClient) -> None:
     del api_client.headers["Authorization"]
     assert api_client.get("/api/metrics/pipeline").status_code == 401
+
+
+def test_timeline_day_opportunities_requires_authentication(
+    api_client: TestClient,
+) -> None:
+    del api_client.headers["Authorization"]
+    response = api_client.get(
+        "/api/metrics/timeline/day-opportunities",
+        params={"bucket": "2050-01-04", "series": "won"},
+    )
+    assert response.status_code == 401
 
 
 def test_all_metric_endpoints_return_typed_contracts(
@@ -161,6 +173,66 @@ def test_metric_filters_are_applied_through_api(
     assert response.json()["opportunities"]["created"] == 1
     assert excluded.status_code == 200
     assert excluded.json()["opportunities"]["created"] == 0
+
+
+def test_timeline_day_opportunities_returns_narrow_typed_projection(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    customer, product, won = seed_metrics_data(db_session)
+    assert customer.province is not None
+
+    response = api_client.get(
+        "/api/metrics/timeline/day-opportunities",
+        params={
+            "bucket": date(2050, 1, 4).isoformat(),
+            "series": "won",
+            "source": "WEB",
+            "product_id": product.id,
+            "province": customer.province,
+            "page": 1,
+            "page_size": 20,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    detail = TimelineDayOpportunitiesResponse.model_validate(payload)
+    assert detail.total == 1
+    assert detail.timezone == "America/Argentina/Buenos_Aires"
+    assert detail.items[0].opportunity_id == won.id
+    assert detail.items[0].customer_name == customer.name
+    assert detail.items[0].current_status is OpportunityStatus.GANADA
+    assert detail.items[0].products[0].quantity_kg == Decimal("2500.000")
+    assert set(payload["items"][0]) == {
+        "opportunity_id",
+        "customer_name",
+        "customer_company",
+        "current_status",
+        "source",
+        "products",
+    }
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"bucket": "2050-01-04", "series": "closed"},
+        {"bucket": "2050-01-04", "series": "won", "page": 0},
+        {"bucket": "2050-01-04", "series": "won", "page_size": 101},
+        {"bucket": "not-a-date", "series": "won"},
+        {"bucket": "2050-01-04", "series": "won", "unexpected": "value"},
+    ],
+)
+def test_timeline_day_opportunities_validates_query(
+    api_client: TestClient,
+    params: dict[str, object],
+) -> None:
+    response = api_client.get(
+        "/api/metrics/timeline/day-opportunities",
+        params=params,
+    )
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(

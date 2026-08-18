@@ -71,7 +71,7 @@ function RoutedApp() {
   }
   if (route.kind === 'broadcast') {
     return (
-      <AppShell activeNavigationPath='/whatsapp-sends' pageTitle='Envíos WhatsApp'>
+      <AppShell activeNavigationPath='/whatsapp-sends' pageTitle='Envíos masivos'>
         <WhatsAppBroadcastsPage broadcastId={route.broadcastId} />
       </AppShell>
     )

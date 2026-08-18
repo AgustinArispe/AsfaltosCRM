@@ -13,7 +13,10 @@ from pydantic import (
 
 from app.models import LeadSource, OpportunityStatus
 from app.schemas.common import StrictRequestModel
-from app.services.metrics_service import TimelineGranularity
+from app.services.metrics_service import (
+    TimelineGranularity,
+    TimelineOpportunitySeries,
+)
 
 ProvinceFilter = Annotated[
     str,
@@ -52,6 +55,13 @@ class PipelineMetricsQuery(StrictRequestModel):
     source: LeadSource | None = None
     product_id: int | None = Field(default=None, gt=0)
     province: ProvinceFilter | None = None
+
+
+class TimelineDayOpportunitiesQuery(PipelineMetricsQuery):
+    bucket: date
+    series: TimelineOpportunitySeries
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
 
 
 class MetricsPeriodResponse(BaseModel):
@@ -153,6 +163,32 @@ class TimelineMetricsResponse(BaseModel):
     granularity: TimelineGranularity
     timezone: str
     items: list[TimelineMetricResponse]
+
+
+class TimelineOpportunityProductResponse(BaseModel):
+    product_id: int
+    product_name: str
+    quantity_kg: Decimal
+    is_active: bool
+
+
+class TimelineOpportunityItemResponse(BaseModel):
+    opportunity_id: int
+    customer_name: str
+    customer_company: str | None
+    current_status: OpportunityStatus
+    source: LeadSource
+    products: list[TimelineOpportunityProductResponse]
+
+
+class TimelineDayOpportunitiesResponse(BaseModel):
+    bucket: date
+    series: TimelineOpportunitySeries
+    timezone: str
+    page: int
+    page_size: int
+    total: int
+    items: list[TimelineOpportunityItemResponse]
 
 
 class PipelineStatusMetricResponse(BaseModel):

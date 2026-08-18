@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Date, SQLColumnExpression, and_, cast, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Subquery
 
@@ -43,6 +43,12 @@ MAX_MONTH_TIMELINE_BUCKETS = 1_200
 class TimelineGranularity(StrEnum):
     DAY = "day"
     MONTH = "month"
+
+
+class TimelineOpportunitySeries(StrEnum):
+    CREATED = "created"
+    WON = "won"
+    LOST = "lost"
 
 
 @dataclass(frozen=True, slots=True)
@@ -495,6 +501,55 @@ class MetricsService:
             for bucket in self._period_buckets(period, granularity)
         ]
 
+    def timeline_day_opportunities(
+        self,
+        *,
+        bucket: date,
+        series: TimelineOpportunitySeries,
+        dimensions: MetricsDimensions,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[Opportunity], int]:
+        """Return the bounded Opportunities behind one exact timeline day bucket."""
+        period = self._day_period(bucket)
+        relevant_timestamp = (
+            Opportunity.created_at
+            if series is TimelineOpportunitySeries.CREATED
+            else Opportunity.current_status_entered_at
+        )
+        filters = [
+            *self._opportunity_filters(dimensions),
+            self._in_period(relevant_timestamp, period),
+        ]
+        if series is TimelineOpportunitySeries.WON:
+            filters.append(Opportunity.status == OpportunityStatus.GANADA)
+        elif series is TimelineOpportunitySeries.LOST:
+            filters.append(Opportunity.status == OpportunityStatus.PERDIDA)
+
+        count_statement = select(func.count()).select_from(Opportunity)
+        statement = select(Opportunity)
+        if dimensions.province is not None:
+            count_statement = count_statement.join(Customer)
+            statement = statement.join(Customer)
+
+        total = self._session.scalar(count_statement.where(*filters)) or 0
+        opportunities = list(
+            self._session.scalars(
+                statement
+                .where(*filters)
+                .options(
+                    joinedload(Opportunity.customer),
+                    selectinload(Opportunity.opportunity_products).joinedload(
+                        OpportunityProduct.product
+                    ),
+                )
+                .order_by(relevant_timestamp.desc(), Opportunity.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
+        )
+        return opportunities, total
+
     def pipeline(
         self,
         dimensions: MetricsDimensions,
@@ -571,6 +626,15 @@ class MetricsService:
         period: MetricsPeriod,
     ) -> ColumnElement[bool]:
         return and_(timestamp >= period.start, timestamp < period.end)
+
+    @staticmethod
+    def _day_period(bucket: date) -> MetricsPeriod:
+        local_start = datetime.combine(bucket, time.min, tzinfo=BUSINESS_TIMEZONE)
+        local_end = local_start + timedelta(days=1)
+        return MetricsPeriod(
+            start=local_start.astimezone(UTC),
+            end=local_end.astimezone(UTC),
+        )
 
     @staticmethod
     def _business_bucket(

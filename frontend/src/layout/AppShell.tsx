@@ -20,7 +20,7 @@ const NAVIGATION_ICONS: Record<string, IconName> = {
   '/pipeline': 'pipeline',
   '/dashboard': 'dashboard',
   '/notifications': 'inbox',
-  '/whatsapp': 'inbox',
+  '/whatsapp': 'whatsapp',
   '/customers': 'users',
   '/products': 'products',
   '/lost': 'pipeline',

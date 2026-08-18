@@ -10,10 +10,7 @@ export function Brand({
       <span
         aria-hidden='true'
         className={[
-          'grid size-9 place-items-center rounded-[var(--radius-control)] border text-xs font-bold tracking-[0.04em]',
-          inverse
-            ? 'border-[var(--strong-border)] bg-[var(--surface-secondary)] text-[var(--text-primary)]'
-            : 'border-[var(--brand-deep)] bg-[var(--brand-deep)] text-[var(--on-brand)]',
+          'grid size-9 place-items-center rounded-[var(--radius-control)] border border-[var(--brand-accent)] bg-[var(--brand-accent)] text-xs font-bold tracking-[0.04em] text-[var(--on-accent)] shadow-[var(--shadow-subtle)]',
         ].join(' ')}
       >
         FAA

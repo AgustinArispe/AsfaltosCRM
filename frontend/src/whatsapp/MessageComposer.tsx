@@ -124,7 +124,7 @@ export function MessageComposer({
 
   return (
     <form
-      className='whatsapp-composer shrink-0 border-t border-[var(--subtle-border)] px-3 py-3 sm:px-4'
+      className={`whatsapp-composer shrink-0 border-t border-[var(--subtle-border)] px-3 py-3 sm:px-4${conversation.template_required ? ' whatsapp-composer--template-required' : ''}`}
       onSubmit={(event) => {
         event.preventDefault()
         void submit()

@@ -18,9 +18,13 @@ from app.schemas.metrics import (
     ProvinceMetricsResponse,
     SourceMetricResponse,
     SourceMetricsResponse,
+    TimelineDayOpportunitiesQuery,
+    TimelineDayOpportunitiesResponse,
     TimelineMetricResponse,
     TimelineMetricsQuery,
     TimelineMetricsResponse,
+    TimelineOpportunityItemResponse,
+    TimelineOpportunityProductResponse,
     VolumeMetricsResponse,
 )
 from app.services.metrics_service import (
@@ -171,6 +175,60 @@ def get_timeline_metrics(
                 filters,
                 granularity=query.granularity,
             )
+        ],
+    )
+
+
+@router.get(
+    "/timeline/day-opportunities",
+    response_model=TimelineDayOpportunitiesResponse,
+    summary="Get Opportunities contributing to one timeline day",
+    description=(
+        "Returns a bounded page for one exact Buenos Aires calendar day and series. "
+        "Created uses creation time; won/lost use current terminal-state entry time."
+    ),
+)
+def get_timeline_day_opportunities(
+    session: DatabaseSession,
+    _current_user: CurrentUser,
+    query: Annotated[TimelineDayOpportunitiesQuery, Query()],
+) -> TimelineDayOpportunitiesResponse:
+    dimensions = _dimensions(query)
+    opportunities, total = MetricsService(session).timeline_day_opportunities(
+        bucket=query.bucket,
+        series=query.series,
+        dimensions=dimensions,
+        page=query.page,
+        page_size=query.page_size,
+    )
+    return TimelineDayOpportunitiesResponse(
+        bucket=query.bucket,
+        series=query.series,
+        timezone=BUSINESS_TIMEZONE_NAME,
+        page=query.page,
+        page_size=query.page_size,
+        total=total,
+        items=[
+            TimelineOpportunityItemResponse(
+                opportunity_id=opportunity.id,
+                customer_name=opportunity.customer.name,
+                customer_company=opportunity.customer.company,
+                current_status=opportunity.status,
+                source=opportunity.source,
+                products=[
+                    TimelineOpportunityProductResponse(
+                        product_id=line.product.id,
+                        product_name=line.product.name,
+                        quantity_kg=line.quantity_kg,
+                        is_active=line.product.is_active,
+                    )
+                    for line in sorted(
+                        opportunity.opportunity_products,
+                        key=lambda item: (item.product.name, item.product.id),
+                    )
+                ],
+            )
+            for opportunity in opportunities
         ],
     )
 

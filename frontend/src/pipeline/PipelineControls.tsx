@@ -98,12 +98,12 @@ export function PipelineControls({
           </label>
         </div>
       </details>
+      {action ? <div className='pipeline-controls__refresh'>{action}</div> : null}
       {activeCount ? (
         <Button onClick={onReset} size='compact' type='button' variant='ghost'>
           Limpiar
         </Button>
       ) : null}
-      {action ? <div className='ml-auto'>{action}</div> : null}
     </Toolbar>
   )
 }

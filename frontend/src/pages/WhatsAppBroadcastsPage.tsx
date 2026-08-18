@@ -104,23 +104,24 @@ export function WhatsAppBroadcastsPage({ broadcastId }: { broadcastId?: number }
       <header className='flex flex-wrap items-center justify-between gap-3'>
         <div>
           <h2 className='text-lg font-semibold' id='broadcast-history-title'>
-            Envíos recientes
+            Envíos masivos recientes
           </h2>
           <p className='text-sm text-[var(--text-secondary)]'>
-            Ejecuciones aprobadas y auditables.
+            Plantillas aprobadas a Clientes seleccionados, con elegibilidad y consentimiento
+            auditables.
           </p>
         </div>
         <Button onClick={() => setIsNewOpen(true)} type='button' variant='primary'>
-          Nuevo envío
+          Nuevo envío masivo
         </Button>
       </header>
       {error ? <p role='alert'>{error}</p> : null}
       {items.length === 0 ? (
         <EmptyState
-          description='Las ejecuciones confirmadas aparecerán aquí con su evidencia.'
+          description='Los envíos confirmados aparecerán aquí con su evidencia de elegibilidad y consentimiento.'
           icon='send'
           size='workspace'
-          title='Todavía no hay envíos'
+          title='Todavía no hay envíos masivos'
         />
       ) : (
         <div className='ui-panel overflow-x-auto'>
@@ -368,11 +369,11 @@ function BroadcastCreation({
   }
   return (
     <Modal
-      description='Ejecutá contenido previamente aprobado; no se edita una campaña desde el CRM.'
+      description='Enviá una plantilla aprobada a Clientes seleccionados; el CRM valida elegibilidad y consentimiento.'
       isOpen={isOpen}
       onClose={onClose}
       size='large'
-      title='Nuevo envío WhatsApp'
+      title='Nuevo envío masivo'
     >
       <div className='p-5'>
         <ol aria-label='Progreso de creación' className='mb-5 flex flex-wrap gap-2'>

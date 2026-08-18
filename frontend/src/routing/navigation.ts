@@ -36,8 +36,8 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
   {
     path: '/whatsapp-sends',
     group: 'communication',
-    label: 'Envíos WhatsApp',
-    description: 'Ejecuciones auditables de envíos aprobados.',
+    label: 'Envíos masivos',
+    description: 'Plantillas aprobadas para Clientes elegibles y con consentimiento.',
   },
   {
     path: '/customers',

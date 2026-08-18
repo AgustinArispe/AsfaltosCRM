@@ -1,18 +1,10 @@
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
 import { conversationActivityLabel, conversationDisplayName } from './inbox-state'
 import { formatInboxActivity } from './presentation'
 import type { WhatsAppConversationSummary } from './types'
-
-function SearchIcon() {
-  return (
-    <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>
-      <circle cx='8.5' cy='8.5' r='5.5' stroke='currentColor' strokeWidth='1.6' />
-      <path d='m12.5 12.5 4 4' stroke='currentColor' strokeLinecap='round' strokeWidth='1.6' />
-    </svg>
-  )
-}
 
 function ConversationRow({
   conversation,
@@ -32,6 +24,7 @@ function ConversationRow({
         isSelected
           ? 'whatsapp-conversation-row--selected'
           : 'bg-transparent hover:bg-[var(--surface-hover)]',
+        conversation.waiting_for_response ? 'whatsapp-conversation-row--waiting' : '',
       ].join(' ')}
       onClick={onSelect}
       id={`whatsapp-conversation-${conversation.id}`}
@@ -62,12 +55,15 @@ function ConversationRow({
           className={[
             'min-w-0 truncate text-xs',
             conversation.waiting_for_response
-              ? 'font-semibold text-[var(--warning-text)]'
+              ? 'whatsapp-conversation-row__waiting font-semibold text-[var(--warning-text)]'
               : conversation.resolution_status === 'NEEDS_REVIEW'
                 ? 'font-semibold text-[var(--destructive-text)]'
                 : 'text-[var(--text-tertiary)]',
           ].join(' ')}
         >
+          {conversation.waiting_for_response ? (
+            <Icon className='mr-1 inline size-3.5' name='clock' />
+          ) : null}
           {conversationActivityLabel(conversation)}
         </span>
         {conversation.unread_count > 0 ? (
@@ -140,7 +136,7 @@ export function ConversationList({
         <label className='relative mt-3 block'>
           <span className='sr-only'>Buscar conversaciones</span>
           <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]'>
-            <SearchIcon />
+            <Icon className='size-4' name='search' />
           </span>
           <input
             className='ui-field pl-9 text-sm'

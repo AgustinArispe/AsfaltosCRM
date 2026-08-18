@@ -77,7 +77,10 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                 className='lost-list__row border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--hover)]'
                 key={item.loss_event_id}
               >
-                <th className='px-4 py-3 font-semibold text-[var(--text-primary)]' scope='row'>
+                <th
+                  className='lost-list__customer px-4 py-3 font-semibold text-[var(--text-primary)]'
+                  scope='row'
+                >
                   <AppLink
                     aria-label={opportunity.customer.name}
                     className='inline-flex min-h-11 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
@@ -99,16 +102,16 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                     </span>
                   </AppLink>
                 </th>
-                <td className='px-4 py-3'>
+                <td className='lost-list__reason px-4 py-3'>
                   <Badge tone='lost'>{LOSS_REASON_LABELS[item.loss_reason]}</Badge>
                 </td>
-                <td className='whitespace-nowrap px-4 py-3 text-[var(--text-secondary)]'>
+                <td className='lost-list__date whitespace-nowrap px-4 py-3 text-[var(--text-secondary)]'>
                   <time dateTime={item.lost_at}>{formatDateTime(item.lost_at)}</time>
                 </td>
-                <td className='hidden px-4 py-3 text-[var(--text-secondary)] lg:table-cell'>
+                <td className='lost-list__source hidden px-4 py-3 text-[var(--text-secondary)] lg:table-cell'>
                   {SOURCE_LABELS[opportunity.source]}
                 </td>
-                <td className='hidden max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)] xl:table-cell'>
+                <td className='lost-list__quote hidden max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)] xl:table-cell'>
                   {productEvidence(item)}
                 </td>
                 <td className='px-4 py-3 text-right'>

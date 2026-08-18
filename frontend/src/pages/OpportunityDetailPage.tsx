@@ -224,7 +224,7 @@ export function OpportunityDetailPage({
         disabled={isLookingUpConversation}
         onClick={() => void handleWhatsApp()}
       >
-        <Icon name='inbox' />
+        <Icon name='whatsapp' />
         {isLookingUpConversation ? 'Buscando conversación…' : 'Abrir WhatsApp'}
       </Button>
       {isEligibleForReopen(opportunity) ? (

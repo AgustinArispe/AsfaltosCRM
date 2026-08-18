@@ -4,13 +4,10 @@ import type { ApiSession } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { DashboardFilters } from '../metrics/DashboardFilters'
 import {
-  ConversionChart,
+  CommercialDistribution,
   DashboardKpis,
   DashboardRefresh,
-  PipelineSnapshot,
-  ProductRanking,
-  ProvinceRanking,
-  SourceRanking,
+  ResultsCluster,
   TimelineChart,
 } from '../metrics/DashboardVisuals'
 import { activeFilterCount, defaultDashboardFilters } from '../metrics/filters'
@@ -42,98 +39,88 @@ function DashboardSkeleton() {
 }
 
 function OperationalAttention({
-  created,
   hasWaitingConversation,
   staleTotal,
   unreadTotal,
   isUnavailable,
 }: {
-  created: number | undefined
   hasWaitingConversation: boolean | null
   staleTotal: number | null
   unreadTotal: number | null
   isUnavailable: boolean
 }) {
   const items = [
-    staleTotal && staleTotal > 0
-      ? {
-          label: 'Seguimientos pendientes',
-          value: String(staleTotal),
-          description: 'Sin cambio de etapa hace 14 días o más',
-          icon: 'clock' as IconName,
-          target: 'notifications' as const,
-        }
-      : null,
-    unreadTotal && unreadTotal > 0
-      ? {
-          label: 'Notificaciones sin leer',
-          value: String(unreadTotal),
-          description: 'Pendientes de revisión por el equipo',
-          icon: 'bell' as IconName,
-          target: 'notifications' as const,
-        }
-      : null,
-    hasWaitingConversation
-      ? {
-          label: 'Conversaciones en espera',
-          value: 'Hay',
-          description: 'Al menos una conversación requiere respuesta',
-          icon: 'inbox' as IconName,
-          target: null,
-        }
-      : null,
-  ].filter((item): item is NonNullable<typeof item> => item !== null)
+    {
+      label: 'Seguimientos pendientes',
+      value: staleTotal === null ? '—' : String(staleTotal),
+      description:
+        staleTotal && staleTotal > 0
+          ? 'Sin cambio de etapa hace 14 días o más.'
+          : 'Sin seguimientos demorados.',
+      icon: 'clock' as IconName,
+      target: 'notifications' as const,
+      action: 'Ver seguimientos',
+    },
+    {
+      label: 'Notificaciones sin leer',
+      value: unreadTotal === null ? '—' : String(unreadTotal),
+      description:
+        unreadTotal && unreadTotal > 0
+          ? 'Pendientes de revisión por el equipo.'
+          : 'Todo revisado por ahora.',
+      icon: 'bell' as IconName,
+      target: 'notifications' as const,
+      action: 'Revisar notificaciones',
+    },
+    {
+      label: 'Conversaciones esperando',
+      value: hasWaitingConversation === null ? '—' : hasWaitingConversation ? 'Hay' : '0',
+      description: hasWaitingConversation
+        ? 'Al menos una conversación requiere respuesta.'
+        : 'No hay conversaciones esperando.',
+      icon: 'whatsapp' as IconName,
+      target: 'whatsapp' as const,
+      action: 'Abrir WhatsApp',
+    },
+  ]
 
   return (
     <section aria-labelledby='dashboard-attention-title' className='dashboard-attention'>
       <div className='dashboard-attention__heading'>
         <div>
           <h2 id='dashboard-attention-title'>Lo que necesita seguimiento ahora</h2>
+          <p>Accesos directos a la atención operativa del equipo.</p>
         </div>
-        {created !== undefined && created > 0 ? (
-          <AppLink
-            className='dashboard-attention__link'
-            to={{ kind: 'workspace', workspace: 'pipeline' }}
-          >
-            Ver {created} creadas en Pipeline
-          </AppLink>
-        ) : null}
       </div>
-      {items.length > 0 ? (
-        <ul>
-          {items.map((item) => (
-            <li className='dashboard-attention__item' key={item.label}>
-              <span className='dashboard-attention__icon'>
-                <Icon name={item.icon} />
-              </span>
-              <span className='dashboard-attention__content'>
-                <span>
-                  <strong className='dashboard-attention__value'>{item.value}</strong>
-                  <b>{item.label}</b>
-                </span>
-                <small>{item.description}</small>
-              </span>
-              {item.target ? (
-                <AppLink
-                  aria-label={`Revisar ${item.label.toLocaleLowerCase('es-AR')}`}
-                  className='dashboard-attention__action'
-                  to={{ kind: 'workspace', workspace: item.target }}
-                >
-                  Revisar
-                </AppLink>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : isUnavailable ? (
+      {isUnavailable ? (
         <p className='dashboard-attention__unavailable'>
-          La evidencia operativa no está disponible en este momento.
+          Parte de la evidencia operativa no está disponible en este momento.
         </p>
-      ) : (
-        <p className='dashboard-attention__calm'>
-          Sin seguimientos o conversaciones esperando respuesta.
-        </p>
-      )}
+      ) : null}
+      <ul>
+        {items.map((item) => (
+          <li className='dashboard-attention__item' key={item.label}>
+            <span className='dashboard-attention__icon'>
+              <Icon name={item.icon} />
+            </span>
+            <span className='dashboard-attention__content'>
+              <span>
+                <strong className='dashboard-attention__value'>{item.value}</strong>
+                <b>{item.label}</b>
+              </span>
+              <small>{item.description}</small>
+            </span>
+            <AppLink
+              aria-label={`${item.action}: ${item.label.toLocaleLowerCase('es-AR')}`}
+              className='dashboard-attention__action'
+              to={{ kind: 'workspace', workspace: item.target }}
+            >
+              {item.action}
+              <Icon name='chevron-right' />
+            </AppLink>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
@@ -179,7 +166,6 @@ export function DashboardPage() {
       ) : (
         <>
           <OperationalAttention
-            created={data.overview?.opportunities.created}
             hasWaitingConversation={attention.hasWaitingConversation}
             isUnavailable={Boolean(errors.attention)}
             staleTotal={attention.staleTotal}
@@ -197,39 +183,31 @@ export function DashboardPage() {
           <div className='dashboard-primary-grid'>
             <TimelineChart
               error={errors.timeline}
+              filters={filters}
               hasActiveFilters={hasActiveFilters}
               onRetry={retry}
+              session={session}
               timeline={data.timeline}
             />
-            <div className='dashboard-primary-grid__side'>
-              <ConversionChart overview={data.overview} />
-              <PipelineSnapshot
-                error={errors.pipeline}
-                hasDimensionFilters={hasDimensionFilters}
-                onRetry={retry}
-                pipeline={data.pipeline}
-              />
-            </div>
-          </div>
-          <div className='dashboard-secondary-grid'>
-            <ProductRanking
-              error={errors.products}
-              hasActiveFilters={hasActiveFilters}
-              items={data.products}
+            <ResultsCluster
+              error={errors.pipeline}
+              hasDimensionFilters={hasDimensionFilters}
               onRetry={retry}
-            />
-            <SourceRanking
-              error={errors.sources}
-              hasActiveFilters={hasActiveFilters}
-              items={data.sources}
-              onRetry={retry}
+              overview={data.overview}
+              pipeline={data.pipeline}
             />
           </div>
-          <ProvinceRanking
-            error={errors.provinces}
+          <CommercialDistribution
+            errors={{
+              products: errors.products,
+              provinces: errors.provinces,
+              sources: errors.sources,
+            }}
             hasActiveFilters={hasActiveFilters}
-            items={data.provinces}
             onRetry={retry}
+            products={data.products}
+            provinces={data.provinces}
+            sources={data.sources}
           />
         </>
       )}

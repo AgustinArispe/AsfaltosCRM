@@ -79,7 +79,7 @@ describe('WhatsAppBroadcastsPage', () => {
     expect(await screen.findByText('Oferta agosto')).toBeInTheDocument()
     expect(screen.getByText('1 entregados')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nuevo envío' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo envío masivo' }))
     fireEvent.change(screen.getByLabelText('Nombre operativo'), { target: { value: 'Oferta' } })
     fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
     fireEvent.change(screen.getByLabelText('fecha'), { target: { value: '01/09' } })
@@ -172,7 +172,7 @@ describe('WhatsAppBroadcastsPage', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<WhatsAppBroadcastsPage />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Nuevo envío' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Nuevo envío masivo' }))
     fireEvent.change(screen.getByLabelText('Nombre operativo'), { target: { value: 'Oferta' } })
     fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
     fireEvent.change(screen.getByLabelText('fecha'), { target: { value: '01/09' } })
@@ -299,7 +299,7 @@ describe('WhatsAppBroadcastsPage', () => {
       }),
     )
     render(<WhatsAppBroadcastsPage />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Nuevo envío' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Nuevo envío masivo' }))
     fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
     const upload = await screen.findByLabelText(/Encabezado PDF\/documento/)
     fireEvent.change(upload, {

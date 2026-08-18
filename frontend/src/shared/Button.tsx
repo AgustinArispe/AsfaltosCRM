@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from 'react'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'compact' | 'default'
@@ -15,7 +15,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  compact: 'min-h-9 px-3 py-1.5 text-xs',
+  compact: 'h-9 px-3 py-1.5 text-xs',
   default: 'min-h-11 px-3.5 py-2 text-sm',
 }
 
@@ -29,32 +29,39 @@ export function buttonClassName({
   className?: string
 } = {}): string {
   return [
-    'ui-pressable inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border font-semibold leading-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] disabled:cursor-not-allowed disabled:opacity-45',
+    'ui-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border font-semibold leading-5 outline-none transition-[background-color,border-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] disabled:cursor-not-allowed disabled:opacity-45',
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     className,
   ].join(' ')
 }
 
-export function Button({
-  variant = 'secondary',
-  size = 'default',
-  className,
-  type = 'button',
-  isLoading = false,
-  children,
-  disabled,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant
-  size?: ButtonSize
-  isLoading?: boolean
-}) {
+export const Button = forwardRef<
+  HTMLButtonElement,
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: ButtonVariant
+    size?: ButtonSize
+    isLoading?: boolean
+  }
+>(function Button(
+  {
+    variant = 'secondary',
+    size = 'default',
+    className,
+    type = 'button',
+    isLoading = false,
+    children,
+    disabled,
+    ...props
+  },
+  ref,
+) {
   return (
     <button
       aria-busy={isLoading || undefined}
       className={buttonClassName({ variant, size, className })}
       disabled={disabled || isLoading}
+      ref={ref}
       type={type}
       {...props}
     >
@@ -62,7 +69,7 @@ export function Button({
       {children}
     </button>
   )
-}
+})
 
 function LoadingMark(): ReactNode {
   return (

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <title>FAA CRM</title>
-  <rect width="64" height="64" fill="#fbbf24" />
-  <path d="M14 13h36v10H25v7h21v10H25v11H14V13Z" fill="#0f172a" />
+  <rect width="64" height="64" rx="10" fill="#f1b809" />
+  <path d="M14 13h36v10H25v7h21v10H25v11H14V13Z" fill="#202428" />
 </svg>

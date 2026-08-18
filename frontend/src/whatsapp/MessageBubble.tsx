@@ -109,7 +109,7 @@ export function MessageBubble({
     <article
       aria-label={`${isOutbound ? 'Mensaje enviado' : 'Mensaje recibido'} el ${formatDateTime(message.message_at)}`}
       className={[
-        'max-w-[min(38rem,88%)] rounded-[var(--radius-surface)] px-3 py-2.5',
+        `whatsapp-message whatsapp-message--${isOutbound ? 'outbound' : 'inbound'} max-w-[min(38rem,88%)] rounded-[var(--radius-surface)] px-3 py-2.5`,
         isOutbound
           ? 'ml-auto bg-[var(--surface-selected)]'
           : 'mr-auto bg-[var(--surface-raised)] shadow-[var(--shadow-subtle)]',

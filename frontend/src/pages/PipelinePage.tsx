@@ -27,6 +27,7 @@ import type {
 } from '../pipeline/types'
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { EmptyState } from '../shared/StatusStates'
 
@@ -218,13 +219,19 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     hasLoaded && !loadError && opportunities.length > 0 && projectedOpportunities.length === 0
 
   return (
-    <section aria-label='Pipeline'>
+    <section aria-label='Pipeline' className='pipeline-page'>
       <PipelineControls
         action={
           <Button
             disabled={isRefreshing || busyOpportunityIds.size > 0}
             onClick={() => setReloadKey((current) => current + 1)}
+            size='compact'
+            variant='ghost'
           >
+            <Icon
+              className={isRefreshing ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'}
+              name='refresh'
+            />
             {isRefreshing ? 'Actualizando…' : 'Actualizar'}
           </Button>
         }

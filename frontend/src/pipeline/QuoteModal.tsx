@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../shared/Button'
 import { formatQuantityKg, sumQuantitiesKg } from '../shared/formatters'
+import { Icon } from '../shared/Icon'
 import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
 import type { OpportunitySummary, Product, QuoteProductInput } from './types'
@@ -11,7 +12,7 @@ type QuoteLine = {
   quantity: string
 }
 
-type QuoteStep = 'product' | 'quantity' | 'review'
+type QuoteStep = 'product' | 'quantity' | 'review' | 'confirm'
 
 function initialLines(opportunity: OpportunitySummary | null): QuoteLine[] {
   if (!opportunity) return []
@@ -62,9 +63,10 @@ export function QuoteModal({
   const [showDiscardPrompt, setShowDiscardPrompt] = useState(false)
   const nextKeyRef = useRef(initial.length)
   const discardPromptRef = useRef<HTMLDivElement>(null)
-  const productRef = useRef<HTMLSelectElement>(null)
+  const productRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
-  const reviewRef = useRef<HTMLHeadingElement>(null)
+  const reviewRef = useRef<HTMLButtonElement>(null)
+  const confirmRef = useRef<HTMLButtonElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the modal identity or mode changes.
   useEffect(() => {
@@ -91,6 +93,7 @@ export function QuoteModal({
     if (step === 'product') productRef.current?.focus()
     if (step === 'quantity') quantityRef.current?.focus()
     if (step === 'review') reviewRef.current?.focus()
+    if (step === 'confirm') confirmRef.current?.focus()
   }, [isLoadingProducts, products, showDiscardPrompt, step])
 
   const existingProducts = opportunity?.products.map((item) => item.product) ?? []
@@ -115,18 +118,19 @@ export function QuoteModal({
     setQuantityError(null)
   }
 
-  const chooseProduct = () => {
-    const numericProductId = Number(productId)
+  const chooseProduct = (candidateProductId = productId) => {
+    const numericProductId = Number(candidateProductId)
     if (!Number.isInteger(numericProductId) || numericProductId <= 0) {
       setProductError('Seleccioná un producto.')
       productRef.current?.focus()
       return
     }
-    if (selectedProductIds.has(productId)) {
+    if (selectedProductIds.has(candidateProductId)) {
       setProductError('Este producto ya fue agregado.')
       productRef.current?.focus()
       return
     }
+    setProductId(candidateProductId)
     setProductError(null)
     setStep('quantity')
   }
@@ -173,6 +177,10 @@ export function QuoteModal({
       setStep('product')
       return
     }
+    if (step === 'confirm') {
+      setStep('review')
+      return
+    }
     if (step === 'product' && editingKey !== null) {
       resetEditor()
       setStep('review')
@@ -185,10 +193,10 @@ export function QuoteModal({
     onClose()
   }
 
-  const handleProductKeyDown = (event: KeyboardEvent<HTMLSelectElement>) => {
+  const handleProductKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
     event.preventDefault()
-    chooseProduct()
+    chooseProduct(event.currentTarget.value)
   }
 
   const handleQuantityKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -223,6 +231,11 @@ export function QuoteModal({
     activeProductIds.every((activeProductId) =>
       lines.some((line) => line.productId === activeProductId),
     )
+  const firstSelectableProductId = availableProducts.find(
+    (product) =>
+      (product.is_active || productId === String(product.id)) &&
+      !selectedProductIds.has(String(product.id)),
+  )?.id
 
   return (
     <Modal
@@ -267,7 +280,8 @@ export function QuoteModal({
             {[
               ['product', '1', 'Producto'],
               ['quantity', '2', 'Cantidad'],
-              ['review', '3', 'Revisión'],
+              ['review', '3', 'Revisar'],
+              ['confirm', '4', 'Confirmar'],
             ].map(([value, number, label]) => (
               <li aria-current={step === value ? 'step' : undefined} key={value}>
                 <span>{number}</span>
@@ -279,46 +293,54 @@ export function QuoteModal({
           <div className='quote-flow__body'>
             {step === 'product' ? (
               <section aria-labelledby='quote-product-step'>
-                <p className='quote-flow__eyebrow'>Paso 1 de 3</p>
+                <p className='quote-flow__eyebrow'>Paso 1 de 4</p>
                 <h3 id='quote-product-step'>
                   {editingKey === null ? 'Elegí un producto' : 'Cambiar producto'}
                 </h3>
                 <p className='quote-flow__description'>
                   Seleccioná un producto del catálogo vigente.
                 </p>
-                <label className='ui-label mt-6' htmlFor='quote-product'>
-                  Producto
-                </label>
-                <select
+                <fieldset
                   aria-describedby={productError ? 'quote-product-error' : undefined}
                   aria-invalid={Boolean(productError)}
-                  className='ui-field quote-flow__main-control'
-                  data-modal-initial-focus
+                  className='quote-product-options mt-6'
                   disabled={isSubmitting}
-                  id='quote-product'
-                  onChange={(event) => {
-                    setProductId(event.target.value)
-                    setProductError(null)
-                  }}
-                  onKeyDown={handleProductKeyDown}
-                  ref={productRef}
-                  value={productId}
                 >
-                  <option value=''>Seleccionar producto</option>
+                  <legend className='ui-label'>Producto</legend>
                   {availableProducts.map((product) => (
-                    <option
-                      disabled={
-                        (!product.is_active && productId !== String(product.id)) ||
-                        selectedProductIds.has(String(product.id))
-                      }
+                    <label
+                      className='quote-product-option'
+                      data-selected={productId === String(product.id) ? 'true' : undefined}
                       key={product.id}
-                      value={product.id}
                     >
-                      {product.name}
-                      {!product.is_active ? ' (inactivo histórico)' : ''}
-                    </option>
+                      <input
+                        checked={productId === String(product.id)}
+                        data-modal-initial-focus={
+                          product.id === firstSelectableProductId ? true : undefined
+                        }
+                        disabled={
+                          (!product.is_active && productId !== String(product.id)) ||
+                          selectedProductIds.has(String(product.id)) ||
+                          isSubmitting
+                        }
+                        name='quote-product'
+                        onChange={(event) => {
+                          setProductId(event.target.value)
+                          setProductError(null)
+                        }}
+                        onKeyDown={handleProductKeyDown}
+                        ref={product.id === firstSelectableProductId ? productRef : undefined}
+                        type='radio'
+                        value={product.id}
+                      />
+                      <span>
+                        <b>{product.name}</b>
+                        {!product.is_active ? <small>Inactivo histórico</small> : null}
+                      </span>
+                      <Icon name={productId === String(product.id) ? 'check' : 'products'} />
+                    </label>
                   ))}
-                </select>
+                </fieldset>
                 {productError ? (
                   <p className='ui-field-error' id='quote-product-error'>
                     {productError}
@@ -340,7 +362,7 @@ export function QuoteModal({
                       Cancelar
                     </Button>
                   )}
-                  <Button disabled={!productId} onClick={chooseProduct} variant='primary'>
+                  <Button disabled={!productId} onClick={() => chooseProduct()} variant='primary'>
                     Continuar con cantidad
                   </Button>
                 </div>
@@ -349,11 +371,12 @@ export function QuoteModal({
 
             {step === 'quantity' ? (
               <section aria-labelledby='quote-quantity-step'>
-                <p className='quote-flow__eyebrow'>Paso 2 de 3</p>
+                <p className='quote-flow__eyebrow'>Paso 2 de 4</p>
                 <h3 id='quote-quantity-step'>Indicá la cantidad</h3>
-                <p className='quote-flow__description'>
-                  {selectedProduct?.name ?? 'Producto seleccionado'} · en kilogramos
-                </p>
+                <div className='quote-flow__selected-product'>
+                  <span>Producto seleccionado</span>
+                  <strong>{selectedProduct?.name ?? 'Producto seleccionado'}</strong>
+                </div>
                 <label className='ui-label mt-6' htmlFor='quote-quantity'>
                   Cantidad (kg)
                 </label>
@@ -393,14 +416,12 @@ export function QuoteModal({
 
             {step === 'review' ? (
               <section aria-labelledby='quote-review-step'>
-                <p className='quote-flow__eyebrow'>Paso 3 de 3</p>
+                <p className='quote-flow__eyebrow'>Paso 3 de 4</p>
                 <div className='quote-review__heading'>
                   <div>
-                    <h3 id='quote-review-step' ref={reviewRef} tabIndex={-1}>
-                      Revisá la cotización
-                    </h3>
+                    <h3 id='quote-review-step'>Revisá la cotización</h3>
                     <p className='quote-flow__description'>
-                      La confirmación reemplaza la cotización vigente.
+                      Editá o quitá líneas antes de preparar la confirmación final.
                     </p>
                   </div>
                   <strong>{formatQuantityKg(totalQuantity)}</strong>
@@ -454,19 +475,69 @@ export function QuoteModal({
                     {submitError}
                   </p>
                 ) : null}
+                <div className='quote-flow__actions'>
+                  <Button onClick={requestClose} variant='ghost'>
+                    Cancelar
+                  </Button>
+                  <Button
+                    disabled={lines.length === 0 || isSubmitting}
+                    onClick={() => setStep('confirm')}
+                    ref={reviewRef}
+                    variant='primary'
+                  >
+                    Revisar y confirmar
+                  </Button>
+                </div>
+              </section>
+            ) : null}
+
+            {step === 'confirm' ? (
+              <section aria-labelledby='quote-confirm-step' className='quote-confirm'>
+                <p className='quote-flow__eyebrow'>Paso 4 de 4</p>
+                <div className='quote-review__heading'>
+                  <div>
+                    <h3 id='quote-confirm-step'>Confirmá la cotización</h3>
+                    <p className='quote-flow__description'>
+                      Esta será la cotización vigente de la oportunidad.
+                    </p>
+                  </div>
+                  <strong>{formatQuantityKg(totalQuantity)}</strong>
+                </div>
+                <ul className='quote-review__lines quote-confirm__lines'>
+                  {lines.map((line) => {
+                    const product = availableProducts.find(
+                      (item) => String(item.id) === line.productId,
+                    )
+                    return (
+                      <li key={line.key}>
+                        <span>
+                          <b>{product?.name ?? 'Producto no disponible'}</b>
+                          {product && !product.is_active ? <small>Inactivo histórico</small> : null}
+                        </span>
+                        <strong>{formatQuantityKg(line.quantity)}</strong>
+                      </li>
+                    )
+                  })}
+                </ul>
+                {submitError ? (
+                  <p className='quote-flow__error' role='alert'>
+                    {submitError}
+                  </p>
+                ) : null}
               </section>
             ) : null}
           </div>
 
-          {step === 'review' ? (
+          {step === 'confirm' ? (
             <footer className='quote-flow__footer'>
-              <Button disabled={isSubmitting} onClick={requestClose}>
-                Cancelar
+              <Button disabled={isSubmitting} onClick={() => setStep('review')} variant='ghost'>
+                Volver a revisar
               </Button>
               <Button
                 disabled={lines.length === 0}
                 isLoading={isSubmitting}
                 onClick={() => void submit()}
+                ref={confirmRef}
                 variant='primary'
               >
                 {mode === 'edit' ? 'Guardar cambios' : 'Confirmar cotización'}

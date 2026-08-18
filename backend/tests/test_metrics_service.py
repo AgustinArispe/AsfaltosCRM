@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -27,6 +27,7 @@ from app.services.metrics_service import (
     MetricsPeriod,
     MetricsService,
     TimelineGranularity,
+    TimelineOpportunitySeries,
     conversion_rate,
 )
 
@@ -538,6 +539,77 @@ def test_timeline_month_buckets_include_empty_periods(db_session: Session) -> No
     assert buckets[1].lost == 1
     assert buckets[1].kg_lost == Decimal("0.000")
     assert buckets[2].lost == 0
+
+
+def test_timeline_day_opportunities_matches_local_bucket_dimensions_and_pagination(
+    db_session: Session,
+) -> None:
+    customer = make_customer(db_session, province=" Buenos Aires ")
+    product = make_product(db_session, name="Detalle diario")
+    matching: list[Opportunity] = []
+    for entered_at in (
+        datetime(2040, 1, 2, 3, 5, tzinfo=UTC),
+        datetime(2040, 1, 2, 18, tzinfo=UTC),
+        datetime(2040, 1, 3, 2, 59, tzinfo=UTC),
+    ):
+        matching.append(
+            make_opportunity(
+                db_session,
+                customer,
+                status=OpportunityStatus.GANADA,
+                created_at=PERIOD_START - timedelta(days=5),
+                entered_at=entered_at,
+                source=LeadSource.WHATSAPP,
+                lines=(MetricLine(product, Decimal("125.500")),),
+            )
+        )
+    make_opportunity(
+        db_session,
+        customer,
+        status=OpportunityStatus.GANADA,
+        created_at=PERIOD_START - timedelta(days=5),
+        entered_at=datetime(2040, 1, 3, 3, tzinfo=UTC),
+        source=LeadSource.WHATSAPP,
+        lines=(MetricLine(product, Decimal("900")),),
+    )
+    make_opportunity(
+        db_session,
+        customer,
+        status=OpportunityStatus.PERDIDA,
+        created_at=PERIOD_START - timedelta(days=5),
+        entered_at=datetime(2040, 1, 2, 12, tzinfo=UTC),
+        source=LeadSource.WHATSAPP,
+        lines=(MetricLine(product, Decimal("300")),),
+    )
+
+    first_page, total = MetricsService(db_session).timeline_day_opportunities(
+        bucket=date(2040, 1, 2),
+        series=TimelineOpportunitySeries.WON,
+        dimensions=MetricsDimensions(
+            source=LeadSource.WHATSAPP,
+            product_id=product.id,
+            province="buenos aires",
+        ),
+        page=1,
+        page_size=2,
+    )
+    second_page, second_total = MetricsService(db_session).timeline_day_opportunities(
+        bucket=date(2040, 1, 2),
+        series=TimelineOpportunitySeries.WON,
+        dimensions=MetricsDimensions(
+            source=LeadSource.WHATSAPP,
+            product_id=product.id,
+            province="buenos aires",
+        ),
+        page=2,
+        page_size=2,
+    )
+
+    assert total == second_total == 3
+    assert [item.id for item in first_page] == [matching[2].id, matching[1].id]
+    assert [item.id for item in second_page] == [matching[0].id]
+    assert first_page[0].customer.id == customer.id
+    assert first_page[0].opportunity_products[0].quantity_kg == Decimal("125.500")
 
 
 @pytest.mark.parametrize(

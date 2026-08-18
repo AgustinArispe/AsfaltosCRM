@@ -5,8 +5,10 @@ import type {
   ProductMetricsResponse,
   ProvinceMetricsResponse,
   SourceMetricsResponse,
+  TimelineDayOpportunities,
   TimelineGranularity,
   TimelineMetrics,
+  TimelineSeries,
 } from '../metrics/types'
 import { apiRequest } from './client'
 import type { ApiSession } from './opportunities'
@@ -68,6 +70,24 @@ export function getTimelineMetrics(
 export function getPipelineMetrics(filters: MetricsFilters, session: ApiSession) {
   return apiRequest<PipelineMetrics>(
     endpoint('/metrics/pipeline', dimensionQuery(filters)),
+    session,
+  )
+}
+
+export function getTimelineDayOpportunities(
+  filters: MetricsFilters,
+  bucket: string,
+  series: TimelineSeries,
+  page: number,
+  session: ApiSession,
+) {
+  const query = dimensionQuery(filters)
+  query.set('bucket', bucket)
+  query.set('series', series)
+  query.set('page', String(page))
+  query.set('page_size', '20')
+  return apiRequest<TimelineDayOpportunities>(
+    endpoint('/metrics/timeline/day-opportunities', query),
     session,
   )
 }

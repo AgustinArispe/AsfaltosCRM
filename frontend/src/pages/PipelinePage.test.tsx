@@ -305,14 +305,13 @@ describe('PipelinePage', () => {
 
     drop(item, 'COTIZADA')
     const secondDialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
-    fireEvent.change(await within(secondDialog).findByLabelText('Producto'), {
-      target: { value: '10' },
-    })
+    fireEvent.click(await within(secondDialog).findByRole('radio', { name: 'SuperPhalt' }))
     fireEvent.click(within(secondDialog).getByRole('button', { name: 'Continuar con cantidad' }))
     fireEvent.change(within(secondDialog).getByLabelText('Cantidad (kg)'), {
       target: { value: '10' },
     })
     fireEvent.click(within(secondDialog).getByRole('button', { name: 'Agregar producto' }))
+    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Revisar y confirmar' }))
     fireEvent.click(within(secondDialog).getByRole('button', { name: 'Confirmar cotización' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('ya no está activo')
     expect(within(stage(container, 'NUEVA')).getByText('Empresa 1')).toBeInTheDocument()
@@ -332,12 +331,11 @@ describe('PipelinePage', () => {
     await ready()
     drop(item, 'COTIZADA')
     const dialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
-    fireEvent.change(await within(dialog).findByLabelText('Producto'), {
-      target: { value: '10' },
-    })
+    fireEvent.click(await within(dialog).findByRole('radio', { name: 'SuperPhalt' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Continuar con cantidad' }))
     fireEvent.change(within(dialog).getByLabelText('Cantidad (kg)'), { target: { value: '10' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Agregar producto' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Revisar y confirmar' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar cotización' }))
     await waitFor(() =>
       expect(within(stage(container, 'COTIZADA')).getByText('Empresa 1')).toBeInTheDocument(),

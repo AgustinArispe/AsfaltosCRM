@@ -80,6 +80,33 @@ function mockDashboardApi(options: MockOptions = {}) {
         ],
       })
     }
+    if (url.pathname === '/api/metrics/timeline/day-opportunities') {
+      return response({
+        bucket: url.searchParams.get('bucket'),
+        series: url.searchParams.get('series'),
+        timezone: 'America/Argentina/Buenos_Aires',
+        page: 1,
+        page_size: 20,
+        total: 1,
+        items: [
+          {
+            opportunity_id: 41,
+            customer_name: 'Hormigones Sur',
+            customer_company: 'HS SA',
+            current_status: 'COTIZADA',
+            source: 'WEB',
+            products: [
+              {
+                product_id: 1,
+                product_name: 'Asfalto base',
+                quantity_kg: '750.000',
+                is_active: true,
+              },
+            ],
+          },
+        ],
+      })
+    }
     if (url.pathname === '/api/metrics/pipeline') {
       return response({
         snapshot_at: '2026-08-14T14:00:00Z',
@@ -206,27 +233,32 @@ describe('DashboardPage', () => {
     await renderLoaded()
 
     expect(screen.getByText('Seguimientos pendientes')).toBeInTheDocument()
-    expect(screen.getByText('Conversaciones en espera')).toBeInTheDocument()
+    expect(screen.getByText('Conversaciones esperando')).toBeInTheDocument()
     expect(screen.getByText('Oportunidades creadas')).toBeInTheDocument()
     expect(screen.getByText('2.500,125 kg')).toBeInTheDocument()
     expect(screen.getAllByText('66,67 %').length).toBeGreaterThan(0)
     expect(screen.getAllByText('67 %').length).toBeGreaterThan(0)
     expect(screen.getAllByText('33 %').length).toBeGreaterThan(0)
-    expect(screen.getByText('No se filtra por período.', { exact: false })).toBeInTheDocument()
-    expect(screen.getByText('Perdida')).toBeInTheDocument()
+    expect(
+      screen.getByText('Composición del Pipeline activo', { exact: false }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Perdida')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /1 de ago de 2026:/ })).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('Ver datos exactos de evolución'))
     expect(screen.getAllByRole('table')[0]).toHaveTextContent('Leads creados')
     expect(screen.getAllByText('Producto histórico').length).toBeGreaterThan(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
     expect(screen.getAllByText('Sin provincia').length).toBeGreaterThan(1)
   })
 
-  it('uses typed navigation only for the supported new-opportunity handoff', async () => {
+  it('uses typed navigation for every operational attention action', async () => {
     await renderLoaded()
-    fireEvent.click(screen.getByRole('link', { name: 'Ver 9 creadas en Pipeline' }))
-    expect(window.location.pathname).toBe('/pipeline')
-    expect(screen.queryByRole('link', { name: /Seguimientos pendientes/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('link', { name: /Ver seguimientos/ }))
+    expect(window.location.pathname).toBe('/notifications')
+    window.history.replaceState(null, '', '/dashboard')
+    fireEvent.click(screen.getByRole('link', { name: /Abrir WhatsApp/ }))
+    expect(window.location.pathname).toBe('/whatsapp')
   })
 
   it('applies compact filters, keeps Pipeline date-unfiltered, and resets them', async () => {
@@ -289,6 +321,15 @@ describe('DashboardPage', () => {
     await renderLoaded()
     fireEvent.focus(screen.getByRole('button', { name: /2 de ago de 2026: Creadas 3/ }))
     expect(screen.getByRole('status')).toHaveTextContent('2 de ago')
+    expect(
+      await screen.findByRole('dialog', { name: /Oportunidades creadas del 2 de ago/ }),
+    ).toHaveTextContent('Hormigones Sur')
+    expect(screen.getByRole('link', { name: 'Hormigones Sur' })).toHaveAttribute(
+      'href',
+      '/pipeline/opportunities/41',
+    )
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /Oportunidades creadas/ })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Ganadas' }))
     expect(screen.getByRole('group', { name: 'Ganadas por período' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /1 de ago de 2026: Ganadas 1/ })).toBeInTheDocument()
@@ -296,10 +337,23 @@ describe('DashboardPage', () => {
 
   it('groups only the province visual while preserving every exact category', async () => {
     await renderLoaded({ manyProvinces: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
     expect(screen.getByRole('img', { name: /Sin provincia: 5.*Otras:/ })).toBeInTheDocument()
     fireEvent.click(screen.getByText('Ver datos exactos de provincias por oportunidades creadas'))
     expect(
       screen.getByRole('region', { name: 'Tabla de Provincias por oportunidades creadas' }),
     ).toHaveTextContent('Mendoza')
+  })
+
+  it('switches one primary commercial dimension at a time', async () => {
+    await renderLoaded()
+    expect(screen.getByRole('button', { name: 'Productos' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Origen' }))
+    expect(screen.getByRole('button', { name: 'Origen' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('img', { name: /Web: 6.*WhatsApp: 3/ })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /Asfalto base:/ })).not.toBeInTheDocument()
   })
 })

@@ -64,6 +64,7 @@ export type ProvinceMetric = {
 }
 
 export type TimelineGranularity = 'day' | 'month'
+export type TimelineSeries = 'created' | 'won' | 'lost'
 
 export type TimelineMetric = {
   bucket: string
@@ -79,6 +80,32 @@ export type TimelineMetrics = {
   granularity: TimelineGranularity
   timezone: string
   items: TimelineMetric[]
+}
+
+export type TimelineDayOpportunityProduct = {
+  product_id: number
+  product_name: string
+  quantity_kg: string
+  is_active: boolean
+}
+
+export type TimelineDayOpportunity = {
+  opportunity_id: number
+  customer_name: string
+  customer_company: string | null
+  current_status: OpportunityStatus
+  source: LeadSource
+  products: TimelineDayOpportunityProduct[]
+}
+
+export type TimelineDayOpportunities = {
+  bucket: string
+  series: TimelineSeries
+  timezone: string
+  page: number
+  page_size: number
+  total: number
+  items: TimelineDayOpportunity[]
 }
 
 export type PipelineStatusMetric = {
