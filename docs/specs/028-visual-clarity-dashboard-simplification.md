@@ -1,9 +1,9 @@
 # CRM-028 — Visual Clarity & Dashboard Simplification
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-18
-Implementation commit: N/A
+Implementation commit: c738d48390c3a02993fae1c75a913ea265a90024
 
 ## Goal
 
@@ -344,7 +344,22 @@ None.
 
 ## Implementation notes
 
-La implementación debe usar el stack actual y el entorno visual canónico. Si un chart
-requiriera una dependencia, debe detenerse antes de agregarla; la composición definida
-aquí cabe en SVG/DOM focalizado. Las capturas son evidencia diagnóstica, no baselines
-pixel-perfect.
+El commit `c738d48390c3a02993fae1c75a913ea265a90024` implementa la base neutral Light/Dark,
+controles compactos de 36 px, selección de sidebar sin barra izquierda, zonas de etapa
+de Pipeline, jerarquía coral de Lost y separación tonal de WhatsApp. Opportunity usa
+el handoff verde aprobado y Quote quedó como una única modal guiada con foco explícito,
+Enter/Escape seguro y una sola mutación final.
+
+Dashboard mantiene los contratos CRM-004/021 y reemplaza la visualización superpuesta
+por una serie de barras seleccionable. Resultados, Origen y Provincia usan donuts
+acotados SVG/DOM; Provincia agrupa sólo el dibujo y preserva cada categoría en la tabla
+exacta. Pipeline actual usa barra segmentada y Producto conserva barras horizontales.
+No se agregó ninguna dependencia, endpoint, request, métrica, filtro ni cambio backend.
+
+La revisión canónica cubrió Pipeline, Dashboard, Lost, Opportunity/Quote y WhatsApp en
+Light/Dark, sidebar expandido/colapsado y estructuras equivalentes a 125/150%, sin
+errores runtime ni overflow horizontal de página. Biome, 157 tests frontend, coverage,
+TypeScript/Vite, npm audit, Ruff, mypy strict, 389 tests backend con 93.00% de coverage,
+compileall, Alembic, lock/audit de dependencias y Docker Compose smoke pasaron localmente.
+GitHub Actions `Quality` run `32150332170` verificó el commit con sus tres jobs verdes.
+CRM-026 permanece Draft y conserva el QA browser final posterior a CRM-028.

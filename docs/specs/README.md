@@ -101,17 +101,11 @@ the current implementation appear compliant.
 Retrospective specifications may be created when an explicit task requests them. They
 must describe implemented behavior only.
 
-## Approved specifications
-
-- [`CRM-028`](028-visual-clarity-dashboard-simplification.md) — Approved — neutral
-  Light theme, normalized controls, clearer Pipeline stages, simplified Dashboard
-  charts, and focused Lost/Opportunity/Quote/WhatsApp visual refinement after CRM-027.
-
 ## Draft specifications
 
 - [`CRM-026`](026-frontend-final-polish.md) — Draft — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
-  CRM-027 implementation.
+  CRM-028 implementation.
 - [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
   operations, recovery, and backend-freeze contract.
 
@@ -119,6 +113,9 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-028`](028-visual-clarity-dashboard-simplification.md) — Implemented — neutral
+  Light theme, normalized controls, clearer Pipeline stages, simplified Dashboard
+  charts, and focused Lost/Opportunity/Quote/WhatsApp visual refinement after CRM-027.
 - [`CRM-027`](027-visual-design-product-polish.md) — Implemented — second
   visual/product-design refinement over CRM-018–025 with FAA surfaces, tokens,
   controls, workspace hierarchy, Light/Dark parity, and Users administration before
