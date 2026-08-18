@@ -104,6 +104,7 @@
   --chart-series-4: #25714d;
   --chart-series-5: #7d8790;
   --chart-tooltip: #ffffff;
+  --dashboard-kpi-accent: var(--brand-accent);
   --radius-control: 0.625rem;
   --radius-surface: 0.875rem;
   --radius-overlay: 1.125rem;
@@ -201,6 +202,7 @@
   --chart-series-4: #9addae;
   --chart-series-5: #aeb7bf;
   --chart-tooltip: var(--surface-secondary);
+  --dashboard-kpi-accent: var(--brand-accent);
   --shadow-raised: 0 10px 28px rgb(0 0 0 / 22%);
   --shadow-subtle: 0 1px 3px rgb(0 0 0 / 28%);
   --shadow-overlay: 0 22px 60px rgb(0 0 0 / 48%);
@@ -1791,7 +1793,12 @@ a {
   border-inline-start: 1px solid var(--divider);
 }
 .dashboard-kpi--accent {
-  background: color-mix(in srgb, var(--accent-muted) 55%, var(--surface-primary));
+  background: var(--dashboard-kpi-accent);
+}
+.dashboard-kpi--accent p,
+.dashboard-kpi--accent span,
+.dashboard-kpi--accent strong {
+  color: var(--on-accent);
 }
 .dashboard-kpi p,
 .dashboard-kpi span {
