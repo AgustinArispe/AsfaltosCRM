@@ -103,6 +103,9 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-028`](028-visual-clarity-dashboard-simplification.md) — Draft — neutral Light
+  theme, normalized controls, clearer Pipeline stages, simplified Dashboard charts,
+  and focused Lost/Opportunity/Quote/WhatsApp visual refinement after CRM-027.
 - [`CRM-026`](026-frontend-final-polish.md) — Draft — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-027 implementation.
