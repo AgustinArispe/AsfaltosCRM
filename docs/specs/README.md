@@ -103,31 +103,18 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
+- [`CRM-027`](027-visual-design-product-polish.md) — Draft — second visual/product-
+  design refinement over CRM-018–025; defines FAA surface, token, hierarchy, controls,
+  workspace, Light/Dark, motion, and Users/account polish before CRM-026.
 - [`CRM-026`](026-frontend-final-polish.md) — Draft — final cross-product Frontend 2.0
-  accessibility, responsive, interaction, browser, and visual-quality pass.
-- [`CRM-025`](025-whatsapp-broadcast-ui.md) — Draft — safe, premium FAA interface for
-  explicit WhatsApp Broadcast execution, consent review, processing, retries, and
-  auditable outcomes from already-approved marketing content.
-- [`CRM-024`](024-customers-products-lost-ui.md) — Draft — consistent, role-aware
-  Customers, Products, and Lost commercial workspaces for Frontend 2.0.
-- [`CRM-023`](023-whatsapp-inbox-2.md) — Draft — FAA WhatsApp Inbox 2.0: a
-  three-panel, commercially contextual, desktop-first messaging workspace.
-- [`CRM-022`](022-notifications-ui.md) — Draft — global operational notification
-  workspace, history, acknowledgement, sidebar attention badge, and safe Opportunity
-  navigation.
-- [`CRM-021`](021-dashboard-metrics.md) — Draft — premium operational Dashboard and
-  authoritative commercial metrics, charts, and provincial insight.
-- [`CRM-020`](020-opportunity-detail-quote-flow.md) — Draft — centered Opportunity
-  detail dialog, scoped editing, commercial actions, and progressive quote flow.
-- [`CRM-019`](019-pipeline-2.md) — Draft — premium, high-capacity Pipeline 2.0 Kanban
-  foundation for FAA's active commercial workspace.
+  accessibility, responsive, interaction, browser, and visual-quality pass after
+  CRM-027 implementation.
 - [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
   operations, recovery, and backend-freeze contract.
 
 ## Approved specifications
 
-- [`CRM-016`](016-security-hardening.md) — Implemented — Release Candidate application
-  security hardening and production-security deployment contract.
+None.
 
 ## Implemented specifications
 
@@ -136,6 +123,23 @@ These specifications capture behavior already implemented and tested:
 - [`CRM-018`](018-frontend-design-system.md) — Implemented — permanent visual,
   interaction, accessibility, responsive, and component foundation for FAA CRM
   Frontend 2.0.
+- [`CRM-019`](019-pipeline-2.md) — Implemented — premium, high-capacity Pipeline 2.0
+  Kanban foundation for FAA's active commercial workspace.
+- [`CRM-020`](020-opportunity-detail-quote-flow.md) — Implemented — centered Opportunity
+  detail dialog, scoped editing, commercial actions, and progressive quote flow.
+- [`CRM-021`](021-dashboard-metrics.md) — Implemented — premium operational Dashboard
+  with authoritative commercial metrics, charts, and provincial insight.
+- [`CRM-022`](022-notifications-ui.md) — Implemented — global operational notification
+  workspace, history, acknowledgement, sidebar badge, and Opportunity navigation.
+- [`CRM-023`](023-whatsapp-inbox-2.md) — Implemented — commercially contextual,
+  desktop-first three-panel WhatsApp Inbox 2.0.
+- [`CRM-024`](024-customers-products-lost-ui.md) — Implemented — role-aware Customers,
+  Products, and Lost commercial workspaces for Frontend 2.0.
+- [`CRM-025`](025-whatsapp-broadcast-ui.md) — Implemented — safe FAA interface for
+  explicit WhatsApp Broadcast execution, consent review, processing, retries, and
+  auditable outcomes.
+- [`CRM-016`](016-security-hardening.md) — Implemented — Release Candidate application
+  security hardening and production-security deployment contract.
 - [`CRM-001`](001-core-crm.md) — Implemented — core CRM domain, authentication, and
   roles.
 - [`CRM-002`](002-web-lead-intake.md) — Implemented — authenticated server-to-server

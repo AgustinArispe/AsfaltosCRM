@@ -2,7 +2,7 @@
 
 Status: Draft
 Owner: FAA CRM team
-Last updated: 2026-08-13
+Last updated: 2026-08-18
 Implementation commit: N/A
 
 ## Goal
@@ -12,9 +12,11 @@ las especificaciones de rediseño por feature estén implementadas. No introduce
 ninguna capacidad de negocio: verifica que el CRM completo se perciba como un único
 producto premium, rápido, coherente, accesible y resistente al espacio disponible.
 
-CRM-018 es la autoridad visual y de interacción. CRM-019 a CRM-025 mantienen la
-autoridad de comportamiento de cada workspace; esta spec sólo comprueba y corrige su
-consistencia de presentación e interacción dentro de esos límites.
+CRM-018 establece la base visual y de interacción; CRM-027 especializa su segunda
+dirección visual/product-design y debe implementarse antes de este pase. CRM-019 a
+CRM-025 mantienen la autoridad de comportamiento de cada workspace; esta spec sólo
+comprueba y corrige la implementación contra CRM-027 y su consistencia de presentación
+e interacción dentro de esos límites.
 
 ## Context
 
@@ -25,10 +27,11 @@ Vitest/Testing Library con coverage y npm audit; Biome tiene diagnósticos a11y
 habilitados. La suite actual usa jsdom, no tiene runner browser/E2E ni framework a11y
 adicional.
 
-La aplicación actual todavía refleja la UI anterior en varios lugares. Este pase ocurre
-después de implementar CRM-018 a CRM-025 y no convierte sus implementaciones ni sus
-contratos backend feature-specific en requisitos nuevos. La UI debe seguir renderizando
-evidencia backend autoritativa, no duplicar reglas comerciales.
+La aplicación actual todavía refleja la UI anterior en varios lugares. CRM-027 define
+el refinamiento visual/product-design que resuelve esa dirección. Este pase ocurre
+después de implementar CRM-018 a CRM-025 y CRM-027, y no convierte sus implementaciones
+ni sus contratos backend feature-specific en requisitos nuevos. La UI debe seguir
+renderizando evidencia backend autoritativa, no duplicar reglas comerciales.
 
 ## Dependencies
 
@@ -42,6 +45,7 @@ evidencia backend autoritativa, no duplicar reglas comerciales.
 - CRM-023 — WhatsApp Inbox 2.0
 - CRM-024 — Customers, Products & Lost UI
 - CRM-025 — WhatsApp Broadcast UI
+- CRM-027 — Visual Design & Product Polish
 
 ## Scope
 
@@ -64,7 +68,8 @@ evidencia backend autoritativa, no duplicar reglas comerciales.
 - Agregar una funcionalidad comercial, modificar reglas de negocio, permisos,
   consentimiento, contratos backend o state machines, salvo bloquear y referenciar una
   necesidad ya identificada por la spec propietaria.
-- Rediseñar o reinterpretar los requisitos de CRM-019 a CRM-025.
+- Rediseñar o reinterpretar los requisitos de CRM-019 a CRM-025 o la dirección visual
+  de CRM-027.
 - Crear producto mobile-native, patrones de marketing site, motion decorativo,
   pixel-perfect screenshot coupling, global state management sin evidencia, o sustituir
   React/TypeScript/Tailwind/Vite.
@@ -359,9 +364,9 @@ None
 
 ## Implementation notes
 
-Este pase se planifica después de implementar las specs feature-specific aprobadas. Cada
-corrección conserva dueño de feature y se prueba contra su AC más matriz CRM-026. No
-introducir dependencia, state store, abstracción compartida o cambio router sin evidencia
-y decisión aprobada. La evidencia QA registra entorno, viewport/zoom, tema, navegador,
-ruta/flujo, resultado e issue vinculado, nunca información sensible de Customers o
-WhatsApp.
+Este pase se planifica después de implementar las specs feature-specific aprobadas y
+CRM-027. Cada corrección conserva dueño de feature y se prueba contra su AC, los AC de
+CRM-027 y la matriz CRM-026. No introducir dependencia, state store, abstracción
+compartida o cambio router sin evidencia y decisión aprobada. La evidencia QA registra
+entorno, viewport/zoom, tema, navegador, ruta/flujo, resultado e issue vinculado, nunca
+información sensible de Customers o WhatsApp.
