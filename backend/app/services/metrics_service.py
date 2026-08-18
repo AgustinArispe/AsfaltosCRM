@@ -535,8 +535,7 @@ class MetricsService:
         total = self._session.scalar(count_statement.where(*filters)) or 0
         opportunities = list(
             self._session.scalars(
-                statement
-                .where(*filters)
+                statement.where(*filters)
                 .options(
                     joinedload(Opportunity.customer),
                     selectinload(Opportunity.opportunity_products).joinedload(

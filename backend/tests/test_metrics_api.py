@@ -226,7 +226,7 @@ def test_timeline_day_opportunities_returns_narrow_typed_projection(
 )
 def test_timeline_day_opportunities_validates_query(
     api_client: TestClient,
-    params: dict[str, object],
+    params: dict[str, str | int],
 ) -> None:
     response = api_client.get(
         "/api/metrics/timeline/day-opportunities",
