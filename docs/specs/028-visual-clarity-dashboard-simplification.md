@@ -1,6 +1,6 @@
 # CRM-028 — Visual Clarity & Dashboard Simplification
 
-Status: Draft
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-08-18
 Implementation commit: N/A
