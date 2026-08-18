@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'compact' | 'default'
@@ -41,10 +41,46 @@ export function Button({
   size = 'default',
   className,
   type = 'button',
+  isLoading = false,
+  children,
+  disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant
   size?: ButtonSize
+  isLoading?: boolean
 }) {
-  return <button className={buttonClassName({ variant, size, className })} type={type} {...props} />
+  return (
+    <button
+      aria-busy={isLoading || undefined}
+      className={buttonClassName({ variant, size, className })}
+      disabled={disabled || isLoading}
+      type={type}
+      {...props}
+    >
+      {isLoading ? <LoadingMark /> : null}
+      {children}
+    </button>
+  )
+}
+
+function LoadingMark(): ReactNode {
+  return (
+    <svg
+      aria-hidden='true'
+      className='size-4 animate-spin motion-reduce:animate-none'
+      viewBox='0 0 20 20'
+    >
+      <circle
+        className='opacity-25'
+        cx='10'
+        cy='10'
+        fill='none'
+        r='7'
+        stroke='currentColor'
+        strokeWidth='2'
+      />
+      <path d='M10 3a7 7 0 0 1 7 7' fill='none' stroke='currentColor' strokeWidth='2' />
+    </svg>
+  )
 }

@@ -46,11 +46,11 @@ export function DeactivateProductModal({
     >
       <div className='px-5 py-5'>
         {error ? <InlineFeedback message={error} /> : null}
-        <p className='text-sm leading-6 text-slate-700'>
+        <p className='text-sm leading-6 text-[var(--text-secondary)]'>
           Podrás reactivarlo posteriormente desde este listado.
         </p>
       </div>
-      <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
+      <footer className='flex flex-wrap justify-end gap-3 border-t border-[var(--subtle-border)] px-5 py-4'>
         <Button autoFocus data-modal-initial-focus disabled={isSubmitting} onClick={onClose}>
           Cancelar
         </Button>

@@ -17,6 +17,8 @@ import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
 import { InlineFeedback } from '../shared/InlineFeedback'
+import { EmptyState } from '../shared/StatusStates'
+import { SearchField } from '../shared/Workspace'
 import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 function activeFilterCount(filters: LostFilters): number {
@@ -129,11 +131,9 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
 
 function Statistics({ statistics }: { statistics: LostStatistics }) {
   return (
-    <section aria-label='Resumen de pérdidas' className='grid gap-2 sm:grid-cols-3'>
-      <div className='ui-panel px-3.5 py-3'>
-        <p className='text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]'>
-          Perdidas actuales
-        </p>
+    <section aria-label='Resumen de pérdidas' className='lost-statistics'>
+      <div>
+        <p>Perdidas actuales</p>
         <p className='mt-1 text-lg font-semibold tabular-nums'>
           {statistics.current_count}{' '}
           <span className='text-sm font-medium'>
@@ -141,10 +141,8 @@ function Statistics({ statistics }: { statistics: LostStatistics }) {
           </span>
         </p>
       </div>
-      <div className='ui-panel px-3.5 py-3'>
-        <p className='text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]'>
-          Episodios históricos
-        </p>
+      <div>
+        <p>Episodios históricos</p>
         <p className='mt-1 text-lg font-semibold tabular-nums'>
           {statistics.historical_loss_count}{' '}
           <span className='text-sm font-medium'>
@@ -152,10 +150,8 @@ function Statistics({ statistics }: { statistics: LostStatistics }) {
           </span>
         </p>
       </div>
-      <div className='ui-panel px-3.5 py-3'>
-        <p className='text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]'>
-          Episodios reabiertos
-        </p>
+      <div>
+        <p>Episodios reabiertos</p>
         <p className='mt-1 text-lg font-semibold tabular-nums'>{statistics.reopened_count}</p>
       </div>
     </section>
@@ -253,16 +249,8 @@ export function LostPage() {
   }
 
   return (
-    <section aria-labelledby='lost-workspace-title' className='mx-auto max-w-[90rem]'>
-      <div className='flex flex-wrap items-end justify-between gap-4'>
-        <div>
-          <h2 className='text-base font-semibold' id='lost-workspace-title'>
-            Oportunidades perdidas
-          </h2>
-          <p className='mt-0.5 text-sm text-[var(--text-secondary)]'>
-            Historial comercial actual, separado del Pipeline.
-          </p>
-        </div>
+    <section aria-label='Oportunidades perdidas' className='mx-auto max-w-[90rem]'>
+      <div className='flex flex-wrap justify-end gap-4'>
         {filterCount ? (
           <p className='text-sm text-[var(--text-secondary)]'>
             {filterCount} {filterCount === 1 ? 'filtro activo' : 'filtros activos'}
@@ -270,22 +258,20 @@ export function LostPage() {
         ) : null}
       </div>
       <form
-        className='ui-panel mt-4 flex flex-wrap items-end gap-2 p-3'
+        className='ui-toolbar ui-toolbar--divided mt-4'
         onSubmit={(event) => {
           event.preventDefault()
           applyFilters()
         }}
       >
-        <label className='grid gap-1 text-xs font-semibold text-[var(--text-secondary)]'>
-          Buscar
-          <input
-            className='ui-field min-w-52'
-            onChange={(event) => updateDraft('search', event.target.value)}
-            placeholder='Cliente o empresa'
-            type='search'
-            value={draft.search}
-          />
-        </label>
+        <SearchField
+          label='Buscar'
+          className='max-w-sm'
+          onChange={(event) => updateDraft('search', event.target.value)}
+          placeholder='Cliente o empresa'
+          type='search'
+          value={draft.search}
+        />
         <fieldset className='flex flex-wrap gap-1'>
           <legend className='mb-1 text-xs font-semibold text-[var(--text-secondary)]'>
             Motivo
@@ -306,7 +292,7 @@ export function LostPage() {
         </fieldset>
         <details className='relative'>
           <summary className='ui-pressable min-h-11 cursor-pointer rounded-[var(--radius-control)] border border-[var(--border-default)] px-3 py-2 text-sm font-semibold'>
-            Más filtros
+            Filtros{filterCount ? ` · ${filterCount}` : ''}
           </summary>
           <div className='absolute right-0 z-20 mt-2 grid w-72 gap-3 rounded-[var(--radius-surface)] border border-[var(--border-default)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-raised)]'>
             <label className='ui-label'>
@@ -412,18 +398,20 @@ export function LostPage() {
               {items.length ? (
                 <LostRows items={items} />
               ) : (
-                <div className='ui-panel px-5 py-9 text-center'>
-                  <h3 className='text-base font-semibold'>
-                    {filterCount
-                      ? 'No hay pérdidas con estos filtros'
-                      : 'No hay oportunidades perdidas'}
-                  </h3>
-                  <p className='mt-2 text-sm text-[var(--text-secondary)]'>
-                    {filterCount
+                <EmptyState
+                  description={
+                    filterCount
                       ? 'Modificá o restablecé los filtros para ampliar la búsqueda.'
-                      : 'Las oportunidades perdidas actuales aparecerán aquí.'}
-                  </p>
-                </div>
+                      : 'Las oportunidades perdidas actuales aparecerán aquí.'
+                  }
+                  icon='alert'
+                  size='workspace'
+                  title={
+                    filterCount
+                      ? 'No hay pérdidas con estos filtros'
+                      : 'No hay oportunidades perdidas'
+                  }
+                />
               )}
             </div>
             {nextCursor ? (

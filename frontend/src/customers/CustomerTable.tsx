@@ -8,7 +8,7 @@ function phoneHref(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, '')}`
 }
 function MissingValue() {
-  return <span className='text-slate-500'>—</span>
+  return <span className='text-[var(--text-tertiary)]'>—</span>
 }
 
 export function CustomerTable({
@@ -30,7 +30,7 @@ export function CustomerTable({
       <table className='w-full min-w-[42rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Clientes activos del CRM</caption>
         <thead>
-          <tr className='border-b border-slate-200 bg-slate-50 text-xs text-slate-600'>
+          <tr className='border-b border-[var(--subtle-border)] bg-[var(--surface-interactive)] text-xs text-[var(--text-secondary)]'>
             <th className='px-4 py-3 font-semibold' scope='col'>
               Nombre
             </th>
@@ -112,7 +112,7 @@ export function CustomerTable({
                   {role === 'SUPERVISOR' ? (
                     <Button
                       aria-label={`Eliminar a ${customer.name}`}
-                      className='text-rose-700 hover:bg-rose-50 hover:text-rose-900'
+                      className='text-[var(--destructive-text)] hover:bg-[var(--destructive-subtle)] hover:text-[var(--destructive-text)]'
                       onClick={() => onDelete(customer)}
                       size='compact'
                       variant='ghost'

@@ -9,6 +9,7 @@ import { ProductTable } from '../products/ProductTable'
 import type { Product } from '../products/types'
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
+import { EmptyState } from '../shared/StatusStates'
 import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 function sortProducts(products: Product[]): Product[] {
@@ -146,22 +147,12 @@ export function ProductsPage() {
   }
 
   return (
-    <section aria-labelledby='products-workspace-title' className='mx-auto max-w-5xl'>
+    <section aria-label='Catálogo de productos' className='mx-auto max-w-5xl'>
       <div aria-live='polite' className='sr-only'>
         {announcement}
       </div>
 
-      <div className='flex flex-wrap items-end justify-between gap-4'>
-        <div>
-          <h2 className='text-base font-semibold text-slate-950' id='products-workspace-title'>
-            Catálogo de productos
-          </h2>
-          <p className='mt-0.5 text-sm text-slate-600'>
-            {canManage
-              ? 'Administrá los productos disponibles para cotizaciones.'
-              : 'Consultá los productos activos disponibles para nuevas cotizaciones.'}
-          </p>
-        </div>
+      <div className='flex flex-wrap justify-end gap-4'>
         {canManage ? (
           <Button onClick={openCreate} variant='primary'>
             Nuevo producto
@@ -170,16 +161,25 @@ export function ProductsPage() {
       </div>
 
       {!isLoading && !loadError ? (
-        <p className='ui-panel mt-4 px-4 py-2.5 text-sm text-slate-700' role='status'>
-          <span className='font-semibold tabular-nums text-slate-950'>{products.length}</span>{' '}
+        <p
+          className='mt-4 border-b border-[var(--divider)] px-1 pb-3 text-sm text-[var(--text-secondary)]'
+          role='status'
+        >
+          <span className='font-semibold tabular-nums text-[var(--text-primary)]'>
+            {products.length}
+          </span>{' '}
           {products.length === 1 ? 'producto' : 'productos'}
           {canManage ? (
             <>
               {' · '}
-              <span className='font-semibold tabular-nums text-emerald-800'>{activeCount}</span>{' '}
+              <span className='font-semibold tabular-nums text-[var(--success-text)]'>
+                {activeCount}
+              </span>{' '}
               {activeCount === 1 ? 'activo' : 'activos'}
               {' · '}
-              <span className='font-semibold tabular-nums text-slate-700'>{inactiveCount}</span>{' '}
+              <span className='font-semibold tabular-nums text-[var(--text-secondary)]'>
+                {inactiveCount}
+              </span>{' '}
               {inactiveCount === 1 ? 'inactivo' : 'inactivos'}
             </>
           ) : null}
@@ -203,14 +203,16 @@ export function ProductsPage() {
         ) : isLoading ? (
           <WorkspaceSkeleton label='Cargando productos…' />
         ) : products.length === 0 ? (
-          <div className='ui-panel px-5 py-9 text-center'>
-            <h3 className='text-base font-semibold text-slate-950'>No hay productos disponibles</h3>
-            <p className='mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600'>
-              {canManage
-                ? 'Creá el primer producto para comenzar a cotizar oportunidades.'
-                : 'Un supervisor debe activar productos para que aparezcan en este catálogo.'}
-            </p>
-          </div>
+          <EmptyState
+            description={
+              canManage
+                ? 'Creá el catálogo que después usarás en las cotizaciones.'
+                : 'Un supervisor debe activar productos para que aparezcan en este catálogo.'
+            }
+            icon='products'
+            size='workspace'
+            title='Todavía no hay productos'
+          />
         ) : (
           <ProductTable
             busyProductIds={busyProductIds}

@@ -103,28 +103,31 @@ export function Drawer({
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className='drawer-dialog text-slate-900'
+      className='drawer-dialog text-[var(--text-primary)]'
       data-closing={isClosing ? 'true' : 'false'}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <div className='drawer-panel flex flex-col border-l border-slate-200'>
-        <header className='flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 sm:px-5'>
+      <div className='drawer-panel flex flex-col border-s border-[var(--subtle-border)]'>
+        <header className='flex shrink-0 items-start justify-between gap-4 border-b border-[var(--subtle-border)] bg-[var(--surface-primary)] px-4 py-3 sm:px-5'>
           <div className='min-w-0 py-1'>
-            <h2 className='truncate text-base font-semibold text-slate-950' id={titleId}>
+            <h2
+              className='truncate text-base font-semibold text-[var(--text-primary)]'
+              id={titleId}
+            >
               {title}
             </h2>
             {description ? (
-              <p className='mt-0.5 text-sm text-slate-600' id={descriptionId}>
+              <p className='mt-0.5 text-sm text-[var(--text-secondary)]' id={descriptionId}>
                 {description}
               </p>
             ) : null}
           </div>
           <button
             aria-label={`Cerrar ${title.toLowerCase()}`}
-            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[4px] text-slate-500 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500 disabled:opacity-40'
+            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-tertiary)] outline-none hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:opacity-40'
             data-drawer-initial-focus
             disabled={closeDisabled}
             onClick={onClose}

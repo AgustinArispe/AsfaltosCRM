@@ -28,6 +28,7 @@ import type {
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
+import { EmptyState } from '../shared/StatusStates'
 
 function replaceOpportunity(
   opportunities: OpportunitySummary[],
@@ -58,7 +59,7 @@ function BoardSkeleton() {
   )
 }
 
-export function PipelinePage() {
+export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?: number }) {
   const { token, logout } = useAuth()
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
@@ -217,20 +218,16 @@ export function PipelinePage() {
     hasLoaded && !loadError && opportunities.length > 0 && projectedOpportunities.length === 0
 
   return (
-    <section aria-labelledby='pipeline-workspace-title'>
-      <div className='pipeline-page-heading'>
-        <div>
-          <h2 id='pipeline-workspace-title'>Pipeline</h2>
-          <p>Oportunidades activas, ordenadas por evidencia comercial.</p>
-        </div>
-        <Button
-          disabled={isRefreshing || busyOpportunityIds.size > 0}
-          onClick={() => setReloadKey((current) => current + 1)}
-        >
-          {isRefreshing ? 'Actualizando…' : 'Actualizar'}
-        </Button>
-      </div>
+    <section aria-label='Pipeline'>
       <PipelineControls
+        action={
+          <Button
+            disabled={isRefreshing || busyOpportunityIds.size > 0}
+            onClick={() => setReloadKey((current) => current + 1)}
+          >
+            {isRefreshing ? 'Actualizando…' : 'Actualizar'}
+          </Button>
+        }
         filters={filters}
         onFiltersChange={setFilters}
         onReset={() => {
@@ -259,18 +256,22 @@ export function PipelinePage() {
           <Button onClick={() => setReloadKey((current) => current + 1)}>Reintentar</Button>
         </div>
       ) : noMatches ? (
-        <div className='ui-empty-state'>
-          <h3>Sin resultados</h3>
-          <p>Probá ajustar los filtros del Pipeline.</p>
-          <Button
-            onClick={() => {
-              setFilters(DEFAULT_PIPELINE_FILTERS)
-              setShowStageAge(false)
-            }}
-          >
-            Limpiar filtros
-          </Button>
-        </div>
+        <EmptyState
+          action={
+            <Button
+              onClick={() => {
+                setFilters(DEFAULT_PIPELINE_FILTERS)
+                setShowStageAge(false)
+              }}
+            >
+              Limpiar filtros
+            </Button>
+          }
+          description='Probá ajustar los filtros del Pipeline.'
+          icon='search'
+          size='small'
+          title='Sin resultados'
+        />
       ) : (
         <PipelineBoard
           busyOpportunityIds={busyOpportunityIds}
@@ -281,6 +282,7 @@ export function PipelinePage() {
               { origin: { kind: 'workspace', workspace: 'pipeline' } },
             )
           }
+          selectedOpportunityId={selectedOpportunityId}
           opportunities={projectedOpportunities}
           showStageAge={showStageAge}
         />

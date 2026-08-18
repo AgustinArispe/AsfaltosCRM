@@ -7,6 +7,7 @@ export type BadgeTone =
   | 'negotiation'
   | 'won'
   | 'lost'
+  | 'unknown'
   | 'legendary'
   | 'active'
 
@@ -18,6 +19,7 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
     'border-[var(--warning-border)] bg-[var(--warning-subtle)] text-[var(--warning-text)]',
   won: 'border-[var(--success-border)] bg-[var(--success-subtle)] text-[var(--success-text)]',
   lost: 'border-[var(--destructive-border)] bg-[var(--destructive-subtle)] text-[var(--destructive-text)]',
+  unknown: 'border-[var(--uncertain)] bg-[var(--uncertain-muted)] text-[var(--uncertain)]',
   legendary:
     'border-[var(--legendary-border)] bg-[var(--legendary-subtle)] text-[var(--legendary-text)]',
   active: 'border-[var(--success-border)] bg-[var(--success-subtle)] text-[var(--success-text)]',
@@ -40,3 +42,5 @@ export function Badge({
     </span>
   )
 }
+
+export const StatusPill = Badge

@@ -162,7 +162,10 @@ export function CustomerFormModal({
               value={values.name}
             />
             {fieldErrors.name ? (
-              <p className='mt-1.5 text-sm font-medium text-red-700' id={`${formId}-name-error`}>
+              <p
+                className='mt-1.5 text-sm font-medium text-[var(--destructive-text)]'
+                id={`${formId}-name-error`}
+              >
                 {fieldErrors.name}
               </p>
             ) : null}
@@ -201,7 +204,10 @@ export function CustomerFormModal({
                 value={values.email}
               />
               {fieldErrors.email ? (
-                <p className='mt-1.5 text-sm font-medium text-red-700' id={`${formId}-email-error`}>
+                <p
+                  className='mt-1.5 text-sm font-medium text-[var(--destructive-text)]'
+                  id={`${formId}-email-error`}
+                >
                   {fieldErrors.email}
                 </p>
               ) : null}
@@ -238,10 +244,10 @@ export function CustomerFormModal({
           </div>
 
           {role === 'SUPERVISOR' ? (
-            <label className='flex min-h-11 items-start gap-3 rounded-[4px] border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800'>
+            <label className='flex min-h-11 items-start gap-3 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] px-3.5 py-3 text-sm text-[var(--text-primary)]'>
               <input
                 checked={values.legendary_historical_override}
-                className='mt-0.5 size-4 accent-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2'
+                className='mt-0.5 size-4 accent-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2'
                 disabled={isSubmitting}
                 onChange={(event) =>
                   updateValue('legendary_historical_override', event.target.checked)
@@ -250,7 +256,7 @@ export function CustomerFormModal({
               />
               <span>
                 <span className='font-semibold'>Legendario histórico</span>
-                <span className='mt-0.5 block text-xs leading-5 text-slate-600'>
+                <span className='mt-0.5 block text-xs leading-5 text-[var(--text-secondary)]'>
                   FAA reconoció esta relación comercial como histórica antes del CRM.
                 </span>
               </span>
@@ -258,7 +264,7 @@ export function CustomerFormModal({
           ) : null}
         </div>
 
-        <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
+        <footer className='flex flex-wrap justify-end gap-3 border-t border-[var(--subtle-border)] px-5 py-4'>
           <Button disabled={isSubmitting} onClick={isDirty ? onClose : requestClose}>
             {isDirty ? 'Descartar cambios' : 'Cancelar'}
           </Button>

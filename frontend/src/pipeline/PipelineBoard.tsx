@@ -37,12 +37,14 @@ export function PipelineBoard({
   onMove,
   onOpenDetail,
   showStageAge,
+  selectedOpportunityId,
 }: {
   opportunities: OpportunitySummary[]
   busyOpportunityIds: ReadonlySet<number>
   onMove: (opportunityId: number, targetStatus: PipelineStatus) => void
   onOpenDetail: (opportunityId: number) => void
   showStageAge: boolean
+  selectedOpportunityId?: number
 }) {
   const visibleOpportunities = opportunities.filter((opportunity) =>
     isPipelineStatus(opportunity.status),
@@ -80,6 +82,7 @@ export function PipelineBoard({
               opportunities={opportunitiesForStage(visibleOpportunities, stage.status)}
               showStageAge={showStageAge}
               stage={stage}
+              selectedOpportunityId={selectedOpportunityId}
             />
           ))}
         </div>
@@ -87,7 +90,7 @@ export function PipelineBoard({
 
       <DragOverlay dropAnimation={null}>
         {(source) => (
-          <div className='w-64 rounded-[5px] border border-slate-400 bg-white px-3 py-3 text-sm font-semibold text-slate-950 shadow-lg'>
+          <div className='ui-surface-raised w-64 px-3 py-3 text-sm font-semibold text-[var(--text-primary)]'>
             {(source.data as PipelineDragData | undefined)?.customerName ?? 'Oportunidad'}
           </div>
         )}

@@ -142,7 +142,7 @@ describe('ProductsPage', () => {
     mockProductApi({ products: [], failList: () => shouldFail })
     const { unmount } = render(<ProductsPage />)
     expect(
-      await screen.findByRole('heading', { name: 'No hay productos disponibles' }),
+      await screen.findByRole('heading', { name: 'Todavía no hay productos' }),
     ).toBeInTheDocument()
     unmount()
 

@@ -81,7 +81,6 @@ function OperationalAttention({
     <section aria-labelledby='dashboard-attention-title' className='dashboard-attention'>
       <div className='dashboard-attention__heading'>
         <div>
-          <p className='dashboard-surface-kicker'>Atención operativa</p>
           <h2 id='dashboard-attention-title'>Lo que necesita seguimiento ahora</h2>
         </div>
         {created !== undefined && created > 0 ? (
@@ -142,19 +141,12 @@ export function DashboardPage() {
   const hasDimensionFilters = Boolean(filters.source || filters.productId || filters.province)
 
   return (
-    <section aria-labelledby='dashboard-workspace-title' className='dashboard-page'>
+    <section aria-label='Dashboard comercial' className='dashboard-page'>
       <div aria-live='polite' className='sr-only'>
         {isRefreshing ? 'Actualizando Dashboard.' : ''}
       </div>
-      <header className='dashboard-page-heading'>
-        <div>
-          <p className='dashboard-eyebrow'>Panorama comercial</p>
-          <h2 id='dashboard-workspace-title'>Dashboard</h2>
-          <p>Atención actual y desempeño comercial con métricas verificables.</p>
-        </div>
-        <DashboardRefresh isRefreshing={isRefreshing} onRetry={retry} />
-      </header>
       <DashboardFilters
+        action={<DashboardRefresh isRefreshing={isRefreshing} onRetry={retry} />}
         filters={filters}
         onChange={setFilters}
         onReset={() => setFilters(defaultDashboardFilters())}

@@ -89,8 +89,10 @@ export function MessageLog({
     return (
       <div className='grid min-h-0 flex-1 place-items-center px-5 text-center'>
         <div>
-          <p className='text-sm font-semibold text-slate-900'>No pudimos cargar los mensajes</p>
-          <p className='mt-1 text-xs text-slate-500'>{error}</p>
+          <p className='text-sm font-semibold text-[var(--text-primary)]'>
+            No pudimos cargar los mensajes
+          </p>
+          <p className='mt-1 text-xs text-[var(--text-tertiary)]'>{error}</p>
           <Button className='mt-4' onClick={onRetry} size='compact'>
             Reintentar
           </Button>
@@ -100,7 +102,7 @@ export function MessageLog({
   }
 
   return (
-    <div className='relative min-h-0 flex-1 bg-slate-50'>
+    <div className='relative min-h-0 flex-1 bg-[var(--surface-interactive)]'>
       <div
         aria-label='Historial de mensajes'
         aria-live={announceUpdates ? 'polite' : 'off'}
@@ -123,17 +125,20 @@ export function MessageLog({
           </div>
         ) : null}
         {error ? (
-          <p className='mb-3 text-center text-xs font-medium text-rose-700' role='status'>
+          <p
+            className='mb-3 text-center text-xs font-medium text-[var(--destructive-text)]'
+            role='status'
+          >
             {error}
           </p>
         ) : null}
         {messages.length === 0 ? (
           <div className='grid min-h-full place-items-center text-center'>
             <div>
-              <p className='text-sm font-semibold text-slate-800'>
+              <p className='text-sm font-semibold text-[var(--text-primary)]'>
                 Todavía no hay mensajes disponibles
               </p>
-              <p className='mt-1 text-xs text-slate-500'>
+              <p className='mt-1 text-xs text-[var(--text-tertiary)]'>
                 La conversación aparecerá aquí cuando tenga actividad.
               </p>
             </div>

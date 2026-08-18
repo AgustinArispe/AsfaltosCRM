@@ -24,7 +24,7 @@ import { Modal } from '../shared/Modal'
 function BackToCustomersLink() {
   return (
     <AppLink
-      className='ui-pressable inline-flex min-h-11 items-center gap-2 rounded-[4px] px-2 text-sm font-semibold text-slate-600 outline-none hover:bg-white hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
+      className='ui-pressable inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] px-2 text-sm font-semibold text-[var(--text-secondary)] outline-none hover:bg-[var(--surface-primary)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
       onClick={(event) => {
         event.preventDefault()
         navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
@@ -49,10 +49,10 @@ function DetailError({ notFound, onRetry }: { notFound: boolean; onRetry: () => 
   return (
     <section aria-labelledby='customer-detail-error' className='max-w-3xl'>
       <div className='px-5 py-6'>
-        <h2 className='text-lg font-semibold text-slate-950' id='customer-detail-error'>
+        <h2 className='text-lg font-semibold text-[var(--text-primary)]' id='customer-detail-error'>
           {notFound ? 'Cliente no encontrado' : 'No pudimos cargar el cliente'}
         </h2>
-        <p className='mt-2 text-sm leading-6 text-slate-600'>
+        <p className='mt-2 text-sm leading-6 text-[var(--text-secondary)]'>
           {notFound
             ? 'El cliente no existe, fue eliminado o ya no está disponible.'
             : 'Revisá tu conexión e intentá nuevamente.'}
@@ -69,14 +69,19 @@ function DetailError({ notFound, onRetry }: { notFound: boolean; onRetry: () => 
 
 function OpportunityProducts({ opportunity }: { opportunity: OpportunitySummary }) {
   if (opportunity.products.length === 0) {
-    return <span className='text-slate-500'>Sin cotización</span>
+    return <span className='text-[var(--text-tertiary)]'>Sin cotización</span>
   }
   return (
     <ul className='space-y-1'>
       {opportunity.products.map((quotedProduct) => (
         <li key={quotedProduct.product.id}>
-          <span className='font-medium text-slate-800'>{quotedProduct.product.name}</span>
-          <span className='text-slate-500'> · {formatQuantityKg(quotedProduct.quantity_kg)}</span>
+          <span className='font-medium text-[var(--text-primary)]'>
+            {quotedProduct.product.name}
+          </span>
+          <span className='text-[var(--text-tertiary)]'>
+            {' '}
+            · {formatQuantityKg(quotedProduct.quantity_kg)}
+          </span>
         </li>
       ))}
     </ul>
@@ -92,7 +97,7 @@ function CustomerOpportunities({
 }) {
   if (opportunities.length === 0) {
     return (
-      <p className='mt-3 text-sm leading-6 text-slate-600'>
+      <p className='mt-3 text-sm leading-6 text-[var(--text-secondary)]'>
         Este cliente todavía no tiene oportunidades registradas.
       </p>
     )
@@ -101,12 +106,12 @@ function CustomerOpportunities({
   return (
     <section
       aria-label='Oportunidades del cliente. Desplazá horizontalmente para ver todas las columnas.'
-      className='mt-4 overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500'
+      className='mt-4 overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
     >
       <table className='w-full min-w-[58rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Historial de oportunidades del cliente</caption>
         <thead>
-          <tr className='border-b border-slate-200 text-xs uppercase tracking-wide text-slate-600'>
+          <tr className='border-b border-[var(--subtle-border)] text-xs text-[var(--text-secondary)]'>
             <th className='pb-2 pr-4 font-semibold' scope='col'>
               Estado
             </th>
@@ -129,26 +134,28 @@ function CustomerOpportunities({
         </thead>
         <tbody>
           {opportunities.map((opportunity) => (
-            <tr className='border-b border-slate-100 last:border-b-0' key={opportunity.id}>
+            <tr className='border-b border-[var(--divider)] last:border-b-0' key={opportunity.id}>
               <td className='py-3 pr-4'>
                 <Badge tone={OPPORTUNITY_STATUS_TONES[opportunity.status]}>
                   {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
                 </Badge>
               </td>
-              <td className='px-4 py-3 text-slate-700'>{SOURCE_LABELS[opportunity.source]}</td>
-              <td className='whitespace-nowrap px-4 py-3 text-slate-700'>
+              <td className='px-4 py-3 text-[var(--text-secondary)]'>
+                {SOURCE_LABELS[opportunity.source]}
+              </td>
+              <td className='whitespace-nowrap px-4 py-3 text-[var(--text-secondary)]'>
                 {formatDateTime(opportunity.created_at)}
               </td>
               <td className='max-w-xs px-4 py-3 text-xs leading-5'>
                 <OpportunityProducts opportunity={opportunity} />
               </td>
-              <td className='px-4 py-3 text-slate-700'>
+              <td className='px-4 py-3 text-[var(--text-secondary)]'>
                 {opportunity.assigned_user?.full_name ?? 'Sin responsable'}
               </td>
               <td className='py-3 pl-4 text-right'>
                 <AppLink
                   aria-label={`Ver detalle de oportunidad ${opportunity.id}`}
-                  className='inline-flex min-h-11 items-center px-2 font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
+                  className='inline-flex min-h-11 items-center px-2 font-semibold text-[var(--text-secondary)] underline decoration-[var(--subtle-border)] underline-offset-4 outline-none hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                   origin={{ kind: 'customer', customerId }}
                   to={{
                     kind: 'opportunity',
@@ -234,7 +241,7 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
               <div>
                 <div className='mt-1.5 flex flex-wrap items-center gap-2.5'>
                   <h2
-                    className='text-2xl font-semibold tracking-tight text-slate-950'
+                    className='text-2xl font-semibold tracking-tight text-[var(--text-primary)]'
                     id='customer-name'
                   >
                     {customer.name}
@@ -243,7 +250,7 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
                     <LegendaryBadge />
                   ) : null}
                 </div>
-                <p className='mt-1 text-sm text-slate-600'>
+                <p className='mt-1 text-sm text-[var(--text-secondary)]'>
                   {customer.company ?? 'Empresa no informada'}
                 </p>
               </div>
@@ -262,18 +269,19 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
             aria-labelledby='customer-contact-title'
             className='ui-panel mt-4 px-5 py-5 sm:px-6'
           >
-            <h3 className='text-base font-semibold text-slate-950' id='customer-contact-title'>
+            <h3
+              className='text-base font-semibold text-[var(--text-primary)]'
+              id='customer-contact-title'
+            >
               Información de contacto
             </h3>
             <dl className='mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3'>
               <div>
-                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-                  Email
-                </dt>
-                <dd className='mt-1 break-words text-sm text-slate-900'>
+                <dt className='text-xs font-semibold text-[var(--text-tertiary)]'>Email</dt>
+                <dd className='mt-1 break-words text-sm text-[var(--text-primary)]'>
                   {customer.email ? (
                     <a
-                      className='underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
+                      className='underline decoration-[var(--subtle-border)] underline-offset-2 outline-none hover:decoration-[var(--strong-border)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                       href={`mailto:${customer.email}`}
                     >
                       {customer.email}
@@ -284,13 +292,11 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
                 </dd>
               </div>
               <div>
-                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-                  Teléfono
-                </dt>
-                <dd className='mt-1 text-sm text-slate-900'>
+                <dt className='text-xs font-semibold text-[var(--text-tertiary)]'>Teléfono</dt>
+                <dd className='mt-1 text-sm text-[var(--text-primary)]'>
                   {customer.phone ? (
                     <a
-                      className='underline decoration-slate-300 underline-offset-2 outline-none hover:decoration-slate-700 focus-visible:ring-2 focus-visible:ring-slate-500'
+                      className='underline decoration-[var(--subtle-border)] underline-offset-2 outline-none hover:decoration-[var(--strong-border)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                       href={`tel:${customer.phone.replace(/[^\d+]/g, '')}`}
                     >
                       {customer.phone}
@@ -301,18 +307,14 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
                 </dd>
               </div>
               <div>
-                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-                  Provincia
-                </dt>
-                <dd className='mt-1 text-sm text-slate-900'>
+                <dt className='text-xs font-semibold text-[var(--text-tertiary)]'>Provincia</dt>
+                <dd className='mt-1 text-sm text-[var(--text-primary)]'>
                   {customer.province ?? 'No informada'}
                 </dd>
               </div>
               <div>
-                <dt className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
-                  Fecha de alta
-                </dt>
-                <dd className='mt-1 text-sm text-slate-900'>
+                <dt className='text-xs font-semibold text-[var(--text-tertiary)]'>Fecha de alta</dt>
+                <dd className='mt-1 text-sm text-[var(--text-primary)]'>
                   <time dateTime={customer.created_at}>{formatDateTime(customer.created_at)}</time>
                 </dd>
               </div>
@@ -325,12 +327,12 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
           >
             <div className='flex flex-wrap items-baseline justify-between gap-2'>
               <h3
-                className='text-base font-semibold text-slate-950'
+                className='text-base font-semibold text-[var(--text-primary)]'
                 id='customer-opportunities-title'
               >
                 Oportunidades
               </h3>
-              <p className='text-sm text-slate-600'>
+              <p className='text-sm text-[var(--text-secondary)]'>
                 {opportunities.length}{' '}
                 {opportunities.length === 1 ? 'oportunidad' : 'oportunidades'}
               </p>

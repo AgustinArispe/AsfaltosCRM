@@ -1,9 +1,26 @@
 import type { ReactNode } from 'react'
 
 import { Button } from './Button'
+import { Icon, type IconName } from './Icon'
 
-export function Surface({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`ui-panel ${className}`}>{children}</section>
+export function Surface({
+  children,
+  className = '',
+  level = 'primary',
+}: {
+  children: ReactNode
+  className?: string
+  level?: 'primary' | 'secondary' | 'interactive' | 'raised'
+}) {
+  const levelClass =
+    level === 'secondary'
+      ? 'ui-surface-secondary'
+      : level === 'interactive'
+        ? 'ui-surface-interactive'
+        : level === 'raised'
+          ? 'ui-surface-raised'
+          : 'ui-panel'
+  return <section className={`${levelClass} ${className}`}>{children}</section>
 }
 
 export function Skeleton({ className = '' }: { className?: string }) {
@@ -14,13 +31,20 @@ export function EmptyState({
   title,
   description,
   action,
+  icon = 'inbox',
+  size = 'medium',
 }: {
   title: string
   description: string
   action?: ReactNode
+  icon?: IconName
+  size?: 'small' | 'medium' | 'workspace'
 }) {
   return (
-    <div className='ui-empty-state'>
+    <div className={`ui-empty-state ui-empty-state--${size}`}>
+      <span className='ui-empty-state__icon'>
+        <Icon className='size-5' name={icon} />
+      </span>
       <h2>{title}</h2>
       <p>{description}</p>
       {action}

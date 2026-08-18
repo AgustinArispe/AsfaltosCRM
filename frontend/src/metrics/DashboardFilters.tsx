@@ -1,5 +1,8 @@
+import type { ReactNode } from 'react'
+
 import type { Product } from '../products/types'
 import { Select } from '../shared/FormControls'
+import { FilterControl, Toolbar } from '../shared/Workspace'
 import type { DashboardFilters as DashboardFiltersModel } from './filters'
 import { activeFilterCount, filtersForCustomRange, filtersForPreset, sourceLabel } from './filters'
 
@@ -9,62 +12,57 @@ export function DashboardFilters({
   provinces,
   onChange,
   onReset,
+  action,
 }: {
   filters: DashboardFiltersModel
   products: Product[]
   provinces: string[]
   onChange: (filters: DashboardFiltersModel) => void
   onReset: () => void
+  action?: ReactNode
 }) {
   const count = activeFilterCount(filters)
   const customRange = filters.preset === 'custom'
 
   return (
-    <form
-      className='dashboard-filters'
+    <Toolbar
       aria-label='Filtros del Dashboard'
+      className='dashboard-filters'
       onSubmit={(event) => event.preventDefault()}
     >
-      <label className='dashboard-filter-field' htmlFor='dashboard-period'>
-        <span>Período</span>
-        <select
-          id='dashboard-period'
-          onChange={(event) => {
-            const value = event.target.value as DashboardFiltersModel['preset']
-            if (value === 'custom') {
-              onChange({ ...filters, preset: value })
-              return
-            }
-            onChange(filtersForPreset(value, filters))
-          }}
-          value={filters.preset}
-        >
-          <option value='month'>Este mes</option>
-          <option value='last-three-months'>Últimos 3 meses</option>
-          <option value='year'>Este año</option>
-          <option value='custom'>Personalizado</option>
-        </select>
-      </label>
-      <label
-        className='dashboard-filter-field dashboard-filter-field--source'
-        htmlFor='dashboard-source'
-      >
-        <span>Origen</span>
-        <select
-          id='dashboard-source'
-          onChange={(event) =>
-            onChange({
-              ...filters,
-              source: event.target.value ? (event.target.value as 'WEB' | 'WHATSAPP') : null,
-            })
+      <FilterControl
+        id='dashboard-period'
+        label='Período'
+        onChange={(event) => {
+          const value = event.target.value as DashboardFiltersModel['preset']
+          if (value === 'custom') {
+            onChange({ ...filters, preset: value })
+            return
           }
-          value={filters.source ?? ''}
-        >
-          <option value=''>Todos</option>
-          <option value='WEB'>{sourceLabel('WEB')}</option>
-          <option value='WHATSAPP'>{sourceLabel('WHATSAPP')}</option>
-        </select>
-      </label>
+          onChange(filtersForPreset(value, filters))
+        }}
+        value={filters.preset}
+      >
+        <option value='month'>Este mes</option>
+        <option value='last-three-months'>Últimos 3 meses</option>
+        <option value='year'>Este año</option>
+        <option value='custom'>Personalizado</option>
+      </FilterControl>
+      <FilterControl
+        id='dashboard-source'
+        label='Origen'
+        onChange={(event) =>
+          onChange({
+            ...filters,
+            source: event.target.value ? (event.target.value as 'WEB' | 'WHATSAPP') : null,
+          })
+        }
+        value={filters.source ?? ''}
+      >
+        <option value=''>Todos los orígenes</option>
+        <option value='WEB'>{sourceLabel('WEB')}</option>
+        <option value='WHATSAPP'>{sourceLabel('WHATSAPP')}</option>
+      </FilterControl>
       {customRange ? (
         <div className='dashboard-custom-range'>
           <label className='dashboard-filter-field' htmlFor='dashboard-from'>
@@ -94,7 +92,7 @@ export function DashboardFilters({
         </div>
       ) : null}
       <details className='dashboard-more-filters'>
-        <summary>Más filtros{count > 0 ? ` · ${count}` : ''}</summary>
+        <summary>Filtros{count > 0 ? ` · ${count}` : ''}</summary>
         <div className='dashboard-more-filters__content'>
           <Select
             id='dashboard-product'
@@ -138,6 +136,7 @@ export function DashboardFilters({
           Restablecer
         </button>
       ) : null}
-    </form>
+      {action ? <div className='ml-auto'>{action}</div> : null}
+    </Toolbar>
   )
 }

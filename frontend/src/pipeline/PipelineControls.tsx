@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+
+import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 import { activeFilterCount, type PipelineFilters, type PipelineSort } from './board-state'
 import type { LeadSource } from './types'
 
@@ -20,6 +23,7 @@ export function PipelineControls({
   onFiltersChange,
   onShowStageAgeChange,
   onReset,
+  action,
 }: {
   filters: PipelineFilters
   productOptions: { id: number; name: string }[]
@@ -27,57 +31,44 @@ export function PipelineControls({
   onFiltersChange: (filters: PipelineFilters) => void
   onShowStageAgeChange: (value: boolean) => void
   onReset: () => void
+  action?: ReactNode
 }) {
   const activeCount = activeFilterCount(filters, showStageAge)
   return (
-    <form
-      aria-label='Filtros del pipeline'
-      className='pipeline-controls'
-      onSubmit={(event) => event.preventDefault()}
-    >
-      <label className='pipeline-search'>
-        <span className='sr-only'>Buscar oportunidades</span>
-        <input
-          className='ui-field'
-          onChange={(event) => onFiltersChange({ ...filters, search: event.target.value })}
-          placeholder='Buscar'
-          type='search'
-          value={filters.search}
-        />
-      </label>
-      <label className='pipeline-control-label'>
-        <span>Orden</span>
-        <select
-          className='ui-field'
-          onChange={(event) =>
-            onFiltersChange({ ...filters, sort: event.target.value as PipelineSort })
-          }
-          value={filters.sort}
-        >
-          {SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className='pipeline-control-label'>
-        <span>Origen</span>
-        <select
-          className='ui-field'
-          onChange={(event) =>
-            onFiltersChange({ ...filters, source: event.target.value as PipelineFilters['source'] })
-          }
-          value={filters.source}
-        >
-          <option value='ALL'>Todos los orígenes</option>
-          {SOURCE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+    <Toolbar aria-label='Filtros del pipeline' className='pipeline-controls'>
+      <SearchField
+        label='Buscar oportunidades'
+        onChange={(event) => onFiltersChange({ ...filters, search: event.target.value })}
+        placeholder='Buscar oportunidades…'
+        value={filters.search}
+      />
+      <FilterControl
+        label='Orden'
+        onChange={(event) =>
+          onFiltersChange({ ...filters, sort: event.target.value as PipelineSort })
+        }
+        value={filters.sort}
+      >
+        {SORT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </FilterControl>
+      <FilterControl
+        label='Origen'
+        onChange={(event) =>
+          onFiltersChange({ ...filters, source: event.target.value as PipelineFilters['source'] })
+        }
+        value={filters.source}
+      >
+        <option value='ALL'>Todos los orígenes</option>
+        {SOURCE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </FilterControl>
       <details className='pipeline-more-filters'>
         <summary>Más filtros{activeCount ? ` · ${activeCount}` : ''}</summary>
         <div className='pipeline-more-filters__content'>
@@ -111,6 +102,7 @@ export function PipelineControls({
           Limpiar
         </button>
       ) : null}
-    </form>
+      {action ? <div className='ml-auto'>{action}</div> : null}
+    </Toolbar>
   )
 }

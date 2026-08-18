@@ -324,6 +324,23 @@ describe('authenticated frontend', () => {
     expect(window.location.pathname).toBe('/pipeline')
   })
 
+  it('keeps the sidebar navigation reachable below the desktop breakpoint', async () => {
+    mockRestoredSession(supervisor)
+    renderApp('/pipeline')
+    await screen.findByRole('heading', { name: 'Pipeline', level: 1 })
+
+    const trigger = screen.getByRole('button', { name: 'Abrir navegación' })
+    fireEvent.click(trigger)
+    expect(screen.getByRole('complementary', { name: 'Navegación móvil' })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('complementary', { name: 'Navegación móvil' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(trigger).toHaveFocus()
+  })
+
   it('opens the dynamic customer detail route and keeps Customers active', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
     vi.stubGlobal(

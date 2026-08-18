@@ -5,53 +5,63 @@ export type NavigationItem = {
   label: string
   description: string
   supervisorOnly?: boolean
+  group: 'work' | 'communication' | 'management' | 'administration'
 }
 
 export const NAV_ITEMS: readonly NavigationItem[] = [
   {
     path: '/pipeline',
+    group: 'work',
     label: 'Pipeline',
     description: 'El pipeline comercial se implementará en el siguiente módulo.',
   },
   {
     path: '/dashboard',
+    group: 'work',
     label: 'Dashboard',
     description: 'Indicadores comerciales y operativos.',
   },
   {
     path: '/notifications',
+    group: 'work',
     label: 'Notificaciones',
     description: 'Seguimientos y alertas operativas.',
   },
   {
     path: '/whatsapp',
+    group: 'communication',
     label: 'WhatsApp',
     description: 'Conversaciones de WhatsApp y contexto comercial.',
   },
   {
+    path: '/whatsapp-sends',
+    group: 'communication',
+    label: 'Envíos WhatsApp',
+    description: 'Ejecuciones auditables de envíos aprobados.',
+  },
+  {
     path: '/customers',
+    group: 'management',
     label: 'Clientes',
     description: 'Gestión de clientes y su historial comercial.',
   },
   {
     path: '/products',
+    group: 'management',
     label: 'Productos',
     description: 'Catálogo de productos disponibles para cotizaciones.',
   },
   {
     path: '/lost',
+    group: 'management',
     label: 'Perdidas',
     description: 'Oportunidades comerciales perdidas.',
   },
   {
-    path: '/whatsapp-sends',
-    label: 'Envíos WhatsApp',
-    description: 'Ejecuciones auditables de envíos aprobados.',
-  },
-  {
     path: '/users',
+    group: 'administration',
     label: 'Usuarios',
-    description: 'La administración de usuarios se incorporará en una próxima etapa.',
+    description: 'Administración de usuarios y acceso al CRM.',
     supervisorOnly: true,
   },
 ] as const

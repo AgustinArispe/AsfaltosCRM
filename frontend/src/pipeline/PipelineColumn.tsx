@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/react'
-
+import { EmptyState } from '../shared/StatusStates'
 import type { PipelineStage } from './config'
 import { OpportunityCard } from './OpportunityCard'
 import type { OpportunitySummary, PipelineStatus } from './types'
@@ -10,12 +10,14 @@ export function PipelineColumn({
   busyOpportunityIds,
   onOpenDetail,
   showStageAge,
+  selectedOpportunityId,
 }: {
   stage: PipelineStage
   opportunities: (OpportunitySummary & { status: PipelineStatus })[]
   busyOpportunityIds: ReadonlySet<number>
   onOpenDetail: (opportunityId: number) => void
   showStageAge: boolean
+  selectedOpportunityId?: number
 }) {
   const { ref, isDropTarget } = useDroppable({
     id: stage.status,
@@ -56,10 +58,16 @@ export function PipelineColumn({
               onOpenDetail={onOpenDetail}
               opportunity={opportunity}
               showStageAge={showStageAge}
+              isSelected={opportunity.id === selectedOpportunityId}
             />
           ))
         ) : (
-          <p className='px-2 py-8 text-center text-sm text-slate-500'>No hay oportunidades</p>
+          <EmptyState
+            description='Las oportunidades aparecerán aquí al ingresar en esta etapa.'
+            icon='inbox'
+            size='small'
+            title='Sin oportunidades'
+          />
         )}
       </div>
     </section>

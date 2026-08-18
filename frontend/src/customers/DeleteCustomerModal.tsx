@@ -45,7 +45,7 @@ export function DeleteCustomerModal({
       title={customer ? `¿Eliminar a ${customer.name}?` : 'Eliminar cliente'}
       variant='danger'
     >
-      <p className='text-sm leading-6 text-slate-700'>
+      <p className='text-sm leading-6 text-[var(--text-secondary)]'>
         Esta acción realiza un borrado lógico y no elimina sus oportunidades.
       </p>
     </ConfirmationDialog>

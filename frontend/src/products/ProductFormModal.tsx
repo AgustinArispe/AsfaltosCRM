@@ -101,14 +101,17 @@ export function ProductFormModal({
               value={name}
             />
             {nameError ? (
-              <p className='mt-1.5 text-sm font-medium text-red-700' id={`${formId}-name-error`}>
+              <p
+                className='mt-1.5 text-sm font-medium text-[var(--destructive-text)]'
+                id={`${formId}-name-error`}
+              >
                 {nameError}
               </p>
             ) : null}
           </div>
         </div>
 
-        <footer className='flex flex-wrap justify-end gap-3 border-t border-slate-200 px-5 py-4'>
+        <footer className='flex flex-wrap justify-end gap-3 border-t border-[var(--subtle-border)] px-5 py-4'>
           <Button disabled={isSubmitting} onClick={isDirty ? onClose : requestClose}>
             {isDirty ? 'Descartar cambios' : 'Cancelar'}
           </Button>

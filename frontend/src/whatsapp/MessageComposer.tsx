@@ -124,7 +124,7 @@ export function MessageComposer({
 
   return (
     <form
-      className='shrink-0 border-t border-slate-200 bg-white px-3 py-3 sm:px-4'
+      className='shrink-0 border-t border-[var(--subtle-border)] bg-[var(--surface-primary)] px-3 py-3 sm:px-4'
       onSubmit={(event) => {
         event.preventDefault()
         void submit()
@@ -132,20 +132,20 @@ export function MessageComposer({
     >
       {attachment ? (
         <div
-          className='mb-2 flex items-center justify-between gap-3 rounded-[4px] border border-slate-200 bg-slate-50 px-3 py-2'
+          className='mb-2 flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] px-3 py-2'
           id={attachmentId}
         >
           <div className='flex min-w-0 items-center gap-3'>
             {attachment.previewUrl ? (
               <img
                 alt={`Vista previa de ${attachment.file.name}`}
-                className='size-11 rounded-[3px] object-cover'
+                className='size-11 rounded-[var(--radius-control)] object-cover'
                 src={attachment.previewUrl}
               />
             ) : (
               <svg
                 aria-hidden='true'
-                className='size-6 shrink-0 text-slate-500'
+                className='size-6 shrink-0 text-[var(--text-tertiary)]'
                 fill='none'
                 viewBox='0 0 24 24'
               >
@@ -159,17 +159,17 @@ export function MessageComposer({
               </svg>
             )}
             <span className='min-w-0'>
-              <span className='block truncate text-xs font-semibold text-slate-800'>
+              <span className='block truncate text-xs font-semibold text-[var(--text-primary)]'>
                 {attachment.file.name}
               </span>
-              <span className='text-[0.6875rem] text-slate-500'>
+              <span className='text-[0.6875rem] text-[var(--text-tertiary)]'>
                 {formatFileSize(attachment.file.size)}
               </span>
             </span>
           </div>
           <button
             aria-label={`Quitar ${attachment.file.name}`}
-            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[4px] text-slate-500 outline-none hover:bg-slate-200 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-500'
+            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-tertiary)] outline-none hover:bg-[var(--divider)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
             disabled={isSending}
             onClick={clearAttachment}
             type='button'
@@ -203,7 +203,7 @@ export function MessageComposer({
       <p
         className={[
           'mt-1.5 text-xs leading-5',
-          disabledReason ? 'font-medium text-amber-800' : 'text-slate-500',
+          disabledReason ? 'font-medium text-[var(--warning-text)]' : 'text-[var(--text-tertiary)]',
         ].join(' ')}
         id={helpId}
       >
@@ -215,7 +215,9 @@ export function MessageComposer({
           id={errorId}
           role='alert'
         >
-          <p className='text-xs font-medium text-rose-700'>{sendError ?? fileError}</p>
+          <p className='text-xs font-medium text-[var(--destructive-text)]'>
+            {sendError ?? fileError}
+          </p>
           {hasFailedSend ? (
             <span className='flex gap-2'>
               <Button disabled={isSending} onClick={() => void retry()} size='compact'>
@@ -238,7 +240,7 @@ export function MessageComposer({
               className:
                 disabledReason || attachment
                   ? 'pointer-events-none opacity-45'
-                  : 'cursor-pointer focus-within:ring-2 focus-within:ring-slate-500 focus-within:ring-offset-2',
+                  : 'cursor-pointer focus-within:ring-2 focus-within:ring-[var(--focus-ring)] focus-within:ring-offset-2',
             })}
           >
             <svg aria-hidden='true' className='size-4' fill='none' viewBox='0 0 20 20'>

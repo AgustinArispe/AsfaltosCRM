@@ -28,10 +28,10 @@ function ConversationRow({
     <button
       aria-current={isSelected ? 'true' : undefined}
       className={[
-        'ui-pressable w-full border-l-2 px-3 py-3 text-left outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500',
+        'ui-pressable w-full px-3 py-3 text-left outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
         isSelected
-          ? 'border-l-slate-700 bg-slate-100'
-          : 'border-l-transparent bg-white hover:bg-slate-50',
+          ? 'bg-[var(--surface-selected)] shadow-[inset_0_-1px_0_var(--divider)]'
+          : 'bg-transparent hover:bg-[var(--surface-hover)]',
       ].join(' ')}
       onClick={onSelect}
       id={`whatsapp-conversation-${conversation.id}`}
@@ -39,15 +39,17 @@ function ConversationRow({
     >
       <span className='flex items-start justify-between gap-3'>
         <span className='min-w-0'>
-          <span className='block truncate text-sm font-semibold text-slate-950'>{name}</span>
+          <span className='block truncate text-sm font-semibold text-[var(--text-primary)]'>
+            {name}
+          </span>
           {conversation.customer?.company ? (
-            <span className='mt-0.5 block truncate text-xs text-slate-500'>
+            <span className='mt-0.5 block truncate text-xs text-[var(--text-tertiary)]'>
               {conversation.customer.company}
             </span>
           ) : null}
         </span>
         <time
-          className='shrink-0 text-[0.6875rem] font-medium text-slate-500'
+          className='shrink-0 text-[0.6875rem] font-medium text-[var(--text-tertiary)]'
           dateTime={conversation.last_message_at ?? undefined}
           title={conversation.last_message_at ?? undefined}
         >
@@ -60,10 +62,10 @@ function ConversationRow({
           className={[
             'min-w-0 truncate text-xs',
             conversation.waiting_for_response
-              ? 'font-semibold text-amber-800'
+              ? 'font-semibold text-[var(--warning-text)]'
               : conversation.resolution_status === 'NEEDS_REVIEW'
-                ? 'font-semibold text-rose-700'
-                : 'text-slate-500',
+                ? 'font-semibold text-[var(--destructive-text)]'
+                : 'text-[var(--text-tertiary)]',
           ].join(' ')}
         >
           {conversationActivityLabel(conversation)}
@@ -71,13 +73,13 @@ function ConversationRow({
         {conversation.unread_count > 0 ? (
           <span
             aria-label={`${conversation.unread_count} mensajes sin leer`}
-            className='grid min-h-5 min-w-5 shrink-0 place-items-center rounded-full bg-slate-800 px-1.5 text-[0.6875rem] font-bold text-white'
+            className='grid min-h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[var(--accent)] px-1.5 text-[0.6875rem] font-bold text-[var(--on-accent)]'
             role='status'
           >
             {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
           </span>
         ) : (
-          <span className='shrink-0 text-[0.6875rem] text-slate-400'>
+          <span className='shrink-0 text-[0.6875rem] text-[var(--text-tertiary)]'>
             {conversation.external_phone}
           </span>
         )}
@@ -121,18 +123,23 @@ export function ConversationList({
   return (
     <section
       aria-labelledby='whatsapp-conversations-title'
-      className='flex min-h-0 flex-col border-r border-slate-200 bg-white'
+      className='flex min-h-0 flex-col border-e border-[var(--divider)] bg-[var(--surface-secondary)]'
     >
-      <div className='shrink-0 border-b border-slate-200 px-3 py-3'>
+      <div className='shrink-0 border-b border-[var(--subtle-border)] px-3 py-3'>
         <div className='flex items-center justify-between gap-3'>
-          <h2 className='text-sm font-semibold text-slate-950' id='whatsapp-conversations-title'>
+          <h2
+            className='text-sm font-semibold text-[var(--text-primary)]'
+            id='whatsapp-conversations-title'
+          >
             Conversaciones
           </h2>
-          <span className='text-xs tabular-nums text-slate-500'>{conversations.length}</span>
+          <span className='text-xs tabular-nums text-[var(--text-tertiary)]'>
+            {conversations.length}
+          </span>
         </div>
         <label className='relative mt-3 block'>
           <span className='sr-only'>Buscar conversaciones</span>
-          <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500'>
+          <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]'>
             <SearchIcon />
           </span>
           <input
@@ -148,10 +155,10 @@ export function ConversationList({
           <button
             aria-pressed={waitingOnly}
             className={[
-              'ui-pressable min-h-11 flex-1 rounded-[4px] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-slate-500',
+              'ui-pressable min-h-11 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
               waitingOnly
-                ? 'border-amber-300 bg-amber-50 text-amber-900'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                ? 'border-[var(--warning-border)] bg-[var(--warning-subtle)] text-[var(--warning-text)]'
+                : 'border-[var(--subtle-border)] bg-[var(--surface-primary)] text-[var(--text-secondary)] hover:bg-[var(--surface-interactive)]',
             ].join(' ')}
             onClick={() => onWaitingChange(!waitingOnly)}
             type='button'
@@ -161,10 +168,10 @@ export function ConversationList({
           <button
             aria-pressed={unreadOnly}
             className={[
-              'ui-pressable min-h-11 flex-1 rounded-[4px] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-slate-500',
+              'ui-pressable min-h-11 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
               unreadOnly
-                ? 'border-slate-600 bg-slate-700 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                ? 'border-[var(--strong-border)] bg-[var(--surface-selected)] text-[var(--text-primary)]'
+                : 'border-[var(--subtle-border)] bg-[var(--surface-primary)] text-[var(--text-secondary)] hover:bg-[var(--surface-interactive)]',
             ].join(' ')}
             onClick={() => onUnreadChange(!unreadOnly)}
             type='button'
@@ -185,8 +192,10 @@ export function ConversationList({
           <LoadingState label='Cargando conversaciones…' />
         ) : status === 'error' && conversations.length === 0 ? (
           <div className='px-4 py-7 text-center'>
-            <p className='text-sm font-semibold text-slate-900'>No pudimos cargar la bandeja</p>
-            <p className='mt-1 text-xs leading-5 text-slate-500'>
+            <p className='text-sm font-semibold text-[var(--text-primary)]'>
+              No pudimos cargar la bandeja
+            </p>
+            <p className='mt-1 text-xs leading-5 text-[var(--text-tertiary)]'>
               {error ?? 'Revisá la conexión e intentá nuevamente.'}
             </p>
             <Button className='mt-4' onClick={onRetry} size='compact'>
@@ -197,7 +206,7 @@ export function ConversationList({
           <div className='px-5 py-8 text-center'>
             <svg
               aria-hidden='true'
-              className='mx-auto size-7 text-slate-400'
+              className='mx-auto size-7 text-[var(--text-tertiary)]'
               fill='none'
               viewBox='0 0 24 24'
             >
@@ -208,15 +217,15 @@ export function ConversationList({
                 strokeWidth='1.5'
               />
             </svg>
-            <p className='mt-3 text-sm font-semibold text-slate-800'>
+            <p className='mt-3 text-sm font-semibold text-[var(--text-primary)]'>
               No hay conversaciones para mostrar
             </p>
-            <p className='mt-1 text-xs leading-5 text-slate-500'>
+            <p className='mt-1 text-xs leading-5 text-[var(--text-tertiary)]'>
               Probá quitando filtros o cambiando la búsqueda.
             </p>
           </div>
         ) : (
-          <ul aria-label='Conversaciones de WhatsApp' className='divide-y divide-slate-100'>
+          <ul aria-label='Conversaciones de WhatsApp' className='divide-y divide-[var(--divider)]'>
             {conversations.map((conversation) => (
               <li key={conversation.id}>
                 <ConversationRow
@@ -229,7 +238,7 @@ export function ConversationList({
           </ul>
         )}
         {hasMore ? (
-          <div className='border-t border-slate-100 p-3 text-center'>
+          <div className='border-t border-[var(--divider)] p-3 text-center'>
             <Button onClick={onLoadMore} size='compact'>
               Cargar más conversaciones
             </Button>

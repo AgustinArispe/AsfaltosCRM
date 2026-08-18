@@ -97,8 +97,8 @@ export function Modal({
       onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <div className='max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-overlay)] border border-[var(--border-default)] bg-[var(--surface-overlay)] shadow-[var(--shadow-overlay)]'>
-        <header className='flex items-start justify-between gap-4 border-b border-[var(--border-default)] px-5 py-3.5'>
+      <div className='max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-overlay)] border border-[var(--subtle-border)] bg-[var(--surface-overlay)] shadow-[var(--shadow-overlay)]'>
+        <header className='flex items-start justify-between gap-4 border-b border-[var(--divider)] px-5 py-4 sm:px-6'>
           <div>
             <h2
               className='text-base font-semibold tracking-tight text-[var(--text-primary)]'

@@ -17,6 +17,7 @@ import type { OpportunityStatus } from '../pipeline/types'
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatTimeInStage } from '../shared/formatters'
+import { Icon } from '../shared/Icon'
 import { SegmentedControl } from '../shared/SegmentedControl'
 import { EmptyState, ErrorState, Skeleton } from '../shared/StatusStates'
 
@@ -78,7 +79,7 @@ function NotificationRow({
   const isResolved = notification.resolved_at !== null
   const statusLabel = STATUS_LABELS[notification.opportunity.status]
   return (
-    <li>
+    <li className='notification-row-wrapper'>
       <button
         aria-label={rowName(notification)}
         aria-describedby={`notification-${notification.id}-details`}
@@ -87,6 +88,9 @@ function NotificationRow({
         onClick={() => onOpen(notification)}
         type='button'
       >
+        <span className='notification-row__icon'>
+          <Icon className='size-4' name='clock' />
+        </span>
         <span className='notification-row__heading'>
           <strong>Seguimiento pendiente</strong>
           {isUnread ? (
@@ -203,18 +207,15 @@ export function NotificationsPage() {
   }
 
   return (
-    <section aria-labelledby='notifications-workspace-title' className='notifications-page'>
-      <header className='notifications-page__heading'>
-        <div>
-          <h2 id='notifications-workspace-title'>Notificaciones</h2>
-          <p>Seguimientos comerciales. Marcar una lectura no elimina el historial.</p>
-        </div>
+    <section aria-label='Historial de notificaciones' className='notifications-page'>
+      <div className='notifications-page__heading'>
+        <span />
         {hasLoadedUnreadActive ? (
           <Button disabled={isMarkingAll} onClick={markAllActiveAsRead} size='compact'>
             {isMarkingAll ? 'Marcando…' : 'Marcar activas como leídas'}
           </Button>
         ) : null}
-      </header>
+      </div>
       <div className='notifications-page__controls'>
         <SegmentedControl
           label='Vista de notificaciones'
@@ -262,6 +263,8 @@ export function NotificationsPage() {
           title={
             view === 'unread' ? 'Sin notificaciones sin leer' : 'Sin historial de notificaciones'
           }
+          icon='bell'
+          size='workspace'
         />
       ) : (
         <ol aria-label='Historial cronológico de notificaciones' className='notifications-list'>

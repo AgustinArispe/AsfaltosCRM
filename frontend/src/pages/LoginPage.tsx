@@ -43,16 +43,16 @@ export function LoginPage() {
   const errorMessage = error ? ERROR_MESSAGES[error] : null
 
   return (
-    <main className='grid min-h-dvh bg-slate-100 text-slate-900 lg:grid-cols-[18rem_minmax(28rem,1fr)]'>
+    <main className='grid min-h-dvh bg-[var(--surface-secondary)] text-[var(--text-primary)] lg:grid-cols-[18rem_minmax(28rem,1fr)]'>
       <section
-        className='hidden border-r border-slate-700 bg-slate-800 px-7 py-7 text-white lg:flex lg:flex-col lg:justify-between'
+        className='hidden border-e border-[var(--strong-border)] bg-[var(--brand-deep)] px-7 py-7 text-[var(--on-brand)] lg:flex lg:flex-col lg:justify-between'
         aria-label='Identidad FAA'
       >
         <Brand inverse />
-        <p className='border-l-2 border-slate-500 pl-4 text-sm leading-6 text-slate-300'>
+        <p className='max-w-md text-sm leading-6 text-[var(--text-tertiary)]'>
           Acceso interno al sistema de gestión comercial.
         </p>
-        <p className='text-xs text-slate-400'>Fábrica Argentina de Asfaltos</p>
+        <p className='text-xs text-[var(--text-tertiary)]'>Fábrica Argentina de Asfaltos</p>
       </section>
 
       <section
@@ -65,16 +65,13 @@ export function LoginPage() {
           </div>
 
           <div className='mb-6'>
-            <p className='text-xs font-semibold uppercase tracking-[0.1em] text-slate-500'>
-              CRM de FAA
-            </p>
             <h1
-              className='mt-1.5 text-xl font-semibold tracking-tight text-slate-950'
+              className='text-xl font-semibold tracking-tight text-[var(--text-primary)]'
               id='login-title'
             >
               Ingresar al sistema
             </h1>
-            <p className='mt-2 text-sm leading-6 text-slate-600'>
+            <p className='mt-2 text-sm leading-6 text-[var(--text-secondary)]'>
               Usá las credenciales asignadas por tu supervisor.
             </p>
           </div>
@@ -122,7 +119,7 @@ export function LoginPage() {
 
             {errorMessage ? (
               <p
-                className='rounded-[4px] border border-rose-200 border-l-2 border-l-rose-500 bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-800'
+                className='rounded-[var(--radius-control)] border border-[var(--destructive-border)] bg-[var(--destructive-subtle)] px-3 py-2.5 text-sm font-medium text-[var(--destructive-text)]'
                 id='login-error'
                 role='alert'
               >
@@ -135,7 +132,7 @@ export function LoginPage() {
                 <>
                   <span
                     aria-hidden='true'
-                    className='size-4 animate-spin rounded-full border-2 border-slate-500 border-t-slate-900 motion-reduce:animate-none'
+                    className='size-4 animate-spin rounded-full border-2 border-[var(--strong-border)] border-t-[var(--text-primary)] motion-reduce:animate-none'
                   />
                   Ingresando…
                 </>

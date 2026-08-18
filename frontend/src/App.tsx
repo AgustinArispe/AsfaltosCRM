@@ -10,6 +10,7 @@ import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProductsPage } from './pages/ProductsPage'
+import { UsersPage } from './pages/UsersPage'
 import { WhatsAppBroadcastsPage } from './pages/WhatsAppBroadcastsPage'
 import { WhatsAppInboxPage } from './pages/WhatsAppInboxPage'
 import { getNavigationItem } from './routing/navigation'
@@ -44,7 +45,9 @@ function RoutedApp() {
         activeNavigationPath={route.surface === 'lost' ? '/lost' : '/pipeline'}
         pageTitle={route.surface === 'lost' ? 'Perdidas' : 'Pipeline'}
       >
-        {route.surface === 'pipeline' ? <PipelinePage /> : null}
+        {route.surface === 'pipeline' ? (
+          <PipelinePage selectedOpportunityId={route.opportunityId} />
+        ) : null}
         <OpportunityDetailPage opportunityId={route.opportunityId} surface={route.surface} />
       </AppShell>
     )
@@ -96,6 +99,8 @@ function RoutedApp() {
       <WhatsAppInboxPage />
     ) : route.workspace === 'whatsapp-sends' ? (
       <WhatsAppBroadcastsPage />
+    ) : route.workspace === 'users' ? (
+      <UsersPage />
     ) : (
       <PlaceholderPage description={navigationItem.description} title={navigationItem.label} />
     )

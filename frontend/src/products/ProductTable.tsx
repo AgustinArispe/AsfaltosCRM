@@ -8,7 +8,9 @@ function ProductStatus({ isActive }: { isActive: boolean }) {
       <span
         aria-hidden='true'
         className={
-          isActive ? 'size-1.5 rounded-full bg-emerald-600' : 'size-1.5 rounded-full bg-slate-500'
+          isActive
+            ? 'size-1.5 rounded-full bg-[var(--success-text)]'
+            : 'size-1.5 rounded-full bg-[var(--text-tertiary)]'
         }
       />
       {isActive ? 'Activo' : 'Inactivo'}
@@ -34,12 +36,12 @@ export function ProductTable({
   return (
     <section
       aria-label='Listado de productos FAA'
-      className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-slate-500'
+      className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
     >
       <table className='w-full min-w-[38rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Productos disponibles en el CRM</caption>
         <thead>
-          <tr className='border-b border-slate-200 bg-slate-50 text-xs text-slate-600'>
+          <tr className='border-b border-[var(--subtle-border)] bg-[var(--surface-interactive)] text-xs text-[var(--text-secondary)]'>
             <th className='px-4 py-3 font-semibold' scope='col'>
               Producto
             </th>
@@ -58,10 +60,10 @@ export function ProductTable({
             const isBusy = busyProductIds.has(product.id)
             return (
               <tr
-                className='border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70'
+                className='border-b border-[var(--divider)] last:border-b-0 hover:bg-[var(--surface-interactive)]'
                 key={product.id}
               >
-                <th className='px-4 py-3 font-semibold text-slate-950' scope='row'>
+                <th className='px-4 py-3 font-semibold text-[var(--text-primary)]' scope='row'>
                   {product.name}
                 </th>
                 <td className='px-4 py-3'>
@@ -81,7 +83,7 @@ export function ProductTable({
                       {product.is_active ? (
                         <Button
                           aria-label={`Desactivar ${product.name}`}
-                          className='text-rose-700 hover:bg-rose-50 hover:text-rose-900'
+                          className='text-[var(--destructive-text)] hover:bg-[var(--destructive-subtle)] hover:text-[var(--destructive-text)]'
                           disabled={isBusy}
                           onClick={() => onDeactivate(product)}
                           size='compact'

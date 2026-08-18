@@ -17,11 +17,13 @@ export function OpportunityCard({
   isBusy,
   onOpenDetail,
   showStageAge,
+  isSelected = false,
 }: {
   opportunity: OpportunitySummary & { status: PipelineStatus }
   isBusy: boolean
   onOpenDetail: (opportunityId: number) => void
   showStageAge: boolean
+  isSelected?: boolean
 }) {
   const nextStatus = STAGE_BY_STATUS.get(opportunity.status)?.nextStatus ?? null
   const isDraggable = Boolean(nextStatus) && !isBusy
@@ -43,10 +45,15 @@ export function OpportunityCard({
   return (
     <article
       aria-busy={isBusy}
-      className={['pipeline-card', isDragging ? 'opacity-40' : ''].join(' ')}
+      className={[
+        'pipeline-card',
+        isSelected ? 'pipeline-card--selected' : '',
+        isDragging ? 'opacity-40' : '',
+      ].join(' ')}
       data-opportunity-id={opportunity.id}
     >
       <button
+        aria-current={isSelected ? 'true' : undefined}
         aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}${isDraggable ? '. Se puede arrastrar a la siguiente etapa.' : ''}`}
         className={[
           'pipeline-card__button',

@@ -169,13 +169,13 @@ export function QuoteModal({
         <LoadingState label='Cargando productos…' />
       ) : productsError ? (
         <div className='space-y-3 px-5 py-5'>
-          <p className='text-sm text-red-800' role='alert'>
+          <p className='text-sm text-[var(--destructive-text)]' role='alert'>
             {productsError}
           </p>
           <Button onClick={onRetryProducts}>Reintentar</Button>
         </div>
       ) : products?.length === 0 ? (
-        <p className='px-5 py-6 text-sm text-slate-600' role='status'>
+        <p className='px-5 py-6 text-sm text-[var(--text-secondary)]' role='status'>
           No hay productos activos disponibles para cotizar.
         </p>
       ) : (
@@ -188,10 +188,10 @@ export function QuoteModal({
 
               return (
                 <fieldset
-                  className='rounded-[4px] border border-slate-200 bg-slate-50 p-3'
+                  className='rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] p-3'
                   key={line.key}
                 >
-                  <legend className='px-1 text-xs font-semibold text-slate-600'>
+                  <legend className='px-1 text-xs font-semibold text-[var(--text-secondary)]'>
                     Producto {index + 1}
                   </legend>
                   <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end'>
@@ -227,7 +227,10 @@ export function QuoteModal({
                         ))}
                       </select>
                       {errors?.product ? (
-                        <p className='mt-1 text-xs font-medium text-red-700' id={productErrorId}>
+                        <p
+                          className='mt-1 text-xs font-medium text-[var(--destructive-text)]'
+                          id={productErrorId}
+                        >
                           {errors.product}
                         </p>
                       ) : null}
@@ -251,7 +254,10 @@ export function QuoteModal({
                         value={line.quantity}
                       />
                       {errors?.quantity ? (
-                        <p className='mt-1 text-xs font-medium text-red-700' id={quantityErrorId}>
+                        <p
+                          className='mt-1 text-xs font-medium text-[var(--destructive-text)]'
+                          id={quantityErrorId}
+                        >
                           {errors.quantity}
                         </p>
                       ) : null}
@@ -283,7 +289,7 @@ export function QuoteModal({
 
             {submitError ? (
               <p
-                className='border-l-2 border-red-600 bg-red-50 px-3 py-2 text-sm font-medium text-red-800'
+                className='rounded-[var(--radius-control)] border border-[var(--destructive-border)] bg-[var(--destructive-subtle)] px-3 py-2 text-sm font-medium text-[var(--destructive-text)]'
                 role='alert'
               >
                 {submitError}
@@ -291,7 +297,7 @@ export function QuoteModal({
             ) : null}
           </div>
 
-          <footer className='flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end'>
+          <footer className='flex flex-col-reverse gap-2 border-t border-[var(--subtle-border)] px-5 py-4 sm:flex-row sm:justify-end'>
             <Button disabled={isSubmitting} onClick={onClose}>
               Cancelar
             </Button>

@@ -64,8 +64,16 @@ export function DashboardKpis({ overview }: { overview: MetricsOverview }) {
       </article>
       <article className='dashboard-kpi'>
         <p>Conversión de oportunidades</p>
-        <strong>{ratioLabel(opportunities.conversion_rate)}</strong>
-        <span>Ganadas / cerradas</span>
+        <strong>
+          {opportunities.conversion_rate === null
+            ? '—'
+            : formatDecimalRatioPercent(opportunities.conversion_rate)}
+        </strong>
+        <span>
+          {opportunities.conversion_rate === null
+            ? 'Sin oportunidades cerradas en el período'
+            : 'Ganadas / cerradas'}
+        </span>
       </article>
       <article className='dashboard-kpi'>
         <p>Kg cotizados</p>
@@ -180,7 +188,6 @@ export function TimelineChart({
     <ChartSurface showTitle={false} title='Evolución comercial'>
       <div className='dashboard-chart-heading'>
         <div>
-          <p className='dashboard-surface-kicker'>Evolución comercial</p>
           <h2>Actividad y resultados en el tiempo</h2>
         </div>
         <SegmentedControl
@@ -377,7 +384,6 @@ export function ConversionChart({ overview }: { overview?: MetricsOverview }) {
   const circumference = 2 * Math.PI * 42
   return (
     <ChartSurface showTitle={false} title='Conversión'>
-      <p className='dashboard-surface-kicker'>Conversión</p>
       <h2>Resultados cerrados</h2>
       {overview ? (
         rate === null ? (
@@ -445,7 +451,6 @@ export function PipelineSnapshot({
   const total = pipeline?.items.reduce((sum, item) => sum + item.count, 0) ?? 0
   return (
     <ChartSurface showTitle={false} title='Pipeline actual'>
-      <p className='dashboard-surface-kicker'>Pipeline actual</p>
       <h2>Distribución vigente</h2>
       <p className='dashboard-chart-context'>
         No se filtra por período. Snapshot{' '}
@@ -588,7 +593,6 @@ export function ProductRanking({
     })) ?? []
   return (
     <ChartSurface showTitle={false} title='Productos'>
-      <p className='dashboard-surface-kicker'>Productos</p>
       <h2>Volumen cotizado por producto</h2>
       <SurfaceState error={error} hasData={Boolean(items)} onRetry={onRetry} />
       {!items && !error ? <Skeleton className='dashboard-list-skeleton' /> : null}
@@ -626,7 +630,6 @@ export function SourceRanking({
     })) ?? []
   return (
     <ChartSurface showTitle={false} title='Origen'>
-      <p className='dashboard-surface-kicker'>Origen</p>
       <h2>Leads creados por canal</h2>
       <SurfaceState error={error} hasData={Boolean(items)} onRetry={onRetry} />
       {!items && !error ? <Skeleton className='dashboard-list-skeleton' /> : null}
@@ -666,7 +669,6 @@ export function ProvinceRanking({
     }))
   return (
     <ChartSurface showTitle={false} title='Actividad por provincia'>
-      <p className='dashboard-surface-kicker'>Actividad por provincia</p>
       <h2>¿De qué zonas viene la actividad?</h2>
       <p className='dashboard-chart-context'>
         Ranking por oportunidades creadas; Sin provincia conserva el historial disponible.

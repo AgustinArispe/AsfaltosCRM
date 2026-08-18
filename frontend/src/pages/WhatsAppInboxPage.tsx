@@ -64,7 +64,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
   ) : null
 
   return (
-    <div className='ui-panel relative min-h-[36rem] overflow-hidden lg:h-[calc(100dvh-7.75rem)]'>
+    <div className='relative min-h-[36rem] overflow-hidden rounded-[var(--radius-surface)] bg-[var(--surface-primary)] shadow-[var(--shadow-raised)] lg:h-[calc(100dvh-7.75rem)]'>
       <div
         className={[
           'grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)]',
@@ -142,7 +142,9 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
 
         <div
           className={
-            isContextCollapsed ? 'hidden' : 'hidden min-h-0 border-l border-slate-200 2xl:flex'
+            isContextCollapsed
+              ? 'hidden'
+              : 'hidden min-h-0 border-s border-[var(--divider)] bg-[var(--surface-secondary)] 2xl:flex'
           }
         >
           {context}

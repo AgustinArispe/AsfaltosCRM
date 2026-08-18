@@ -22,8 +22,10 @@ type LinkConfirmation =
 function ContextField({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className='text-[0.6875rem] font-bold uppercase tracking-wide text-slate-500'>{label}</dt>
-      <dd className='mt-0.5 break-words text-sm text-slate-800'>{value || 'No informado'}</dd>
+      <dt className='text-[0.6875rem] font-semibold text-[var(--text-tertiary)]'>{label}</dt>
+      <dd className='mt-0.5 break-words text-sm text-[var(--text-primary)]'>
+        {value || 'No informado'}
+      </dd>
     </div>
   )
 }
@@ -40,10 +42,10 @@ function OpportunityCard({
   conversationId: number
 }) {
   return (
-    <article className='rounded-[4px] border border-slate-200 bg-slate-50 px-3 py-3'>
+    <article className='rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] px-3 py-3'>
       <div className='flex flex-wrap items-start justify-between gap-2'>
         <div>
-          <p className='text-xs font-bold uppercase tracking-wide text-slate-500'>
+          <p className='text-xs font-semibold text-[var(--text-tertiary)]'>
             Oportunidad #{opportunity.id}
           </p>
           <div className='mt-1.5 flex flex-wrap gap-1.5'>
@@ -56,26 +58,26 @@ function OpportunityCard({
         {action}
       </div>
       {detail ? (
-        <div className='mt-3 border-t border-slate-200 pt-3'>
-          <p className='text-xs font-semibold text-slate-700'>Productos y volumen</p>
+        <div className='mt-3 border-t border-[var(--subtle-border)] pt-3'>
+          <p className='text-xs font-semibold text-[var(--text-secondary)]'>Productos y volumen</p>
           {detail.products.length > 0 ? (
-            <ul className='mt-1.5 space-y-1 text-xs text-slate-600'>
+            <ul className='mt-1.5 space-y-1 text-xs text-[var(--text-secondary)]'>
               {detail.products.map((quoted) => (
                 <li className='flex justify-between gap-3' key={quoted.product.id}>
                   <span>{quoted.product.name}</span>
-                  <span className='shrink-0 font-semibold text-slate-800'>
+                  <span className='shrink-0 font-semibold text-[var(--text-primary)]'>
                     {formatQuantityKg(quoted.quantity_kg)}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className='mt-1 text-xs text-slate-500'>Sin cotización registrada.</p>
+            <p className='mt-1 text-xs text-[var(--text-tertiary)]'>Sin cotización registrada.</p>
           )}
         </div>
       ) : null}
       <AppLink
-        className='mt-3 inline-flex min-h-11 items-center text-xs font-semibold text-slate-700 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
+        className='mt-3 inline-flex min-h-11 items-center text-xs font-semibold text-[var(--text-secondary)] underline decoration-[var(--subtle-border)] underline-offset-4 outline-none hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
         origin={{ kind: 'conversation', conversationId }}
         to={{
           kind: 'opportunity',
@@ -135,13 +137,18 @@ export function CrmContextPanel({
   }
 
   return (
-    <aside aria-labelledby={headingId} className='flex min-h-0 flex-col bg-white'>
-      <header className='flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-3'>
+    <aside
+      aria-labelledby={headingId}
+      className='flex min-h-0 flex-col bg-[var(--surface-primary)]'
+    >
+      <header className='flex shrink-0 items-start justify-between gap-3 border-b border-[var(--subtle-border)] px-4 py-3'>
         <div>
-          <h2 className='text-sm font-semibold text-slate-950' id={headingId}>
+          <h2 className='text-sm font-semibold text-[var(--text-primary)]' id={headingId}>
             Contexto CRM
           </h2>
-          <p className='mt-0.5 text-xs text-slate-500'>Información para responder mejor</p>
+          <p className='mt-0.5 text-xs text-[var(--text-tertiary)]'>
+            Información para responder mejor
+          </p>
         </div>
         {onCollapse ? (
           <Button onClick={onCollapse} size='compact' type='button' variant='ghost'>
@@ -151,9 +158,14 @@ export function CrmContextPanel({
       </header>
       <div className='min-h-0 flex-1 overflow-y-auto px-4 py-4'>
         {conversation.resolution_status === 'NEEDS_REVIEW' ? (
-          <div className='rounded-[4px] border border-rose-200 bg-rose-50 px-3 py-3' role='status'>
-            <p className='text-sm font-semibold text-rose-900'>Identidad pendiente</p>
-            <p className='mt-1 text-xs leading-5 text-rose-800'>
+          <div
+            className='rounded-[var(--radius-control)] border border-[var(--destructive-border)] bg-[var(--destructive-subtle)] px-3 py-3'
+            role='status'
+          >
+            <p className='text-sm font-semibold text-[var(--destructive-text)]'>
+              Identidad pendiente
+            </p>
+            <p className='mt-1 text-xs leading-5 text-[var(--destructive-text)]'>
               El teléfono coincide de forma ambigua. No se puede responder ni vincular una
               oportunidad hasta resolverlo.
             </p>
@@ -162,12 +174,15 @@ export function CrmContextPanel({
 
         <section aria-labelledby='context-customer-title' className='mt-1'>
           <div className='flex items-center justify-between gap-3'>
-            <h3 className='text-sm font-semibold text-slate-900' id='context-customer-title'>
+            <h3
+              className='text-sm font-semibold text-[var(--text-primary)]'
+              id='context-customer-title'
+            >
               Cliente
             </h3>
             {customer?.is_available ? (
               <AppLink
-                className='inline-flex min-h-11 items-center text-xs font-semibold text-slate-600 underline decoration-slate-300 underline-offset-4 outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-500'
+                className='inline-flex min-h-11 items-center text-xs font-semibold text-[var(--text-secondary)] underline decoration-[var(--subtle-border)] underline-offset-4 outline-none hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                 origin={{ kind: 'conversation', conversationId: conversation.id }}
                 to={{ kind: 'customer', customerId: customer.id }}
               >
@@ -185,7 +200,7 @@ export function CrmContextPanel({
           {status === 'loading' ? <LoadingState label='Completando contexto…' /> : null}
           {error ? (
             <div className='mt-2'>
-              <p className='text-xs font-medium text-rose-700' role='status'>
+              <p className='text-xs font-medium text-[var(--destructive-text)]' role='status'>
                 {error}
               </p>
               <Button className='mt-2' onClick={onRetryContext} size='compact' variant='ghost'>
@@ -197,13 +212,16 @@ export function CrmContextPanel({
 
         <section
           aria-labelledby='context-opportunity-title'
-          className='mt-5 border-t border-slate-200 pt-4'
+          className='mt-5 border-t border-[var(--subtle-border)] pt-4'
         >
-          <h3 className='text-sm font-semibold text-slate-900' id='context-opportunity-title'>
+          <h3
+            className='text-sm font-semibold text-[var(--text-primary)]'
+            id='context-opportunity-title'
+          >
             Oportunidad comercial
           </h3>
           {linkError ? (
-            <p className='mt-2 text-xs font-medium text-rose-700' role='alert'>
+            <p className='mt-2 text-xs font-medium text-[var(--destructive-text)]' role='alert'>
               {linkError}
             </p>
           ) : null}
@@ -227,7 +245,7 @@ export function CrmContextPanel({
             </div>
           ) : (
             <div className='mt-2'>
-              <p className='text-xs leading-5 text-slate-500'>
+              <p className='text-xs leading-5 text-[var(--text-tertiary)]'>
                 No hay una oportunidad activa vinculada. El CRM no crea una automáticamente.
               </p>
               {conversation.resolution_status === 'RESOLVED' && customer?.is_available ? (
@@ -247,20 +265,20 @@ export function CrmContextPanel({
 
           {conversation.opportunity_suggestions.length > 0 ? (
             <div className='mt-4'>
-              <p className='text-xs font-semibold text-slate-700'>
+              <p className='text-xs font-semibold text-[var(--text-secondary)]'>
                 {active ? 'Otras oportunidades abiertas' : 'Sugerencias abiertas'}
               </p>
               <ul className='mt-2 space-y-2'>
                 {conversation.opportunity_suggestions.map((suggestion) => (
                   <li
-                    className='flex items-center justify-between gap-2 rounded-[4px] border border-slate-200 px-3 py-2'
+                    className='flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[var(--subtle-border)] px-3 py-2'
                     key={suggestion.id}
                   >
                     <span className='min-w-0'>
-                      <span className='block text-xs font-semibold text-slate-800'>
+                      <span className='block text-xs font-semibold text-[var(--text-primary)]'>
                         Oportunidad #{suggestion.id}
                       </span>
-                      <span className='text-[0.6875rem] text-slate-500'>
+                      <span className='text-[0.6875rem] text-[var(--text-tertiary)]'>
                         {OPPORTUNITY_STATUS_LABELS[suggestion.status]}
                       </span>
                     </span>
@@ -279,7 +297,7 @@ export function CrmContextPanel({
         </section>
 
         {conversation.opportunity_links.length > 0 ? (
-          <p className='mt-4 border-t border-slate-200 pt-3 text-[0.6875rem] leading-5 text-slate-500'>
+          <p className='mt-4 border-t border-[var(--subtle-border)] pt-3 text-[0.6875rem] leading-5 text-[var(--text-tertiary)]'>
             El historial conserva {conversation.opportunity_links.length}{' '}
             {conversation.opportunity_links.length === 1 ? 'vínculo' : 'vínculos'}.
           </p>
@@ -294,7 +312,7 @@ export function CrmContextPanel({
         title={confirmationTitle}
       >
         <div className='px-5 py-5'>
-          <p className='text-sm leading-6 text-slate-700'>
+          <p className='text-sm leading-6 text-[var(--text-secondary)]'>
             {confirmation?.kind === 'unlink'
               ? `La oportunidad #${confirmation.opportunity.id} dejará de ser la asociación activa.`
               : `La oportunidad #${confirmation?.opportunity.id ?? ''} quedará como asociación activa de esta conversación.`}

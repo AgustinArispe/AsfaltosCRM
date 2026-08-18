@@ -21,6 +21,8 @@ import type {
 } from '../customers/types'
 import { Button } from '../shared/Button'
 import { InlineFeedback } from '../shared/InlineFeedback'
+import { EmptyState } from '../shared/StatusStates'
+import { SearchField, Toolbar } from '../shared/Workspace'
 import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 const PAGE_SIZE = 20
@@ -166,59 +168,29 @@ export function CustomersPage() {
   }
 
   return (
-    <section aria-labelledby='customers-workspace-title' className='mx-auto max-w-[90rem]'>
+    <section aria-label='Cartera de clientes' className='mx-auto max-w-[90rem]'>
       <div aria-live='polite' className='sr-only'>
         {announcement}
       </div>
 
-      <div className='flex flex-wrap items-end justify-between gap-4'>
-        <div>
-          <h2 className='text-base font-semibold text-slate-950' id='customers-workspace-title'>
-            Cartera de clientes
-          </h2>
-          <p className='mt-0.5 text-sm text-slate-600'>
-            Consultá y mantené actualizados los datos comerciales de FAA.
-          </p>
-        </div>
-        <div className='flex flex-wrap gap-2'>
-          {user.role === 'SUPERVISOR' ? (
-            <Button onClick={() => setIsImportOpen(true)}>Importar CSV</Button>
-          ) : null}
-          <Button onClick={openCreate} variant='primary'>
-            Nuevo cliente
-          </Button>
-        </div>
+      <div className='flex flex-wrap justify-end gap-2'>
+        {user.role === 'SUPERVISOR' ? (
+          <Button onClick={() => setIsImportOpen(true)}>Importar CSV</Button>
+        ) : null}
+        <Button onClick={openCreate} variant='primary'>
+          Nuevo cliente
+        </Button>
       </div>
 
-      <div className='ui-panel mt-4 p-3.5'>
-        <label className='ui-label' htmlFor='customer-search'>
-          Buscar clientes
-        </label>
-        <div className='flex max-w-2xl items-center rounded-[4px] border border-slate-300 bg-white focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-slate-500/20'>
-          <svg
-            aria-hidden='true'
-            className='ml-3 size-4 shrink-0 text-slate-500'
-            fill='none'
-            viewBox='0 0 20 20'
-          >
-            <circle cx='8.5' cy='8.5' r='5.5' stroke='currentColor' strokeWidth='1.7' />
-            <path
-              d='m12.5 12.5 4 4'
-              stroke='currentColor'
-              strokeLinecap='round'
-              strokeWidth='1.7'
-            />
-          </svg>
-          <input
-            className='min-h-11 min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-base text-slate-950 outline-none placeholder:text-slate-400'
-            id='customer-search'
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder='Nombre, empresa, email o teléfono'
-            type='search'
-            value={searchInput}
-          />
-        </div>
-      </div>
+      <Toolbar aria-label='Herramientas de clientes' className='mt-4'>
+        <SearchField
+          id='customer-search'
+          label='Buscar clientes'
+          onChange={(event) => setSearchInput(event.target.value)}
+          placeholder='Nombre, empresa, email o teléfono'
+          value={searchInput}
+        />
+      </Toolbar>
 
       <div className='mt-4'>
         {loadError ? (
@@ -231,16 +203,16 @@ export function CustomersPage() {
         ) : isLoading ? (
           <WorkspaceSkeleton label='Cargando clientes…' />
         ) : customers.length === 0 ? (
-          <div className='ui-panel px-5 py-9 text-center'>
-            <h3 className='text-base font-semibold text-slate-950'>
-              {search ? 'No encontramos clientes' : 'Todavía no hay clientes'}
-            </h3>
-            <p className='mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600'>
-              {search
+          <EmptyState
+            description={
+              search
                 ? 'Probá con otro nombre, empresa, email o teléfono.'
-                : 'Creá el primer cliente para comenzar a registrar oportunidades.'}
-            </p>
-          </div>
+                : 'Creá el primer cliente para comenzar a registrar oportunidades.'
+            }
+            icon='users'
+            size='workspace'
+            title={search ? 'No encontramos clientes' : 'Todavía no hay clientes'}
+          />
         ) : (
           <>
             <CustomerTable
@@ -253,7 +225,7 @@ export function CustomersPage() {
               aria-label='Paginación de clientes'
               className='ui-panel mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5'
             >
-              <p className='text-sm text-slate-600'>
+              <p className='text-sm text-[var(--text-secondary)]'>
                 {total === 0
                   ? 'Sin clientes'
                   : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} de ${total} clientes`}
@@ -266,7 +238,7 @@ export function CustomersPage() {
                 >
                   Anterior
                 </Button>
-                <span className='text-sm font-medium tabular-nums text-slate-700'>
+                <span className='text-sm font-medium tabular-nums text-[var(--text-secondary)]'>
                   Página {page} de {totalPages}
                 </span>
                 <Button

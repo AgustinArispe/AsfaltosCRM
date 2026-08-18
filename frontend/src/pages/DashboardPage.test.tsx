@@ -227,7 +227,7 @@ describe('DashboardPage', () => {
     expect(latestPipeline?.searchParams.get('source')).toBe('WHATSAPP')
     expect(latestPipeline?.searchParams.has('from')).toBe(false)
 
-    fireEvent.click(screen.getByText(/Más filtros/))
+    fireEvent.click(screen.getByText(/Filtros/))
     fireEvent.change(screen.getByLabelText('Producto'), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText('Provincia'), { target: { value: 'Buenos Aires' } })
     expect(await screen.findByRole('button', { name: 'Restablecer' })).toBeInTheDocument()

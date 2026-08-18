@@ -86,7 +86,7 @@ export function LossModal({
             </select>
             {error ? (
               <p
-                className='mt-2 text-sm font-medium text-red-700'
+                className='mt-2 text-sm font-medium text-[var(--destructive-text)]'
                 id='loss-reason-error'
                 role='alert'
               >
@@ -96,7 +96,7 @@ export function LossModal({
           </div>
         </div>
 
-        <footer className='flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end'>
+        <footer className='flex flex-col-reverse gap-2 border-t border-[var(--subtle-border)] px-5 py-4 sm:flex-row sm:justify-end'>
           <Button disabled={isSubmitting} onClick={onClose}>
             Cancelar
           </Button>

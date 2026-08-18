@@ -33,6 +33,8 @@ import { Badge, type BadgeTone } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
+import { EmptyState } from '../shared/StatusStates'
+import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 
 const STEP_LABELS = ['Contenido', 'Parámetros', 'Clientes', 'Elegibilidad', 'Revisión'] as const
 
@@ -40,6 +42,15 @@ function statusTone(status: Broadcast['status']): BadgeTone {
   if (status === 'COMPLETED') return 'won'
   if (status === 'PROCESSING') return 'negotiation'
   if (status === 'CONFIRMED') return 'quoted'
+  return 'neutral'
+}
+
+function recipientTone(status: RecipientStatus): BadgeTone {
+  if (status === 'DELIVERED' || status === 'READ') return 'won'
+  if (status === 'FAILED') return 'lost'
+  if (status === 'UNKNOWN') return 'unknown'
+  if (status === 'DRAFT' || status === 'READY') return 'quoted'
+  if (status === 'IN_PROGRESS' || status === 'ACCEPTED' || status === 'SENT') return 'negotiation'
   return 'neutral'
 }
 
@@ -105,9 +116,12 @@ export function WhatsAppBroadcastsPage({ broadcastId }: { broadcastId?: number }
       </header>
       {error ? <p role='alert'>{error}</p> : null}
       {items.length === 0 ? (
-        <p className='ui-panel p-5 text-sm text-[var(--text-secondary)]'>
-          Todavía no hay envíos registrados.
-        </p>
+        <EmptyState
+          description='Las ejecuciones confirmadas aparecerán aquí con su evidencia.'
+          icon='send'
+          size='workspace'
+          title='Todavía no hay envíos'
+        />
       ) : (
         <div className='ui-panel overflow-x-auto'>
           <table className='w-full text-left text-sm'>
@@ -719,7 +733,7 @@ function BroadcastDetail({
         <Badge tone={statusTone(broadcast.status)}>{broadcast.status}</Badge>
       </header>
       {error ? <p role='alert'>{error}</p> : null}
-      <div className='ui-panel grid gap-4 p-4 sm:grid-cols-3'>
+      <div className='lost-statistics'>
         <p>
           <span className='block text-xs text-[var(--text-secondary)]'>Clientes</span>
           {broadcast.recipient_count}
@@ -762,23 +776,17 @@ function BroadcastDetail({
         <h3 className='font-semibold' id='recipient-results-title'>
           Resultados por destinatario
         </h3>
-        <div className='mt-3 flex flex-wrap gap-2'>
-          <label className='sr-only' htmlFor='broadcast-recipient-search'>
-            Buscar destinatario
-          </label>
-          <input
-            className='ui-field min-w-48 flex-1'
+        <Toolbar aria-label='Filtrar resultados de destinatarios' className='mt-3'>
+          <SearchField
             id='broadcast-recipient-search'
+            label='Buscar destinatario'
             onChange={(event) => setRecipientSearch(event.target.value)}
-            placeholder='Buscar Customer'
+            placeholder='Buscar cliente'
             value={recipientSearch}
           />
-          <label className='sr-only' htmlFor='broadcast-recipient-status'>
-            Filtrar resultado
-          </label>
-          <select
-            className='ui-field'
+          <FilterControl
             id='broadcast-recipient-status'
+            label='Filtrar resultado'
             onChange={(event) => setRecipientStatus(event.target.value as RecipientStatus | '')}
             value={recipientStatus}
           >
@@ -788,8 +796,8 @@ function BroadcastDetail({
             <option value='FAILED'>Fallidos</option>
             <option value='UNKNOWN'>Inciertos</option>
             <option value='BLOCKED'>Omitidos</option>
-          </select>
-        </div>
+          </FilterControl>
+        </Toolbar>
         <ul className='mt-3 divide-y divide-[var(--border-subtle)]'>
           {recipients.map((recipient) => (
             <li
@@ -803,7 +811,7 @@ function BroadcastDetail({
                 </span>
               </span>
               <span className='flex items-center gap-2'>
-                <Badge>{recipient.status}</Badge>
+                <Badge tone={recipientTone(recipient.status)}>{recipient.status}</Badge>
                 {recipient.conversation_id ? (
                   <AppLink
                     className='text-sm text-[var(--text-link)]'
