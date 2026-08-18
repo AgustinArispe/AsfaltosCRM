@@ -1,9 +1,9 @@
 # CRM-027 — Visual Design & Product Polish
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-18
-Implementation commit: N/A
+Implementation commit: 519cd66
 
 ## Goal
 
@@ -67,7 +67,7 @@ specs CRM-019 a CRM-025 siguen siendo autoridad de comportamiento por feature.
 - CRM-024 — Customers, Products and Lost Workspaces UI
 - CRM-025 — WhatsApp Broadcast UI
 
-CRM-026 depende de la futura implementación aprobada de CRM-027 y ocurre después.
+CRM-026 depende de la implementación de CRM-027 y ocurre después.
 
 ## Scope
 
@@ -636,7 +636,7 @@ Evidence:
 - `/auth/me` ya devuelve nombre, email, rol y active state a cualquier usuario;
 - ThemeProvider ya ofrece Light/Dark/System y persiste la elección localmente.
 
-Por lo tanto, la futura implementación de CRM-027:
+Por lo tanto, la implementación de CRM-027:
 
 - reemplaza `/users` placeholder por un workspace supervisor-only compacto de listado,
   alta, edición, activación/desactivación y reemplazo deliberado de contraseña;
@@ -962,8 +962,7 @@ declara calidad final hasta que CRM-026 complete esa validación.
 
 ## Open decisions
 
-None. La spec permanece `Draft` porque requiere revisión y aprobación explícita del
-usuario; `Open decisions: None` no constituye aprobación.
+None.
 
 ## Follow-up / future specs
 
@@ -977,12 +976,13 @@ usuario; `Open decisions: None` no constituye aprobación.
 
 ## Implementation notes
 
-No implementar esta spec hasta que cambie explícitamente a `Approved`. La futura
-implementación debe preservar comportamiento y tests existentes, migrar por la secuencia
-definida, probar cada AC relevante y completar todos los gates del repositorio antes de
-commit/push. El trabajo visual se revisa en contenido poblado, vacío, error, loading,
-Light/Dark, sidebar states y zoom; una captura bonita con datos ideales no demuestra
-cumplimiento.
+Implementada en `519cd66` sin cambios de contratos backend, reglas comerciales,
+permisos, polling ni state machines de CRM-018–025. AC-01 a AC-35 fueron revisados
+individualmente contra implementación, tests, auditorías de source y una inspección
+renderizada cross-workspace en Light/Dark y anchos desktop, laptop, 150% y expectativa
+estructural 200%. Los gates del repositorio y Docker Compose smoke finalizaron verdes.
+CRM-026 permanece Draft y conserva el pase final reproducible de browser,
+accesibilidad, responsive y zoom.
 
 Las recomendaciones externas o vendorizadas son insumos de criterio, no autoridad:
 se rechazaron deliberadamente tipografía Inter, green CTA, glassmorphism, gradients,

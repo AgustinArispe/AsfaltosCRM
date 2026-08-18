@@ -109,16 +109,14 @@ must describe implemented behavior only.
 - [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
   operations, recovery, and backend-freeze contract.
 
-## Approved specifications
-
-- [`CRM-027`](027-visual-design-product-polish.md) — Approved — second visual/product-
-  design refinement over CRM-018–025; defines FAA surface, token, hierarchy, controls,
-  workspace, Light/Dark, motion, and Users/account polish before CRM-026.
-
 ## Implemented specifications
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-027`](027-visual-design-product-polish.md) — Implemented — second
+  visual/product-design refinement over CRM-018–025 with FAA surfaces, tokens,
+  controls, workspace hierarchy, Light/Dark parity, and Users administration before
+  CRM-026.
 - [`CRM-018`](018-frontend-design-system.md) — Implemented — permanent visual,
   interaction, accessibility, responsive, and component foundation for FAA CRM
   Frontend 2.0.
