@@ -22,6 +22,7 @@ import type { LossReason, OpportunityDetail, Product, QuoteProductInput } from '
 import { AppLink, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
 import { Button } from '../shared/Button'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
+import { Icon } from '../shared/Icon'
 import { InlineFeedback } from '../shared/InlineFeedback'
 import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
@@ -218,14 +219,12 @@ export function OpportunityDetailPage({
           {opportunity.status === 'COTIZADA' ? 'Pasar a negociación' : 'Marcar ganada'}
         </Button>
       ) : null}
-      {opportunity.status === 'NUEVA' ||
-      opportunity.status === 'COTIZADA' ||
-      opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => setLossOpportunity(opportunity)} variant='danger'>
-          Marcar perdida
-        </Button>
-      ) : null}
-      <Button disabled={isLookingUpConversation} onClick={() => void handleWhatsApp()}>
+      <Button
+        className='opportunity-whatsapp-action'
+        disabled={isLookingUpConversation}
+        onClick={() => void handleWhatsApp()}
+      >
+        <Icon name='inbox' />
         {isLookingUpConversation ? 'Buscando conversación…' : 'Abrir WhatsApp'}
       </Button>
       {isEligibleForReopen(opportunity) ? (
@@ -233,8 +232,34 @@ export function OpportunityDetailPage({
           Reabrir
         </Button>
       ) : null}
+      {opportunity.status === 'NUEVA' ||
+      opportunity.status === 'COTIZADA' ||
+      opportunity.status === 'NEGOCIACION' ? (
+        <Button onClick={() => setLossOpportunity(opportunity)} variant='danger'>
+          Marcar perdida
+        </Button>
+      ) : null}
     </>
   ) : undefined
+
+  if (opportunity && isQuoteOpen) {
+    return (
+      <QuoteModal
+        isLoadingProducts={isLoadingProducts}
+        isOpen
+        mode={quoteMode}
+        onClose={() => setIsQuoteOpen(false)}
+        onConfirm={handleQuote}
+        onRetryProducts={() => {
+          setProducts(null)
+          loadProducts()
+        }}
+        opportunity={opportunity}
+        products={products}
+        productsError={productsError}
+      />
+    )
+  }
 
   return (
     <Modal isOpen onClose={close} size='large' title='Detalle de oportunidad'>
@@ -316,20 +341,6 @@ export function OpportunityDetailPage({
           El destino lo determina FAA CRM: Negociación.
         </p>
       </ConfirmationDialog>
-      <QuoteModal
-        isLoadingProducts={isLoadingProducts}
-        isOpen={isQuoteOpen}
-        mode={quoteMode}
-        onClose={() => setIsQuoteOpen(false)}
-        onConfirm={handleQuote}
-        onRetryProducts={() => {
-          setProducts(null)
-          loadProducts()
-        }}
-        opportunity={opportunity}
-        products={products}
-        productsError={productsError}
-      />
       <LossModal
         onClose={() => setLossOpportunity(null)}
         onConfirm={handleLoss}

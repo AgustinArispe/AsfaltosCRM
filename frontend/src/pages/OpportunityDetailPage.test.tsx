@@ -348,10 +348,46 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cotizar' }))
     const product = await screen.findByLabelText('Producto')
     fireEvent.change(product, { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar con cantidad' }))
     fireEvent.change(screen.getByLabelText('Cantidad (kg)'), { target: { value: '1000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/opportunities/42/quote')
+  })
+
+  it('guides quote keyboard progression and protects a dirty review from dismissal', async () => {
+    const newDetail = makeDetail({ status: 'NUEVA', products: [] })
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(200, newDetail))
+        .mockResolvedValueOnce(
+          jsonResponse(200, [{ id: 10, name: 'SuperPhalt', is_active: true }]),
+        ),
+    )
+    render(<OpportunityDetailPage opportunityId={42} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Cotizar' }))
+    const product = await screen.findByLabelText('Producto')
+    expect(product).toHaveFocus()
+    fireEvent.change(product, { target: { value: '10' } })
+    fireEvent.keyDown(product, { key: 'Enter' })
+    const quantity = screen.getByLabelText('Cantidad (kg)')
+    expect(quantity).toHaveFocus()
+    fireEvent.change(quantity, { target: { value: '1250' } })
+    fireEvent.keyDown(quantity, { key: 'Enter' })
+    expect(screen.getByRole('heading', { name: 'Revisá la cotización' })).toBeInTheDocument()
+    expect(screen.getAllByText('1.250 kg')).toHaveLength(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar cotizar oportunidad' }))
+    expect(screen.getByRole('heading', { name: '¿Descartar los cambios?' })).toBeInTheDocument()
+    const continueEditing = screen.getByRole('button', { name: 'Seguir editando' })
+    expect(continueEditing).toHaveFocus()
+    fireEvent.click(continueEditing)
+    const reviewHeading = screen.getByRole('heading', { name: 'Revisá la cotización' })
+    expect(reviewHeading).toBeInTheDocument()
+    expect(reviewHeading).toHaveFocus()
   })
 
   it('shows quote edit and forward-transition actions only in eligible active states', async () => {

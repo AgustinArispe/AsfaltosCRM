@@ -42,13 +42,13 @@ function productEvidence(item: LostOpportunity): string {
 
 function LostRows({ items }: { items: LostOpportunity[] }) {
   return (
-    <section aria-label='Oportunidades perdidas actuales' className='ui-panel overflow-x-auto'>
+    <section aria-label='Oportunidades perdidas actuales' className='lost-list overflow-x-auto'>
       <table className='w-full min-w-[48rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>
           Oportunidades perdidas actuales, ordenadas por pérdida más reciente
         </caption>
         <thead>
-          <tr className='border-b border-[var(--border-default)] bg-[var(--surface-subtle)] text-xs text-[var(--text-secondary)]'>
+          <tr className='lost-list__heading border-b border-[var(--border-default)] text-xs text-[var(--text-secondary)]'>
             <th className='px-4 py-3 font-semibold' scope='col'>
               Cliente
             </th>
@@ -74,7 +74,7 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
             const opportunity = item.opportunity
             return (
               <tr
-                className='border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--hover)]'
+                className='lost-list__row border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--hover)]'
                 key={item.loss_event_id}
               >
                 <th className='px-4 py-3 font-semibold text-[var(--text-primary)]' scope='row'>
@@ -249,7 +249,7 @@ export function LostPage() {
   }
 
   return (
-    <section aria-label='Oportunidades perdidas' className='mx-auto max-w-[90rem]'>
+    <section aria-label='Oportunidades perdidas' className='lost-workspace mx-auto max-w-[90rem]'>
       <div className='flex flex-wrap justify-end gap-4'>
         {filterCount ? (
           <p className='text-sm text-[var(--text-secondary)]'>
@@ -278,7 +278,10 @@ export function LostPage() {
           </legend>
           {LOSS_REASON_OPTIONS.map((option) => (
             <label
-              className='inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-control)] border border-[var(--border-default)] px-2 text-xs'
+              className={[
+                'lost-reason-filter inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium',
+                draft.reasons.includes(option.value) ? 'lost-reason-filter--selected' : '',
+              ].join(' ')}
               key={option.value}
             >
               <input
@@ -291,7 +294,7 @@ export function LostPage() {
           ))}
         </fieldset>
         <details className='relative'>
-          <summary className='ui-pressable min-h-11 cursor-pointer rounded-[var(--radius-control)] border border-[var(--border-default)] px-3 py-2 text-sm font-semibold'>
+          <summary className='ui-pressable min-h-9 cursor-pointer rounded-[var(--radius-control)] border border-[var(--border-default)] px-3 py-1.5 text-xs font-semibold'>
             Filtros{filterCount ? ` · ${filterCount}` : ''}
           </summary>
           <div className='absolute right-0 z-20 mt-2 grid w-72 gap-3 rounded-[var(--radius-surface)] border border-[var(--border-default)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-raised)]'>
@@ -372,11 +375,11 @@ export function LostPage() {
             </label>
           </div>
         </details>
-        <Button type='submit' variant='primary'>
+        <Button size='compact' type='submit'>
           Aplicar
         </Button>
         {filterCount ? (
-          <Button onClick={reset} type='button'>
+          <Button onClick={reset} size='compact' type='button' variant='ghost'>
             Restablecer
           </Button>
         ) : null}

@@ -42,7 +42,7 @@ function OpportunityCard({
   conversationId: number
 }) {
   return (
-    <article className='rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] px-3 py-3'>
+    <article className='rounded-[var(--radius-control)] bg-[var(--surface-interactive)] px-3 py-3'>
       <div className='flex flex-wrap items-start justify-between gap-2'>
         <div>
           <p className='text-xs font-semibold text-[var(--text-tertiary)]'>
@@ -139,7 +139,7 @@ export function CrmContextPanel({
   return (
     <aside
       aria-labelledby={headingId}
-      className='flex min-h-0 flex-col bg-[var(--surface-primary)]'
+      className='whatsapp-context flex min-h-0 flex-col bg-[var(--surface-secondary)]'
     >
       <header className='flex shrink-0 items-start justify-between gap-3 border-b border-[var(--subtle-border)] px-4 py-3'>
         <div>

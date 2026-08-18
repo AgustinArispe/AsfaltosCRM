@@ -233,13 +233,13 @@ describe('PipelinePage', () => {
         within(stage(container, 'COTIZADA')).getAllByRole('button', { name: /Abrir oportunidad/ }),
       ).toHaveLength(1),
     )
-    expect(screen.getByText(/Más filtros · 2/)).toBeInTheDocument()
+    expect(screen.getByText(/Filtros · 2/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText(/Más filtros/))
+    fireEvent.click(screen.getByText(/Filtros/))
     fireEvent.change(screen.getByLabelText('Producto'), { target: { value: '10' } })
     expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Limpiar' }))
-    await waitFor(() => expect(screen.getByText('Más filtros')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Filtros')).toBeInTheDocument())
   })
 
   it('keeps time in stage hidden until the optional view setting is enabled', async () => {
@@ -247,7 +247,7 @@ describe('PipelinePage', () => {
     render(<PipelinePage />)
     await ready()
     expect(screen.queryByText(/En etapa:/)).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('Más filtros'))
+    fireEvent.click(screen.getByText('Filtros'))
     fireEvent.click(screen.getByLabelText('Mostrar antigüedad de etapa'))
     expect(screen.getByText(/En etapa:/)).toBeInTheDocument()
   })
@@ -308,9 +308,11 @@ describe('PipelinePage', () => {
     fireEvent.change(await within(secondDialog).findByLabelText('Producto'), {
       target: { value: '10' },
     })
+    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Continuar con cantidad' }))
     fireEvent.change(within(secondDialog).getByLabelText('Cantidad (kg)'), {
       target: { value: '10' },
     })
+    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(within(secondDialog).getByRole('button', { name: 'Confirmar cotización' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('ya no está activo')
     expect(within(stage(container, 'NUEVA')).getByText('Empresa 1')).toBeInTheDocument()
@@ -333,7 +335,9 @@ describe('PipelinePage', () => {
     fireEvent.change(await within(dialog).findByLabelText('Producto'), {
       target: { value: '10' },
     })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Continuar con cantidad' }))
     fireEvent.change(within(dialog).getByLabelText('Cantidad (kg)'), { target: { value: '10' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar cotización' }))
     await waitFor(() =>
       expect(within(stage(container, 'COTIZADA')).getByText('Empresa 1')).toBeInTheDocument(),

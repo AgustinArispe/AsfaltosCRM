@@ -28,9 +28,9 @@ function ConversationRow({
     <button
       aria-current={isSelected ? 'true' : undefined}
       className={[
-        'ui-pressable w-full px-3 py-3 text-left outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
+        'whatsapp-conversation-row ui-pressable w-full px-3 py-3 text-left outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]',
         isSelected
-          ? 'bg-[var(--surface-selected)] shadow-[inset_0_-1px_0_var(--divider)]'
+          ? 'whatsapp-conversation-row--selected'
           : 'bg-transparent hover:bg-[var(--surface-hover)]',
       ].join(' ')}
       onClick={onSelect}
@@ -123,7 +123,7 @@ export function ConversationList({
   return (
     <section
       aria-labelledby='whatsapp-conversations-title'
-      className='flex min-h-0 flex-col border-e border-[var(--divider)] bg-[var(--surface-secondary)]'
+      className='whatsapp-inbox flex min-h-0 flex-col border-e border-[var(--divider)] bg-[var(--surface-secondary)]'
     >
       <div className='shrink-0 border-b border-[var(--subtle-border)] px-3 py-3'>
         <div className='flex items-center justify-between gap-3'>
@@ -155,7 +155,7 @@ export function ConversationList({
           <button
             aria-pressed={waitingOnly}
             className={[
-              'ui-pressable min-h-11 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+              'ui-pressable min-h-9 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
               waitingOnly
                 ? 'border-[var(--warning-border)] bg-[var(--warning-subtle)] text-[var(--warning-text)]'
                 : 'border-[var(--subtle-border)] bg-[var(--surface-primary)] text-[var(--text-secondary)] hover:bg-[var(--surface-interactive)]',
@@ -168,7 +168,7 @@ export function ConversationList({
           <button
             aria-pressed={unreadOnly}
             className={[
-              'ui-pressable min-h-11 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+              'ui-pressable min-h-9 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
               unreadOnly
                 ? 'border-[var(--strong-border)] bg-[var(--surface-selected)] text-[var(--text-primary)]'
                 : 'border-[var(--subtle-border)] bg-[var(--surface-primary)] text-[var(--text-secondary)] hover:bg-[var(--surface-interactive)]',

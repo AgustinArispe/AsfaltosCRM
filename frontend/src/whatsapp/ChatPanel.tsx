@@ -105,7 +105,7 @@ export function ChatPanel({
   return (
     <section
       aria-labelledby='active-chat-title'
-      className='flex min-h-0 flex-1 flex-col bg-[var(--surface-primary)]'
+      className='whatsapp-chat flex min-h-0 flex-1 flex-col bg-[var(--surface-primary)]'
     >
       <header className='flex min-h-[4.25rem] shrink-0 items-center justify-between gap-3 border-b border-[var(--subtle-border)] px-3 py-2 sm:px-4'>
         <div className='flex min-w-0 items-center gap-2'>

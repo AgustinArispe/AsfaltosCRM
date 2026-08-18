@@ -15,7 +15,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  compact: 'min-h-11 px-3 py-1.5 text-xs',
+  compact: 'min-h-9 px-3 py-1.5 text-xs',
   default: 'min-h-11 px-3.5 py-2 text-sm',
 }
 

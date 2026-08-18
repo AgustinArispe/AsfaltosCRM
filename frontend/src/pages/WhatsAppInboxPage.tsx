@@ -64,7 +64,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
   ) : null
 
   return (
-    <div className='relative min-h-[36rem] overflow-hidden rounded-[var(--radius-surface)] bg-[var(--surface-primary)] shadow-[var(--shadow-raised)] lg:h-[calc(100dvh-7.75rem)]'>
+    <div className='whatsapp-workspace relative min-h-[36rem] overflow-hidden rounded-[var(--radius-surface)] bg-[var(--surface-primary)] lg:h-[calc(100dvh-7.75rem)]'>
       <div
         className={[
           'grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)]',

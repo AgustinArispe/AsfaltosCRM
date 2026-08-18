@@ -16,6 +16,7 @@ import {
 import { activeFilterCount, defaultDashboardFilters } from '../metrics/filters'
 import { useDashboardMetrics } from '../metrics/useDashboardMetrics'
 import { AppLink } from '../routing/router'
+import { Icon, type IconName } from '../shared/Icon'
 import { EmptyState, Skeleton } from '../shared/StatusStates'
 
 function DashboardSkeleton() {
@@ -58,21 +59,27 @@ function OperationalAttention({
       ? {
           label: 'Seguimientos pendientes',
           value: String(staleTotal),
-          description: 'Oportunidades sin cambio de estado durante 14 días o más.',
+          description: 'Sin cambio de etapa hace 14 días o más',
+          icon: 'clock' as IconName,
+          target: 'notifications' as const,
         }
       : null,
     unreadTotal && unreadTotal > 0
       ? {
           label: 'Notificaciones sin leer',
           value: String(unreadTotal),
-          description: 'Total exacto de notificaciones activas pendientes de lectura.',
+          description: 'Pendientes de revisión por el equipo',
+          icon: 'bell' as IconName,
+          target: 'notifications' as const,
         }
       : null,
     hasWaitingConversation
       ? {
-          label: 'Conversaciones esperando respuesta',
-          value: 'Hay actividad',
-          description: 'Existe al menos una conversación que requiere respuesta.',
+          label: 'Conversaciones en espera',
+          value: 'Hay',
+          description: 'Al menos una conversación requiere respuesta',
+          icon: 'inbox' as IconName,
+          target: null,
         }
       : null,
   ].filter((item): item is NonNullable<typeof item> => item !== null)
@@ -96,11 +103,25 @@ function OperationalAttention({
         <ul>
           {items.map((item) => (
             <li className='dashboard-attention__item' key={item.label}>
-              <strong className='dashboard-attention__value'>{item.value}</strong>
+              <span className='dashboard-attention__icon'>
+                <Icon name={item.icon} />
+              </span>
               <span className='dashboard-attention__content'>
-                <b>{item.label}</b>
+                <span>
+                  <strong className='dashboard-attention__value'>{item.value}</strong>
+                  <b>{item.label}</b>
+                </span>
                 <small>{item.description}</small>
               </span>
+              {item.target ? (
+                <AppLink
+                  aria-label={`Revisar ${item.label.toLocaleLowerCase('es-AR')}`}
+                  className='dashboard-attention__action'
+                  to={{ kind: 'workspace', workspace: item.target }}
+                >
+                  Revisar
+                </AppLink>
+              ) : null}
             </li>
           ))}
         </ul>

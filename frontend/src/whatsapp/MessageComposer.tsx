@@ -124,7 +124,7 @@ export function MessageComposer({
 
   return (
     <form
-      className='shrink-0 border-t border-[var(--subtle-border)] bg-[var(--surface-primary)] px-3 py-3 sm:px-4'
+      className='whatsapp-composer shrink-0 border-t border-[var(--subtle-border)] px-3 py-3 sm:px-4'
       onSubmit={(event) => {
         event.preventDefault()
         void submit()
@@ -191,7 +191,7 @@ export function MessageComposer({
       </label>
       <textarea
         aria-describedby={describedBy}
-        className='ui-field min-h-20 resize-y text-sm leading-5'
+        className='whatsapp-composer__field ui-field min-h-20 resize-y text-sm leading-5'
         disabled={Boolean(backendDisabledReason) || isSending}
         id='whatsapp-message-composer'
         onChange={(event) => setBody(event.target.value)}

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { Button } from '../shared/Button'
 import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 import { activeFilterCount, type PipelineFilters, type PipelineSort } from './board-state'
 import type { LeadSource } from './types'
@@ -70,7 +71,7 @@ export function PipelineControls({
         ))}
       </FilterControl>
       <details className='pipeline-more-filters'>
-        <summary>Más filtros{activeCount ? ` · ${activeCount}` : ''}</summary>
+        <summary>Filtros{activeCount ? ` · ${activeCount}` : ''}</summary>
         <div className='pipeline-more-filters__content'>
           <label className='pipeline-control-label'>
             <span>Producto</span>
@@ -98,9 +99,9 @@ export function PipelineControls({
         </div>
       </details>
       {activeCount ? (
-        <button className='pipeline-reset' onClick={onReset} type='button'>
+        <Button onClick={onReset} size='compact' type='button' variant='ghost'>
           Limpiar
-        </button>
+        </Button>
       ) : null}
       {action ? <div className='ml-auto'>{action}</div> : null}
     </Toolbar>

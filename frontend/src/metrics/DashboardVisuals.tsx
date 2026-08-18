@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { type CSSProperties, useState } from 'react'
 
 import { Button } from '../shared/Button'
 import { formatDateTime, formatDecimalKg, formatDecimalRatioPercent } from '../shared/formatters'
@@ -11,6 +11,7 @@ import type {
   ProductMetric,
   ProvinceMetric,
   SourceMetric,
+  TimelineMetric,
   TimelineMetrics,
 } from './types'
 
@@ -63,7 +64,7 @@ export function DashboardKpis({ overview }: { overview: MetricsOverview }) {
         </span>
       </article>
       <article className='dashboard-kpi'>
-        <p>Conversión de oportunidades</p>
+        <p>Conversión</p>
         <strong>
           {opportunities.conversion_rate === null
             ? '—'
@@ -71,7 +72,7 @@ export function DashboardKpis({ overview }: { overview: MetricsOverview }) {
         </strong>
         <span>
           {opportunities.conversion_rate === null
-            ? 'Sin oportunidades cerradas en el período'
+            ? 'Sin oportunidades cerradas'
             : 'Ganadas / cerradas'}
         </span>
       </article>
@@ -83,7 +84,7 @@ export function DashboardKpis({ overview }: { overview: MetricsOverview }) {
       <article className='dashboard-kpi'>
         <p>Volumen ganado</p>
         <strong>{formatDecimalKg(volume.won)}</strong>
-        <span>Conversión por volumen: {ratioLabel(volume.conversion_rate)}</span>
+        <span>Conversión: {ratioLabel(volume.conversion_rate)}</span>
       </article>
     </section>
   )
@@ -98,68 +99,27 @@ function bucketLabel(bucket: string, granularity: TimelineMetrics['granularity']
   }).format(new Date(`${bucket}T12:00:00-03:00`))
 }
 
-type TrendMeasure = 'opportunities' | 'volume'
+type TimelineSeries = 'created' | 'won' | 'lost'
 
-type TrendSeries = {
-  label: string
-  values: number[]
-  className: string
-  exact: (index: number) => string
-}
-
-function timelineSeries(timeline: TimelineMetrics, measure: TrendMeasure): TrendSeries[] {
-  if (measure === 'volume') {
-    return [
-      {
-        label: 'Kg ganados',
-        values: timeline.items.map((item) => Number(item.kg_won)),
-        className: 'dashboard-trend__line dashboard-trend__line--won',
-        exact: (index) => formatDecimalKg(timeline.items[index].kg_won),
-      },
-      {
-        label: 'Kg perdidos',
-        values: timeline.items.map((item) => Number(item.kg_lost)),
-        className: 'dashboard-trend__line dashboard-trend__line--lost',
-        exact: (index) => formatDecimalKg(timeline.items[index].kg_lost),
-      },
-    ]
-  }
-  return [
-    {
-      label: 'Leads creados',
-      values: timeline.items.map((item) => item.leads_created),
-      className: 'dashboard-trend__line dashboard-trend__line--created',
-      exact: (index) => formatCount(timeline.items[index].leads_created),
-    },
-    {
-      label: 'Ganadas',
-      values: timeline.items.map((item) => item.won),
-      className: 'dashboard-trend__line dashboard-trend__line--won',
-      exact: (index) => formatCount(timeline.items[index].won),
-    },
-    {
-      label: 'Perdidas',
-      values: timeline.items.map((item) => item.lost),
-      className: 'dashboard-trend__line dashboard-trend__line--lost',
-      exact: (index) => formatCount(timeline.items[index].lost),
-    },
-  ]
-}
-
-function pathForSeries(values: number[], maximum: number): string {
-  const width = 640
-  const height = 192
-  const padding = 18
-  return values
-    .map((value, index) => {
-      const x =
-        values.length < 2
-          ? width / 2
-          : (index / (values.length - 1)) * (width - padding * 2) + padding
-      const y = height - padding - (maximum === 0 ? 0 : (value / maximum) * (height - padding * 2))
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`
-    })
-    .join(' ')
+const TIMELINE_SERIES: Record<
+  TimelineSeries,
+  { label: string; value: (item: TimelineMetric) => number; className: string }
+> = {
+  created: {
+    label: 'Creadas',
+    value: (item) => item.leads_created,
+    className: 'dashboard-bar-chart__bar--created',
+  },
+  won: {
+    label: 'Ganadas',
+    value: (item) => item.won,
+    className: 'dashboard-bar-chart__bar--won',
+  },
+  lost: {
+    label: 'Perdidas',
+    value: (item) => item.lost,
+    className: 'dashboard-bar-chart__bar--lost',
+  },
 }
 
 export function TimelineChart({
@@ -173,40 +133,39 @@ export function TimelineChart({
   onRetry: () => void
   hasActiveFilters: boolean
 }) {
-  const [measure, setMeasure] = useState<TrendMeasure>('opportunities')
+  const [seriesKey, setSeriesKey] = useState<TimelineSeries>('created')
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const series = useMemo(
-    () => (timeline ? timelineSeries(timeline, measure) : []),
-    [measure, timeline],
-  )
-  const maximum = Math.max(0, ...series.flatMap((item) => item.values))
-  const selected =
-    timeline?.items[Math.min(selectedIndex, Math.max(0, (timeline?.items.length ?? 1) - 1))]
-  const hasData = Boolean(timeline)
+  const series = TIMELINE_SERIES[seriesKey]
+  const values = timeline?.items.map(series.value) ?? []
+  const maximum = Math.max(0, ...values)
+  const safeSelectedIndex = Math.min(selectedIndex, Math.max(0, values.length - 1))
+  const selected = timeline?.items[safeSelectedIndex]
+  const labelStride = Math.max(1, Math.ceil(values.length / 8))
 
   return (
     <ChartSurface showTitle={false} title='Evolución comercial'>
       <div className='dashboard-chart-heading'>
         <div>
-          <h2>Actividad y resultados en el tiempo</h2>
+          <h2>Evolución comercial</h2>
+          <p className='dashboard-chart-context'>
+            Creadas usa fecha de alta; ganadas y perdidas, fecha de cierre.
+          </p>
         </div>
         <SegmentedControl
-          label='Medida de evolución'
+          label='Serie de evolución'
           onChange={(value) => {
-            setMeasure(value as TrendMeasure)
+            setSeriesKey(value as TimelineSeries)
             setSelectedIndex(0)
           }}
           segments={[
-            { value: 'opportunities', label: 'Oportunidades' },
-            { value: 'volume', label: 'Volumen' },
+            { value: 'created', label: 'Creadas' },
+            { value: 'won', label: 'Ganadas' },
+            { value: 'lost', label: 'Perdidas' },
           ]}
-          value={measure}
+          value={seriesKey}
         />
       </div>
-      <p className='dashboard-chart-context'>
-        Leads creados por fecha de creación; resultados por ingreso al estado terminal.
-      </p>
-      <SurfaceState error={error} hasData={hasData} onRetry={onRetry} />
+      <SurfaceState error={error} hasData={Boolean(timeline)} onRetry={onRetry} />
       {!timeline && !error ? <Skeleton className='dashboard-chart-skeleton' /> : null}
       {timeline && timeline.items.length === 0 ? (
         <EmptyState
@@ -224,111 +183,61 @@ export function TimelineChart({
       ) : null}
       {timeline && timeline.items.length > 0 ? (
         <>
-          <ul className='dashboard-legend' aria-label='Series de evolución'>
-            {series.map((item) => (
-              <li className={`dashboard-legend__item ${item.className}`} key={item.label}>
-                {item.label}
-              </li>
-            ))}
-          </ul>
-          <fieldset className='dashboard-trend'>
-            <legend className='sr-only'>Gráfico de evolución comercial</legend>
-            <svg
-              viewBox='0 0 640 192'
-              role='img'
-              aria-labelledby='timeline-chart-title timeline-chart-description'
+          <fieldset className='dashboard-bar-chart'>
+            <legend className='sr-only'>{series.label} por período</legend>
+            <p className='dashboard-bar-chart__scale'>Máximo {formatCount(maximum)}</p>
+            <ol
+              className='dashboard-bar-chart__plot'
+              style={{ '--dashboard-bar-count': timeline.items.length } as CSSProperties}
             >
-              <title id='timeline-chart-title'>Evolución comercial</title>
-              <desc id='timeline-chart-description'>
-                Usá el control de período para revisar valores exactos. La tabla ofrece el detalle
-                completo.
-              </desc>
-              {[0.25, 0.5, 0.75].map((line) => (
-                <line
-                  className='dashboard-trend__grid'
-                  key={line}
-                  x1='18'
-                  x2='622'
-                  y1={18 + line * 156}
-                  y2={18 + line * 156}
-                />
-              ))}
-              <text className='dashboard-trend__axis-label' x='18' y='13'>
-                Máx. visible {formatCount(Math.round(maximum))}
-              </text>
-              <text className='dashboard-trend__axis-label' x='18' y='190'>
-                {bucketLabel(timeline.items[0].bucket, timeline.granularity)}
-              </text>
-              <text className='dashboard-trend__axis-label' textAnchor='end' x='622' y='190'>
-                {bucketLabel(
-                  timeline.items[timeline.items.length - 1].bucket,
-                  timeline.granularity,
-                )}
-              </text>
-              {series.map((item) => (
-                <path
-                  className={item.className}
-                  d={pathForSeries(item.values, maximum)}
-                  fill='none'
-                  key={item.label}
-                />
-              ))}
               {timeline.items.map((bucket, index) => {
-                const value = series[0]?.values[index] ?? 0
-                const x =
-                  timeline.items.length < 2 ? 320 : (index / (timeline.items.length - 1)) * 604 + 18
-                const y = 174 - (maximum === 0 ? 0 : (value / maximum) * 156)
+                const value = values[index] ?? 0
+                const label = bucketLabel(bucket.bucket, timeline.granularity)
+                const showLabel =
+                  index === 0 || index === timeline.items.length - 1 || index % labelStride === 0
                 return (
-                  <foreignObject height='16' key={bucket.bucket} width='16' x={x - 8} y={y - 8}>
+                  <li key={bucket.bucket}>
                     <button
-                      aria-label={`${bucketLabel(bucket.bucket, timeline.granularity)}: ${series.map((item) => `${item.label} ${item.exact(index)}`).join(', ')}`}
-                      className='dashboard-trend__point-button'
+                      aria-label={`${label}: ${series.label} ${formatCount(value)}`}
+                      aria-pressed={safeSelectedIndex === index}
+                      className={`dashboard-bar-chart__bar ${series.className}`}
+                      onClick={() => setSelectedIndex(index)}
+                      onFocus={() => setSelectedIndex(index)}
                       onMouseEnter={() => setSelectedIndex(index)}
-                      tabIndex={-1}
+                      style={
+                        {
+                          '--dashboard-bar-height': `${maximum === 0 ? 0 : (value / maximum) * 100}%`,
+                        } as CSSProperties
+                      }
+                      title={`${label}: ${formatCount(value)}`}
                       type='button'
-                    />
-                  </foreignObject>
+                    >
+                      <span className='sr-only'>{formatCount(value)}</span>
+                    </button>
+                    <span aria-hidden={!showLabel} className='dashboard-bar-chart__label'>
+                      {showLabel ? label : ''}
+                    </span>
+                  </li>
                 )
               })}
-            </svg>
-            <label className='sr-only' htmlFor='dashboard-timeline-point'>
-              Período de evolución
-            </label>
-            <input
-              aria-valuetext={`${bucketLabel(selected?.bucket ?? timeline.items[0].bucket, timeline.granularity)}: ${series.map((item) => `${item.label} ${item.exact(Math.min(selectedIndex, timeline.items.length - 1))}`).join(', ')}`}
-              className='dashboard-trend__range'
-              id='dashboard-timeline-point'
-              max={timeline.items.length - 1}
-              min='0'
-              onChange={(event) => setSelectedIndex(Number(event.target.value))}
-              type='range'
-              value={Math.min(selectedIndex, timeline.items.length - 1)}
-            />
+            </ol>
           </fieldset>
           {selected ? (
             <p className='dashboard-chart-tooltip' role='status'>
               <b>{bucketLabel(selected.bucket, timeline.granularity)}</b>
-              {series.map((item) => (
-                <span key={item.label}>
-                  {item.label}: {item.exact(Math.min(selectedIndex, timeline.items.length - 1))}
-                </span>
-              ))}
+              <span>
+                {series.label}: {formatCount(series.value(selected))}
+              </span>
             </p>
           ) : null}
-          <TimelineTable measure={measure} timeline={timeline} />
+          <TimelineTable timeline={timeline} />
         </>
       ) : null}
     </ChartSurface>
   )
 }
 
-function TimelineTable({
-  timeline,
-  measure,
-}: {
-  timeline: TimelineMetrics
-  measure: TrendMeasure
-}) {
+function TimelineTable({ timeline }: { timeline: TimelineMetrics }) {
   return (
     <details className='dashboard-data-table'>
       <summary>Ver datos exactos de evolución</summary>
@@ -337,36 +246,22 @@ function TimelineTable({
           <thead>
             <tr>
               <th>Período</th>
-              {measure === 'opportunities' ? (
-                <>
-                  <th>Leads creados</th>
-                  <th>Ganadas</th>
-                  <th>Perdidas</th>
-                </>
-              ) : (
-                <>
-                  <th>Kg ganados</th>
-                  <th>Kg perdidos</th>
-                </>
-              )}
+              <th>Leads creados</th>
+              <th>Ganadas</th>
+              <th>Perdidas</th>
+              <th>Kg ganados</th>
+              <th>Kg perdidos</th>
             </tr>
           </thead>
           <tbody>
             {timeline.items.map((item) => (
               <tr key={item.bucket}>
                 <th>{bucketLabel(item.bucket, timeline.granularity)}</th>
-                {measure === 'opportunities' ? (
-                  <>
-                    <td>{formatCount(item.leads_created)}</td>
-                    <td>{formatCount(item.won)}</td>
-                    <td>{formatCount(item.lost)}</td>
-                  </>
-                ) : (
-                  <>
-                    <td>{formatDecimalKg(item.kg_won)}</td>
-                    <td>{formatDecimalKg(item.kg_lost)}</td>
-                  </>
-                )}
+                <td>{formatCount(item.leads_created)}</td>
+                <td>{formatCount(item.won)}</td>
+                <td>{formatCount(item.lost)}</td>
+                <td>{formatDecimalKg(item.kg_won)}</td>
+                <td>{formatDecimalKg(item.kg_lost)}</td>
               </tr>
             ))}
           </tbody>
@@ -376,14 +271,70 @@ function TimelineTable({
   )
 }
 
+type DonutItem = { label: string; value: number; detail?: string }
+
+function Donut({
+  items,
+  ariaLabel,
+  palette = 'categorical',
+}: {
+  items: DonutItem[]
+  ariaLabel: string
+  palette?: 'categorical' | 'outcome'
+}) {
+  const total = items.reduce((sum, item) => sum + item.value, 0)
+  const circumference = 2 * Math.PI * 42
+  let cumulative = 0
+  return (
+    <div className={`dashboard-donut dashboard-donut--${palette}`}>
+      <svg aria-label={ariaLabel} role='img' viewBox='0 0 120 120'>
+        <circle className='dashboard-donut__track' cx='60' cy='60' r='42' />
+        {items.map((item, index) => {
+          const ratio = total === 0 ? 0 : item.value / total
+          const offset = -circumference * cumulative
+          cumulative += ratio
+          return (
+            <circle
+              className={`dashboard-donut__segment dashboard-donut__segment--${index + 1}`}
+              cx='60'
+              cy='60'
+              key={item.label}
+              r='42'
+              strokeDasharray={`${circumference * ratio} ${circumference * (1 - ratio)}`}
+              strokeDashoffset={offset}
+            />
+          )
+        })}
+        <text className='dashboard-donut__total' x='60' y='59'>
+          {formatCount(total)}
+        </text>
+        <text className='dashboard-donut__caption' x='60' y='72'>
+          total
+        </text>
+      </svg>
+      <ul className='dashboard-donut__legend'>
+        {items.map((item, index) => (
+          <li key={item.label}>
+            <span className={`dashboard-marker dashboard-marker--series-${index + 1}`} />
+            <span>
+              {item.label}
+              {item.detail ? <small>{item.detail}</small> : null}
+            </span>
+            <b>{formatCount(item.value)}</b>
+            <em>{total === 0 ? '—' : `${Math.round((item.value / total) * 100)} %`}</em>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function ConversionChart({ overview }: { overview?: MetricsOverview }) {
-  const rate = overview?.opportunities.conversion_rate ?? null
   const won = overview?.opportunities.won ?? 0
   const lost = overview?.opportunities.lost ?? 0
-  const ratio = rate === null ? null : Number(rate)
-  const circumference = 2 * Math.PI * 42
+  const rate = overview?.opportunities.conversion_rate ?? null
   return (
-    <ChartSurface showTitle={false} title='Conversión'>
+    <ChartSurface showTitle={false} title='Resultados cerrados'>
       <h2>Resultados cerrados</h2>
       {overview ? (
         rate === null ? (
@@ -392,35 +343,19 @@ export function ConversionChart({ overview }: { overview?: MetricsOverview }) {
             <span>No se calcula una tasa como 0 % sin denominador.</span>
           </div>
         ) : (
-          <div className='dashboard-conversion'>
-            <svg
-              aria-label={`Conversión de oportunidades ${formatDecimalRatioPercent(rate)}; ${won} ganadas y ${lost} perdidas`}
-              viewBox='0 0 120 120'
-              role='img'
-            >
-              <circle className='dashboard-ring__track' cx='60' cy='60' r='42' />
-              <circle
-                className='dashboard-ring__value'
-                cx='60'
-                cy='60'
-                r='42'
-                strokeDasharray={`${circumference * (ratio ?? 0)} ${circumference}`}
-              />
-              <text className='dashboard-ring__text' x='60' y='64'>
-                {formatDecimalRatioPercent(rate)}
-              </text>
-            </svg>
-            <ul>
-              <li>
-                <span className='dashboard-marker dashboard-marker--won' />
-                Ganadas <b>{formatCount(won)}</b>
-              </li>
-              <li>
-                <span className='dashboard-marker dashboard-marker--lost' />
-                Perdidas <b>{formatCount(lost)}</b>
-              </li>
-            </ul>
-          </div>
+          <>
+            <p className='dashboard-chart-context'>
+              Conversión {formatDecimalRatioPercent(rate)} · Ganadas sobre total cerrado
+            </p>
+            <Donut
+              ariaLabel={`Resultados cerrados: ${won} ganadas y ${lost} perdidas; conversión ${formatDecimalRatioPercent(rate)}`}
+              items={[
+                { label: 'Ganadas', value: won },
+                { label: 'Perdidas', value: lost },
+              ]}
+              palette='outcome'
+            />
+          </>
         )
       ) : (
         <Skeleton className='dashboard-mini-skeleton' />
@@ -510,6 +445,34 @@ export function PipelineSnapshot({
 
 type RankedItem = { label: string; value: number; detail: string }
 
+function ExactDataTable({ title, items }: { title: string; items: RankedItem[] }) {
+  return (
+    <details className='dashboard-data-table'>
+      <summary>Ver datos exactos de {title.toLocaleLowerCase('es-AR')}</summary>
+      <section aria-label={`Tabla de ${title}`}>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Valor</th>
+              <th>Contexto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.label}>
+                <th>{item.label}</th>
+                <td>{formatCount(item.value)}</td>
+                <td>{item.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    </details>
+  )
+}
+
 function RankedBars({
   title,
   items,
@@ -547,29 +510,7 @@ function RankedBars({
           </li>
         ))}
       </ol>
-      <details className='dashboard-data-table'>
-        <summary>Ver datos exactos de {title.toLocaleLowerCase('es-AR')}</summary>
-        <section aria-label={`Tabla de ${title}`}>
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Valor</th>
-                <th>Contexto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.label}>
-                  <th>{item.label}</th>
-                  <td>{formatCount(item.value)}</td>
-                  <td>{item.detail}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      </details>
+      <ExactDataTable items={items} title={title} />
     </>
   )
 }
@@ -628,21 +569,50 @@ export function SourceRanking({
           ? 'Sin oportunidades cerradas'
           : `Conversión ${formatDecimalRatioPercent(item.conversion_rate)}`,
     })) ?? []
+  const total = ranked.reduce((sum, item) => sum + item.value, 0)
   return (
     <ChartSurface showTitle={false} title='Origen'>
-      <h2>Leads creados por canal</h2>
+      <h2>Leads por origen</h2>
       <SurfaceState error={error} hasData={Boolean(items)} onRetry={onRetry} />
       {!items && !error ? <Skeleton className='dashboard-list-skeleton' /> : null}
-      {items ? (
-        <RankedBars
-          empty='No hay actividad por origen'
-          hasActiveFilters={hasActiveFilters}
-          items={ranked}
-          title='Origen por oportunidades creadas'
+      {items && total === 0 ? (
+        <EmptyState
+          description={
+            hasActiveFilters
+              ? 'Probá restablecer los filtros.'
+              : 'No hay actividad comercial en el período.'
+          }
+          title='No hay actividad por origen'
         />
+      ) : null}
+      {items && total > 0 ? (
+        <>
+          <Donut
+            ariaLabel={ranked.map((item) => `${item.label}: ${item.value}`).join(', ')}
+            items={ranked}
+          />
+          <ExactDataTable items={ranked} title='Origen por oportunidades creadas' />
+        </>
       ) : null}
     </ChartSurface>
   )
+}
+
+function visualProvinceItems(items: RankedItem[]): RankedItem[] {
+  if (items.length <= 5) return items
+  const unassigned = items.find((item) => item.label === 'Sin provincia')
+  const named = items.filter((item) => item.label !== 'Sin provincia')
+  const visible = unassigned ? [unassigned, ...named.slice(0, 3)] : named.slice(0, 4)
+  const visibleLabels = new Set(visible.map((item) => item.label))
+  const remainder = items.filter((item) => !visibleLabels.has(item.label))
+  return [
+    ...visible,
+    {
+      label: 'Otras',
+      value: remainder.reduce((sum, item) => sum + item.value, 0),
+      detail: `${remainder.length} provincias agrupadas sólo en el gráfico`,
+    },
+  ]
 }
 
 export function ProvinceRanking({
@@ -667,21 +637,34 @@ export function ProvinceRanking({
       value: item.opportunities_created,
       detail: `${formatDecimalKg(item.kg_quoted)} cotizados · ${ratioLabel(item.conversion_rate)}`,
     }))
+  const total = ranked.reduce((sum, item) => sum + item.value, 0)
+  const visualItems = visualProvinceItems(ranked)
   return (
     <ChartSurface showTitle={false} title='Actividad por provincia'>
-      <h2>¿De qué zonas viene la actividad?</h2>
+      <h2>Actividad por provincia</h2>
       <p className='dashboard-chart-context'>
-        Ranking por oportunidades creadas; Sin provincia conserva el historial disponible.
+        Top de actividad; Otras agrupa sólo la vista visual. La tabla conserva cada provincia.
       </p>
       <SurfaceState error={error} hasData={Boolean(items)} onRetry={onRetry} />
       {!items && !error ? <Skeleton className='dashboard-list-skeleton' /> : null}
-      {items ? (
-        <RankedBars
-          empty='No hay actividad provincial'
-          hasActiveFilters={hasActiveFilters}
-          items={ranked}
-          title='Provincias por oportunidades creadas'
+      {items && total === 0 ? (
+        <EmptyState
+          description={
+            hasActiveFilters
+              ? 'Probá restablecer los filtros.'
+              : 'No hay actividad comercial en el período.'
+          }
+          title='No hay actividad provincial'
         />
+      ) : null}
+      {items && total > 0 ? (
+        <>
+          <Donut
+            ariaLabel={visualItems.map((item) => `${item.label}: ${item.value}`).join(', ')}
+            items={visualItems}
+          />
+          <ExactDataTable items={ranked} title='Provincias por oportunidades creadas' />
+        </>
       ) : null}
     </ChartSurface>
   )

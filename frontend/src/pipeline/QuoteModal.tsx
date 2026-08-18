@@ -1,5 +1,6 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../shared/Button'
+import { formatQuantityKg, sumQuantitiesKg } from '../shared/formatters'
 import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
 import type { OpportunitySummary, Product, QuoteProductInput } from './types'
@@ -10,19 +11,19 @@ type QuoteLine = {
   quantity: string
 }
 
-type LineErrors = Record<number, { product?: string; quantity?: string }>
-
-function initialLine(): QuoteLine {
-  return { key: 0, productId: '', quantity: '' }
-}
+type QuoteStep = 'product' | 'quantity' | 'review'
 
 function initialLines(opportunity: OpportunitySummary | null): QuoteLine[] {
-  if (!opportunity || opportunity.products.length === 0) return [initialLine()]
+  if (!opportunity) return []
   return opportunity.products.map((quotedProduct, index) => ({
     key: index,
     productId: String(quotedProduct.product.id),
     quantity: quotedProduct.quantity_kg,
   }))
+}
+
+function lineSnapshot(lines: QuoteLine[]): string {
+  return JSON.stringify(lines.map(({ productId, quantity }) => ({ productId, quantity })))
 }
 
 export function QuoteModal({
@@ -46,90 +47,162 @@ export function QuoteModal({
   mode?: 'create' | 'edit'
   isOpen?: boolean
 }) {
-  const [lines, setLines] = useState<QuoteLine[]>(() => initialLines(opportunity))
-  const [lineErrors, setLineErrors] = useState<LineErrors>({})
+  const initial = useMemo(() => initialLines(opportunity), [opportunity])
+  const [lines, setLines] = useState<QuoteLine[]>(initial)
+  const [step, setStep] = useState<QuoteStep>(
+    mode === 'edit' && initial.length ? 'review' : 'product',
+  )
+  const [productId, setProductId] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [editingKey, setEditingKey] = useState<number | null>(null)
+  const [productError, setProductError] = useState<string | null>(null)
+  const [quantityError, setQuantityError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const nextKeyRef = useRef(1)
-  const firstProductRef = useRef<HTMLSelectElement>(null)
+  const [showDiscardPrompt, setShowDiscardPrompt] = useState(false)
+  const nextKeyRef = useRef(initial.length)
+  const discardPromptRef = useRef<HTMLDivElement>(null)
+  const productRef = useRef<HTMLSelectElement>(null)
+  const quantityRef = useRef<HTMLInputElement>(null)
+  const reviewRef = useRef<HTMLHeadingElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the modal identity or mode changes.
   useEffect(() => {
-    const nextLines = initialLines(opportunity)
-    setLines(nextLines)
-    setLineErrors({})
+    const next = initialLines(opportunity)
+    setLines(next)
+    setStep(mode === 'edit' && next.length ? 'review' : 'product')
+    setProductId('')
+    setQuantity('')
+    setEditingKey(null)
+    setProductError(null)
+    setQuantityError(null)
     setSubmitError(null)
+    setShowDiscardPrompt(false)
     setIsSubmitting(false)
-    nextKeyRef.current = nextLines.length
+    nextKeyRef.current = next.length
   }, [opportunity?.id, mode])
 
   useEffect(() => {
-    if (opportunity && products && !isLoadingProducts) firstProductRef.current?.focus()
-  }, [isLoadingProducts, opportunity, products])
+    if (isLoadingProducts || !products) return
+    if (showDiscardPrompt) {
+      discardPromptRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+      return
+    }
+    if (step === 'product') productRef.current?.focus()
+    if (step === 'quantity') quantityRef.current?.focus()
+    if (step === 'review') reviewRef.current?.focus()
+  }, [isLoadingProducts, products, showDiscardPrompt, step])
 
-  const updateLine = (key: number, field: 'productId' | 'quantity', value: string) => {
-    setLines((current) =>
-      current.map((line) => (line.key === key ? { ...line, [field]: value } : line)),
-    )
-    setLineErrors((current) => ({ ...current, [key]: {} }))
-    setSubmitError(null)
+  const existingProducts = opportunity?.products.map((item) => item.product) ?? []
+  const availableProducts = [
+    ...(products ?? []),
+    ...existingProducts.filter(
+      (existing) => !products?.some((product) => product.id === existing.id),
+    ),
+  ]
+  const selectedProduct = availableProducts.find((product) => String(product.id) === productId)
+  const selectedProductIds = new Set(
+    lines.filter((line) => line.key !== editingKey).map((line) => line.productId),
+  )
+  const dirty =
+    lineSnapshot(lines) !== lineSnapshot(initial) || Boolean(productId || quantity || editingKey)
+
+  const resetEditor = () => {
+    setProductId('')
+    setQuantity('')
+    setEditingKey(null)
+    setProductError(null)
+    setQuantityError(null)
   }
 
-  const addLine = () => {
-    setLines((current) => [...current, { key: nextKeyRef.current++, productId: '', quantity: '' }])
+  const chooseProduct = () => {
+    const numericProductId = Number(productId)
+    if (!Number.isInteger(numericProductId) || numericProductId <= 0) {
+      setProductError('Seleccioná un producto.')
+      productRef.current?.focus()
+      return
+    }
+    if (selectedProductIds.has(productId)) {
+      setProductError('Este producto ya fue agregado.')
+      productRef.current?.focus()
+      return
+    }
+    setProductError(null)
+    setStep('quantity')
+  }
+
+  const addProduct = () => {
+    const numericQuantity = Number(quantity)
+    if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
+      setQuantityError('Ingresá una cantidad mayor que cero.')
+      quantityRef.current?.focus()
+      return
+    }
+    const line: QuoteLine = {
+      key: editingKey ?? nextKeyRef.current++,
+      productId,
+      quantity,
+    }
+    setLines((current) =>
+      editingKey === null
+        ? [...current, line]
+        : current.map((item) => (item.key === editingKey ? line : item)),
+    )
+    resetEditor()
+    setSubmitError(null)
+    setStep('review')
+  }
+
+  const editLine = (line: QuoteLine) => {
+    setProductId(line.productId)
+    setQuantity(line.quantity)
+    setEditingKey(line.key)
+    setProductError(null)
+    setQuantityError(null)
+    setStep('product')
   }
 
   const removeLine = (key: number) => {
     setLines((current) => current.filter((line) => line.key !== key))
-    setLineErrors((current) => {
-      const next = { ...current }
-      delete next[key]
-      return next
-    })
+    setSubmitError(null)
   }
 
-  const validate = (): QuoteProductInput[] | null => {
-    const errors: LineErrors = {}
-    const selectedProducts = new Set<number>()
-    const result: QuoteProductInput[] = []
-
-    for (const line of lines) {
-      const productId = Number(line.productId)
-      const quantity = Number(line.quantity)
-      const lineError: { product?: string; quantity?: string } = {}
-
-      if (!Number.isInteger(productId) || productId <= 0) {
-        lineError.product = 'Seleccioná un producto.'
-      } else if (selectedProducts.has(productId)) {
-        lineError.product = 'Este producto ya fue agregado.'
-      } else {
-        selectedProducts.add(productId)
-      }
-
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        lineError.quantity = 'Ingresá una cantidad mayor que cero.'
-      }
-
-      if (lineError.product || lineError.quantity) {
-        errors[line.key] = lineError
-      } else {
-        result.push({ product_id: productId, quantity_kg: quantity })
-      }
+  const requestClose = () => {
+    if (isSubmitting) return
+    if (step === 'quantity') {
+      setStep('product')
+      return
     }
-
-    setLineErrors(errors)
-    if (Object.keys(errors).length > 0 || result.length === 0) {
-      setSubmitError('Revisá los productos y cantidades indicados.')
-      return null
+    if (step === 'product' && editingKey !== null) {
+      resetEditor()
+      setStep('review')
+      return
     }
-    return result
+    if (dirty) {
+      setShowDiscardPrompt(true)
+      return
+    }
+    onClose()
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleProductKeyDown = (event: KeyboardEvent<HTMLSelectElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
     event.preventDefault()
-    const quoteProducts = validate()
-    if (!quoteProducts) return
+    chooseProduct()
+  }
 
+  const handleQuantityKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+    event.preventDefault()
+    addProduct()
+  }
+
+  const submit = async () => {
+    if (lines.length === 0 || isSubmitting) return
+    const quoteProducts = lines.map((line) => ({
+      product_id: Number(line.productId),
+      quantity_kg: Number(line.quantity),
+    }))
     setIsSubmitting(true)
     setSubmitError(null)
     try {
@@ -141,175 +214,266 @@ export function QuoteModal({
     }
   }
 
-  const selectedProductIds = new Set(lines.map((line) => line.productId).filter(Boolean))
-  const existingProducts = opportunity?.products.map((item) => item.product) ?? []
-  const availableProducts = [
-    ...(products ?? []),
-    ...existingProducts.filter(
-      (existing) => !products?.some((product) => product.id === existing.id),
-    ),
-  ]
-  const allProductsSelected = Boolean(
-    products && products.length > 0 && selectedProductIds.size >= availableProducts.length,
-  )
+  const totalQuantity = sumQuantitiesKg(lines.map((line) => line.quantity))
+  const activeProductIds = availableProducts
+    .filter((item) => item.is_active)
+    .map((item) => String(item.id))
+  const allProductsSelected =
+    activeProductIds.length > 0 &&
+    activeProductIds.every((activeProductId) =>
+      lines.some((line) => line.productId === activeProductId),
+    )
 
   return (
     <Modal
       closeDisabled={isSubmitting}
       description={
-        opportunity
-          ? `Registrá los productos cotizados para ${opportunity.customer.name}.`
-          : undefined
+        opportunity ? `Armá la cotización vigente para ${opportunity.customer.name}.` : undefined
       }
       isOpen={isOpen ?? Boolean(opportunity)}
-      onClose={onClose}
+      onClose={requestClose}
+      size='large'
       title={mode === 'edit' ? 'Editar cotización' : 'Cotizar oportunidad'}
     >
       {isLoadingProducts || (!products && !productsError) ? (
         <LoadingState label='Cargando productos…' />
       ) : productsError ? (
-        <div className='space-y-3 px-5 py-5'>
+        <div className='space-y-3 px-6 py-6'>
           <p className='text-sm text-[var(--destructive-text)]' role='alert'>
             {productsError}
           </p>
           <Button onClick={onRetryProducts}>Reintentar</Button>
         </div>
-      ) : products?.length === 0 ? (
-        <p className='px-5 py-6 text-sm text-[var(--text-secondary)]' role='status'>
+      ) : products?.length === 0 && existingProducts.length === 0 ? (
+        <p className='px-6 py-7 text-sm text-[var(--text-secondary)]' role='status'>
           No hay productos activos disponibles para cotizar.
         </p>
+      ) : showDiscardPrompt ? (
+        <div className='quote-discard px-6 py-8' ref={discardPromptRef}>
+          <h3>¿Descartar los cambios?</h3>
+          <p>La cotización no se modificará hasta que confirmes el envío final.</p>
+          <div className='mt-6 flex flex-wrap justify-end gap-2'>
+            <Button data-modal-initial-focus onClick={() => setShowDiscardPrompt(false)}>
+              Seguir editando
+            </Button>
+            <Button onClick={onClose} variant='danger'>
+              Descartar cambios
+            </Button>
+          </div>
+        </div>
       ) : (
-        <form aria-busy={isSubmitting} noValidate onSubmit={handleSubmit}>
-          <div className='max-h-[55vh] space-y-3 overflow-y-auto px-5 py-5'>
-            {lines.map((line, index) => {
-              const errors = lineErrors[line.key]
-              const productErrorId = `quote-product-${line.key}-error`
-              const quantityErrorId = `quote-quantity-${line.key}-error`
+        <div className='quote-flow' aria-busy={isSubmitting}>
+          <ol aria-label='Progreso de la cotización' className='quote-flow__steps'>
+            {[
+              ['product', '1', 'Producto'],
+              ['quantity', '2', 'Cantidad'],
+              ['review', '3', 'Revisión'],
+            ].map(([value, number, label]) => (
+              <li aria-current={step === value ? 'step' : undefined} key={value}>
+                <span>{number}</span>
+                {label}
+              </li>
+            ))}
+          </ol>
 
-              return (
-                <fieldset
-                  className='rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] p-3'
-                  key={line.key}
+          <div className='quote-flow__body'>
+            {step === 'product' ? (
+              <section aria-labelledby='quote-product-step'>
+                <p className='quote-flow__eyebrow'>Paso 1 de 3</p>
+                <h3 id='quote-product-step'>
+                  {editingKey === null ? 'Elegí un producto' : 'Cambiar producto'}
+                </h3>
+                <p className='quote-flow__description'>
+                  Seleccioná un producto del catálogo vigente.
+                </p>
+                <label className='ui-label mt-6' htmlFor='quote-product'>
+                  Producto
+                </label>
+                <select
+                  aria-describedby={productError ? 'quote-product-error' : undefined}
+                  aria-invalid={Boolean(productError)}
+                  className='ui-field quote-flow__main-control'
+                  data-modal-initial-focus
+                  disabled={isSubmitting}
+                  id='quote-product'
+                  onChange={(event) => {
+                    setProductId(event.target.value)
+                    setProductError(null)
+                  }}
+                  onKeyDown={handleProductKeyDown}
+                  ref={productRef}
+                  value={productId}
                 >
-                  <legend className='px-1 text-xs font-semibold text-[var(--text-secondary)]'>
-                    Producto {index + 1}
-                  </legend>
-                  <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end'>
-                    <div>
-                      <label className='ui-label' htmlFor={`quote-product-${line.key}`}>
-                        Producto
-                      </label>
-                      <select
-                        aria-describedby={errors?.product ? productErrorId : undefined}
-                        aria-invalid={Boolean(errors?.product)}
-                        className='ui-field text-base'
-                        data-modal-initial-focus={index === 0 ? true : undefined}
-                        disabled={isSubmitting}
-                        id={`quote-product-${line.key}`}
-                        onChange={(event) => updateLine(line.key, 'productId', event.target.value)}
-                        ref={index === 0 ? firstProductRef : undefined}
-                        value={line.productId}
-                      >
-                        <option value=''>Seleccionar</option>
-                        {availableProducts.map((product) => (
-                          <option
-                            disabled={
-                              (!product.is_active && line.productId !== String(product.id)) ||
-                              (selectedProductIds.has(String(product.id)) &&
-                                line.productId !== String(product.id))
-                            }
-                            key={product.id}
-                            value={product.id}
-                          >
-                            {product.name}
-                            {!product.is_active ? ' (inactivo)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {errors?.product ? (
-                        <p
-                          className='mt-1 text-xs font-medium text-[var(--destructive-text)]'
-                          id={productErrorId}
-                        >
-                          {errors.product}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <label className='ui-label' htmlFor={`quote-quantity-${line.key}`}>
-                        Cantidad (kg)
-                      </label>
-                      <input
-                        aria-describedby={errors?.quantity ? quantityErrorId : undefined}
-                        aria-invalid={Boolean(errors?.quantity)}
-                        className='ui-field text-base tabular-nums'
-                        disabled={isSubmitting}
-                        id={`quote-quantity-${line.key}`}
-                        inputMode='decimal'
-                        min='0.001'
-                        onChange={(event) => updateLine(line.key, 'quantity', event.target.value)}
-                        step='0.001'
-                        type='number'
-                        value={line.quantity}
-                      />
-                      {errors?.quantity ? (
-                        <p
-                          className='mt-1 text-xs font-medium text-[var(--destructive-text)]'
-                          id={quantityErrorId}
-                        >
-                          {errors.quantity}
-                        </p>
-                      ) : null}
-                    </div>
-
+                  <option value=''>Seleccionar producto</option>
+                  {availableProducts.map((product) => (
+                    <option
+                      disabled={
+                        (!product.is_active && productId !== String(product.id)) ||
+                        selectedProductIds.has(String(product.id))
+                      }
+                      key={product.id}
+                      value={product.id}
+                    >
+                      {product.name}
+                      {!product.is_active ? ' (inactivo histórico)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {productError ? (
+                  <p className='ui-field-error' id='quote-product-error'>
+                    {productError}
+                  </p>
+                ) : null}
+                <div className='quote-flow__actions'>
+                  {lines.length > 0 ? (
                     <Button
-                      aria-label={`Quitar producto ${index + 1}`}
-                      disabled={lines.length === 1 || isSubmitting}
-                      onClick={() => removeLine(line.key)}
+                      onClick={() => {
+                        resetEditor()
+                        setStep('review')
+                      }}
                       variant='ghost'
                     >
-                      Quitar
+                      Volver a revisión
                     </Button>
+                  ) : (
+                    <Button onClick={requestClose} variant='ghost'>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button disabled={!productId} onClick={chooseProduct} variant='primary'>
+                    Continuar con cantidad
+                  </Button>
+                </div>
+              </section>
+            ) : null}
+
+            {step === 'quantity' ? (
+              <section aria-labelledby='quote-quantity-step'>
+                <p className='quote-flow__eyebrow'>Paso 2 de 3</p>
+                <h3 id='quote-quantity-step'>Indicá la cantidad</h3>
+                <p className='quote-flow__description'>
+                  {selectedProduct?.name ?? 'Producto seleccionado'} · en kilogramos
+                </p>
+                <label className='ui-label mt-6' htmlFor='quote-quantity'>
+                  Cantidad (kg)
+                </label>
+                <input
+                  aria-describedby={quantityError ? 'quote-quantity-error' : undefined}
+                  aria-invalid={Boolean(quantityError)}
+                  className='ui-field quote-flow__quantity-control tabular-nums'
+                  disabled={isSubmitting}
+                  id='quote-quantity'
+                  inputMode='decimal'
+                  min='0.001'
+                  onChange={(event) => {
+                    setQuantity(event.target.value)
+                    setQuantityError(null)
+                  }}
+                  onKeyDown={handleQuantityKeyDown}
+                  ref={quantityRef}
+                  step='0.001'
+                  type='number'
+                  value={quantity}
+                />
+                {quantityError ? (
+                  <p className='ui-field-error' id='quote-quantity-error'>
+                    {quantityError}
+                  </p>
+                ) : null}
+                <div className='quote-flow__actions'>
+                  <Button onClick={() => setStep('product')} variant='ghost'>
+                    Volver al producto
+                  </Button>
+                  <Button disabled={!quantity} onClick={addProduct} variant='primary'>
+                    {editingKey === null ? 'Agregar producto' : 'Guardar línea'}
+                  </Button>
+                </div>
+              </section>
+            ) : null}
+
+            {step === 'review' ? (
+              <section aria-labelledby='quote-review-step'>
+                <p className='quote-flow__eyebrow'>Paso 3 de 3</p>
+                <div className='quote-review__heading'>
+                  <div>
+                    <h3 id='quote-review-step' ref={reviewRef} tabIndex={-1}>
+                      Revisá la cotización
+                    </h3>
+                    <p className='quote-flow__description'>
+                      La confirmación reemplaza la cotización vigente.
+                    </p>
                   </div>
-                </fieldset>
-              )
-            })}
-
-            <Button
-              className='border-dashed'
-              disabled={allProductsSelected || isSubmitting}
-              onClick={addLine}
-              title={
-                allProductsSelected ? 'Todos los productos activos ya fueron agregados' : undefined
-              }
-            >
-              + Agregar producto
-            </Button>
-
-            {submitError ? (
-              <p
-                className='rounded-[var(--radius-control)] border border-[var(--destructive-border)] bg-[var(--destructive-subtle)] px-3 py-2 text-sm font-medium text-[var(--destructive-text)]'
-                role='alert'
-              >
-                {submitError}
-              </p>
+                  <strong>{formatQuantityKg(totalQuantity)}</strong>
+                </div>
+                <ul className='quote-review__lines'>
+                  {lines.map((line) => {
+                    const product = availableProducts.find(
+                      (item) => String(item.id) === line.productId,
+                    )
+                    return (
+                      <li key={line.key}>
+                        <span>
+                          <b>{product?.name ?? 'Producto no disponible'}</b>
+                          {product && !product.is_active ? <small>Inactivo histórico</small> : null}
+                        </span>
+                        <strong>{formatQuantityKg(line.quantity)}</strong>
+                        <span className='quote-review__line-actions'>
+                          <Button
+                            disabled={isSubmitting}
+                            onClick={() => editLine(line)}
+                            size='compact'
+                            variant='ghost'
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            disabled={isSubmitting}
+                            onClick={() => removeLine(line.key)}
+                            size='compact'
+                            variant='ghost'
+                          >
+                            Quitar
+                          </Button>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <Button
+                  disabled={allProductsSelected || isSubmitting}
+                  onClick={() => {
+                    resetEditor()
+                    setStep('product')
+                  }}
+                  variant='secondary'
+                >
+                  Agregar otro producto
+                </Button>
+                {submitError ? (
+                  <p className='quote-flow__error' role='alert'>
+                    {submitError}
+                  </p>
+                ) : null}
+              </section>
             ) : null}
           </div>
 
-          <footer className='flex flex-col-reverse gap-2 border-t border-[var(--subtle-border)] px-5 py-4 sm:flex-row sm:justify-end'>
-            <Button disabled={isSubmitting} onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button disabled={isSubmitting} type='submit' variant='primary'>
-              {isSubmitting
-                ? 'Guardando…'
-                : mode === 'edit'
-                  ? 'Guardar cambios'
-                  : 'Confirmar cotización'}
-            </Button>
-          </footer>
-        </form>
+          {step === 'review' ? (
+            <footer className='quote-flow__footer'>
+              <Button disabled={isSubmitting} onClick={requestClose}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={lines.length === 0}
+                isLoading={isSubmitting}
+                onClick={() => void submit()}
+                variant='primary'
+              >
+                {mode === 'edit' ? 'Guardar cambios' : 'Confirmar cotización'}
+              </Button>
+            </footer>
+          ) : null}
+        </div>
       )}
     </Modal>
   )

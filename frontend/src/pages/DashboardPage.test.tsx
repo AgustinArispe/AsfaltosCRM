@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DashboardPage } from './DashboardPage'
@@ -11,6 +11,7 @@ vi.mock('../auth/AuthContext', () => ({
 
 type MockOptions = {
   delay?: boolean
+  manyProvinces?: boolean
   nullConversion?: boolean
   timelineFailure?: boolean
 }
@@ -155,6 +156,18 @@ function mockDashboardApi(options: MockOptions = {}) {
             kg_won: '400.000',
             kg_lost: '600.000',
           },
+          ...(options.manyProvinces
+            ? ['Córdoba', 'Santa Fe', 'Mendoza', 'Neuquén', 'Río Negro'].map((province, index) => ({
+                province,
+                opportunities_created: 4 - Math.min(index, 3),
+                opportunities_won: 1,
+                opportunities_lost: 1,
+                conversion_rate: '0.5000',
+                kg_quoted: `${900 - index * 100}.000`,
+                kg_won: '300.000',
+                kg_lost: '200.000',
+              }))
+            : []),
         ],
       })
     }
@@ -193,10 +206,12 @@ describe('DashboardPage', () => {
     await renderLoaded()
 
     expect(screen.getByText('Seguimientos pendientes')).toBeInTheDocument()
-    expect(screen.getByText('Conversaciones esperando respuesta')).toBeInTheDocument()
+    expect(screen.getByText('Conversaciones en espera')).toBeInTheDocument()
     expect(screen.getByText('Oportunidades creadas')).toBeInTheDocument()
     expect(screen.getByText('2.500,125 kg')).toBeInTheDocument()
-    expect(screen.getAllByText('66,67 %').length).toBeGreaterThan(1)
+    expect(screen.getAllByText('66,67 %').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('67 %').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('33 %').length).toBeGreaterThan(0)
     expect(screen.getByText('No se filtra por período.', { exact: false })).toBeInTheDocument()
     expect(screen.getByText('Perdida')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /1 de ago de 2026:/ })).toBeInTheDocument()
@@ -253,11 +268,9 @@ describe('DashboardPage', () => {
 
   it('states null conversion honestly without drawing a misleading ring', async () => {
     await renderLoaded({ nullConversion: true })
-    expect(screen.getByText('Sin oportunidades cerradas')).toBeInTheDocument()
-    expect(screen.queryByLabelText(/Conversión de oportunidades/)).not.toBeInTheDocument()
-    expect(screen.getAllByText('Sin oportunidades cerradas en el período').length).toBeGreaterThan(
-      0,
-    )
+    expect(screen.getAllByText('Sin oportunidades cerradas').length).toBeGreaterThan(0)
+    expect(screen.queryByLabelText(/Resultados cerrados:/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('Sin oportunidades cerradas').length).toBeGreaterThan(1)
   })
 
   it('keeps other surfaces visible when an independent chart request fails and supports loading skeletons', async () => {
@@ -274,15 +287,19 @@ describe('DashboardPage', () => {
 
   it('keeps table and chart controls keyboard-accessible', async () => {
     await renderLoaded()
-    const range = screen.getByLabelText('Período de evolución')
-    fireEvent.change(range, { target: { value: '1' } })
+    fireEvent.focus(screen.getByRole('button', { name: /2 de ago de 2026: Creadas 3/ }))
     expect(screen.getByRole('status')).toHaveTextContent('2 de ago')
-    fireEvent.click(screen.getByRole('button', { name: 'Volumen' }))
-    expect(screen.getAllByText('Kg ganados').length).toBeGreaterThan(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Ganadas' }))
+    expect(screen.getByRole('group', { name: 'Ganadas por período' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /1 de ago de 2026: Ganadas 1/ })).toBeInTheDocument()
+  })
+
+  it('groups only the province visual while preserving every exact category', async () => {
+    await renderLoaded({ manyProvinces: true })
+    expect(screen.getByRole('img', { name: /Sin provincia: 5.*Otras:/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Ver datos exactos de provincias por oportunidades creadas'))
     expect(
-      within(screen.getByRole('group', { name: 'Gráfico de evolución comercial' })).getByRole(
-        'img',
-      ),
-    ).toBeInTheDocument()
+      screen.getByRole('region', { name: 'Tabla de Provincias por oportunidades creadas' }),
+    ).toHaveTextContent('Mendoza')
   })
 })
