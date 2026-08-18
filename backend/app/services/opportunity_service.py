@@ -64,6 +64,7 @@ class OpportunityService:
         source: LeadSource,
         assigned_user_id: int | None = None,
         changed_by_user_id: int | None = None,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             return self.create_opportunity_in_transaction(
@@ -71,6 +72,7 @@ class OpportunityService:
                 source=source,
                 assigned_user_id=assigned_user_id,
                 changed_by_user_id=changed_by_user_id,
+                occurred_at=occurred_at,
             )
 
     def create_opportunity_in_transaction(
@@ -80,6 +82,7 @@ class OpportunityService:
         source: LeadSource,
         assigned_user_id: int | None = None,
         changed_by_user_id: int | None = None,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         """Create NUEVA plus its history inside a caller-owned transaction.
 
@@ -91,26 +94,39 @@ class OpportunityService:
         self._validate_assigned_user(assigned_user_id)
         self._validate_history_user(changed_by_user_id)
 
-        opportunity = Opportunity(
-            customer_id=customer_id,
-            assigned_user_id=assigned_user_id,
-            source=source,
-            status=OpportunityStatus.NUEVA,
-            loss_reason=None,
-        )
+        if occurred_at is None:
+            opportunity = Opportunity(
+                customer_id=customer_id,
+                assigned_user_id=assigned_user_id,
+                source=source,
+                status=OpportunityStatus.NUEVA,
+                loss_reason=None,
+            )
+        else:
+            opportunity = Opportunity(
+                customer_id=customer_id,
+                assigned_user_id=assigned_user_id,
+                source=source,
+                status=OpportunityStatus.NUEVA,
+                loss_reason=None,
+                created_at=occurred_at,
+                updated_at=occurred_at,
+                current_status_entered_at=occurred_at,
+            )
         self._session.add(opportunity)
         self._session.flush()
+        changed_at = occurred_at or opportunity.current_status_entered_at
         self._add_history(
             opportunity=opportunity,
             from_status=None,
             to_status=OpportunityStatus.NUEVA,
-            changed_at=opportunity.current_status_entered_at,
+            changed_at=changed_at,
             changed_by_user_id=changed_by_user_id,
             transition_kind=OpportunityTransitionKind.CREATED,
         )
         LegendaryService(self._session).recompute_customer_in_transaction(
             customer_id,
-            evaluated_at=datetime.now(UTC),
+            evaluated_at=changed_at,
         )
         self._session.flush()
         return opportunity
@@ -121,6 +137,7 @@ class OpportunityService:
         products: list[QuoteProductInput],
         *,
         changed_by_user_id: int | None = None,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             opportunity = self._get_opportunity_for_update(opportunity_id)
@@ -139,10 +156,11 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.COTIZADA,
                 changed_by_user_id=changed_by_user_id,
+                changed_at=occurred_at,
             )
             LegendaryService(self._session).recompute_customer_in_transaction(
                 opportunity.customer_id,
-                evaluated_at=datetime.now(UTC),
+                evaluated_at=occurred_at or datetime.now(UTC),
             )
             self._session.flush()
 
@@ -153,6 +171,7 @@ class OpportunityService:
         opportunity_id: int,
         *,
         changed_by_user_id: int | None = None,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             opportunity = self._get_opportunity_for_update(opportunity_id)
@@ -167,6 +186,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.NEGOCIACION,
                 changed_by_user_id=changed_by_user_id,
+                changed_at=occurred_at,
             )
             self._session.flush()
 
@@ -177,6 +197,7 @@ class OpportunityService:
         opportunity_id: int,
         *,
         changed_by_user_id: int | None = None,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             opportunity = self._get_opportunity_for_update(opportunity_id)
@@ -191,6 +212,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.GANADA,
                 changed_by_user_id=changed_by_user_id,
+                changed_at=occurred_at,
             )
             self._session.flush()
 
@@ -202,6 +224,7 @@ class OpportunityService:
         loss_reason: LossReason | None,
         *,
         changed_by_user_id: int | None = None,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             opportunity = self._get_opportunity_for_update(opportunity_id)
@@ -217,6 +240,7 @@ class OpportunityService:
                 changed_by_user_id=changed_by_user_id,
                 loss_reason=loss_reason,
                 transition_kind=OpportunityTransitionKind.LOST,
+                changed_at=occurred_at,
             )
             self._record_loss_event(opportunity, history, loss_reason)
             self._session.flush()
@@ -305,6 +329,7 @@ class OpportunityService:
         command_id: UUID,
         expected_status: OpportunityStatus,
         changed_by_user_id: int,
+        occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
             replay = self._session.scalar(
@@ -351,6 +376,7 @@ class OpportunityService:
                 to_status=OpportunityStatus.NEGOCIACION,
                 changed_by_user_id=changed_by_user_id,
                 transition_kind=OpportunityTransitionKind.REOPENED,
+                changed_at=occurred_at,
             )
             self._session.flush()
             self._session.add(
@@ -567,22 +593,23 @@ class OpportunityService:
         changed_by_user_id: int | None,
         loss_reason: LossReason | None = None,
         transition_kind: OpportunityTransitionKind = OpportunityTransitionKind.STATUS_CHANGED,
+        changed_at: datetime | None = None,
     ) -> OpportunityStatusHistory:
         from_status = opportunity.status
-        changed_at = datetime.now(UTC)
+        transition_at = changed_at or datetime.now(UTC)
         opportunity.status = to_status
         opportunity.loss_reason = loss_reason
-        opportunity.current_status_entered_at = changed_at
-        opportunity.updated_at = changed_at
+        opportunity.current_status_entered_at = transition_at
+        opportunity.updated_at = transition_at
         NotificationService(self._session).resolve_stale_for_opportunity_in_transaction(
             opportunity.id,
-            resolved_at=changed_at,
+            resolved_at=transition_at,
         )
         return self._add_history(
             opportunity=opportunity,
             from_status=from_status,
             to_status=to_status,
-            changed_at=changed_at,
+            changed_at=transition_at,
             changed_by_user_id=changed_by_user_id,
             transition_kind=transition_kind,
         )

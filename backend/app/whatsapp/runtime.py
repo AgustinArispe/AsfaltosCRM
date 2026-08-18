@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from app.core.config import (
+    RuntimeEnvironment,
+    get_app_environment,
     get_jwt_secret,
     get_whatsapp_broadcast_batch_size,
     get_whatsapp_broadcast_claim_timeout_seconds,
@@ -19,7 +21,11 @@ from app.services.whatsapp_query_observability import (
     NullWhatsAppQueryMetrics,
     WhatsAppQueryMetrics,
 )
-from app.whatsapp.contracts import WhatsAppProvider
+from app.whatsapp.contracts import (
+    ProviderTemplateSnapshot,
+    TemplateHeaderType,
+    WhatsAppProvider,
+)
 from app.whatsapp.cursors import WhatsAppCursorCodec
 from app.whatsapp.fake_provider import FakeWhatsAppProvider
 from app.whatsapp.media_storage import (
@@ -52,6 +58,39 @@ class WhatsAppRuntime:
     webhook: ProviderWebhook | None = None
 
 
+def development_fake_templates() -> tuple[ProviderTemplateSnapshot, ...]:
+    """Return deterministic templates for local development and visual QA."""
+    return (
+        ProviderTemplateSnapshot(
+            external_id="qa-follow-up",
+            name="seguimiento_comercial",
+            language="es_AR",
+            category="UTILITY",
+            status="APPROVED",
+            header_type=TemplateHeaderType.NONE,
+            parameter_names=("nombre",),
+        ),
+        ProviderTemplateSnapshot(
+            external_id="qa-delivery",
+            name="confirmacion_entrega",
+            language="es_AR",
+            category="UTILITY",
+            status="APPROVED",
+            header_type=TemplateHeaderType.NONE,
+            parameter_names=("fecha",),
+        ),
+        ProviderTemplateSnapshot(
+            external_id="qa-marketing",
+            name="novedades_faa",
+            language="es_AR",
+            category="MARKETING",
+            status="APPROVED",
+            header_type=TemplateHeaderType.NONE,
+            parameter_names=("mes",),
+        ),
+    )
+
+
 def build_fake_whatsapp_runtime(
     *,
     provider: FakeWhatsAppProvider | None = None,
@@ -82,7 +121,13 @@ def build_configured_whatsapp_runtime() -> WhatsAppRuntime:
     else:
         storage = FakeMediaStorage()
     if provider_name == "fake":
-        return build_fake_whatsapp_runtime(storage=storage)
+        provider = None
+        if get_app_environment() is RuntimeEnvironment.DEVELOPMENT:
+            provider = FakeWhatsAppProvider(
+                freeform_window=timedelta(hours=24),
+                templates=development_fake_templates(),
+            )
+        return build_fake_whatsapp_runtime(provider=provider, storage=storage)
     return build_meta_whatsapp_runtime(storage=storage)
 
 

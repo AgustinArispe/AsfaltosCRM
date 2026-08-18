@@ -30,6 +30,10 @@ Abrir:
 
 El frontend utiliza `/api` como base y Vite redirige esas solicitudes internamente al backend durante el desarrollo.
 
+Para revisión visual local, usar exclusivamente el proyecto Compose `asfaltoscrm`, las
+URLs anteriores y el [runbook de Visual QA](docs/runbooks/local-visual-qa.md). Los
+proyectos aislados con sufijos de specs no representan la aplicación canónica.
+
 Para detener los servicios:
 
 ```bash
