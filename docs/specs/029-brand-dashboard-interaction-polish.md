@@ -1,9 +1,9 @@
 # CRM-029 — Brand Identity & Dashboard Interaction Polish
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-08-18
-Implementation commit: N/A
+Implementation commit: 11ccafe
 
 ## Goal
 
@@ -506,7 +506,19 @@ None.
 
 ## Implementation notes
 
-Implementar sólo después de aprobar esta Draft. Empezar por el contrato backend diario
-y tokens/iconos compartidos; luego Pipeline, Dashboard, workspaces dirigidos y Quote.
-Mantener commits SDD separados: implementación verificada con referencia `[CRM-029]`,
-seguida por actualización documental `Status: Implemented` con el hash de ese commit.
+Implementado en `11ccafe` sin dependencias ni migraciones nuevas y sin incluir alcance
+de CRM-026. El backend incorpora únicamente el contrato paginado diario
+`GET /api/metrics/timeline/day-opportunities`; el frontend consume ese boundary acotado
+para el detalle por barra y mantiene los agregados existentes para las visualizaciones.
+
+Verificación completada el 2026-08-18:
+
+- backend: Ruff lint/format, mypy strict, compileall, Alembic check/current y 389 tests
+  pasaron sobre PostgreSQL aislado, con 93.00% de coverage;
+- frontend: TypeScript, build, 160 tests, coverage focalizada y npm audit pasaron;
+- Docker Compose canónico respondió healthy en frontend, backend y PostgreSQL, y un
+  smoke read-only verificó que agregado y detalle diario coinciden en datos canónicos;
+- el runtime Python Playwright exigido por la skill vendorizada no está instalado. No
+  se agregó una dependencia sin aprobación: la cobertura visual manual Light/Dark,
+  sidebar y zoom 125/150 queda informada como limitación del runner y permanece dentro
+  del cierre reproducible previsto por CRM-026, tal como permite AC-27.
