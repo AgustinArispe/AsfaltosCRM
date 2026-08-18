@@ -1,4 +1,4 @@
-# CRM-026 — Frontend 2.0: accesibilidad, responsive y pulido final
+# CRM-026 — Final Browser, Accessibility & Responsive QA
 
 Status: Draft
 Owner: FAA CRM team
@@ -7,34 +7,37 @@ Implementation commit: N/A
 
 ## Goal
 
-Definir el pase final transversal de calidad para FAA CRM Frontend 2.0 una vez que
-las especificaciones de rediseño por feature estén implementadas. No introduce
-ninguna capacidad de negocio: verifica que el CRM completo se perciba como un único
-producto premium, rápido, coherente, accesible y resistente al espacio disponible.
+Validar FAA CRM como producto real en un navegador reproducible después de CRM-027,
+CRM-028 y CRM-029, encontrar defectos, corregirlos dentro de los límites aprobados y
+probar el estado final mediante journeys semánticos, accesibilidad, responsive, zoom,
+temas, estados adversos y una baseline visual pequeña.
 
-CRM-018 establece la base visual y de interacción; CRM-027 especializa su segunda
-dirección visual/product-design y debe implementarse antes de este pase. CRM-019 a
-CRM-025 mantienen la autoridad de comportamiento de cada workspace; esta spec sólo
-comprueba y corrige la implementación contra CRM-027 y su consistencia de presentación
-e interacción dentro de esos límites.
+CRM-026 no redefine el diseño. CRM-027, CRM-028 y CRM-029 son la dirección visual y de
+producto aprobada; CRM-018–025 conservan autoridad funcional por feature. Un cambio sólo
+procede cuando QA demuestra un defecto contra esas fuentes.
 
 ## Context
 
-FAA CRM es un producto interno, desktop-first, para trabajo comercial sostenido. La
-base actual es React 19, TypeScript, Tailwind/Vite, router interno pequeño, módulos API
-tipados y primitives iniciales. CRM-015 ya establece Biome, TypeScript/Vite build,
-Vitest/Testing Library con coverage y npm audit; Biome tiene diagnósticos a11y
-habilitados. La suite actual usa jsdom, no tiene runner browser/E2E ni framework a11y
-adicional.
+FAA CRM usa React 19, TypeScript, Tailwind/Vite, un router interno tipado y FastAPI con
+PostgreSQL. CRM-015 ya establece los gates estáticos, unitarios, de coverage, auditoría
+y Docker Compose. CRM-029 dejó el stack canónico saludable y documentó como único gap
+la falta de un runtime Playwright permitido para completar la matriz visual/browser.
 
-La aplicación actual todavía refleja la UI anterior en varios lugares. CRM-027 define
-el refinamiento visual/product-design que resuelve esa dirección. Este pase ocurre
-después de implementar CRM-018 a CRM-025 y CRM-027, y no convierte sus implementaciones
-ni sus contratos backend feature-specific en requisitos nuevos. La UI debe seguir
-renderizando evidencia backend autoritativa, no duplicar reglas comerciales.
+El usuario autoriza expresamente instalar Playwright y las dependencias mínimas de
+browser/testing necesarias para este cierre. La suite debe ser parte del repositorio,
+usar datos sintéticos determinísticos, ejecutarse contra los servicios Docker Compose
+canónicos y producir evidencia útil sin depender de estado personal, datos reales ni
+infraestructura WhatsApp externa.
+
+La instrucción explícita de CRM-026 reemplaza el supuesto anterior de un proyecto
+Compose aislado con puertos alternativos: tanto local como CI usan exclusivamente el
+proyecto `asfaltoscrm`, frontend `localhost:5173`, backend `localhost:8000` y la base
+sintética protegida por `seed_visual_qa`. En CI el runner es efímero; localmente el seed
+conserva todas sus guardas antes de cualquier reset.
 
 ## Dependencies
 
+- CRM-001 — Core CRM, authentication and roles
 - CRM-015 — Quality and Reproducibility Hardening
 - CRM-016 — Security Hardening
 - CRM-018 — Frontend Design System
@@ -46,327 +49,367 @@ renderizando evidencia backend autoritativa, no duplicar reglas comerciales.
 - CRM-024 — Customers, Products & Lost UI
 - CRM-025 — WhatsApp Broadcast UI
 - CRM-027 — Visual Design & Product Polish
+- CRM-028 — Visual Clarity & Dashboard Simplification
+- CRM-029 — Brand Identity & Dashboard Interaction Polish
 
 ## Scope
 
-- Auditoría y corrección transversal de consistencia visual, interacción, accesibilidad,
-  teclado, responsive/zoom, motion, carga/error/vacío, perceived speed y browser QA.
-- Validación de todas las superficies autenticadas: AppShell/sidebar, Pipeline,
-  Opportunity/quote, Dashboard, Notifications, Inbox WhatsApp, Customers, Products,
-  Lost, Envíos WhatsApp, usuario/cuenta y Login cuando corresponda.
-- Revisión del uso efectivo del sistema CRM-018 y consolidación limitada de primitives
-  donde una responsabilidad ya sea realmente compartida.
-- Matriz repetible de QA manual y automatizada para rutas, temas, zoom, diálogos,
-  navegador y flujos representativos mediante Docker Compose.
-- Revisión de dependencias y rendimiento frontend después de las implementaciones de
-  CRM-019 a CRM-025.
-- Validación de CRM-018 como dueño del modelo interno tipado de navegación/deep link
-  común para los handoffs que cruzan workspaces.
+- Instalar y configurar Playwright para Python como dependencia de desarrollo bloqueada,
+  con Chromium administrado por Playwright y un runner revisable del repositorio.
+- Agregar sólo las dependencias auxiliares mínimas justificadas para auditoría a11y y
+  comparación visual determinística si Playwright no las resuelve por sí solo.
+- Documentar instalación, browser setup, variables, comandos locales, ejecución CI,
+  artefactos y actualización deliberada de screenshots.
+- Verificar el stack canónico, migraciones head y seed sintético antes de cada suite;
+  restaurar el fixture conocido después de journeys mutantes.
+- Ejercitar comportamiento real como `SUPERVISOR` y `VENDEDOR`, incluyendo visibilidad,
+  permisos y acciones autorizadas, no sólo acceso a rutas.
+- Cubrir autenticación, Pipeline, Opportunity, Quote, Lost, Dashboard, Notifications,
+  WhatsApp, Envíos masivos, Customers, Products, Users, AppShell y navegación cruzada.
+- Ejecutar matrices de viewport, zoom efectivo, sidebar, Light/Dark, reduced motion,
+  teclado, estados adversos, console y network.
+- Mantener una baseline visual acotada para superficies estables y determinísticas.
+- Investigar y, si se reproduce, corregir el rechazo de `seed_visual_qa --reset` sobre
+  teléfonos sintéticos ya normalizados, sin debilitar ninguna protección.
+- Clasificar cada hallazgo P0/P1/P2/P3 y corregir obligatoriamente P0/P1/P2 dentro de
+  CRM-026; corregir P3 sólo si es localizado, inequívoco y de bajo riesgo.
+- Integrar el gate browser apropiado en GitHub Actions y ejecutar la suite completa del
+  repositorio antes de marcar la spec `Implemented`.
 
 ## Non-goals
 
-- Agregar una funcionalidad comercial, modificar reglas de negocio, permisos,
-  consentimiento, contratos backend o state machines, salvo bloquear y referenciar una
-  necesidad ya identificada por la spec propietaria.
-- Rediseñar o reinterpretar los requisitos de CRM-019 a CRM-025 o la dirección visual
-  de CRM-027.
-- Crear producto mobile-native, patrones de marketing site, motion decorativo,
-  pixel-perfect screenshot coupling, global state management sin evidencia, o sustituir
-  React/TypeScript/Tailwind/Vite.
-- Añadir más de un framework de accesibilidad, una librería duplicada, un runtime de
-  fuente externa, o una dependencia de visual regression no justificada.
-- Prometer soporte de navegadores legacy o Safari sin necesidad operativa FAA.
+- Otro rediseño visual, una nueva dirección de color, layout o composición, o reabrir
+  decisiones CRM-027/028/029 sin un defecto demostrable.
+- Implementar capacidad comercial, permiso, filtro, métrica, estado, transición,
+  contrato provider o regla de consentimiento nuevos.
+- Debilitar autorización para facilitar una prueba, crear datos reales, contactar Meta
+  o usar un provider distinto de Fake.
+- Usar CRM-012/014/016, otro proyecto Compose, puertos alternativos, servidores Vite/
+  FastAPI iniciados fuera de Docker o una base histórica como entorno browser.
+- Convertir screenshots de cada página/estado en un gate masivo o afirmar correctness
+  mediante pixels; las aserciones principales son semánticas y de negocio visible.
+- Introducir Selenium, Cypress, una segunda librería E2E, un framework de componentes,
+  un chart library, state management o dependencias no relacionadas.
+- Crear CRM-030 u otra spec de visual polish automáticamente.
 
-## Cross-product QA model
+## Reproducible browser test architecture
 
-La validación final se ejecuta por capas, en este orden:
+### Runtime and ownership
 
-1. **Sistema y rutas.** AppShell, navegación, tokens, tema, tipografía, primitives,
-   rutas, foco de página y estados globales.
-2. **Workspaces.** Cada módulo se revisa contra sus AC ya aprobados, sin reabrir su
-   modelo de negocio.
-3. **Cruces.** Se prueba la continuidad entre Pipeline, Opportunity, Lost, Customer,
-   Notifications, Inbox y Broadcasts mediante el contrato de navegación compartido.
-4. **Condiciones reales.** Teclado, tamaños/zoom, Light/Dark/System, reduced motion,
-   carga/refresco/error/vacío y navegador.
-5. **Rendimiento y regresión.** Se mide antes de añadir complejidad, se ejecutan gates
-   existentes y se conserva evidencia útil y no frágil.
+La suite usa la API síncrona nativa de Playwright para Python, headless Chromium y
+scripts/tests tipados bajo un directorio de quality/browser dedicado. El runner nunca
+inicia servidores: primero verifica los servicios Docker Compose existentes y aborta
+con una instrucción clara si frontend, backend o base no están saludables.
 
-Cada hallazgo se clasifica como: incumplimiento de CRM-018/feature, defecto de
-accesibilidad/UX, regresión responsive/performance, o bloqueo de contrato. Un bloqueo
-no se resuelve con fallback silencioso de frontend.
+Los locators priorizan `get_by_role`, `get_by_label`, nombres accesibles y texto estable.
+`data-testid` sólo se agrega cuando una estructura dinámica no tiene un selector
+semántico razonable; no se seleccionan clases CSS ni estructura DOM accidental.
 
-## Global visual consistency and design-system enforcement
+Configuración compartida controla base URLs, credenciales sintéticas, browser, locale
+`es-AR`, timezone `America/Argentina/Buenos_Aires`, color scheme, reduced motion,
+viewport, captura de trace y directorios de artefactos. La suite es serial cuando los
+journeys mutan el fixture; ningún test depende de paralelismo ni de una carrera de poll.
 
-Todas las rutas auditadas deben usar tokens semánticos CRM-018, IBM Plex Sans
-autoalojada en pesos aprobados 400/500/600, Light/Dark/System, ritmo de espacio 4/8,
-shape/radius/elevation compartidos, jerarquía clara de controles y focus visible.
-FAA amarillo es selectivo para identidad, foco, selección y acción importante; éxito,
-advertencia y destrucción conservan tokens semánticos y siempre texto/forma además de
-color. Legendary mantiene su tratamiento aprobado sin competir con información
-operativa.
+### Environment preflight and reset
 
-La auditoría identifica botones, badges, inputs/selects, modals/dialogs, toasts,
-feedback, tooltips, filtros, colores directos, radios, sombras y patrones de interacción
-duplicados. Una feature adopta el primitive CRM-018 cuando su responsabilidad ya exista;
-una consolidación sólo procede si elimina divergencia real de semántica, accesibilidad o
-comportamiento. Markup verdaderamente único no se abstrae preventivamente.
+Antes de browser QA se verifica:
 
-Ninguna ruta debe parecer otra aplicación: Dashboard puede ser más elevado
-analíticamente y WhatsApp más familiar para mensajería, pero ambos mantienen la misma
-tipografía, tokens, control hierarchy, estados, motion y aplicación FAA.
+1. `docker compose -p asfaltoscrm --env-file .env.example ps` muestra database,
+   backend y frontend healthy;
+2. `/health` responde `status=ok` y `database=ok`;
+3. `alembic current --check-heads` confirma head;
+4. `seed_visual_qa --summary` reconoce el dataset sintético esperado; y
+5. `seed_visual_qa --reset` recrea el fixture determinístico con Fake provider y las
+   guardas de ambiente/base/ownership activas.
 
-## AppShell and sidebar
+El runner no contiene una API de cleanup ni borra filas directamente. Tras una suite
+mutante vuelve a ejecutar el mismo reset protegido para devolver el entorno canónico a
+su baseline. Si el comando detecta datos ajenos, falla sin modificar nada.
 
-La auditoría cubre sidebar expandida y colapsada: logo/orientación, iconos pequeños con
-tooltip/nombre accesible, ruta activa distinguible por posición/forma/peso además de
-color, badge de Notifications según estado backend, cuenta/usuario anclada y toggle
-teclado-operable. Persistencia de sidebar y tema sigue el contrato CRM-018 y no puede
-alterar sesión ni trabajo en curso.
+### Console and network guard
 
-Cambiar de sidebar no provoca saltos perceptibles, pérdida de foco, scroll inesperado,
-cierre de Draft/diálogo seguro ni ancho inutilizable para el contenido. Las rutas
-cambian el foco al heading/main según CRM-018 sin borrar selección, filtros, composer o
-trabajo no enviado que la feature deba conservar.
+Cada context registra `pageerror`, `console.error`, requests fallidas y respuestas 5xx.
+La suite falla por excepciones runtime, errores React, warnings de hidratación/runtime,
+requests inesperadamente fallidas o 5xx. Un test de error puede declarar de forma
+local y explícita el endpoint/status esperado; la excepción nunca se convierte en una
+allowlist global silenciosa.
 
-## Keyboard and dialog strategy
+Traces, screenshot actual, console/network log y reporte a11y se conservan al fallar.
+En ejecuciones exitosas se retiene sólo el reporte resumido y las baselines versionadas.
 
-El modelo global exige Tab/Shift+Tab en orden lógico, focus visible, controles nativos,
-Space/Enter donde correspondan, Escape sólo para overlay seguro, restauración de foco
-tras diálogo y ningún foco perdido después de mutación, navegación o refresh. Focus trap
-se usa únicamente en modal/dialog; popovers, menus y regiones scrollables mantienen
-modelos apropiados y no crean trampas.
+## Roles and authorization matrix
 
-Las excepciones son explícitas y no se homogeneizan de modo peligroso:
+### Supervisor
 
-| Contexto | Comportamiento que se verifica |
-| --- | --- |
-| Pipeline | Enter abre card; DnD tiene alternativa de teclado Space/flechas/Enter/Escape. |
-| Opportunity | Enter sólo ejecuta acción segura; formularios protegen cambios sucios y Notes conserva semántica multilinea. |
-| Quote | Enter progresa sólo el paso/foco seguro y nunca duplica submit final. |
-| WhatsApp | Enter envía mensaje válido; Shift+Enter agrega línea; foco y composer sobreviven refresh apropiado. |
-| Broadcast | Enter nunca confirma ni inicia una ejecución inmutable accidentalmente. |
-| Destructivo | Ninguna regla global de Enter facilita pérdida, desactivación, eliminación, reopen o confirmación irreversible. |
+Se comprueba navegación completa, Users, catálogo Product completo, acciones
+administrativas de Customers/Products/Users, edición de responsable, import CSV y todas
+las acciones comerciales y de comunicación autorizadas.
 
-Todos los diálogos comparten geometry, scrim/backdrop, título/descripción, foco inicial,
-trampa, Escape/backdrop seguro, restauración de trigger, scroll interno, tamaño máximo
-responsive, acciones alineadas y protección dirty/pending. Se evita stack de diálogos:
-subflujos cambian contenido/paso dentro de un solo diálogo cuando sea apropiado.
+### Vendedor
 
-## Accessibility strategy
+Se comprueba visibilidad global de Opportunities sin filtro por vendedor, ausencia de
+Users y de controles supervisor-only, catálogo activo, acciones comerciales permitidas,
+Customers, Lost, Notifications, WhatsApp y Envíos masivos conforme autorización real.
+Acceso directo a una ruta supervisor-only debe quedar bloqueado de forma segura tanto
+en UI como en API; el test no modifica permisos ni acepta sólo ocultamiento visual.
 
-El objetivo es WCAG 2.2 AA donde aplique. La revisión por ruta incluye landmarks y
-jerarquía de headings, nombres accesibles, labels/descripciones, aria-invalid y
-asociación de errores, controles keyboard-reachable, orden/foco, semántica de diálogo,
-live regions mesuradas, estados no sólo por color, contraste Light/Dark, loading/
-disabled, tablas/listas útiles, alternativas exactas de charts, icon-only controls y
-tooltips accesibles.
+## Core journey matrix
 
-Se prefieren HTML y primitives nativos antes que ARIA adicional. Inputs tienen label
-visible; iconos decorativos están ocultos a lectores; controles icon-only tienen nombre;
-errores críticos son anunciables junto al campo y un toast nunca es la única evidencia
-de un fallo accionable. Carga/refresco no anuncia cada poll ni roba foco. Charts
-conservan tabla/resumen/valores exactos según CRM-021.
+### Authentication
 
-Biome a11y continúa como diagnóstico estático. Testing Library/Vitest añade sólo tests
-focalizados de roles, nombres, keyboard, diálogos, focus y estados críticos. Una
-integración automatizada a11y se evalúa únicamente si funciona con el stack mantenido,
-cubre rutas reales y evita duplicar Biome o una segunda suite de reglas superpuesta.
-Automatización complementa, nunca reemplaza, revisión manual de teclado, contraste,
-screen reader y navegador.
+- login válido para ambos roles;
+- login inválido con error comprensible y sin sesión parcial;
+- logout y retorno al login;
+- ruta protegida sin sesión y deep link protegido después de autenticación.
 
-## Responsive and zoom matrix
+### Pipeline and Opportunity
 
-La matriz prueba el espacio real disponible luego de sidebar expandida y colapsada, no
-sólo presets de dispositivo. Incluye large desktop, normal desktop, laptop, narrow
-supported desktop, y zoom 125 %, 150 % y 200 % donde el flujo sea sensible a
-accesibilidad. Se revisan por lo menos:
+- carga de las cuatro etapas, búsqueda, sort, origen y filtros;
+- abrir Opportunity con mouse y teclado;
+- DnD pointer entre etapas permitidas y alternativa keyboard Space/flechas/Enter/Escape;
+- optimistic state, rollback cuando corresponde, persistencia backend y reload;
+- información Customer, Activity/Notes, note creation, WhatsApp handoff, Quote y Loss;
+- acciones visibles según estado y rol, sin saltos de state machine.
 
-| Área | Resultado requerido |
-| --- | --- |
-| General/AppShell | Sin overflow horizontal persistente; navegación, heading y acción primaria alcanzables. |
-| Dialogs/forms | Tamaño máximo adaptable, scroll interno, header/actions alcanzables, texto sin solape. |
-| Pipeline | Columnas con mínimo definido y board-local horizontal scroll cuando lo requiere CRM-019; no scroll de página. |
-| Dashboard | Grids reflow; chart/tabla conserva lectura y alternativa textual. |
-| WhatsApp | Chat central se mantiene prioritario; panels se adaptan sin romper composer/historial. |
-| Tables/lists | Columnas prioritarias, detalle o región scrollable etiquetada; no tipografía reducida por debajo de umbral legible. |
-| Broadcasts | Pasos, validación y recipient list conservan acciones y conteos con scroll contenido. |
+### Quote
 
-No se desactiva zoom ni se achica tipografía esencial para conservar un layout. Se
-prueban etiquetas españolas largas, fechas/números tabulares, estados, filtros activos,
-mensajes de error y contenido vacío.
+Se cubre `Producto -> Cantidad -> Revisar -> Confirmar`, selección grande, foco en kg,
+Enter seguro, Escape/back, draft, validación, editar, quitar, múltiples líneas, una sola
+confirmación final y resultado persistido. Cancelar o fallar no puede mover una
+Opportunity `NUEVA` prematuramente.
 
-## Forms, loading, errors and empty states
+### Lost
 
-La auditoría recorre Customer, Product, Opportunity edit, Quote, Loss, Reopen, Notes,
-imports, Broadcast creation, template/media WhatsApp y cuenta. Verifica labels,
-requerido/opcional, tipo/autocomplete cuando corresponda, helper/error asociado,
-Save/Cancel, pending/disabled explicable, reglas Enter/Escape, dirty protection y éxito
-sin borrar entrada ante fallo recuperable.
+Se prueban búsqueda/filtros, evidencia histórica, detalle canónico y reapertura elegible
+sólo a `NEGOCIACION`, con persistencia y aparición posterior en Pipeline.
 
-La jerarquía común de estados es:
+### Dashboard
 
-| Situación | Tratamiento |
-| --- | --- |
-| Carga inicial de ruta | Skeleton contextual que reserva geometry; no spinner de página rutinario. |
-| Carga acotada | Skeleton/local loading del panel, tabla, diálogo o sección afectada. |
-| Refresco background | Contenido actual permanece; indicador de actualización sólo si ayuda. |
-| Mutación | Pending y resultado en el control/entidad afectada; previene duplicado. |
-| Poll/red recuperable | Último dato bueno, indicador stale/conexión y retry acotado. |
-| API/validación | Mensaje seguro, consistente, accionable y próximo al contexto. |
-| Vacío | Diferencia ausencia real, resultado de filtro/búsqueda y estado específico como no leídas, no métricas, no Lost o no elegibles. |
+Se prueban CTAs de atención, cinco KPIs, selector Creadas/Ganadas/Perdidas, peak
+significativo, click y keyboard focus de día no cero, detalle paginado y navegación.
+Resultados cerrados expone total/conversión/ganadas/perdidas; Pipeline vigente expone
+las cuatro etapas. Productos/Origen/Provincias preserva selector, valores, porcentajes y
+detalle exacto accesible. También se verifica un estado sin actividad.
 
-No se exponen HTTP, SQL, nombres de clase/dominio, provider, storage ni detalles
-internos; el frontend traduce evidencia backend segura sin inventar causa. Vacíos son
-compactos y útiles, sin ilustraciones enormes ni copy de marketing.
+### Notifications
 
-## Motion and perceived performance
+Se prueban estado read/unread, Todas/Sin leer, navegación, read individual,
+`Marcar activas como leídas`, historia resuelta y sincronización del badge.
 
-Motion operativo es corto, funcional, interrumpible y tokenizado: microfeedback
-aprox. 150–220 ms, overlays hasta 240 ms y salida más rápida. Se anima opacidad/
-transform, no geometry/layout; ningún transition bloquea input, se repite para llamar
-atención, ni simula tiempo real. Dashboard puede revelar cambios analíticos con algo más
-de riqueza, pero refresh rutinario no reinicia gráficos ni distrae.
+### WhatsApp
 
-prefers-reduced-motion: reduce elimina movimiento espacial/continuo, scroll animado,
-revelaciones repetidas y demoras; deja un estado genuinamente calmo, inmediatamente
-legible y operable.
+Con Fake provider se prueban selección, unread/waiting, mensajes inbound/outbound,
+contexto CRM, Opportunity vinculada, suggestions/linking cuando existen, composer,
+Enter/Shift+Enter, ventana freeform, template-required y attachment affordance. Se
+verifican failed y `UNKNOWN` sin retry indebido ni contacto externo.
 
-La QA mide route change, open dialog, Pipeline drag/transición, typing y actualizaciones
-WhatsApp, filtros, Dashboard y recipient views de Broadcast. Objetivos: acknowledgement
-inmediato, mínima inestabilidad visual, preservación de datos autoritativos durante
-refresh, ausencia de blanking innecesario y ninguna feature cara bloqueando navegación o
-input principal. Lazy loading, memoización, code splitting y virtualización sólo se
-adoptan ante perfil/medición que justifique su coste.
+### Envíos masivos
 
-## Dependencies, bundle and browser/theme QA
+Se valida que el propósito se entienda como templates aprobados a Customers explícitos,
+no campaign builder. El journey cubre Draft, template, recipients, elegibilidad,
+consentimiento, validación, confirmación deliberada, inicio/proceso y detalle/auditoría.
+Las proyecciones disponibles deben representar DRAFT/PROCESSING/COMPLETED y outcomes
+READ/DELIVERED/SENT/FAILED/UNKNOWN/BLOCKED sin inventarlos ni vaciar lotes desde browser.
 
-La revisión de dependencias verifica que no haya dos librerías para una responsabilidad,
-que la decisión de charts de CRM-021 sea medida y accesible, que icon/font/chart bundles
-sean proporcionados y que IBM Plex sea sólo autoalojada en pesos aprobados. Route/feature
-lazy loading se aplica cuando el análisis de chunk e interacción lo justifican, no como
-optimización ritual. No hay dependencia runtime de fuentes de terceros.
+### Customers, Products and Users
 
-La baseline inicial de QA es Chrome/Chromium estable actual y Edge estable actual, por
-ser el mínimo de esta spec y compatibles con el stack moderno. Firefox se prueba para
-comportamiento browser-sensitive (dialog, DnD, scroll, focus o CSS) o cuando FAA lo use;
-Safari se incorpora sólo con requerimiento operativo FAA. No se promete legacy support.
-La decisión de navegadores soportados se documenta antes de producción.
+- Customers: búsqueda, detalle, create/edit, contenido largo, CSV como acción secundaria
+  y controles supervisor-only;
+- Products: active/inactive, create/edit, deactivate/reactivate e historia preservada;
+- Users supervisor: list/create/edit, activate/deactivate y password administration;
+- Vendedor: ausencia de administración y rechazo seguro de acceso directo.
 
-Cada ruta se revisa en Light, Dark y System: primera pintura sin theme flash, persistencia
-sin perder workflow, surfaces, borders, focus, disabled, warning/success/destructive,
-FAA yellow, Legendary, charts, tooltips y diálogos con contraste intencional. System
-sigue cambio de preferencia según CRM-018 sin quebrar trabajo activo.
+## Responsive, zoom and themes
 
-## Functional browser QA and quality gates
+### Viewports
 
-Los journeys se ejercitan con Playwright contra la aplicación real levantada por Docker
-Compose y localhost:5173/localhost:8000, según la política del repositorio. Cada
-ejecución usa un proyecto Compose y base de datos aislados de QA: crea volumen/base
-nuevos, aplica migraciones frescas y carga únicamente datos sintéticos controlados por
-un fixture o vía API aprobada. Las aserciones son semánticas y de flujo (roles, estados,
-navegación y resultados autoritativos); screenshots son sólo diagnóstico, nunca gate
-pixel-perfect.
+La matriz mínima usa `1920x1080`, `1440x900`, `1366x768`, `1280x800` y un viewport
+narrow/mobile-class de `390x844`. Este último valida el contrato responsive básico,
+drawer/one-panel fallbacks y acciones alcanzables; no exige una aplicación mobile-native.
 
-Al finalizar, el procedimiento baja exclusivamente ese proyecto aislado con
-`docker compose down -v`. Nunca comparte, enumera, resetea ni elimina la base, volumen
-o datos de desarrollo/negocio de una persona. Si los contratos existentes no alcanzan
-para sembrar un journey, se agrega el fixture mínimo aislado y aprobado; no se crea una
-API de limpieza productiva ni se reutilizan Customers/WhatsApp reales. La matriz
-funcional incluye:
+En cada nivel relevante se inspeccionan sidebar expandida/colapsada o drawer responsive,
+overflow de documento, acciones primarias, overlays, charts, donuts, tablas y regiones
+scrollables. Pipeline puede tener scroll horizontal local; ninguna página puede tener
+overflow horizontal persistente.
 
-- login/logout/restauración de sesión;
-- Pipeline filtros/sort, transición drag y alternativa teclado;
-- Opportunity detail/edit, Quote, Loss y Reopen;
-- Customer create/edit/import y Product management;
-- Notifications read/navigation;
-- Dashboard filters y estados;
-- WhatsApp conversation, send y media;
-- Broadcast create/validation sólo cuando los contratos aprobados lo permitan;
-- sidebar collapse, tema y navegación/deep links.
+### Effective zoom
 
-Se preservan gates CRM-015: TypeScript strict, Biome, tests frontend/coverage vigente,
-Vite build y npm audit. Cualquier browser/a11y check nuevo entra sólo si tiene runtime
-y mantenimiento razonables, es estable contra Docker y produce señal clara. No se hace
-obligatorio un screenshot pixel-perfect; visual regression se propone sólo con
-justificación medida.
+La matriz `100% | 125% | 150% | 200%` se reproduce reduciendo el CSS viewport efectivo
+mientras se mantiene un framebuffer físico representativo. La relación se documenta
+como `css viewport = physical viewport / zoom factor`; no se escala una screenshot ni
+se usa `transform: scale`. Para Chromium, un control adicional con CDP/page scale sólo
+se acepta si altera métricas CSS observadas y se valida mediante `innerWidth`,
+`devicePixelRatio` y overflow; la reducción de viewport es el método portable de gate.
 
-## Cross-spec routing review
+Dashboard, Pipeline, WhatsApp, Opportunity/Quote, Customers, Lost y Users se prueban a
+150/200 cuando su layout es sensible. Donuts no se miniaturizan, panels no se solapan,
+tablas conservan fallback/scroll local y dialogs mantienen header/body/actions accesibles.
 
-CRM-018 es dueño de la única representación interna tipada. CRM-019, CRM-020, CRM-022,
-CRM-023, CRM-024 y CRM-025 consumen sus paths canónicos para Opportunity activa/perdida,
-Customer, Conversation exacta y Broadcast, más origen/fallback mismo-app tipado en
-`history.state` cuando aporta valor. La QA verifica parámetros validados, foco/retorno,
-fallback de deep link directo y entidad no disponible; no admite query params, URLs de
-retorno arbitrarias ni hacks por feature. No agrega endpoint ni cambia contratos de
-negocio.
+### Light, Dark and reduced motion
+
+Los journeys críticos se ejecutan en Light y Dark. System se cubre mediante una prueba
+de persistencia/reacción a preferencia porque CRM-018 lo mantiene como tercera opción.
+Se valida FAA yellow, stages, green local de WhatsApp, coral Lost, focus, selected,
+disabled, modal separation y chart distinction sin alterar colores salvo defecto medido.
+
+Un proyecto/contexto con `reduced_motion="reduce"` verifica que no existan animaciones
+espaciales/loops obligatorios y que datos, focus y acciones sean inmediatos.
+
+## Accessibility verification
+
+La suite combina auditoría automática WCAG con journeys keyboard-first. La dependencia
+a11y, si se agrega, debe ser un wrapper pequeño o el motor Axe oficial, ejecutado sólo
+en rutas reales ya cargadas. No reemplaza Biome ni las aserciones de interacción.
+
+Se verifica:
+
+- landmarks, heading order y nombres accesibles;
+- labels/descriptions, required, `aria-invalid` y errores vinculados;
+- Tab/Shift+Tab, Enter, Space y Escape según cada widget;
+- focus visible, trap modal, foco inicial, retorno al trigger y ausencia de foco perdido;
+- buttons/links/rows/charts con semántica nativa o patrón ARIA completo;
+- live/status feedback mesurado, disabled explicable y estado no sólo por color;
+- tablas/listas/legends y exact detail para visualizaciones;
+- acceso keyboard al detalle diario de Dashboard; y
+- reduced motion.
+
+Una violación automática sólo puede excluirse si es falsamente positiva y existe una
+justificación concreta, localizada y versionada. No se permiten disable rules globales.
+
+## Error, empty and loading evidence
+
+Journeys o intercepts locales prueban loading, vacío, validación, API failure,
+unavailable, permission denied, mensaje WhatsApp failed, `UNKNOWN`, Dashboard sin
+actividad, stage vacío y búsqueda sin resultados. Cada caso debe comunicar qué ocurrió,
+si algo fue guardado y cuál es el siguiente paso posible. Los intercepts no simulan una
+regla de negocio ni dejan una allowlist de errores activa fuera del test.
+
+## Visual regression baseline
+
+La baseline versionada queda limitada a:
+
+1. Pipeline desktop Light;
+2. Dashboard desktop Light;
+3. WhatsApp desktop Light;
+4. Opportunity detail;
+5. Quote modal;
+6. Dashboard desktop Dark;
+7. Pipeline a 150% efectivo; y
+8. WhatsApp responsive.
+
+Usa seed/reset determinístico, clock/viewport/theme/reduced-motion fijados, fonts listas
+y masking sólo de evidencia genuinamente inestable. La comparación permite un umbral
+pequeño documentado para rasterización; un cambio se actualiza deliberadamente y se
+revisa, nunca mediante aceptación automática. Las screenshots no sustituyen asserts de
+roles, labels, datos o estado.
+
+## Defect policy
+
+| Priority | Meaning | CRM-026 action |
+| --- | --- | --- |
+| P0 | Seguridad, data loss o core product inutilizable | Corregir y volver a ejecutar toda la aceptación. |
+| P1 | Workflow primario roto | Corregir y cubrir con regresión browser/unitaria. |
+| P2 | Accesibilidad, responsive o usabilidad real | Corregir y verificar en toda la matriz afectada. |
+| P3 | Cosmetic polish | Corregir sólo si es localizado, evidente, bajo riesgo y coherente con CRM-027/028/029. |
+
+Un fix que cambie materialmente UX aprobada, datos, seguridad o negocio se documenta y
+queda fuera; no se implementa silenciosamente. CRM-026 permanece Draft/Approved, nunca
+Implemented, mientras exista un P0/P1/P2, blocker a11y/responsive o error runtime conocido.
+
+## Seed reset investigation
+
+Se reproduce el caso `seed_visual_qa --reset` con teléfonos sintéticos ya normalizados.
+Si el guard compara representaciones equivalentes de forma inconsistente, el fix debe
+normalizar sólo dentro de la identificación exacta del fixture antes de decidir ownership.
+Permanecen obligatorias las guardas de development, Fake provider, nombre de database,
+dataset ownership y abort-before-mutation. Reset debe ser idempotente; tests cubren
+baseline, forma normalizada, dato ajeno y prohibiciones de producción/provider/base.
+
+## CI and documentation
+
+GitHub Actions agrega un job browser independiente que:
+
+1. instala locks Python/frontend;
+2. instala el Chromium exacto con sus dependencias del sistema;
+3. construye y levanta `docker compose -p asfaltoscrm --env-file .env.example`;
+4. verifica health/migrations y carga/reset el seed sintético;
+5. ejecuta Playwright/a11y/visual en headless mode;
+6. sube trace, screenshots actuales, console/network y reporte sólo ante fallo; y
+7. detiene el stack canónico del runner efímero.
+
+El runbook documenta instalación local del browser, comandos de preflight/reset, suite
+funcional, matriz completa, actualización visual y ubicación de artifacts. CI no usa
+credenciales Meta, datos reales ni estado mutable externo.
+
+## Quality gates
+
+Antes de aceptación final pasan:
+
+- frontend: Biome, TypeScript, Vite production build, 160+ unit/integration tests,
+  coverage vigente, npm audit y Playwright;
+- backend: Ruff check/format, mypy strict, compileall, full pytest/coverage >= 93%,
+  Alembic check/current, lock verification y dependency audit;
+- infrastructure: Docker Compose smoke, health, proxy/API, authentication,
+  seed/reset canónico y `git diff --check`;
+- GitHub Actions final con backend, frontend, browser y Docker jobs verdes.
 
 ## Acceptance criteria
 
-- AC-01: Rutas autenticadas, Login cuando aplique y AppShell se revisan como producto
-  único y cumplen tokens, IBM Plex, themes, shape, spacing, surface, control hierarchy,
-  focus, status y FAA-yellow CRM-018.
-- AC-02: Duplicaciones de primitives/patrones se consolidan sólo con responsabilidad
-  real; no quedan one-off colors/radii/shadows ni interacción divergente donde CRM-018
-  provee contrato.
-- AC-03: Sidebar expandida/colapsada conserva orientación, active route, tooltips,
-  badge backend, cuenta, teclado, persistencia y ancho útil sin interrumpir trabajo.
-- AC-04: Tab, Shift+Tab, Space, Enter, Escape, foco de ruta/mutación y retorno de
-  diálogo son consistentes; excepciones Pipeline/Opportunity/Quote/WhatsApp/Broadcast
-  protegen acciones riesgosas.
-- AC-05: Auditoría WCAG 2.2 AA por ruta cubre semántica, nombres, labels/errors, focus,
-  dialogs, live regions, contraste, estados no-color, tablas/listas/charts e icon-only
-  controls; automatización focalizada complementa keyboard/browser manual.
-- AC-06: Matriz de viewport, sidebar y zoom 125/150/200 % verifica acciones, texto,
-  dialogs, charts, tables/lists, Pipeline scroll local, chat prioritario y ningún
-  overflow persistente de página.
-- AC-07: Dialogs comparten geometry, backdrop, focus trap/inicial/retorno, Escape
-  seguro, scroll/tamaño responsive, acciones y dirty protection sin stacks evitables.
-- AC-08: Formularios comparten labels, required/optional, validación asociada, pending,
-  Save/Cancel, Enter/Escape, dirty handling y preservación ante fallo.
-- AC-09: Carga inicial, scoped load, refresh, mutación, polling/red, API/validación y
-  vacío son contextuales, seguros, distinguibles y preservan último contenido útil.
-- AC-10: Motion usa tokens funcionales, no bloquea input ni produce jank/atención
-  repetida; reduced motion es realmente calmo.
-- AC-11: Perceived-performance QA mide flujos críticos, evita blanking/layout shift y
-  adopta lazy loading/memoización/virtualización sólo con evidencia.
-- AC-12: Dependencias, chunks, fonts, icons y charts no duplican responsabilidad ni
-  agregan peso injustificado; no hay font runtime third-party.
-- AC-13: Chrome/Chromium y Edge actuales pasan matriz funcional; Firefox/Safari se
-  incluyen según baseline operacional, sin promesa legacy.
-- AC-14: Light, Dark y System pasan rutas, charts/tooltips/dialogs/focus/status con
-  contraste correcto, sin theme flash ni pérdida de workflow.
-- AC-15: Playwright contra un proyecto/base Docker Compose aislados aplica migraciones
-  frescas, seed sintético controlado, aserciones semánticas de flujo y limpieza aislada
-  con `docker compose down -v` mientras cubre login, Pipeline, Opportunity/Quote/Lost,
-  Customer/Product/Import, Notifications, Dashboard, WhatsApp, Broadcast cuando sea
-  posible, sidebar y tema; screenshots son sólo diagnóstico.
-- AC-16: TypeScript, Biome, tests/coverage, build, audit y smoke CRM-015 siguen como
-  gates; pruebas browser/a11y nuevas son estables, proporcionadas y no pixel-perfect.
-- AC-17: Navegación tipada CRM-018 cubre Opportunity activa/perdida, Customer,
-  Conversation Inbox exacta y Broadcast, con return/focus seguro y sin hacks por
-  feature ni return URLs arbitrarias.
-- AC-18: Un vendedor se orienta sin entrenamiento de estructura, encuentra acciones
-  frecuentes con poca búsqueda, acelera con teclado y percibe FAA, Dashboard e Inbox
-  como partes intencionales de un producto incluso con zoom.
+- AC-01: La spec y el runbook reflejan CRM-027/028/029 como baseline aprobada, el stack
+  canónico exclusivo y ninguna decisión de rediseño nueva.
+- AC-02: Playwright Python y Chromium están bloqueados/reproducibles; instalación,
+  browser setup, comandos, environment, CI y artifacts están documentados.
+- AC-03: Preflight prueba frontend/backend/database healthy, Alembic head y seed
+  sintético; reset protegido es idempotente antes/después de journeys mutantes.
+- AC-04: Supervisor y Vendedor pasan la matriz de navegación, permissions, Users,
+  Customers, Opportunities, WhatsApp, Envíos masivos y data visibility sin debilitar auth.
+- AC-05: Authentication cubre login válido/inválido, logout y protected/deep-link routes.
+- AC-06: Pipeline cubre toolbar, filtros, Opportunity, DnD pointer/keyboard, optimistic/
+  rollback, persistencia y reload sin alterar state machine.
+- AC-07: Opportunity/Quote/Loss/Reopen cubren detalle, Activity/Notes, handoff WhatsApp,
+  cuatro pasos Quote, keyboard/draft/validation y resultado autoritativo persistido.
+- AC-08: Dashboard cubre attention, KPIs, series/peaks/day detail, donut closed,
+  Pipeline vigente, dimensions y exact alternatives con significado backend correcto.
+- AC-09: Notifications, WhatsApp Fake y Envíos masivos cubren sus estados, mutaciones,
+  constraints, outcomes e historia sin side effects externos ni retry prohibido.
+- AC-10: Customers, Products y Users cubren CRUD/activation/deactivation/password/import
+  según rol, long content y preservación histórica aprobada.
+- AC-11: Viewports 1920/1440/1366/1280 y 390, sidebar variants y zoom efectivo
+  100/125/150/200 no producen page overflow, clipping, overlap ni controles off-screen.
+- AC-12: Light/Dark y System persistence conservan contraste/semántica; reduced motion
+  deja toda información e interacción inmediata.
+- AC-13: Auditoría automática y keyboard-first no dejan violaciones WCAG críticas/serias,
+  focus traps rotos, nombres ausentes, errores desvinculados ni chart detail inaccesible.
+- AC-14: Estados loading/empty/error/unavailable/permission/failed/UNKNOWN/no-results
+  comunican resultado, persistencia y siguiente acción sin inventar datos.
+- AC-15: No quedan excepciones runtime, `console.error`, React warnings, 5xx ni requests
+  fallidas inesperadas; fallos intencionales están acotados al test que los provoca.
+- AC-16: Las ocho baselines visuales son determinísticas, pequeñas, revisables y verdes;
+  screenshots siguen siendo guard complementario, no aserción primaria.
+- AC-17: Hallazgos están registrados con P0/P1/P2/P3, evidencia y fix/defer; todo P0/P1/
+  P2 y blocker release está resuelto antes de `Implemented`.
+- AC-18: El defecto de teléfono normalizado de `seed_visual_qa --reset` queda reproducido
+  y corregido con cobertura, o documentado como no reproducible sin debilitar guardas.
+- AC-19: Todos los quality gates locales y el job CI browser reproducible pasan; failure
+  artifacts son útiles y success artifacts permanecen acotados.
+- AC-20: El reporte final incluye setup/version/browser, roles/journeys, matrices,
+  a11y/motion/visual/console, defectos, seed, tests/coverage/audits, Docker, CI, commits,
+  worktree y las siete respuestas explícitas de release readiness.
 
 ## Open decisions
 
-None
+None.
 
 ## Follow-up / future specs
 
-- Cambio backend o contrato producto que desbloquee una decisión CRM-020 a CRM-025 queda
-  en su spec propietaria.
-- Visual regression sólo si el equipo mide valor superior a coste y define baselines
-  semánticos/no frágiles.
-- Auditoría periódica de accesibilidad y browser baseline posterior a producción.
+- Operaciones/deployment/recovery continúan bajo CRM-017; CRM-026 no los redefine.
+- Safari o Firefox sólo se agregan si FAA define una necesidad operacional posterior.
+- Cualquier cambio material de UX/negocio descubierto se documenta para la spec
+  propietaria y no genera automáticamente otra spec visual.
 
 ## Implementation notes
 
-Este pase se planifica después de implementar las specs feature-specific aprobadas y
-CRM-027. Cada corrección conserva dueño de feature y se prueba contra su AC, los AC de
-CRM-027 y la matriz CRM-026. No introducir dependencia, state store, abstracción
-compartida o cambio router sin evidencia y decisión aprobada. La evidencia QA registra
-entorno, viewport/zoom, tema, navegador, ruta/flujo, resultado e issue vinculado, nunca
-información sensible de Customers o WhatsApp.
+Implementar sólo después de publicar esta revisión Draft y establecer `Status:
+Approved`. Mantener commits separados para Draft, aprobación, implementación verificada
+y documentación `Implemented` con el hash final. Registrar la aceptación en un reporte
+versionado sin datos sensibles, incluyendo defectos y evidencia de cada matriz.
