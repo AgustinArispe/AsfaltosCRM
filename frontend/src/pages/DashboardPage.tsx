@@ -53,10 +53,6 @@ function OperationalAttention({
     {
       label: 'Seguimientos pendientes',
       value: staleTotal === null ? '—' : String(staleTotal),
-      description:
-        staleTotal && staleTotal > 0
-          ? 'Sin cambio de etapa hace 14 días o más.'
-          : 'Sin seguimientos demorados.',
       icon: 'clock' as IconName,
       target: 'notifications' as const,
       action: 'Ver seguimientos',
@@ -64,10 +60,6 @@ function OperationalAttention({
     {
       label: 'Notificaciones sin leer',
       value: unreadTotal === null ? '—' : String(unreadTotal),
-      description:
-        unreadTotal && unreadTotal > 0
-          ? 'Pendientes de revisión por el equipo.'
-          : 'Todo revisado por ahora.',
       icon: 'bell' as IconName,
       target: 'notifications' as const,
       action: 'Revisar notificaciones',
@@ -75,9 +67,6 @@ function OperationalAttention({
     {
       label: 'Conversaciones esperando',
       value: hasWaitingConversation === null ? '—' : hasWaitingConversation ? 'Hay' : '0',
-      description: hasWaitingConversation
-        ? 'Al menos una conversación requiere respuesta.'
-        : 'No hay conversaciones esperando.',
       icon: 'whatsapp' as IconName,
       target: 'whatsapp' as const,
       action: 'Abrir WhatsApp',
@@ -87,10 +76,7 @@ function OperationalAttention({
   return (
     <section aria-labelledby='dashboard-attention-title' className='dashboard-attention'>
       <div className='dashboard-attention__heading'>
-        <div>
-          <h2 id='dashboard-attention-title'>Lo que necesita seguimiento ahora</h2>
-          <p>Accesos directos a la atención operativa del equipo.</p>
-        </div>
+        <h2 id='dashboard-attention-title'>Lo que necesita seguimiento ahora</h2>
       </div>
       {isUnavailable ? (
         <p className='dashboard-attention__unavailable'>
@@ -104,11 +90,8 @@ function OperationalAttention({
               <Icon name={item.icon} />
             </span>
             <span className='dashboard-attention__content'>
-              <span>
-                <strong className='dashboard-attention__value'>{item.value}</strong>
-                <b>{item.label}</b>
-              </span>
-              <small>{item.description}</small>
+              <strong className='dashboard-attention__value'>{item.value}</strong>
+              <b>{item.label}</b>
             </span>
             <AppLink
               aria-label={`${item.action}: ${item.label.toLocaleLowerCase('es-AR')}`}

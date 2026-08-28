@@ -58,7 +58,6 @@ export function DashboardKpis({ overview }: { overview: MetricsOverview }) {
       <article className='dashboard-kpi dashboard-kpi--accent'>
         <p>Oportunidades creadas</p>
         <strong>{formatCount(opportunities.created)}</strong>
-        <span>Creadas en el período</span>
       </article>
       <article className='dashboard-kpi'>
         <p>Resultados cerrados</p>
@@ -75,16 +74,11 @@ export function DashboardKpis({ overview }: { overview: MetricsOverview }) {
             ? '—'
             : formatDecimalRatioPercent(opportunities.conversion_rate)}
         </strong>
-        <span>
-          {opportunities.conversion_rate === null
-            ? 'Sin oportunidades cerradas'
-            : 'Ganadas / cerradas'}
-        </span>
+        {opportunities.conversion_rate === null ? <span>Sin oportunidades cerradas</span> : null}
       </article>
       <article className='dashboard-kpi'>
         <p>Kg cotizados</p>
         <strong>{formatDecimalKg(volume.quoted)}</strong>
-        <span>En oportunidades creadas</span>
       </article>
       <article className='dashboard-kpi'>
         <p>Volumen ganado</p>
@@ -179,9 +173,7 @@ export function TimelineChart({
         <div className='dashboard-chart-heading'>
           <div>
             <h2>Evolución comercial</h2>
-            <p className='dashboard-chart-context'>
-              Creadas usa fecha de alta; ganadas y perdidas, fecha de cierre.
-            </p>
+            <p className='dashboard-chart-context'>Altas por creación; resultados por cierre.</p>
           </div>
           <SegmentedControl
             label='Serie de evolución'
@@ -497,7 +489,7 @@ export function ResultsCluster({
             ) : (
               <>
                 <p className='dashboard-chart-context'>
-                  Conversión {formatDecimalRatioPercent(rate)} · Ganadas sobre total cerrado
+                  Conversión {formatDecimalRatioPercent(rate)}
                 </p>
                 <Donut
                   ariaLabel={`Resultados cerrados: ${won} ganadas y ${lost} perdidas; conversión ${formatDecimalRatioPercent(rate)}`}
@@ -516,8 +508,7 @@ export function ResultsCluster({
         <section aria-labelledby='pipeline-distribution-title'>
           <h2 id='pipeline-distribution-title'>Distribución vigente</h2>
           <p className='dashboard-chart-context'>
-            Composición del Pipeline activo ·{' '}
-            {pipeline ? formatDateTime(pipeline.snapshot_at) : 'Ahora'}
+            Pipeline activo · {pipeline ? formatDateTime(pipeline.snapshot_at) : 'Ahora'}
           </p>
           <SurfaceState error={error} hasData={Boolean(pipeline)} onRetry={onRetry} />
           {!pipeline && !error ? <Skeleton className='dashboard-mini-skeleton' /> : null}
@@ -619,6 +610,26 @@ export function topNWithOther(items: RankedItem[], limit = 4): RankedItem[] {
   ]
 }
 
+function RankedBars({ items, ariaLabel }: { items: RankedItem[]; ariaLabel: string }) {
+  const maximum = Math.max(0, ...items.map((item) => item.value))
+  return (
+    <ol aria-label={ariaLabel} className='dashboard-ranked-bars'>
+      {items.map((item) => (
+        <li key={item.label}>
+          <div>
+            <span>{item.label}</span>
+            <b>{item.displayValue ?? formatCount(item.value)}</b>
+          </div>
+          <div aria-hidden='true' className='dashboard-ranked-bars__track'>
+            <span style={{ width: `${maximum === 0 ? 0 : (item.value / maximum) * 100}%` }} />
+          </div>
+          <small>{item.detail}</small>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 type Dimension = 'products' | 'sources' | 'provinces'
 
 export function CommercialDistribution({
@@ -671,21 +682,21 @@ export function CommercialDistribution({
   const definition = {
     products: {
       title: 'Productos por volumen cotizado',
-      context: 'Kilogramos cotizados en oportunidades creadas durante el período.',
+      context: 'Volumen cotizado',
       items: productItems,
       source: products,
       error: errors.products,
     },
     sources: {
       title: 'Origen por oportunidades creadas',
-      context: 'Origen de las oportunidades creadas durante el período.',
+      context: 'Oportunidades creadas',
       items: sourceItems,
       source: sources,
       error: errors.sources,
     },
     provinces: {
       title: 'Provincias por oportunidades creadas',
-      context: 'Actividad provincial; Otras agrupa únicamente la visualización.',
+      context: 'Actividad provincial',
       items: provinceItems,
       source: provinces,
       error: errors.provinces,
@@ -733,7 +744,7 @@ export function CommercialDistribution({
         {definition.source && total > 0 ? (
           <>
             <h3 className='sr-only'>{definition.title}</h3>
-            <Donut
+            <RankedBars
               ariaLabel={visualItems
                 .map((item) => `${item.label}: ${item.displayValue ?? item.value}`)
                 .join(', ')}

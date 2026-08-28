@@ -126,9 +126,6 @@ export function DashboardFilters({
               </option>
             ))}
           </Select>
-          <p className='dashboard-filter-hint'>
-            Los filtros se aplican a todas las métricas disponibles.
-          </p>
         </div>
       </details>
       {count > 0 ? (

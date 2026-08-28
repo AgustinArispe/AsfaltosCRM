@@ -239,9 +239,10 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText('66,67 %').length).toBeGreaterThan(0)
     expect(screen.getAllByText('67 %').length).toBeGreaterThan(0)
     expect(screen.getAllByText('33 %').length).toBeGreaterThan(0)
+    expect(screen.getByText('Pipeline activo', { exact: false })).toBeInTheDocument()
     expect(
-      screen.getByText('Composición del Pipeline activo', { exact: false }),
-    ).toBeInTheDocument()
+      screen.queryByText('Accesos directos a la atención operativa del equipo.'),
+    ).not.toBeInTheDocument()
     expect(screen.queryByText('Perdida')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /1 de ago de 2026:/ })).toBeInTheDocument()
 
@@ -338,7 +339,7 @@ describe('DashboardPage', () => {
   it('groups only the province visual while preserving every exact category', async () => {
     await renderLoaded({ manyProvinces: true })
     fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
-    expect(screen.getByRole('img', { name: /Sin provincia: 5.*Otras:/ })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: /Sin provincia: 5.*Otras:/ })).toBeInTheDocument()
     fireEvent.click(screen.getByText('Ver datos exactos de provincias por oportunidades creadas'))
     expect(
       screen.getByRole('region', { name: 'Tabla de Provincias por oportunidades creadas' }),
@@ -353,7 +354,7 @@ describe('DashboardPage', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Origen' }))
     expect(screen.getByRole('button', { name: 'Origen' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('img', { name: /Web: 6.*WhatsApp: 3/ })).toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /Asfalto base:/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('list', { name: /Web: 6.*WhatsApp: 3/ })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: /Asfalto base:/ })).not.toBeInTheDocument()
   })
 })
