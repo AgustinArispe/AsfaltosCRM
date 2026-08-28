@@ -1,6 +1,6 @@
 # CRM-018 — Frontend 2.0
 
-Status: Draft
+Status: Approved
 Owner: Frontend / Product Design
 Last updated: 2026-08-28
 Implementation commit: N/A
