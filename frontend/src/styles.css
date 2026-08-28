@@ -31,7 +31,7 @@
   --surface-subtle: var(--surface-secondary);
   --text-primary: #202428;
   --text-secondary: #596168;
-  --text-tertiary: #788189;
+  --text-tertiary: #626b73;
   --text-inverse: #f8fafb;
   --brand-accent: var(--brand-yellow);
   --brand-deep: var(--brand-navy);
@@ -1067,7 +1067,7 @@ a {
   cursor: wait;
 }
 .notification-row--unread {
-  background: color-mix(in srgb, var(--accent-muted) 58%, var(--surface-primary));
+  background: color-mix(in srgb, var(--accent-muted) 18%, var(--surface-primary));
   box-shadow: inset 3px 0 var(--accent-solid);
 }
 .notification-row--unread .notification-row__unread::before {
@@ -1141,6 +1141,10 @@ a {
   display: grid;
   grid-template-columns: minmax(24rem, 0.9fr) minmax(25rem, 1.1fr);
   gap: 0.9rem;
+}
+.lost-workspace {
+  width: 100%;
+  min-width: 0;
 }
 .lost-statistics {
   display: grid;
@@ -1244,7 +1248,11 @@ a {
   font-size: 0.8125rem;
 }
 .lost-list {
-  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-radius: var(--radius-surface);
   background: var(--surface-primary);
   box-shadow: inset 0 0 0 1px var(--divider);
@@ -1553,6 +1561,7 @@ a {
   font-weight: 600;
 }
 .whatsapp-chat {
+  min-width: 0;
   background: var(--surface-primary);
 }
 .whatsapp-conversation-row--waiting:not(.whatsapp-conversation-row--selected) {
@@ -2289,8 +2298,19 @@ a {
 .dashboard-results-cluster h2 {
   color: var(--brand-deep);
 }
-.dashboard-bar-chart {
+.dashboard-timeline,
+.dashboard-data-table {
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
+}
+.dashboard-timeline {
+  overflow-x: hidden;
+}
+.dashboard-bar-chart {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   padding-top: 0.25rem;
 }
@@ -2302,10 +2322,10 @@ a {
 }
 .dashboard-bar-chart__plot {
   display: grid;
-  grid-template-columns: repeat(var(--dashboard-bar-count), minmax(0.8rem, 1fr));
+  grid-template-columns: repeat(var(--dashboard-bar-count), minmax(1.5rem, 1fr));
   align-items: end;
   gap: clamp(0.2rem, 0.45vw, 0.5rem);
-  min-width: max(100%, calc(var(--dashboard-bar-count) * 1.35rem));
+  min-width: max(100%, calc(var(--dashboard-bar-count) * 1.9rem));
   height: 13.5rem;
   margin: 0;
   border-bottom: 1px solid var(--chart-grid);
@@ -2823,6 +2843,16 @@ a {
 @media (max-width: 72rem) {
   .lost-analysis {
     grid-template-columns: 1fr;
+  }
+  .lost-list table {
+    min-width: 45rem;
+  }
+  .dashboard-kpis {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .dashboard-kpi {
+    min-width: 0;
+    padding: 0.85rem;
   }
   .dashboard-attention ul {
     grid-template-columns: 1fr;

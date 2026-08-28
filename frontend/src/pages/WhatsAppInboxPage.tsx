@@ -38,7 +38,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
 
   return (
     <div className='whatsapp-workspace relative min-h-[36rem] overflow-hidden rounded-[var(--radius-surface)] bg-[var(--surface-primary)] lg:h-[calc(100dvh-7.75rem)]'>
-      <div className='grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]'>
+      <div className='grid h-full min-h-0 min-w-0 md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]'>
         <div
           className={['min-h-0', inbox.selectedConversationId ? 'hidden md:block' : 'block'].join(
             ' ',
@@ -70,9 +70,10 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
         </div>
 
         <div
-          className={['min-h-0', inbox.selectedConversationId ? 'flex' : 'hidden md:flex'].join(
-            ' ',
-          )}
+          className={[
+            'min-h-0 min-w-0',
+            inbox.selectedConversationId ? 'flex' : 'hidden md:flex',
+          ].join(' ')}
         >
           <ChatPanel
             conversation={inbox.selectedDetail}

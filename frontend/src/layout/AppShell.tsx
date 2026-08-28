@@ -311,7 +311,7 @@ export function AppShell({
           </div>
         ) : null}
         <main
-          className='min-w-0 px-4 py-5 sm:px-6 lg:px-8 lg:py-7'
+          className='min-w-0 overflow-x-clip px-4 py-5 sm:px-6 lg:px-8 lg:py-7'
           id='main-content'
           ref={mainRef}
           tabIndex={-1}
@@ -325,7 +325,11 @@ export function AppShell({
               ref={mobileNavigationTriggerRef}
             />
             <div className='min-w-0'>
-              <h1 className='truncate text-[length:var(--text-title-size)] font-semibold tracking-[-0.025em] text-[var(--brand-deep)]'>
+              <h1
+                className='truncate rounded-[var(--radius-control)] text-[length:var(--text-title-size)] font-semibold tracking-[-0.025em] text-[var(--brand-deep)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+                data-page-heading
+                tabIndex={-1}
+              >
                 {pageTitle}
               </h1>
             </div>
