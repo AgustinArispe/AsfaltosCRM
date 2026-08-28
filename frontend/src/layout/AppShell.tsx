@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { useAuth } from '../auth/AuthContext'
 import {
@@ -26,6 +26,97 @@ const NAVIGATION_ICONS: Record<string, IconName> = {
   '/lost': 'pipeline',
   '/whatsapp-sends': 'send',
   '/users': 'users',
+}
+
+function AccountDisclosure({
+  collapsed = false,
+  email,
+  fullName,
+  logout,
+  preference,
+  role,
+  setPreference,
+}: {
+  collapsed?: boolean
+  email: string
+  fullName: string
+  logout: () => void
+  preference: ReturnType<typeof useTheme>['preference']
+  role: string
+  setPreference: ReturnType<typeof useTheme>['setPreference']
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const disclosureId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const closeOutside = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false)
+    }
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setIsOpen(false)
+      triggerRef.current?.focus()
+    }
+    document.addEventListener('mousedown', closeOutside)
+    document.addEventListener('keydown', closeWithEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOutside)
+      document.removeEventListener('keydown', closeWithEscape)
+    }
+  }, [isOpen])
+
+  return (
+    <div className='ui-account' ref={rootRef}>
+      <button
+        aria-controls={disclosureId}
+        aria-expanded={isOpen}
+        aria-label={`Cuenta de ${fullName}`}
+        className={`ui-account__trigger ui-pressable ${collapsed ? 'ui-account__trigger--collapsed' : ''}`}
+        onClick={() => setIsOpen((current) => !current)}
+        ref={triggerRef}
+        type='button'
+      >
+        <span aria-hidden='true' className='ui-account__avatar'>
+          {fullName.slice(0, 1).toUpperCase()}
+        </span>
+        {collapsed ? null : (
+          <span className='min-w-0 flex-1 text-left'>
+            <span className='block truncate font-semibold'>{fullName}</span>
+            <span className='block truncate text-xs text-[var(--text-tertiary)]'>{role}</span>
+          </span>
+        )}
+        {collapsed ? null : <Icon aria-hidden='true' name='chevron-right' />}
+      </button>
+      {isOpen ? (
+        <div className='ui-account__popover' id={disclosureId}>
+          <div className='ui-account__identity'>
+            <strong>{fullName}</strong>
+            <span>{role}</span>
+            <span>{email}</span>
+          </div>
+          <label className='ui-account__theme' htmlFor={`${disclosureId}-theme`}>
+            <span>Tema</span>
+            <select
+              id={`${disclosureId}-theme`}
+              onChange={(event) => setPreference(event.target.value as typeof preference)}
+              value={preference}
+            >
+              <option value='system'>Sistema</option>
+              <option value='light'>Claro</option>
+              <option value='dark'>Oscuro</option>
+            </select>
+          </label>
+          <button className='ui-account__logout' onClick={logout} type='button'>
+            <Icon name='logout' />
+            Cerrar sesión
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function SidebarNavigation({
@@ -150,8 +241,8 @@ export function AppShell({
         <a className='ui-skip-link' href='#main-content'>
           Saltar al contenido
         </a>
-        <aside className='sticky top-0 hidden h-dvh flex-col border-r border-[var(--border-default)] bg-[var(--surface)] lg:flex'>
-          <div className='flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-[var(--border-default)] px-3'>
+        <aside className='ui-sidebar sticky top-0 hidden h-dvh flex-col lg:flex'>
+          <div className='ui-sidebar__brand flex min-h-[4.5rem] items-center justify-between gap-2 px-3'>
             <Brand collapsed={isCollapsed} />
             <IconButton
               icon='menu'
@@ -166,36 +257,16 @@ export function AppShell({
             notificationCount={notificationCount}
             pathname={pathname}
           />
-          <div className='border-t border-[var(--divider)] p-2'>
-            {isCollapsed ? (
-              <IconButton icon='logout' label='Cerrar sesión' onClick={logout} />
-            ) : (
-              <>
-                <div className='mb-2 px-2 py-1'>
-                  <p className='truncate text-sm font-semibold'>{user.full_name}</p>
-                  <p className='text-xs text-[var(--text-secondary)]'>{ROLE_LABELS[user.role]}</p>
-                  <p className='mt-0.5 truncate text-xs text-[var(--text-tertiary)]'>
-                    {user.email}
-                  </p>
-                </div>
-                <label className='sr-only' htmlFor='theme-preference'>
-                  Tema
-                </label>
-                <select
-                  className='ui-sidebar-theme-select'
-                  id='theme-preference'
-                  onChange={(event) => setPreference(event.target.value as typeof preference)}
-                  value={preference}
-                >
-                  <option value='system'>Tema: sistema</option>
-                  <option value='light'>Tema: claro</option>
-                  <option value='dark'>Tema: oscuro</option>
-                </select>
-                <button className='ui-sidebar-logout' onClick={logout} type='button'>
-                  <Icon name='logout' /> Cerrar sesión
-                </button>
-              </>
-            )}
+          <div className='ui-sidebar__footer p-2'>
+            <AccountDisclosure
+              collapsed={isCollapsed}
+              email={user.email}
+              fullName={user.full_name}
+              logout={logout}
+              preference={preference}
+              role={ROLE_LABELS[user.role]}
+              setPreference={setPreference}
+            />
           </div>
         </aside>
         {isMobileNavigationOpen ? (
@@ -208,7 +279,7 @@ export function AppShell({
             />
             <aside
               aria-label='Navegación móvil'
-              className='relative flex h-dvh w-[min(20rem,88vw)] flex-col border-e border-[var(--divider)] bg-[var(--surface-primary)] shadow-[var(--shadow-overlay)]'
+              className='ui-sidebar relative flex h-dvh w-[min(20rem,88vw)] flex-col shadow-[var(--shadow-overlay)]'
               ref={mobileNavigationRef}
             >
               <div className='flex min-h-[4.5rem] items-center justify-between border-b border-[var(--divider)] px-3'>
@@ -226,26 +297,15 @@ export function AppShell({
                 notificationCount={notificationCount}
                 pathname={pathname}
               />
-              <div className='border-t border-[var(--divider)] p-3'>
-                <p className='truncate text-sm font-semibold'>{user.full_name}</p>
-                <p className='text-xs text-[var(--text-secondary)]'>{ROLE_LABELS[user.role]}</p>
-                <p className='truncate text-xs text-[var(--text-tertiary)]'>{user.email}</p>
-                <label className='sr-only' htmlFor='mobile-theme-preference'>
-                  Tema
-                </label>
-                <select
-                  className='ui-sidebar-theme-select mt-3'
-                  id='mobile-theme-preference'
-                  onChange={(event) => setPreference(event.target.value as typeof preference)}
-                  value={preference}
-                >
-                  <option value='system'>Tema: sistema</option>
-                  <option value='light'>Tema: claro</option>
-                  <option value='dark'>Tema: oscuro</option>
-                </select>
-                <button className='ui-sidebar-logout mt-1' onClick={logout} type='button'>
-                  <Icon name='logout' /> Cerrar sesión
-                </button>
+              <div className='ui-sidebar__footer p-3'>
+                <AccountDisclosure
+                  email={user.email}
+                  fullName={user.full_name}
+                  logout={logout}
+                  preference={preference}
+                  role={ROLE_LABELS[user.role]}
+                  setPreference={setPreference}
+                />
               </div>
             </aside>
           </div>
@@ -265,7 +325,7 @@ export function AppShell({
               ref={mobileNavigationTriggerRef}
             />
             <div className='min-w-0'>
-              <h1 className='truncate text-2xl font-semibold tracking-[-0.025em] sm:text-[1.75rem]'>
+              <h1 className='truncate text-[length:var(--text-title-size)] font-semibold tracking-[-0.025em] text-[var(--brand-deep)]'>
                 {pageTitle}
               </h1>
             </div>

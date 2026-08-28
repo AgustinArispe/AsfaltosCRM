@@ -1176,52 +1176,150 @@ a {
   align-items: center;
   gap: 0.7rem;
   border-radius: var(--radius-control);
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--action-secondary) 82%, var(--text-secondary));
   font-size: 0.875rem;
   font-weight: 600;
 }
 .ui-sidebar-link:hover {
-  background: var(--hover);
-  color: var(--text-primary);
+  background: var(--action-secondary-subtle);
+  color: var(--selection-text);
 }
 .ui-sidebar-link--active {
-  background: color-mix(in srgb, var(--selected) 58%, var(--surface-primary));
-  color: var(--text-primary);
+  background: var(--selection-surface);
+  color: var(--selection-text);
+  box-shadow: inset 3px 0 var(--selection-marker);
 }
 .ui-sidebar-link--active svg {
-  color: var(--accent-hover);
+  color: var(--action-secondary);
 }
 .ui-sidebar-group-start {
-  margin-top: 0.8rem;
-  padding-top: 0.8rem;
+  margin-top: 0.7rem;
+  padding-top: 0.45rem;
+}
+.ui-sidebar {
+  border-inline-end: 1px solid color-mix(in srgb, var(--brand-navy) 24%, var(--divider));
+  background: var(--surface-primary);
+}
+.ui-sidebar__brand {
+  border-bottom: 1px solid var(--divider);
+}
+.ui-sidebar__footer {
   border-top: 1px solid var(--divider);
 }
-.ui-sidebar-theme-select {
+.ui-account {
+  position: relative;
+}
+.ui-account__trigger {
+  display: flex;
   width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.6rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  padding: 0.35rem 0.45rem;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  outline: none;
+}
+.ui-account__trigger:hover,
+.ui-account__trigger[aria-expanded="true"] {
+  background: var(--action-secondary-subtle);
+}
+.ui-account__trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.ui-account__trigger > svg {
+  width: 1rem;
+  color: var(--action-secondary);
+  transition: transform var(--motion-fast) var(--ease-ui);
+}
+.ui-account__trigger[aria-expanded="true"] > svg {
+  transform: rotate(-90deg);
+}
+.ui-account__trigger--collapsed {
+  justify-content: center;
+  padding-inline: 0;
+}
+.ui-account__avatar {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--action-secondary);
+  color: var(--on-action-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.ui-account__popover {
+  position: absolute;
+  z-index: 30;
+  bottom: calc(100% + 0.45rem);
+  left: 0;
+  width: 15rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-surface);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-overlay);
+  padding: 0.45rem;
+}
+.ui-account__identity {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.45rem 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--divider);
+}
+.ui-account__identity strong {
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+}
+.ui-account__identity span {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-account__theme {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.ui-account__theme select {
   min-height: 2.25rem;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-control);
-  background: var(--surface-raised);
-  padding: 0 0.55rem;
+  background: var(--surface-primary);
+  padding-inline: 0.45rem;
   color: var(--text-primary);
   font-size: 0.75rem;
 }
-.ui-sidebar-logout {
+.ui-account__logout {
   display: flex;
   width: 100%;
   min-height: 2.5rem;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
-  padding: 0 0.55rem;
+  padding-inline: 0.5rem;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
-.ui-sidebar-logout:hover {
-  background: var(--hover);
+.ui-account__logout:hover,
+.ui-account__logout:focus-visible {
+  background: var(--surface-hover);
   color: var(--text-primary);
 }
 .whatsapp-workspace {

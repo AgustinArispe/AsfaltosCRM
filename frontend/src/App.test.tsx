@@ -235,7 +235,11 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('button', { name: 'Expandir navegación' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('title', 'Pipeline')
     fireEvent.click(screen.getByRole('button', { name: 'Expandir navegación' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' }))
     expect(screen.getByLabelText('Tema')).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByLabelText('Tema')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' })).toHaveFocus()
   })
 
   it('shows the exact active-unread badge in expanded and collapsed Notifications navigation', async () => {
@@ -365,6 +369,7 @@ describe('authenticated frontend', () => {
     renderApp('/pipeline')
     await screen.findByRole('heading', { name: 'Pipeline', level: 1 })
 
+    fireEvent.click(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     await waitFor(() => expect(window.location.pathname).toBe('/login'))
