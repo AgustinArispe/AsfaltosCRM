@@ -63,7 +63,7 @@ describe('LostPage', () => {
             historical_loss_count: 3,
             historical_quantity_kg: '2500.500',
             reopened_count: 1,
-            by_reason: [],
+            by_reason: [{ key: 'PRECIO', count: 1, quantity_kg: '1250.500' }],
           })
         if (url.pathname === '/api/lost-opportunities')
           return response({ items: [lostItem], next_cursor: null })
@@ -88,7 +88,10 @@ describe('LostPage', () => {
       '/lost/opportunities/8',
     )
     expect(screen.getByText('Reabierta previamente')).toBeInTheDocument()
-    expect(screen.getByText('Episodios históricos')).toBeInTheDocument()
+    expect(screen.getByText('Histórico')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Motivos de pérdida' })).toBeInTheDocument()
+    expect(screen.getAllByText('Precio').length).toBeGreaterThan(0)
+    expect(screen.getByText('1.250,5 kg perdidos')).toBeInTheDocument()
     expect(screen.queryByText(/vendedor/i)).not.toBeInTheDocument()
   })
 
@@ -96,9 +99,10 @@ describe('LostPage', () => {
     render(<LostPage />)
     await screen.findByText('Constructora Sur')
     fireEvent.change(screen.getByLabelText('Buscar'), { target: { value: 'sur' } })
+    fireEvent.click(screen.getByText('Filtros'))
     fireEvent.click(screen.getByLabelText('Precio'))
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
-    await waitFor(() => expect(screen.getByText('2 filtros activos')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Filtros · 2')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'Restablecer' }))
     expect(await screen.findByText('Constructora Sur')).toBeInTheDocument()
   })

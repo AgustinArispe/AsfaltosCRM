@@ -1137,19 +1137,27 @@ a {
     justify-content: flex-start;
   }
 }
+.lost-analysis {
+  display: grid;
+  grid-template-columns: minmax(24rem, 0.9fr) minmax(25rem, 1.1fr);
+  gap: 0.9rem;
+}
 .lost-statistics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1.35fr 0.8fr 0.65fr;
   overflow: hidden;
   border-radius: var(--radius-surface);
-  background: color-mix(in srgb, var(--destructive-subtle) 48%, var(--surface-secondary));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--destructive-border) 35%, transparent);
+  background: var(--surface-primary);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
 .lost-statistics > div {
   position: relative;
-  padding: 0.8rem 1rem;
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  padding: 1rem;
 }
-.lost-statistics > div::before {
+.lost-statistics__primary::before {
   position: absolute;
   top: 0;
   left: 1rem;
@@ -1162,10 +1170,78 @@ a {
 .lost-statistics > div + div {
   border-inline-start: 1px solid var(--divider);
 }
-.lost-statistics > div > p:first-child {
-  color: var(--destructive-text);
+.lost-statistics p {
+  margin: 0;
+  color: var(--text-tertiary);
   font-size: 0.75rem;
   font-weight: 600;
+}
+.lost-statistics strong {
+  color: var(--brand-deep);
+  font-size: clamp(1.45rem, 1.1rem + 0.8vw, 2rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.lost-statistics__primary strong {
+  color: var(--destructive-text);
+}
+.lost-statistics span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.lost-reasons {
+  border-block: 1px solid var(--divider);
+  padding: 0.85rem 0;
+}
+.lost-reasons h2 {
+  margin: 0 0 0.7rem;
+  color: var(--brand-deep);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.lost-reasons ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lost-reasons li {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) auto minmax(6rem, 1fr) minmax(5rem, auto);
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+.lost-reasons__count,
+.lost-reasons__quantity {
+  font-variant-numeric: tabular-nums;
+}
+.lost-reasons__count {
+  color: var(--text-primary);
+}
+.lost-reasons__quantity {
+  text-align: end;
+}
+.lost-reasons__track {
+  height: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-interactive);
+}
+.lost-reasons__track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chart-primary);
+}
+.lost-reasons__empty {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
 }
 .lost-list {
   overflow: hidden;
@@ -1174,16 +1250,17 @@ a {
   box-shadow: inset 0 0 0 1px var(--divider);
 }
 .lost-list__heading {
-  background: color-mix(in srgb, var(--destructive-subtle) 38%, var(--surface-primary));
+  background: var(--surface-primary);
 }
 .lost-list__row {
   background: var(--surface-primary);
 }
 .lost-list__row:hover .lost-list__customer a {
-  color: var(--destructive-text);
+  color: var(--text-link);
 }
 .lost-list__customer a {
-  text-decoration-color: color-mix(in srgb, var(--destructive-solid) 55%, transparent);
+  color: var(--brand-deep);
+  text-decoration-color: var(--selection-marker);
   text-underline-offset: 0.25rem;
 }
 .lost-list__date,
@@ -1201,12 +1278,12 @@ a {
   color: var(--text-secondary);
 }
 .lost-reason-filter--selected {
-  border-color: var(--destructive-border);
-  background: var(--destructive-subtle);
-  color: var(--destructive-text);
+  border-color: var(--action-secondary);
+  background: var(--action-secondary-subtle);
+  color: var(--action-secondary);
 }
 .lost-reason-filter input {
-  accent-color: var(--destructive-solid);
+  accent-color: var(--action-secondary);
 }
 .ui-chart-surface {
   border-radius: var(--radius-surface);
@@ -2744,6 +2821,9 @@ a {
   }
 }
 @media (max-width: 72rem) {
+  .lost-analysis {
+    grid-template-columns: 1fr;
+  }
   .dashboard-attention ul {
     grid-template-columns: 1fr;
   }

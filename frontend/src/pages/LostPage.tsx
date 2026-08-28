@@ -35,13 +35,19 @@ function activeFilterCount(filters: LostFilters): number {
 function productEvidence(item: LostOpportunity): string {
   if (item.loss_products.length === 0) return 'Sin cotización'
   const names = item.loss_products.slice(0, 2).map((product) => product.product_name)
-  return `${names.join(', ')}${item.loss_products.length > 2 ? ` +${item.loss_products.length - 2}` : ''} · ${formatDecimalKg(item.quoted_total_kg)}`
+  return `${names.join(', ')}${item.loss_products.length > 2 ? ` +${item.loss_products.length - 2}` : ''}`
+}
+
+function lossReasonLabel(key: string): string {
+  return (
+    LOSS_REASON_LABELS[key as LossReason] ?? key.toLocaleLowerCase('es-AR').replaceAll('_', ' ')
+  )
 }
 
 function LostRows({ items }: { items: LostOpportunity[] }) {
   return (
     <section aria-label='Oportunidades perdidas actuales' className='lost-list overflow-x-auto'>
-      <table className='w-full min-w-[48rem] border-collapse text-left text-sm'>
+      <table className='w-full min-w-[50rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>
           Oportunidades perdidas actuales, ordenadas por pérdida más reciente
         </caption>
@@ -51,16 +57,13 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
               Cliente
             </th>
             <th className='px-4 py-3 font-semibold' scope='col'>
-              Motivo
+              Evidencia comercial
+            </th>
+            <th className='px-4 py-3 font-semibold' scope='col'>
+              Motivo de pérdida
             </th>
             <th className='px-4 py-3 font-semibold' scope='col'>
               Fecha de pérdida
-            </th>
-            <th className='hidden px-4 py-3 font-semibold lg:table-cell' scope='col'>
-              Origen
-            </th>
-            <th className='hidden px-4 py-3 font-semibold xl:table-cell' scope='col'>
-              Cotización
             </th>
             <th className='px-4 py-3 text-right font-semibold' scope='col'>
               <span className='sr-only'>Abrir</span>
@@ -92,6 +95,9 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                           {opportunity.customer.company}
                         </span>
                       ) : null}
+                      <span className='mt-1 block text-xs font-normal text-[var(--text-tertiary)]'>
+                        {SOURCE_LABELS[opportunity.source]}
+                      </span>
                       {opportunity.is_reopened ? (
                         <span className='mt-1 block text-xs font-normal text-[var(--text-secondary)]'>
                           Reabierta previamente
@@ -100,17 +106,17 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                     </span>
                   </AppLink>
                 </th>
+                <td className='lost-list__quote px-4 py-3'>
+                  <strong className='block text-sm tabular-nums text-[var(--brand-deep)]'>
+                    {formatDecimalKg(item.quoted_total_kg)}
+                  </strong>
+                  <span className='mt-0.5 block text-xs'>{productEvidence(item)}</span>
+                </td>
                 <td className='lost-list__reason px-4 py-3'>
                   <Badge tone='lost'>{LOSS_REASON_LABELS[item.loss_reason]}</Badge>
                 </td>
                 <td className='lost-list__date whitespace-nowrap px-4 py-3 text-[var(--text-secondary)]'>
                   <time dateTime={item.lost_at}>{formatDateTime(item.lost_at)}</time>
-                </td>
-                <td className='lost-list__source hidden px-4 py-3 text-[var(--text-secondary)] lg:table-cell'>
-                  {SOURCE_LABELS[opportunity.source]}
-                </td>
-                <td className='lost-list__quote hidden max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)] xl:table-cell'>
-                  {productEvidence(item)}
                 </td>
                 <td className='px-4 py-3 text-right'>
                   <AppLink
@@ -118,7 +124,7 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                     origin={{ kind: 'workspace', workspace: 'lost' }}
                     to={{ kind: 'opportunity', opportunityId: opportunity.id, surface: 'lost' }}
                   >
-                    Abrir
+                    Abrir oportunidad
                   </AppLink>
                 </td>
               </tr>
@@ -131,30 +137,46 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
 }
 
 function Statistics({ statistics }: { statistics: LostStatistics }) {
+  const maxReasonCount = Math.max(1, ...statistics.by_reason.map((reason) => reason.count))
   return (
-    <section aria-label='Resumen de pérdidas' className='lost-statistics'>
-      <div>
-        <p>Perdidas actuales</p>
-        <p className='mt-1 text-lg font-semibold tabular-nums'>
-          {statistics.current_count}{' '}
-          <span className='text-sm font-medium'>
-            {formatDecimalKg(statistics.current_quantity_kg)}
-          </span>
-        </p>
-      </div>
-      <div>
-        <p>Episodios históricos</p>
-        <p className='mt-1 text-lg font-semibold tabular-nums'>
-          {statistics.historical_loss_count}{' '}
-          <span className='text-sm font-medium'>
-            {formatDecimalKg(statistics.historical_quantity_kg)}
-          </span>
-        </p>
-      </div>
-      <div>
-        <p>Episodios reabiertos</p>
-        <p className='mt-1 text-lg font-semibold tabular-nums'>{statistics.reopened_count}</p>
-      </div>
+    <section aria-label='Análisis de pérdidas' className='lost-analysis'>
+      <section aria-label='Resumen de pérdidas' className='lost-statistics'>
+        <div className='lost-statistics__primary'>
+          <p>Pérdidas actuales</p>
+          <strong>{statistics.current_count}</strong>
+          <span>{formatDecimalKg(statistics.current_quantity_kg)} perdidos</span>
+        </div>
+        <div>
+          <p>Histórico</p>
+          <strong>{statistics.historical_loss_count}</strong>
+          <span>{formatDecimalKg(statistics.historical_quantity_kg)}</span>
+        </div>
+        <div>
+          <p>Reabiertas</p>
+          <strong>{statistics.reopened_count}</strong>
+        </div>
+      </section>
+      <section aria-labelledby='lost-reasons-title' className='lost-reasons'>
+        <h2 id='lost-reasons-title'>Motivos de pérdida</h2>
+        {statistics.by_reason.length ? (
+          <ul>
+            {statistics.by_reason.map((reason) => (
+              <li key={reason.key}>
+                <span>{lossReasonLabel(reason.key)}</span>
+                <strong className='lost-reasons__count'>{reason.count}</strong>
+                <span className='lost-reasons__track' aria-hidden='true'>
+                  <span style={{ width: `${(reason.count / maxReasonCount) * 100}%` }} />
+                </span>
+                <small className='lost-reasons__quantity'>
+                  {formatDecimalKg(reason.quantity_kg)}
+                </small>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className='lost-reasons__empty'>Sin motivos para este período.</p>
+        )}
+      </section>
     </section>
   )
 }
@@ -251,15 +273,9 @@ export function LostPage() {
 
   return (
     <section aria-label='Oportunidades perdidas' className='lost-workspace mx-auto max-w-[90rem]'>
-      <div className='flex flex-wrap justify-end gap-4'>
-        {filterCount ? (
-          <p className='text-sm text-[var(--text-secondary)]'>
-            {filterCount} {filterCount === 1 ? 'filtro activo' : 'filtros activos'}
-          </p>
-        ) : null}
-      </div>
       <form
-        className='ui-toolbar ui-toolbar--divided mt-4'
+        aria-label='Filtrar pérdidas'
+        className='ui-toolbar ui-toolbar--divided'
         onSubmit={(event) => {
           event.preventDefault()
           applyFilters()
@@ -273,32 +289,34 @@ export function LostPage() {
           type='search'
           value={draft.search}
         />
-        <fieldset className='flex flex-wrap gap-1'>
-          <legend className='mb-1 text-xs font-semibold text-[var(--text-secondary)]'>
-            Motivo
-          </legend>
-          {LOSS_REASON_OPTIONS.map((option) => (
-            <label
-              className={[
-                'lost-reason-filter inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium',
-                draft.reasons.includes(option.value) ? 'lost-reason-filter--selected' : '',
-              ].join(' ')}
-              key={option.value}
-            >
-              <input
-                checked={draft.reasons.includes(option.value)}
-                onChange={() => toggleReason(option.value)}
-                type='checkbox'
-              />
-              {option.label}
-            </label>
-          ))}
-        </fieldset>
-        <details className='relative'>
+        <details className='lost-filters relative'>
           <summary className='ui-pressable min-h-9 cursor-pointer rounded-[var(--radius-control)] border border-[var(--border-default)] px-3 py-1.5 text-xs font-semibold'>
             Filtros{filterCount ? ` · ${filterCount}` : ''}
           </summary>
-          <div className='absolute right-0 z-20 mt-2 grid w-72 gap-3 rounded-[var(--radius-surface)] border border-[var(--border-default)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-raised)]'>
+          <div className='lost-filters__panel absolute right-0 z-20 mt-2 grid w-80 gap-3 rounded-[var(--radius-surface)] border border-[var(--border-default)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-raised)]'>
+            <fieldset className='grid gap-1.5'>
+              <legend className='mb-1 text-xs font-semibold text-[var(--text-secondary)]'>
+                Motivo
+              </legend>
+              <div className='flex flex-wrap gap-1'>
+                {LOSS_REASON_OPTIONS.map((option) => (
+                  <label
+                    className={[
+                      'lost-reason-filter inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium',
+                      draft.reasons.includes(option.value) ? 'lost-reason-filter--selected' : '',
+                    ].join(' ')}
+                    key={option.value}
+                  >
+                    <input
+                      checked={draft.reasons.includes(option.value)}
+                      onChange={() => toggleReason(option.value)}
+                      type='checkbox'
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label className='ui-label'>
               Cliente
               <select
