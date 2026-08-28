@@ -100,11 +100,9 @@ export function CrmContextPanel({
   isLinking,
   isCreatingOpportunity,
   linkError,
-  headingId = 'whatsapp-context-title',
   onRetryContext,
   onUpdateLink,
   onCreateOpportunity,
-  onCollapse,
 }: {
   conversation: WhatsAppConversationDetail
   customerDetail: CustomerDetail | null
@@ -114,11 +112,9 @@ export function CrmContextPanel({
   isLinking: boolean
   isCreatingOpportunity: boolean
   linkError: string | null
-  headingId?: string
   onRetryContext: () => void
   onUpdateLink: (opportunityId: number | null) => Promise<void>
   onCreateOpportunity: () => Promise<void>
-  onCollapse?: () => void
 }) {
   const [confirmation, setConfirmation] = useState<LinkConfirmation | null>(null)
   const customer = conversation.customer
@@ -137,25 +133,7 @@ export function CrmContextPanel({
   }
 
   return (
-    <aside
-      aria-labelledby={headingId}
-      className='whatsapp-context flex min-h-0 flex-col bg-[var(--surface-secondary)]'
-    >
-      <header className='flex shrink-0 items-start justify-between gap-3 border-b border-[var(--subtle-border)] px-4 py-3'>
-        <div>
-          <h2 className='text-sm font-semibold text-[var(--text-primary)]' id={headingId}>
-            Contexto CRM
-          </h2>
-          <p className='mt-0.5 text-xs text-[var(--text-tertiary)]'>
-            Información para responder mejor
-          </p>
-        </div>
-        {onCollapse ? (
-          <Button onClick={onCollapse} size='compact' type='button' variant='ghost'>
-            Ocultar contexto
-          </Button>
-        ) : null}
-      </header>
+    <aside aria-label='Detalle CRM' className='whatsapp-context flex min-h-0 flex-col'>
       <div className='min-h-0 flex-1 overflow-y-auto px-4 py-4'>
         {conversation.resolution_status === 'NEEDS_REVIEW' ? (
           <div

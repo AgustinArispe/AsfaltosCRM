@@ -67,7 +67,7 @@ function createClientGeneratedId(): string {
   return crypto.randomUUID()
 }
 
-export function useWhatsAppInbox(initialConversationId?: number) {
+export function useWhatsAppInbox(initialConversationId?: number, isContextRequested = false) {
   const { token, logout } = useAuth()
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -370,6 +370,13 @@ export function useWhatsAppInbox(initialConversationId?: number) {
 
   useEffect(() => {
     void contextReloadKey
+    if (!isContextRequested) {
+      setCustomerDetail(null)
+      setOpportunityDetail(null)
+      setContextStatus('idle')
+      setContextError(null)
+      return
+    }
     const customerId = selectedDetail?.customer?.is_available ? selectedDetail.customer.id : null
     const opportunityId = selectedDetail?.active_opportunity?.is_available
       ? selectedDetail.active_opportunity.id
@@ -406,6 +413,7 @@ export function useWhatsAppInbox(initialConversationId?: number) {
     selectedDetail?.customer?.id,
     selectedDetail?.customer?.is_available,
     contextReloadKey,
+    isContextRequested,
   ])
 
   const loadMoreConversations = useCallback(async () => {

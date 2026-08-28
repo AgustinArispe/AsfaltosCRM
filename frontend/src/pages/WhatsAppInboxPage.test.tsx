@@ -400,9 +400,20 @@ describe('WhatsAppInboxPage', () => {
     expect(screen.getByRole('heading', { name: 'Conversaciones' })).toBeInTheDocument()
     expect(screen.getByText('Respuesta pendiente.')).toBeInTheDocument()
     expect(screen.getByText('Entregado')).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/customers/11')),
+    ).toBe(false)
+
+    const contextTrigger = screen.getByRole('button', { name: 'Contexto CRM' })
+    contextTrigger.focus()
+    fireEvent.click(contextTrigger)
+    const drawer = await screen.findByRole('dialog', { name: 'Contexto CRM' })
     expect(await screen.findByText('compras@uno.test')).toBeInTheDocument()
     expect(screen.getByText('SuperPhalt')).toBeInTheDocument()
     expect(screen.getByText('2.500 kg')).toBeInTheDocument()
+    expect(within(drawer).getAllByText('Cliente Uno')).toHaveLength(1)
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Cerrar contexto crm' }))
+    await waitFor(() => expect(contextTrigger).toHaveFocus())
 
     const readCall = fetchMock.mock.calls.find(
       ([input, init]) =>
@@ -646,7 +657,7 @@ describe('WhatsAppInboxPage', () => {
     render(<WhatsAppInboxPage />)
     await openConversation()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ver contexto CRM' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Contexto CRM' }))
     const drawer = await screen.findByRole('dialog', { name: 'Contexto CRM' })
     fireEvent.click(within(drawer).getByRole('button', { name: 'Reemplazar' }))
     const confirmation = await screen.findByRole('dialog', {
@@ -684,7 +695,7 @@ describe('WhatsAppInboxPage', () => {
     render(<WhatsAppInboxPage />)
     await openConversation()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ver contexto CRM' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Contexto CRM' }))
     const drawer = await screen.findByRole('dialog', { name: 'Contexto CRM' })
     fireEvent.click(within(drawer).getByRole('button', { name: 'Crear oportunidad' }))
 

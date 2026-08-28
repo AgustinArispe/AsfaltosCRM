@@ -1449,21 +1449,19 @@ a {
   color: var(--text-primary);
 }
 .whatsapp-workspace {
-  box-shadow:
-    inset 0 0 0 1px var(--divider),
-    var(--shadow-raised);
+  box-shadow: inset 0 0 0 1px var(--divider);
 }
 .whatsapp-inbox {
   background: color-mix(in srgb, var(--surface-secondary) 88%, var(--canvas));
 }
 .whatsapp-conversation-row--selected {
-  background: color-mix(in srgb, var(--accent-muted) 36%, var(--surface-primary));
+  background: var(--selection-surface);
   box-shadow:
-    inset 3px 0 var(--brand-accent),
+    inset 3px 0 var(--selection-marker),
     inset 0 -1px var(--divider);
 }
 .whatsapp-conversation-row--selected > span:first-child span:first-child {
-  color: var(--text-primary);
+  color: var(--selection-text);
   font-weight: 600;
 }
 .whatsapp-chat {
@@ -1482,7 +1480,7 @@ a {
   border-inline-end: 2px solid color-mix(in srgb, var(--brand-accent) 55%, transparent);
 }
 .whatsapp-context {
-  background: color-mix(in srgb, var(--surface-secondary) 90%, var(--canvas));
+  background: var(--surface-primary);
 }
 .whatsapp-composer {
   background: color-mix(in srgb, var(--surface-primary) 90%, var(--surface-secondary));

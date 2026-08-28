@@ -59,12 +59,12 @@ export function Drawer({
       return
     }
 
-    if (dialog.open) {
+    if (dialog.open || previousFocusRef.current) {
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
       setIsClosing(true)
       closeTimerRef.current = window.setTimeout(
         () => {
-          dialog.close()
+          if (dialog.open) dialog.close()
           setIsClosing(false)
           previousFocusRef.current?.focus()
           previousFocusRef.current = null

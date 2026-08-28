@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { navigateRoute } from '../routing/router'
-import { Button } from '../shared/Button'
 import { Drawer } from '../shared/Drawer'
 import { ChatPanel } from '../whatsapp/ChatPanel'
 import { ConversationList } from '../whatsapp/ConversationList'
@@ -9,16 +8,9 @@ import { HumanTemplateSelector } from '../whatsapp/HumanTemplateSelector'
 import { useWhatsAppInbox } from '../whatsapp/useWhatsAppInbox'
 
 export function WhatsAppInboxPage({ initialConversationId }: { initialConversationId?: number }) {
-  const inbox = useWhatsAppInbox(initialConversationId)
   const [isContextOpen, setIsContextOpen] = useState(false)
-  const [isContextCollapsed, setIsContextCollapsed] = useState(
-    () => window.localStorage.getItem('faa.crm.whatsapp.context-collapsed') === 'true',
-  )
+  const inbox = useWhatsAppInbox(initialConversationId, isContextOpen)
   const [isTemplateOpen, setIsTemplateOpen] = useState(false)
-
-  useEffect(() => {
-    window.localStorage.setItem('faa.crm.whatsapp.context-collapsed', String(isContextCollapsed))
-  }, [isContextCollapsed])
 
   useEffect(() => {
     void inbox.selectedConversationId
@@ -44,35 +36,9 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
     })
   }
 
-  const context = inbox.selectedDetail ? (
-    <CrmContextPanel
-      key={inbox.selectedDetail.id}
-      conversation={inbox.selectedDetail}
-      customerDetail={inbox.customerDetail}
-      error={inbox.contextError}
-      isCreatingOpportunity={inbox.isCreatingOpportunity}
-      headingId='whatsapp-context-title'
-      isLinking={inbox.isLinking}
-      linkError={inbox.linkError}
-      onRetryContext={inbox.retryContextLoad}
-      onCreateOpportunity={inbox.createOpportunity}
-      onUpdateLink={inbox.updateOpportunityLink}
-      onCollapse={() => setIsContextCollapsed(true)}
-      opportunityDetail={inbox.opportunityDetail}
-      status={inbox.contextStatus}
-    />
-  ) : null
-
   return (
     <div className='whatsapp-workspace relative min-h-[36rem] overflow-hidden rounded-[var(--radius-surface)] bg-[var(--surface-primary)] lg:h-[calc(100dvh-7.75rem)]'>
-      <div
-        className={[
-          'grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)]',
-          isContextCollapsed
-            ? '2xl:grid-cols-[20rem_minmax(28rem,1fr)]'
-            : '2xl:grid-cols-[20rem_minmax(28rem,1fr)_19rem]',
-        ].join(' ')}
-      >
+      <div className='grid h-full min-h-0 md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]'>
         <div
           className={['min-h-0', inbox.selectedConversationId ? 'hidden md:block' : 'block'].join(
             ' ',
@@ -86,6 +52,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             onRetry={inbox.retryConversationLoad}
             onSearchChange={inbox.setSearchDraft}
             onSelect={(conversationId) => {
+              setIsContextOpen(false)
               inbox.selectConversation(conversationId)
               navigateRoute(
                 { kind: 'conversation', conversationId },
@@ -115,7 +82,6 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             hasOlderMessages={Boolean(inbox.nextMessageCursor)}
             isLoadingOlder={inbox.isLoadingOlder}
             isContextOpen={isContextOpen}
-            isContextCollapsed={isContextCollapsed}
             isOnline={inbox.isOnline}
             isSending={inbox.isSending}
             messageError={inbox.messageError}
@@ -124,13 +90,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             onBack={returnToConversationList}
             onDiscardFailed={inbox.discardFailedSend}
             onLoadOlder={inbox.loadOlderMessages}
-            onOpenContext={() => {
-              if (window.matchMedia?.('(min-width: 1536px)').matches && isContextCollapsed) {
-                setIsContextCollapsed(false)
-              } else {
-                setIsContextOpen(true)
-              }
-            }}
+            onOpenContext={() => setIsContextOpen(true)}
             onOpenTemplates={() => setIsTemplateOpen(true)}
             onResend={inbox.resendMessage}
             onRetryFailed={inbox.retryFailedSend}
@@ -139,24 +99,9 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             sendError={inbox.sendError}
           />
         </div>
-
-        <div
-          className={
-            isContextCollapsed
-              ? 'hidden'
-              : 'hidden min-h-0 border-s border-[var(--divider)] bg-[var(--surface-secondary)] 2xl:flex'
-          }
-        >
-          {context}
-        </div>
       </div>
 
-      <Drawer
-        description='Cliente y oportunidad asociados a la conversación'
-        isOpen={isContextOpen}
-        onClose={() => setIsContextOpen(false)}
-        title='Contexto CRM'
-      >
+      <Drawer isOpen={isContextOpen} onClose={() => setIsContextOpen(false)} title='Contexto CRM'>
         <div id='whatsapp-context-drawer'>
           {isContextOpen && inbox.selectedDetail ? (
             <CrmContextPanel
@@ -165,7 +110,6 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
               customerDetail={inbox.customerDetail}
               error={inbox.contextError}
               isCreatingOpportunity={inbox.isCreatingOpportunity}
-              headingId='whatsapp-context-drawer-title'
               isLinking={inbox.isLinking}
               linkError={inbox.linkError}
               onRetryContext={inbox.retryContextLoad}
@@ -177,17 +121,6 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
           ) : null}
         </div>
       </Drawer>
-      {isContextCollapsed ? (
-        <Button
-          className='absolute right-3 top-3 hidden 2xl:inline-flex'
-          onClick={() => setIsContextCollapsed(false)}
-          size='compact'
-          type='button'
-          variant='ghost'
-        >
-          Mostrar contexto CRM
-        </Button>
-      ) : null}
       <HumanTemplateSelector
         error={inbox.humanTemplateError}
         isOpen={isTemplateOpen}

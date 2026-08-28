@@ -34,11 +34,6 @@ function ConversationRow({
           <span className='block truncate text-sm font-semibold text-[var(--text-primary)]'>
             {name}
           </span>
-          {conversation.customer?.company ? (
-            <span className='mt-0.5 block truncate text-xs text-[var(--text-tertiary)]'>
-              {conversation.customer.company}
-            </span>
-          ) : null}
         </span>
         <time
           className='shrink-0 text-[0.6875rem] font-medium text-[var(--text-tertiary)]'
@@ -73,11 +68,7 @@ function ConversationRow({
           >
             {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
           </span>
-        ) : (
-          <span className='shrink-0 text-[0.6875rem] text-[var(--text-tertiary)]'>
-            {conversation.external_phone}
-          </span>
-        )}
+        ) : null}
       </span>
     </button>
   )

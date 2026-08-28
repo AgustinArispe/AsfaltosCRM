@@ -23,7 +23,6 @@ export function ChatPanel({
   hasFailedSend,
   isOnline,
   isContextOpen,
-  isContextCollapsed,
   onBack,
   onOpenContext,
   onLoadOlder,
@@ -47,7 +46,6 @@ export function ChatPanel({
   hasFailedSend: boolean
   isOnline: boolean
   isContextOpen: boolean
-  isContextCollapsed: boolean
   onBack: () => void
   onOpenContext: () => void
   onLoadOlder: () => Promise<void>
@@ -133,10 +131,6 @@ export function ChatPanel({
             >
               {name}
             </h2>
-            <p className='mt-0.5 truncate text-xs text-[var(--text-tertiary)]'>
-              {conversation.external_phone}
-              {conversation.waiting_for_response ? ' · Espera respuesta' : ''}
-            </p>
           </div>
         </div>
         <Button
@@ -145,9 +139,8 @@ export function ChatPanel({
           onClick={onOpenContext}
           size='compact'
           variant='ghost'
-          className={isContextCollapsed ? '' : '2xl:hidden'}
         >
-          Ver contexto CRM
+          Contexto CRM
         </Button>
       </header>
 
@@ -167,19 +160,6 @@ export function ChatPanel({
             : 'El último mensaje funcional es del cliente.'}
         </div>
       ) : null}
-      {conversation.template_required ? (
-        <div
-          className='shrink-0 border-b border-[var(--subtle-border)] bg-[var(--surface-secondary)] px-4 py-2 text-xs text-[var(--text-secondary)]'
-          role='status'
-        >
-          La ventana de respuesta libre está cerrada. Se requiere un template aprobado
-          {conversation.window_expires_at
-            ? ` desde ${formatDateTime(conversation.window_expires_at)}`
-            : ''}
-          .
-        </div>
-      ) : null}
-
       <MessageLog
         key={`messages-${conversation.id}`}
         error={messageError}
