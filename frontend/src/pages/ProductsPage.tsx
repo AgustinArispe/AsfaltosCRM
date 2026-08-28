@@ -145,7 +145,7 @@ export function ProductsPage() {
   }
 
   return (
-    <section aria-label='Catálogo de productos' className='mx-auto max-w-5xl'>
+    <section aria-label='Catálogo de productos' className='mx-auto max-w-6xl'>
       <div aria-live='polite' className='sr-only'>
         {announcement}
       </div>

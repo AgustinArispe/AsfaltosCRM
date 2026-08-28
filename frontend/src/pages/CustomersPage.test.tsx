@@ -181,8 +181,8 @@ describe('CustomersPage', () => {
       'href',
       '/customers/1',
     )
-    expect(screen.getByRole('columnheader', { name: 'Identidad' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Categoría' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Contacto' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Legendary' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'ventas@austral.test' })).toHaveAttribute(
       'href',
       'mailto:ventas@austral.test',

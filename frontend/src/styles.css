@@ -519,6 +519,17 @@ body {
 .legendary-badge svg {
   color: var(--brand-yellow);
 }
+.customer-table,
+.product-table {
+  overflow: hidden;
+  border-radius: var(--radius-surface);
+  background: var(--surface-primary);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.customer-table tbody tr,
+.product-table tbody tr {
+  transition: background-color 140ms var(--ease-ui);
+}
 .opportunity-detail {
   overflow: hidden;
   border-radius: var(--radius-surface);

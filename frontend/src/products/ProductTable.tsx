@@ -34,22 +34,19 @@ export function ProductTable({
   onReactivate: (product: Product) => void
 }) {
   return (
-    <section
-      aria-label='Listado de productos FAA'
-      className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
-    >
+    <section aria-label='Listado de productos FAA' className='product-table overflow-x-auto'>
       <table className='w-full min-w-[38rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Productos disponibles en el CRM</caption>
         <thead>
-          <tr className='border-b border-[var(--subtle-border)] bg-[var(--surface-interactive)] text-xs text-[var(--text-secondary)]'>
-            <th className='px-4 py-3 font-semibold' scope='col'>
+          <tr className='border-b border-[var(--subtle-border)] text-xs text-[var(--text-secondary)]'>
+            <th className='px-4 py-2.5 font-semibold' scope='col'>
               Producto
             </th>
-            <th className='px-4 py-3 font-semibold' scope='col'>
+            <th className='w-40 px-4 py-2.5 font-semibold' scope='col'>
               Estado
             </th>
             {canManage ? (
-              <th className='px-4 py-3 text-right font-semibold' scope='col'>
+              <th className='w-64 px-4 py-2.5 text-right font-semibold' scope='col'>
                 Acciones
               </th>
             ) : null}
@@ -60,17 +57,17 @@ export function ProductTable({
             const isBusy = busyProductIds.has(product.id)
             return (
               <tr
-                className='border-b border-[var(--divider)] last:border-b-0 hover:bg-[var(--surface-interactive)]'
+                className='border-b border-[var(--divider)] last:border-b-0 hover:bg-[var(--surface-hover)]'
                 key={product.id}
               >
-                <th className='px-4 py-3 font-semibold text-[var(--text-primary)]' scope='row'>
+                <th className='px-4 py-2 font-semibold text-[var(--brand-deep)]' scope='row'>
                   {product.name}
                 </th>
-                <td className='px-4 py-3'>
+                <td className='px-4 py-2'>
                   <ProductStatus isActive={product.is_active} />
                 </td>
                 {canManage ? (
-                  <td className='px-4 py-3'>
+                  <td className='px-4 py-2'>
                     <div className='flex min-w-max justify-end gap-2'>
                       <Button
                         aria-label={`Editar ${product.name}`}

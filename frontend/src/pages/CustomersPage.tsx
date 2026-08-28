@@ -221,7 +221,7 @@ export function CustomersPage() {
             />
             <nav
               aria-label='Paginación de clientes'
-              className='ui-panel mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5'
+              className='mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--divider)] px-1 py-2.5'
             >
               <p className='text-sm text-[var(--text-secondary)]'>
                 {total === 0

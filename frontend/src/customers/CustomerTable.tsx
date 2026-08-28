@@ -23,27 +23,24 @@ export function CustomerTable({
   onDelete: (customer: CustomerSummary) => void
 }) {
   return (
-    <section
-      aria-label='Listado de clientes'
-      className='ui-panel overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
-    >
+    <section aria-label='Listado de clientes' className='customer-table overflow-x-auto'>
       <table className='w-full min-w-[42rem] border-collapse text-left text-sm'>
         <caption className='sr-only'>Clientes activos del CRM</caption>
         <thead>
-          <tr className='border-b border-[var(--subtle-border)] bg-[var(--surface-interactive)] text-xs text-[var(--text-secondary)]'>
-            <th className='px-4 py-3 font-semibold' scope='col'>
-              Nombre
+          <tr className='border-b border-[var(--subtle-border)] text-xs text-[var(--text-secondary)]'>
+            <th className='px-4 py-2.5 font-semibold' scope='col'>
+              Cliente
             </th>
-            <th className='px-4 py-3 font-semibold' scope='col'>
-              <span className='sr-only'>Identidad</span>
+            <th className='px-4 py-2.5 font-semibold' scope='col'>
+              Contacto
             </th>
-            <th className='hidden px-4 py-3 font-semibold lg:table-cell' scope='col'>
+            <th className='hidden px-4 py-2.5 font-semibold lg:table-cell' scope='col'>
               Provincia
             </th>
-            <th className='px-4 py-3 font-semibold' scope='col'>
-              Categoría
+            <th className='px-4 py-2.5 font-semibold' scope='col'>
+              Legendary
             </th>
-            <th className='px-4 py-3 text-right font-semibold' scope='col'>
+            <th className='px-4 py-2.5 text-right font-semibold' scope='col'>
               Acciones
             </th>
           </tr>
@@ -54,7 +51,7 @@ export function CustomerTable({
               className='border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--hover)]'
               key={customer.id}
             >
-              <th className='px-4 py-3 font-semibold text-[var(--text-primary)]' scope='row'>
+              <th className='px-4 py-2 font-semibold text-[var(--brand-deep)]' scope='row'>
                 <AppLink
                   aria-label={customer.name}
                   className='inline-flex min-h-11 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
@@ -71,7 +68,7 @@ export function CustomerTable({
                   </span>
                 </AppLink>
               </th>
-              <td className='px-4 py-3'>
+              <td className='px-4 py-2'>
                 {customer.email ? (
                   <a
                     className='break-all text-[var(--text-secondary)] underline decoration-[var(--border-strong)] underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
@@ -90,17 +87,17 @@ export function CustomerTable({
                   <MissingValue />
                 )}
               </td>
-              <td className='hidden px-4 py-3 text-[var(--text-secondary)] lg:table-cell'>
+              <td className='hidden px-4 py-2 text-[var(--text-secondary)] lg:table-cell'>
                 {customer.province ?? <MissingValue />}
               </td>
-              <td className='px-4 py-3'>
+              <td className='px-4 py-2'>
                 {customer.is_legendary || customer.legendary_historical_override ? (
                   <LegendaryBadge />
                 ) : (
                   <MissingValue />
                 )}
               </td>
-              <td className='px-4 py-3'>
+              <td className='px-4 py-2'>
                 <div className='flex min-w-max justify-end gap-2'>
                   <Button
                     aria-label={`Editar a ${customer.name}`}
