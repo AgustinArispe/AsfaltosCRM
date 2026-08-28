@@ -8,9 +8,7 @@ import { ProductFormModal } from '../products/ProductFormModal'
 import { ProductTable } from '../products/ProductTable'
 import type { Product } from '../products/types'
 import { Button } from '../shared/Button'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { EmptyState } from '../shared/StatusStates'
-import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
+import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 
 function sortProducts(products: Product[]): Product[] {
   return [...products].sort((first, second) => first.name.localeCompare(second.name, 'es-AR'))

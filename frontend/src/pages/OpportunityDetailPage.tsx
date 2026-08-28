@@ -23,9 +23,8 @@ import { AppLink, navigateRoute, navigateToHistoryOrigin } from '../routing/rout
 import { Button } from '../shared/Button'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { Icon } from '../shared/Icon'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
+import { InlineFeedback, LoadingState } from '../shared/StatusStates'
 
 function normalizedPhone(value: string | null): string | null {
   const normalized = value?.replace(/\D/g, '') ?? ''

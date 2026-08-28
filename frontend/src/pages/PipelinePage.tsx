@@ -28,8 +28,7 @@ import type {
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { Icon } from '../shared/Icon'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { EmptyState } from '../shared/StatusStates'
+import { EmptyState, InlineFeedback } from '../shared/StatusStates'
 
 function replaceOpportunity(
   opportunities: OpportunitySummary[],

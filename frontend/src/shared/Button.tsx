@@ -5,9 +5,9 @@ type ButtonSize = 'compact' | 'default'
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)]',
+    'border-[var(--action-primary)] bg-[var(--action-primary)] text-[var(--on-action-primary)] hover:border-[var(--action-primary-hover)] hover:bg-[var(--action-primary-hover)] active:border-[var(--action-primary-pressed)] active:bg-[var(--action-primary-pressed)]',
   secondary:
-    'border-[var(--border-default)] bg-[var(--surface-raised)] text-[var(--text-primary)] hover:bg-[var(--surface-subtle)]',
+    'border-[var(--action-secondary)] bg-[var(--surface-raised)] text-[var(--action-secondary)] hover:bg-[var(--action-secondary-subtle)]',
   ghost:
     'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]',
   danger:
@@ -29,7 +29,7 @@ export function buttonClassName({
   className?: string
 } = {}): string {
   return [
-    'ui-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border font-semibold leading-5 outline-none transition-[background-color,border-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] disabled:cursor-not-allowed disabled:opacity-45',
+    'ui-pressable inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] border font-semibold leading-5 outline-none transition-[background-color,border-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] disabled:cursor-not-allowed disabled:border-[var(--disabled-border)] disabled:bg-[var(--disabled-surface)] disabled:text-[var(--disabled-text)]',
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     className,

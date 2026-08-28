@@ -1,7 +1,6 @@
 import { Button } from '../shared/Button'
 import { Icon } from '../shared/Icon'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { LoadingState } from '../shared/LoadingState'
+import { InlineFeedback, LoadingState } from '../shared/StatusStates'
 import { conversationActivityLabel, conversationDisplayName } from './inbox-state'
 import { formatInboxActivity } from './presentation'
 import type { WhatsAppConversationSummary } from './types'

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '../shared/Button'
-import { LoadingState } from '../shared/LoadingState'
+import { LoadingState } from '../shared/StatusStates'
 import { MessageBubble } from './MessageBubble'
 import type { WhatsAppMessage } from './types'
 

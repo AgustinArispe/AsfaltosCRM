@@ -2,8 +2,8 @@ import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../shared/Button'
 import { formatQuantityKg, sumQuantitiesKg } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
-import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
+import { LoadingState } from '../shared/StatusStates'
 import type { OpportunitySummary, Product, QuoteProductInput } from './types'
 
 type QuoteLine = {

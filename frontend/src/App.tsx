@@ -16,7 +16,7 @@ import { WhatsAppInboxPage } from './pages/WhatsAppInboxPage'
 import { getNavigationItem } from './routing/navigation'
 import { parseRoute, pathForRoute } from './routing/route-model'
 import { Redirect, usePathname } from './routing/router'
-import { LoadingState } from './shared/LoadingState'
+import { LoadingState } from './shared/StatusStates'
 import { ThemeProvider } from './theme/ThemeProvider'
 
 function legacyCanonicalPath(pathname: string): string | null {
@@ -29,7 +29,7 @@ function RoutedApp() {
   const { isAuthenticated, isLoading, user } = useAuth()
   const pathname = usePathname()
 
-  if (isLoading) return <LoadingState fullscreen label='Restaurando sesión…' />
+  if (isLoading) return <LoadingState mode='fullscreen' label='Restaurando sesión…' />
   if (!isAuthenticated) return pathname === '/login' ? <LoginPage /> : <Redirect to='/login' />
   if (pathname === '/' || pathname === '/login') return <Redirect to='/pipeline' />
 

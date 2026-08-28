@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import { Button } from '../shared/Button'
 import { formatDateTime } from '../shared/formatters'
-import { LoadingState } from '../shared/LoadingState'
+import { LoadingState } from '../shared/StatusStates'
 import { conversationDisplayName } from './inbox-state'
 import { MessageComposer } from './MessageComposer'
 import { MessageLog } from './MessageLog'

@@ -31,9 +31,8 @@ import type { CustomerSummary } from '../customers/types'
 import { AppLink, navigateRoute } from '../routing/router'
 import { Badge, type BadgeTone } from '../shared/Badge'
 import { Button } from '../shared/Button'
-import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
-import { EmptyState } from '../shared/StatusStates'
+import { EmptyState, LoadingState } from '../shared/StatusStates'
 import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 
 const STEP_LABELS = ['Contenido', 'Parámetros', 'Clientes', 'Elegibilidad', 'Revisión'] as const

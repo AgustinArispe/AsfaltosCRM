@@ -18,8 +18,8 @@ import { AppLink, navigateToHistoryOrigin } from '../routing/router'
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatQuantityKg } from '../shared/formatters'
-import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
+import { LoadingState } from '../shared/StatusStates'
 
 function BackToCustomersLink() {
   return (

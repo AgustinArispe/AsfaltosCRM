@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
 import { Button, type ButtonVariant } from './Button'
-import { InlineFeedback } from './InlineFeedback'
 import { Modal } from './Modal'
+import { InlineFeedback } from './StatusStates'
 
 export function ConfirmationDialog({
   isOpen,

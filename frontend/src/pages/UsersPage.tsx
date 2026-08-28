@@ -8,10 +8,8 @@ import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { Input, Select } from '../shared/FormControls'
-import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
-import { EmptyState } from '../shared/StatusStates'
-import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
+import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 
 type UserDraft = { fullName: string; email: string; role: UserRole; password: string }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../shared/Button'
-import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
+import { InlineFeedback } from '../shared/StatusStates'
 import type { Product } from './types'
 
 export function DeactivateProductModal({

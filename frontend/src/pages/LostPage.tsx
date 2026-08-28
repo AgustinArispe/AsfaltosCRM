@@ -16,10 +16,8 @@ import { AppLink } from '../routing/router'
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { EmptyState } from '../shared/StatusStates'
+import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import { SearchField } from '../shared/Workspace'
-import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 function activeFilterCount(filters: LostFilters): number {
   return (

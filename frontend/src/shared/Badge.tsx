@@ -13,7 +13,7 @@ export type BadgeTone =
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   neutral: 'border-[var(--border-default)] bg-[var(--surface-subtle)] text-[var(--text-secondary)]',
-  new: 'border-[var(--border-default)] bg-[var(--surface-subtle)] text-[var(--text-primary)]',
+  new: 'border-[var(--action-secondary)] bg-[var(--action-secondary-subtle)] text-[var(--selection-text)]',
   quoted: 'border-[var(--accent-strong)] bg-[var(--accent-subtle)] text-[var(--text-primary)]',
   negotiation:
     'border-[var(--warning-border)] bg-[var(--warning-subtle)] text-[var(--warning-text)]',
@@ -44,3 +44,4 @@ export function Badge({
 }
 
 export const StatusPill = Badge
+export const StatusBadge = Badge

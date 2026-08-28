@@ -27,6 +27,56 @@ export function Skeleton({ className = '' }: { className?: string }) {
   return <span aria-hidden='true' className={`ui-skeleton ${className}`} />
 }
 
+export function LoadingState({
+  label,
+  mode = 'section',
+}: {
+  label: string
+  mode?: 'inline' | 'section' | 'workspace' | 'fullscreen'
+}) {
+  if (mode === 'workspace') return <WorkspaceSkeleton label={label} />
+  return (
+    <div aria-busy='true' className={`ui-loading-state ui-loading-state--${mode}`} role='status'>
+      <span aria-hidden='true' className='ui-loading-state__spinner' />
+      <span>{label}</span>
+    </div>
+  )
+}
+
+export function WorkspaceSkeleton({ label }: { label: string }) {
+  return (
+    <div aria-busy='true' className='ui-workspace-skeleton' role='status'>
+      <span className='sr-only'>{label}</span>
+      <div aria-hidden='true' className='space-y-3'>
+        <Skeleton className='h-4 w-36' />
+        <Skeleton className='h-10 w-full' />
+        <Skeleton className='h-12 w-full' />
+        <Skeleton className='h-12 w-full' />
+        <Skeleton className='h-12 w-4/5' />
+      </div>
+    </div>
+  )
+}
+
+export function InlineFeedback({
+  message,
+  onDismiss,
+}: {
+  message: string
+  onDismiss?: () => void
+}) {
+  return (
+    <div className='ui-feedback-notice ui-feedback-notice--error' role='alert'>
+      <p>{message}</p>
+      {onDismiss ? (
+        <button onClick={onDismiss} type='button'>
+          Cerrar
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export function EmptyState({
   title,
   description,
@@ -54,7 +104,7 @@ export function EmptyState({
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className='ui-error-state' role='alert'>
+    <div className='ui-error-state ui-feedback-notice ui-feedback-notice--error' role='alert'>
       <p>{message}</p>
       {onRetry ? <Button onClick={onRetry}>Reintentar</Button> : null}
     </div>

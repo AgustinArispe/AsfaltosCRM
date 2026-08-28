@@ -2,8 +2,8 @@ import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 
 import type { UserRole } from '../auth/types'
 import { Button } from '../shared/Button'
-import { InlineFeedback } from '../shared/InlineFeedback'
 import { Modal } from '../shared/Modal'
+import { InlineFeedback } from '../shared/StatusStates'
 import type { CustomerFormValues, CustomerSummary, CustomerWritePayload } from './types'
 
 const EMPTY_VALUES: CustomerFormValues = {

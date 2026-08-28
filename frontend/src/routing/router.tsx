@@ -1,6 +1,6 @@
 import { type AnchorHTMLAttributes, type MouseEvent, useEffect, useSyncExternalStore } from 'react'
 
-import { LoadingState } from '../shared/LoadingState'
+import { LoadingState } from '../shared/StatusStates'
 import {
   type CrmHistoryState,
   type CrmRoute,
@@ -83,5 +83,5 @@ export function AppLink({ to, origin, onClick, ...props }: AppLinkProps) {
 
 export function Redirect({ to }: { to: string }) {
   useEffect(() => navigate(to, { replace: true }), [to])
-  return <LoadingState fullscreen label='Redirigiendo…' />
+  return <LoadingState mode='fullscreen' label='Redirigiendo…' />
 }

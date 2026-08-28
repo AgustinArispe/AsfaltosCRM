@@ -20,10 +20,8 @@ import type {
   CustomerWritePayload,
 } from '../customers/types'
 import { Button } from '../shared/Button'
-import { InlineFeedback } from '../shared/InlineFeedback'
-import { EmptyState } from '../shared/StatusStates'
+import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import { SearchField, Toolbar } from '../shared/Workspace'
-import { WorkspaceSkeleton } from '../shared/WorkspaceSkeleton'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300

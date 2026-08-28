@@ -11,8 +11,8 @@ import { AppLink } from '../routing/router'
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatQuantityKg } from '../shared/formatters'
-import { LoadingState } from '../shared/LoadingState'
 import { Modal } from '../shared/Modal'
+import { LoadingState } from '../shared/StatusStates'
 import type { WhatsAppConversationDetail, WhatsAppOpportunitySummary } from './types'
 
 type LinkConfirmation =
