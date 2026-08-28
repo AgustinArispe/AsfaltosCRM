@@ -18,6 +18,15 @@ import {
   validateBroadcast,
 } from '../api/whatsapp-broadcasts'
 import { useAuth } from '../auth/AuthContext'
+import {
+  attemptOutcomeLabel,
+  auditEventLabel,
+  broadcastStatusPresentation,
+  recipientStatusPresentation,
+  safeReasonLabel,
+  templateCategoryLabel,
+  templateLanguageLabel,
+} from '../broadcasts/presentation'
 import type {
   Broadcast,
   BroadcastAttempt,
@@ -29,29 +38,19 @@ import type {
 } from '../broadcasts/types'
 import type { CustomerSummary } from '../customers/types'
 import { AppLink, navigateRoute } from '../routing/router'
-import { Badge, type BadgeTone } from '../shared/Badge'
+import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { Modal } from '../shared/Modal'
 import { EmptyState, LoadingState } from '../shared/StatusStates'
 import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 
-const STEP_LABELS = ['Contenido', 'Parámetros', 'Clientes', 'Elegibilidad', 'Revisión'] as const
-
-function statusTone(status: Broadcast['status']): BadgeTone {
-  if (status === 'COMPLETED') return 'won'
-  if (status === 'PROCESSING') return 'negotiation'
-  if (status === 'CONFIRMED') return 'quoted'
-  return 'neutral'
-}
-
-function recipientTone(status: RecipientStatus): BadgeTone {
-  if (status === 'DELIVERED' || status === 'READ') return 'won'
-  if (status === 'FAILED') return 'lost'
-  if (status === 'UNKNOWN') return 'unknown'
-  if (status === 'DRAFT' || status === 'READY') return 'quoted'
-  if (status === 'IN_PROGRESS' || status === 'ACCEPTED' || status === 'SENT') return 'negotiation'
-  return 'neutral'
-}
+const STEP_LABELS = [
+  'Contenido',
+  'Datos requeridos',
+  'Clientes',
+  'Elegibilidad',
+  'Confirmación',
+] as const
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : 'No pudimos completar la operación.'
@@ -106,8 +105,7 @@ export function WhatsAppBroadcastsPage({ broadcastId }: { broadcastId?: number }
             Envíos masivos recientes
           </h2>
           <p className='text-sm text-[var(--text-secondary)]'>
-            Plantillas aprobadas a Clientes seleccionados, con elegibilidad y consentimiento
-            auditables.
+            Enviá una plantilla de WhatsApp aprobada a clientes seleccionados.
           </p>
         </div>
         <Button onClick={() => setIsNewOpen(true)} type='button' variant='primary'>
@@ -117,18 +115,17 @@ export function WhatsAppBroadcastsPage({ broadcastId }: { broadcastId?: number }
       {error ? <p role='alert'>{error}</p> : null}
       {items.length === 0 ? (
         <EmptyState
-          description='Los envíos confirmados aparecerán aquí con su evidencia de elegibilidad y consentimiento.'
+          description='Creá el primero cuando necesites enviar una plantilla aprobada a varios clientes.'
           icon='send'
           size='workspace'
           title='Todavía no hay envíos masivos'
         />
       ) : (
-        <div className='ui-panel overflow-x-auto'>
+        <div className='broadcast-history overflow-x-auto'>
           <table className='w-full text-left text-sm'>
             <thead className='border-b border-[var(--border-default)] text-xs text-[var(--text-secondary)]'>
               <tr>
                 <th className='p-3'>Envío</th>
-                <th className='p-3'>Contenido</th>
                 <th className='p-3'>Estado</th>
                 <th className='p-3'>Clientes</th>
                 <th className='p-3'>Resultados</th>
@@ -145,15 +142,15 @@ export function WhatsAppBroadcastsPage({ broadcastId }: { broadcastId?: number }
                     <AppLink to={{ kind: 'broadcast', broadcastId: broadcast.id }}>
                       {broadcast.label}
                     </AppLink>
-                  </td>
-                  <td className='p-3'>
-                    {broadcast.template_name}
                     <span className='block text-xs text-[var(--text-secondary)]'>
-                      {broadcast.template_language}
+                      {broadcast.template_name} ·{' '}
+                      {templateLanguageLabel(broadcast.template_language)}
                     </span>
                   </td>
                   <td className='p-3'>
-                    <Badge tone={statusTone(broadcast.status)}>{broadcast.status}</Badge>
+                    <Badge tone={broadcastStatusPresentation(broadcast).tone}>
+                      {broadcastStatusPresentation(broadcast).label}
+                    </Badge>
                   </td>
                   <td className='p-3 tabular-nums'>{broadcast.recipient_count}</td>
                   <td className='p-3 text-xs tabular-nums text-[var(--text-secondary)]'>
@@ -368,7 +365,7 @@ function BroadcastCreation({
   }
   return (
     <Modal
-      description='Enviá una plantilla aprobada a Clientes seleccionados; el CRM valida elegibilidad y consentimiento.'
+      description='Elegí contenido aprobado, clientes aptos y confirmá antes de enviar.'
       isOpen={isOpen}
       onClose={onClose}
       size='large'
@@ -379,13 +376,13 @@ function BroadcastCreation({
           {STEP_LABELS.map((item, index) => (
             <li key={item}>
               <Badge tone={index === step ? 'quoted' : 'neutral'}>
-                {index + 1}. {item}
+                {index < step ? '✓' : `${index + 1}.`} {item}
               </Badge>
             </li>
           ))}
         </ol>
         {error ? <p role='alert'>{error}</p> : null}
-        {step < 2 ? (
+        {step === 0 ? (
           <>
             <label className='block text-sm font-medium'>
               Nombre operativo
@@ -396,7 +393,7 @@ function BroadcastCreation({
               />
             </label>
             <fieldset className='mt-4'>
-              <legend className='text-sm font-medium'>Template preparado</legend>
+              <legend className='text-sm font-medium'>Plantilla aprobada</legend>
               <div className='mt-2 grid gap-2'>
                 {templates.map((template) => (
                   <label
@@ -414,70 +411,95 @@ function BroadcastCreation({
                     />{' '}
                     <span className='ml-2 font-medium'>{template.name}</span>
                     <span className='ml-2 text-xs text-[var(--text-secondary)]'>
-                      {template.language} · {template.category}
+                      {templateLanguageLabel(template.language)} ·{' '}
+                      {templateCategoryLabel(template.category)}
                     </span>
                   </label>
                 ))}
               </div>
             </fieldset>
-            {selectedTemplate ? (
-              <div className='mt-4 space-y-3'>
-                {selectedTemplate.parameter_names.map((name) => (
-                  <label className='block text-sm font-medium' key={name}>
-                    {name}
+            <div className='mt-6 flex justify-end'>
+              <Button
+                disabled={!selectedTemplate || !label.trim()}
+                onClick={() => setStep(1)}
+                type='button'
+                variant='primary'
+              >
+                Continuar a datos requeridos
+              </Button>
+            </div>
+          </>
+        ) : null}
+        {step === 1 && selectedTemplate ? (
+          <>
+            <p className='text-sm font-semibold text-[var(--brand-deep)]'>
+              {selectedTemplate.name}
+            </p>
+            <div className='mt-4 space-y-3'>
+              {selectedTemplate.parameter_names.length === 0 &&
+              !selectedTemplate.header_media_required ? (
+                <p className='text-sm text-[var(--text-secondary)]'>
+                  Esta plantilla no requiere datos adicionales.
+                </p>
+              ) : null}
+              {selectedTemplate.parameter_names.map((name) => (
+                <label className='block text-sm font-medium' key={name}>
+                  {name}
+                  <input
+                    className='ui-field mt-1 w-full'
+                    onChange={(event) =>
+                      setParameters((current) => ({ ...current, [name]: event.target.value }))
+                    }
+                    value={parameters[name] ?? ''}
+                  />
+                </label>
+              ))}
+              {selectedTemplate.header_media_required ? (
+                <div className='space-y-2'>
+                  <label className='block text-sm font-medium'>
+                    Encabezado{' '}
+                    {selectedTemplate.header_type === 'IMAGE' ? 'de imagen' : 'PDF/documento'}
                     <input
-                      className='ui-field mt-1 w-full'
-                      onChange={(event) =>
-                        setParameters((current) => ({ ...current, [name]: event.target.value }))
+                      accept={
+                        selectedTemplate.header_type === 'IMAGE' ? 'image/*' : 'application/pdf'
                       }
-                      value={parameters[name] ?? ''}
+                      className='mt-1 block w-full text-sm'
+                      disabled={pending}
+                      onChange={(event) => {
+                        const [file] = Array.from(event.target.files ?? [])
+                        if (file) void uploadHeaderMedia(file)
+                      }}
+                      type='file'
                     />
                   </label>
-                ))}
-                {selectedTemplate.header_media_required ? (
-                  <div className='space-y-2'>
-                    <label className='block text-sm font-medium'>
-                      Encabezado{' '}
-                      {selectedTemplate.header_type === 'IMAGE' ? 'de imagen' : 'PDF/documento'}
-                      <input
-                        accept={
-                          selectedTemplate.header_type === 'IMAGE' ? 'image/*' : 'application/pdf'
-                        }
-                        className='mt-1 block w-full text-sm'
-                        disabled={pending}
-                        onChange={(event) => {
-                          const [file] = Array.from(event.target.files ?? [])
-                          if (file) void uploadHeaderMedia(file)
-                        }}
-                        type='file'
-                      />
-                    </label>
-                    {headerMediaPreview ? (
-                      <img
-                        alt='Vista previa del encabezado seleccionado'
-                        className='max-h-32 rounded-md'
-                        src={headerMediaPreview}
-                      />
-                    ) : null}
-                    {headerMediaName ? <p className='text-sm'>{headerMediaName}</p> : null}
-                    {headerMediaRef ? (
-                      <Button
-                        onClick={() => {
-                          setHeaderMediaRef(null)
-                          setHeaderMediaName(null)
-                          setHeaderMediaPreview(null)
-                        }}
-                        type='button'
-                        variant='ghost'
-                      >
-                        Quitar medio
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            <div className='mt-6 flex justify-end'>
+                  {headerMediaPreview ? (
+                    <img
+                      alt='Vista previa del encabezado seleccionado'
+                      className='max-h-32 rounded-md'
+                      src={headerMediaPreview}
+                    />
+                  ) : null}
+                  {headerMediaName ? <p className='text-sm'>{headerMediaName}</p> : null}
+                  {headerMediaRef ? (
+                    <Button
+                      onClick={() => {
+                        setHeaderMediaRef(null)
+                        setHeaderMediaName(null)
+                        setHeaderMediaPreview(null)
+                      }}
+                      type='button'
+                      variant='ghost'
+                    >
+                      Quitar medio
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <div className='mt-6 flex justify-between'>
+              <Button onClick={() => setStep(0)} type='button' variant='ghost'>
+                Volver
+              </Button>
               <Button
                 disabled={
                   !canContinue ||
@@ -496,7 +518,7 @@ function BroadcastCreation({
         {step === 2 ? (
           <>
             <p className='text-sm text-[var(--text-secondary)]'>
-              Seleccioná Clientes explícitamente. No se infiere una audiencia.
+              Elegí los clientes que recibirán el envío.
             </p>
             <ul className='mt-3 max-h-72 overflow-y-auto'>
               {customers.map((customer) => (
@@ -522,11 +544,11 @@ function BroadcastCreation({
               ))}
             </ul>
             <p className='mt-3 text-sm tabular-nums'>
-              {selectedCustomers.length} Customers seleccionados
+              {selectedCustomers.length} clientes seleccionados
             </p>
             <div className='mt-6 flex justify-between'>
-              <Button onClick={() => setStep(0)} type='button' variant='ghost'>
-                Editar borrador
+              <Button onClick={() => setStep(1)} type='button' variant='ghost'>
+                Volver
               </Button>
               <Button
                 disabled={pending || selectedCustomers.length === 0}
@@ -543,10 +565,10 @@ function BroadcastCreation({
           <>
             <h3 className='text-base font-semibold'>Validación de elegibilidad</h3>
             <p className='mt-2 text-sm text-[var(--text-secondary)]'>
-              El backend vuelve a validar consentimiento y datos antes de habilitar la confirmación.
+              Revisaremos datos y consentimiento antes de confirmar.
             </p>
             <div className='mt-6 flex justify-between'>
-              <Button onClick={() => setStep(broadcast ? 0 : 2)} type='button' variant='ghost'>
+              <Button onClick={() => setStep(2)} type='button' variant='ghost'>
                 Volver
               </Button>
               <Button
@@ -555,14 +577,21 @@ function BroadcastCreation({
                 type='button'
                 variant='primary'
               >
-                Validar envío
+                Revisar elegibilidad
               </Button>
             </div>
           </>
         ) : null}
         {step === 4 && validation ? (
           <>
-            <h3 className='text-base font-semibold'>Resumen final</h3>
+            <div className='flex flex-wrap items-center justify-between gap-3'>
+              <h3 className='text-base font-semibold'>Confirmar envío</h3>
+              {validation.valid && broadcast ? (
+                <Badge tone={broadcastStatusPresentation(broadcast, true).tone}>
+                  {broadcastStatusPresentation(broadcast, true).label}
+                </Badge>
+              ) : null}
+            </div>
             <dl className='mt-3 grid grid-cols-2 gap-3 text-sm'>
               <div>
                 <dt className='text-[var(--text-secondary)]'>Aptos</dt>
@@ -575,7 +604,7 @@ function BroadcastCreation({
             </dl>
             {validation.issue_categories.map((issue) => (
               <p className='mt-2 text-sm' key={issue.category}>
-                {issue.category}: {issue.count}
+                {safeReasonLabel(issue.category)}: {issue.count}
               </p>
             ))}
             {validation.valid ? (
@@ -597,7 +626,7 @@ function BroadcastCreation({
                 type='button'
                 variant='primary'
               >
-                Confirmar y bloquear envío
+                Confirmar envío
               </Button>
             </div>
           </>
@@ -625,6 +654,7 @@ function BroadcastDetail({
   const [attemptCursor, setAttemptCursor] = useState<string | null>(null)
   const [auditEvents, setAuditEvents] = useState<BroadcastAuditEvent[]>([])
   const [auditCursor, setAuditCursor] = useState<string | null>(null)
+  const [hasLoadedAudit, setHasLoadedAudit] = useState(false)
   const [isEditingDraft, setIsEditingDraft] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -639,14 +669,6 @@ function BroadcastDetail({
   useEffect(() => {
     void refreshRecipients().catch((caught: unknown) => setError(errorText(caught)))
   }, [refreshRecipients])
-  useEffect(() => {
-    void listBroadcastAuditEvents(broadcast.id, session)
-      .then((page) => {
-        setAuditEvents(page.items)
-        setAuditCursor(page.next_cursor)
-      })
-      .catch((caught: unknown) => setError(errorText(caught)))
-  }, [broadcast.id, session])
   useEffect(() => {
     if (broadcast.status !== 'PROCESSING') return
     const interval = window.setInterval(() => {
@@ -704,6 +726,18 @@ function BroadcastDetail({
     setAuditEvents((current) => [...current, ...page.items])
     setAuditCursor(page.next_cursor)
   }
+  const loadAuditEvents = async () => {
+    if (hasLoadedAudit) return
+    setHasLoadedAudit(true)
+    try {
+      const page = await listBroadcastAuditEvents(broadcast.id, session)
+      setAuditEvents(page.items)
+      setAuditCursor(page.next_cursor)
+    } catch (caught) {
+      setHasLoadedAudit(false)
+      setError(errorText(caught))
+    }
+  }
   const retry = async (recipient: BroadcastRecipient) => {
     setPending(true)
     setError(null)
@@ -716,6 +750,7 @@ function BroadcastDetail({
       setPending(false)
     }
   }
+  const status = broadcastStatusPresentation(broadcast)
   return (
     <section className='space-y-5' aria-labelledby='broadcast-detail-title'>
       <header className='flex flex-wrap items-start justify-between gap-3'>
@@ -727,25 +762,25 @@ function BroadcastDetail({
             {broadcast.label}
           </h2>
           <p className='text-sm text-[var(--text-secondary)]'>
-            {broadcast.template_name} · {broadcast.template_language}
+            {broadcast.template_name} · {templateLanguageLabel(broadcast.template_language)}
           </p>
         </div>
-        <Badge tone={statusTone(broadcast.status)}>{broadcast.status}</Badge>
+        <Badge tone={status.tone}>{status.label}</Badge>
       </header>
       {error ? <p role='alert'>{error}</p> : null}
-      <div className='lost-statistics'>
-        <p>
-          <span className='block text-xs text-[var(--text-secondary)]'>Clientes</span>
-          {broadcast.recipient_count}
-        </p>
-        <p>
-          <span className='block text-xs text-[var(--text-secondary)]'>Versión</span>
-          {broadcast.version}
-        </p>
-        <p>
-          <span className='block text-xs text-[var(--text-secondary)]'>Estado</span>
-          {broadcast.status}
-        </p>
+      <div className='broadcast-summary'>
+        <div>
+          <span>Clientes</span>
+          <strong>{broadcast.recipient_count}</strong>
+        </div>
+        <div>
+          <span>Resultados</span>
+          <strong>{outcomeSummary(broadcast)}</strong>
+        </div>
+        <div>
+          <span>Última actividad</span>
+          <strong>{new Date(broadcast.updated_at).toLocaleString('es-AR')}</strong>
+        </div>
       </div>
       {broadcast.status === 'CONFIRMED' ? (
         <Button
@@ -754,7 +789,7 @@ function BroadcastDetail({
           type='button'
           variant='primary'
         >
-          Iniciar procesamiento
+          Enviar ahora
         </Button>
       ) : null}
       {broadcast.status === 'DRAFT' ? (
@@ -769,7 +804,7 @@ function BroadcastDetail({
           type='button'
           variant='primary'
         >
-          Procesar siguiente lote
+          Continuar envío
         </Button>
       ) : null}
       <section className='ui-panel p-4' aria-labelledby='recipient-results-title'>
@@ -811,7 +846,9 @@ function BroadcastDetail({
                 </span>
               </span>
               <span className='flex items-center gap-2'>
-                <Badge tone={recipientTone(recipient.status)}>{recipient.status}</Badge>
+                <Badge tone={recipientStatusPresentation(recipient.status).tone}>
+                  {recipientStatusPresentation(recipient.status).label}
+                </Badge>
                 {recipient.conversation_id ? (
                   <AppLink
                     className='text-sm text-[var(--text-link)]'
@@ -863,7 +900,7 @@ function BroadcastDetail({
           <ul className='mt-3 divide-y divide-[var(--border-subtle)] text-sm'>
             {attempts.map((attempt) => (
               <li className='py-2' key={attempt.id}>
-                Intento {attempt.attempt_number}: {attempt.outcome} ·{' '}
+                Intento {attempt.attempt_number}: {attemptOutcomeLabel(attempt)} ·{' '}
                 {new Date(attempt.occurred_at).toLocaleString('es-AR')}
                 {attempt.safe_reason ? (
                   <span className='block text-xs'>{attempt.safe_reason}</span>
@@ -878,15 +915,18 @@ function BroadcastDetail({
           ) : null}
         </section>
       ) : null}
-      <section className='ui-panel p-4' aria-labelledby='broadcast-audit-title'>
-        <h3 className='font-semibold' id='broadcast-audit-title'>
-          Auditoría
-        </h3>
+      <details
+        className='broadcast-audit'
+        onToggle={(event) => {
+          if (event.currentTarget.open) void loadAuditEvents()
+        }}
+      >
+        <summary className='ui-pressable'>Auditoría del envío</summary>
         <ul className='mt-3 divide-y divide-[var(--border-subtle)] text-sm'>
           {auditEvents.map((event) => (
             <li className='py-2' key={event.id}>
-              {event.event_type}
-              {event.reason_code ? ` · ${event.reason_code}` : ''}
+              {auditEventLabel(event)}
+              {event.reason_code ? ` · ${safeReasonLabel(event.reason_code)}` : ''}
               <span className='ml-2 text-xs text-[var(--text-secondary)]'>
                 {new Date(event.occurred_at).toLocaleString('es-AR')}
               </span>
@@ -898,7 +938,7 @@ function BroadcastDetail({
             Cargar más eventos
           </Button>
         ) : null}
-      </section>
+      </details>
       <BroadcastCreation
         initialDraft={broadcast}
         isOpen={isEditingDraft}

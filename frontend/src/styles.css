@@ -1482,6 +1482,63 @@ a {
 .whatsapp-context {
   background: var(--surface-primary);
 }
+.broadcast-history {
+  overflow: hidden;
+  border-radius: var(--radius-surface);
+  background: var(--surface-primary);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.broadcast-history tbody tr:hover {
+  background: var(--surface-hover);
+}
+.broadcast-summary {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.55fr) minmax(16rem, 1.8fr) minmax(13rem, 1fr);
+  overflow: hidden;
+  border-radius: var(--radius-surface);
+  background: var(--surface-primary);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.broadcast-summary > div {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+}
+.broadcast-summary > div + div {
+  border-inline-start: 1px solid var(--divider);
+}
+.broadcast-summary span {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.broadcast-summary strong {
+  color: var(--brand-deep);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.broadcast-audit {
+  border-block: 1px solid var(--divider);
+  padding: 0.9rem 0;
+}
+.broadcast-audit summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--text-link);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+@media (max-width: 64rem) {
+  .broadcast-summary {
+    grid-template-columns: 1fr;
+  }
+  .broadcast-summary > div + div {
+    border-block-start: 1px solid var(--divider);
+    border-inline-start: 0;
+  }
+}
 .whatsapp-composer {
   background: color-mix(in srgb, var(--surface-primary) 90%, var(--surface-secondary));
   transition:

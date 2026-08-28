@@ -78,10 +78,13 @@ describe('WhatsAppBroadcastsPage', () => {
     render(<WhatsAppBroadcastsPage />)
     expect(await screen.findByText('Oferta agosto')).toBeInTheDocument()
     expect(screen.getByText('1 entregados')).toBeInTheDocument()
+    expect(screen.getByText('Borrador')).toBeInTheDocument()
+    expect(screen.queryByText('DRAFT')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo envío masivo' }))
     fireEvent.change(screen.getByLabelText('Nombre operativo'), { target: { value: 'Oferta' } })
     fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar a datos requeridos' }))
     fireEvent.change(screen.getByLabelText('fecha'), { target: { value: '01/09' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continuar a clientes' }))
 
@@ -92,7 +95,7 @@ describe('WhatsAppBroadcastsPage', () => {
       ),
     )
     expect(
-      await screen.findByText('Seleccioná Clientes explícitamente. No se infiere una audiencia.'),
+      await screen.findByText('Elegí los clientes que recibirán el envío.'),
     ).toBeInTheDocument()
   })
 
@@ -125,7 +128,7 @@ describe('WhatsAppBroadcastsPage', () => {
     )
 
     render(<WhatsAppBroadcastsPage broadcastId={9} />)
-    expect(await screen.findByText(/Entrega incierta/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Entrega incierta/)).length).toBeGreaterThan(0)
     expect(
       screen.queryByRole('button', { name: /Reintentar fallo definitivo/ }),
     ).not.toBeInTheDocument()
@@ -175,13 +178,17 @@ describe('WhatsAppBroadcastsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Nuevo envío masivo' }))
     fireEvent.change(screen.getByLabelText('Nombre operativo'), { target: { value: 'Oferta' } })
     fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar a datos requeridos' }))
     fireEvent.change(screen.getByLabelText('fecha'), { target: { value: '01/09' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continuar a clientes' }))
     fireEvent.click(await screen.findByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: 'Revisar elegibilidad' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Validar envío' }))
-    expect(await screen.findByText('Resumen final')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar y bloquear envío' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Validación de elegibilidad' }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar elegibilidad' }))
+    expect(await screen.findByRole('heading', { name: 'Confirmar envío' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar envío' }))
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -255,13 +262,14 @@ describe('WhatsAppBroadcastsPage', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<WhatsAppBroadcastsPage broadcastId={9} />)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Procesar siguiente lote' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar envío' }))
     fireEvent.change(screen.getByLabelText('Buscar destinatario'), { target: { value: 'Fallido' } })
     fireEvent.change(screen.getByLabelText('Filtrar resultado'), { target: { value: 'FAILED' } })
     fireEvent.click(await screen.findByRole('button', { name: 'Ver intentos' }))
     expect(await screen.findByText(/Intentos de Cliente Fallido/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más intentos' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cargar más eventos' }))
+    fireEvent.click(screen.getByText('Auditoría del envío'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más eventos' }))
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar fallo definitivo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más resultados' }))
 
@@ -269,7 +277,7 @@ describe('WhatsAppBroadcastsPage', () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/retries'))).toBe(true)
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/process'))).toBe(true)
     })
-    expect(screen.getAllByText('PROCESSED').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Lote procesado').length).toBeGreaterThan(0)
   })
 
   it('uploads required header media through the authenticated CRM boundary', async () => {
@@ -301,6 +309,8 @@ describe('WhatsAppBroadcastsPage', () => {
     render(<WhatsAppBroadcastsPage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Nuevo envío masivo' }))
     fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
+    fireEvent.change(screen.getByLabelText('Nombre operativo'), { target: { value: 'Oferta' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar a datos requeridos' }))
     const upload = await screen.findByLabelText(/Encabezado PDF\/documento/)
     fireEvent.change(upload, {
       target: { files: [new File(['pdf'], 'ficha.pdf', { type: 'application/pdf' })] },
@@ -320,7 +330,7 @@ describe('WhatsAppBroadcastsPage', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<WhatsAppBroadcastsPage broadcastId={9} />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Iniciar procesamiento' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Enviar ahora' }))
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/start'))).toBe(true),
     )
@@ -354,7 +364,8 @@ describe('WhatsAppBroadcastsPage', () => {
     render(<WhatsAppBroadcastsPage broadcastId={9} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Editar borrador' }))
     expect(await screen.findByDisplayValue('Oferta agosto')).toBeInTheDocument()
-    await screen.findByRole('radio', { name: /oferta_asfalto/i })
+    fireEvent.click(await screen.findByRole('radio', { name: /oferta_asfalto/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar a datos requeridos' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Quitar medio' }))
     expect(screen.getByRole('button', { name: 'Continuar a clientes' })).toBeDisabled()
   })
