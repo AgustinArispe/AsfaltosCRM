@@ -99,7 +99,7 @@ export function OpportunityContextPanel({
   return (
     <section
       aria-labelledby={`opportunity-context-${opportunity.id}`}
-      className='ui-panel px-4 py-4 sm:px-5'
+      className='opportunity-detail__section px-4 py-4 sm:px-5'
     >
       <h3
         className='text-sm font-semibold text-[var(--text-primary)]'

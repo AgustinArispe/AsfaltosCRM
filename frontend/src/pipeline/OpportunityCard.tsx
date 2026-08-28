@@ -66,22 +66,16 @@ export function OpportunityCard({
         ref={isDraggable ? ref : undefined}
         type='button'
       >
-        <span
-          className='block truncate text-sm font-semibold leading-5 text-[var(--text-primary)]'
-          title={identity.primary}
-        >
+        <span className='pipeline-card__identity' title={identity.primary}>
           {identity.primary}
         </span>
         {identity.supporting ? (
-          <span
-            className='mt-0.5 block truncate text-xs leading-5 text-[var(--text-secondary)]'
-            title={identity.supporting}
-          >
+          <span className='pipeline-card__contact' title={identity.supporting}>
             {identity.supporting}
           </span>
         ) : null}
-        <span className='mt-2 flex min-h-4 flex-wrap items-center gap-2 text-xs leading-4 text-[var(--text-secondary)]'>
-          <span>{SOURCE_LABELS[opportunity.source]}</span>
+        <span className='pipeline-card__meta'>
+          <span className='pipeline-card__source'>{SOURCE_LABELS[opportunity.source]}</span>
           {opportunity.customer.is_legendary ? <LegendaryBadge /> : null}
         </span>
         {showStageAge ? (

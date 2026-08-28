@@ -45,10 +45,15 @@ export function OpportunityDetailContent({
   )
 
   return (
-    <article aria-labelledby={`opportunity-customer-${opportunity.id}`}>
+    <article
+      aria-labelledby={`opportunity-customer-${opportunity.id}`}
+      className='opportunity-detail'
+    >
       <header
         className={
-          isDrawer ? 'bg-[var(--surface-primary)] px-4 py-4 sm:px-5' : 'ui-panel px-5 py-5 sm:px-6'
+          isDrawer
+            ? 'opportunity-detail__header px-4 py-4 sm:px-5'
+            : 'opportunity-detail__header px-5 py-5 sm:px-6'
         }
       >
         <div className='flex flex-wrap items-start justify-between gap-3'>
@@ -76,7 +81,7 @@ export function OpportunityDetailContent({
           </Badge>
         </div>
 
-        <dl className='mt-4 grid gap-x-5 gap-y-3 border-t border-[var(--subtle-border)] pt-4 sm:grid-cols-2'>
+        <dl className='opportunity-detail__summary'>
           <div>
             <dt className='text-xs font-medium text-[var(--text-tertiary)]'>Origen</dt>
             <dd className='mt-0.5 text-sm font-medium text-[var(--text-primary)]'>
@@ -122,14 +127,14 @@ export function OpportunityDetailContent({
       <div
         className={
           isDrawer
-            ? 'space-y-3 border-t border-[var(--subtle-border)] bg-[var(--surface-secondary)] p-3 sm:p-4'
-            : 'mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.8fr)]'
+            ? 'opportunity-detail__body opportunity-detail__body--drawer p-3 sm:p-4'
+            : 'opportunity-detail__body mt-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.8fr)]'
         }
       >
-        <div className='space-y-3'>
+        <div className='opportunity-detail__primary'>
           <section
             aria-labelledby={`customer-information-${opportunity.id}`}
-            className='ui-panel px-4 py-4 sm:px-5'
+            className='opportunity-detail__section px-4 py-4 sm:px-5'
           >
             <h3
               className='text-sm font-semibold text-[var(--text-primary)]'
@@ -179,7 +184,7 @@ export function OpportunityDetailContent({
 
           <section
             aria-labelledby={`quote-${opportunity.id}`}
-            className='ui-panel px-4 py-4 sm:px-5'
+            className='opportunity-detail__section px-4 py-4 sm:px-5'
           >
             <h3
               className='text-sm font-semibold text-[var(--text-primary)]'
@@ -246,7 +251,7 @@ export function OpportunityDetailContent({
         {contextual ?? (
           <section
             aria-labelledby={`history-${opportunity.id}`}
-            className='ui-panel px-4 py-4 sm:px-5'
+            className='opportunity-detail__section px-4 py-4 sm:px-5'
           >
             <h3
               className='text-sm font-semibold text-[var(--text-primary)]'
