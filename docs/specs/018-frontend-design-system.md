@@ -1,9 +1,9 @@
 # CRM-018 — Frontend 2.0
 
-Status: Approved
+Status: Implemented
 Owner: Frontend / Product Design
 Last updated: 2026-08-28
-Implementation commit: N/A
+Implementation commit: 3fb7a8552d6f7602f13ae73a1eb7882b26da65f1
 
 ## Goal
 
@@ -695,4 +695,4 @@ comparison with the existing approach and explicit approval.
 
 ## Open decisions
 
-None. The Draft as a whole still requires explicit approval before implementation.
+None.
