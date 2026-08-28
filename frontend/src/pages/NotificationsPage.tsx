@@ -92,7 +92,7 @@ function NotificationRow({
           <Icon className='size-4' name='clock' />
         </span>
         <span className='notification-row__heading'>
-          <strong>Seguimiento pendiente</strong>
+          <strong>Seguimiento</strong>
           {isUnread ? (
             <span className='notification-row__unread'>Sin leer</span>
           ) : (
@@ -100,15 +100,14 @@ function NotificationRow({
           )}
         </span>
         <span className='notification-row__identity'>{identityFor(notification)}</span>
-        <span className='notification-row__description'>
-          La oportunidad sigue sin cambio de etapa.
+        <span className='notification-row__status'>
+          <strong>{statusLabel}</strong>
+          <span>{isResolved ? 'Resuelta' : 'Activa'}</span>
         </span>
         <span className='notification-row__meta' id={`notification-${notification.id}-details`}>
           <time dateTime={notification.created_at} title={formatDateTime(notification.created_at)}>
             {formatTimeInStage(notification.created_at)}
           </time>
-          <span>Estado: {statusLabel}</span>
-          {isResolved ? <span>Resuelta</span> : <span>Activa</span>}
           {isPending ? <span>Guardando lectura…</span> : null}
         </span>
       </button>
