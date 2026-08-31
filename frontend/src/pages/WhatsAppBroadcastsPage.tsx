@@ -375,7 +375,7 @@ function BroadcastCreation({
         <ol aria-label='Progreso de creación' className='mb-5 flex flex-wrap gap-2'>
           {STEP_LABELS.map((item, index) => (
             <li key={item}>
-              <Badge tone={index === step ? 'quoted' : 'neutral'}>
+              <Badge tone={index === step ? 'new' : 'neutral'}>
                 {index < step ? '✓' : `${index + 1}.`} {item}
               </Badge>
             </li>

@@ -57,11 +57,6 @@
   --border-default: var(--subtle-border);
   --border-strong: var(--strong-border);
   --border-interactive: #89949e;
-  /* Transitional neutral aliases; feature references are removed in CRM-031 screen passes. */
-  --accent-muted: var(--selection-surface);
-  --accent-subtle: var(--selection-surface);
-  --warning-subtle: var(--warning-surface);
-  --quoted-pending-muted: var(--quoted-pending-surface);
   --accent: var(--brand-accent);
   --accent-hover: #d5a200;
   --accent-pressed: #bb8e00;
@@ -177,11 +172,6 @@
   --border-default: var(--subtle-border);
   --border-strong: var(--strong-border);
   --border-interactive: #89939b;
-  /* Transitional neutral aliases; feature references are removed in CRM-031 screen passes. */
-  --accent-muted: var(--selection-surface);
-  --accent-subtle: var(--selection-surface);
-  --warning-subtle: var(--warning-surface);
-  --quoted-pending-muted: var(--quoted-pending-surface);
   --accent: var(--brand-accent);
   --accent-hover: #ffcc33;
   --accent-pressed: #d9a300;
@@ -367,7 +357,6 @@ body {
 }
 .pipeline-column {
   --pipeline-stage-color: var(--informational-new);
-  --pipeline-stage-muted: var(--informational-new-muted);
   display: flex;
   min-width: 0;
   min-height: 100%;
@@ -378,15 +367,12 @@ body {
 }
 .pipeline-column[data-stage="COTIZADA"] {
   --pipeline-stage-color: var(--quoted-pending);
-  --pipeline-stage-muted: var(--quoted-pending-muted);
 }
 .pipeline-column[data-stage="NEGOCIACION"] {
   --pipeline-stage-color: var(--negotiation);
-  --pipeline-stage-muted: var(--negotiation-muted);
 }
 .pipeline-column[data-stage="GANADA"] {
   --pipeline-stage-color: var(--success-text);
-  --pipeline-stage-muted: var(--success-subtle);
 }
 .pipeline-column--drop-target {
   box-shadow:
@@ -1583,9 +1569,20 @@ a {
 }
 .whatsapp-conversation-row--selected {
   background: var(--selection-surface);
-  box-shadow:
-    inset 3px 0 var(--selection-marker),
-    inset 0 -1px var(--divider);
+}
+.whatsapp-conversation-row {
+  position: relative;
+  min-height: 4.25rem;
+}
+.whatsapp-conversation-row--selected::after {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.6rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--selection-marker);
+  content: "";
 }
 .whatsapp-conversation-row--selected > span:first-child span:first-child {
   color: var(--selection-text);
@@ -1596,16 +1593,14 @@ a {
   background: var(--surface-primary);
 }
 .whatsapp-conversation-row--waiting:not(.whatsapp-conversation-row--selected) {
-  background: color-mix(in srgb, var(--warning-subtle) 22%, transparent);
+  background: var(--surface-interactive);
 }
 .whatsapp-conversation-row__waiting svg {
   color: var(--warning-text);
 }
-.whatsapp-message--inbound {
-  border-inline-start: 2px solid color-mix(in srgb, var(--informational-new) 45%, transparent);
-}
-.whatsapp-message--outbound {
-  border-inline-end: 2px solid color-mix(in srgb, var(--brand-accent) 55%, transparent);
+.whatsapp-message {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
 }
 .whatsapp-context {
   background: var(--surface-primary);
@@ -1619,12 +1614,27 @@ a {
 .broadcast-history tbody tr:hover {
   background: var(--surface-hover);
 }
+.broadcast-history thead tr {
+  min-height: 2.5rem;
+}
+.broadcast-history tbody tr {
+  height: 3.5rem;
+}
+.broadcast-history th,
+.broadcast-history td {
+  vertical-align: middle;
+}
+.broadcast-history th:nth-child(2),
+.broadcast-history td:nth-child(2) {
+  min-width: 14rem;
+}
 .broadcast-summary {
   display: grid;
   grid-template-columns: minmax(8rem, 0.55fr) minmax(16rem, 1.8fr) minmax(13rem, 1fr);
   overflow: hidden;
   border-radius: var(--radius-surface);
-  background: var(--surface-primary);
+  gap: 1px;
+  background: var(--divider);
   box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
 .broadcast-summary > div {
@@ -1632,9 +1642,7 @@ a {
   align-content: start;
   gap: 0.3rem;
   padding: 0.9rem 1rem;
-}
-.broadcast-summary > div + div {
-  border-inline-start: 1px solid var(--divider);
+  background: var(--surface-primary);
 }
 .broadcast-summary span {
   color: var(--text-tertiary);
@@ -1662,10 +1670,6 @@ a {
   .broadcast-summary {
     grid-template-columns: 1fr;
   }
-  .broadcast-summary > div + div {
-    border-block-start: 1px solid var(--divider);
-    border-inline-start: 0;
-  }
 }
 .whatsapp-composer {
   background: color-mix(in srgb, var(--surface-primary) 90%, var(--surface-secondary));
@@ -1674,12 +1678,24 @@ a {
     box-shadow 160ms var(--ease-ui);
 }
 .whatsapp-composer:focus-within {
-  border-top-color: var(--brand-accent);
-  box-shadow: inset 0 2px color-mix(in srgb, var(--brand-accent) 45%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-ring) 22%, transparent);
 }
 .whatsapp-composer--template-required {
-  border-top-color: color-mix(in srgb, var(--warning-text) 55%, var(--border-default));
-  background: color-mix(in srgb, var(--warning-subtle) 24%, var(--surface-primary));
+  background: var(--surface-primary);
+}
+.whatsapp-composer__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-interactive);
+  padding: 0.35rem 0.55rem;
+  color: var(--warning-text);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-line);
 }
 .whatsapp-composer__field {
   background: var(--surface-raised);
@@ -1800,8 +1816,8 @@ a {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 24%, transparent);
 }
 .quote-product-option[data-selected="true"] {
-  border-color: color-mix(in srgb, var(--brand-accent) 64%, var(--border-default));
-  background: color-mix(in srgb, var(--accent-muted) 42%, var(--surface-primary));
+  border-color: var(--action-secondary);
+  background: var(--selection-surface);
 }
 .quote-product-option:has(input:disabled) {
   cursor: not-allowed;
@@ -1836,9 +1852,9 @@ a {
   display: grid;
   gap: 0.2rem;
   margin-top: 1.25rem;
-  border: 1px solid color-mix(in srgb, var(--brand-accent) 36%, var(--border-default));
+  border: 1px solid var(--action-secondary);
   border-radius: var(--radius-control);
-  background: color-mix(in srgb, var(--accent-muted) 38%, var(--surface-primary));
+  background: var(--selection-surface);
   padding: 0.8rem 0.9rem;
 }
 .quote-flow__selected-product span {

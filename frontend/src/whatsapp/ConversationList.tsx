@@ -47,7 +47,7 @@ function ConversationRow({
       <span className='mt-2 flex items-center justify-between gap-3'>
         <span
           className={[
-            'min-w-0 truncate text-xs',
+            'min-w-0 truncate text-[0.8125rem] leading-[1.125rem]',
             conversation.waiting_for_response
               ? 'whatsapp-conversation-row__waiting font-semibold text-[var(--warning-text)]'
               : conversation.resolution_status === 'NEEDS_REVIEW'
@@ -141,9 +141,9 @@ export function ConversationList({
           <button
             aria-pressed={waitingOnly}
             className={[
-              'ui-pressable min-h-9 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+              'ui-pressable h-9 flex-1 rounded-[var(--radius-control)] border px-2.5 text-[0.8125rem] font-semibold leading-[1.125rem] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
               waitingOnly
-                ? 'border-[var(--warning-border)] bg-[var(--warning-subtle)] text-[var(--warning-text)]'
+                ? 'border-[var(--action-secondary)] bg-[var(--action-secondary)] text-[var(--on-action-secondary)]'
                 : 'border-[var(--subtle-border)] bg-[var(--surface-primary)] text-[var(--text-secondary)] hover:bg-[var(--surface-interactive)]',
             ].join(' ')}
             onClick={() => onWaitingChange(!waitingOnly)}
@@ -154,7 +154,7 @@ export function ConversationList({
           <button
             aria-pressed={unreadOnly}
             className={[
-              'ui-pressable min-h-9 flex-1 rounded-[var(--radius-control)] border px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+              'ui-pressable h-9 flex-1 rounded-[var(--radius-control)] border px-2.5 text-[0.8125rem] font-semibold leading-[1.125rem] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
               unreadOnly
                 ? 'border-[var(--strong-border)] bg-[var(--surface-selected)] text-[var(--text-primary)]'
                 : 'border-[var(--subtle-border)] bg-[var(--surface-primary)] text-[var(--text-secondary)] hover:bg-[var(--surface-interactive)]',

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 
 import { Button } from '../shared/Button'
-import { formatDateTime } from '../shared/formatters'
 import { LoadingState } from '../shared/StatusStates'
 import { conversationDisplayName } from './inbox-state'
 import { MessageComposer } from './MessageComposer'
@@ -144,22 +143,6 @@ export function ChatPanel({
         </Button>
       </header>
 
-      {!isOnline ? (
-        <div
-          className='shrink-0 border-b border-[var(--warning-border)] bg-[var(--warning-subtle)] px-4 py-2 text-xs font-medium text-[var(--warning-text)]'
-          role='status'
-        >
-          Sin conexión. Conservamos lo cargado y sincronizaremos al reconectar.
-        </div>
-      ) : null}
-      {conversation.waiting_for_response ? (
-        <div className='shrink-0 border-b border-[var(--warning-border)] bg-[var(--warning-subtle)] px-4 py-2 text-xs text-[var(--warning-text)]'>
-          <strong>Respuesta pendiente.</strong>{' '}
-          {conversation.waiting_since_at
-            ? `Desde ${formatDateTime(conversation.waiting_since_at)}.`
-            : 'El último mensaje funcional es del cliente.'}
-        </div>
-      ) : null}
       <MessageLog
         key={`messages-${conversation.id}`}
         error={messageError}

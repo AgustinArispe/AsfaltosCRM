@@ -1,6 +1,8 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
 
 import { Button, buttonClassName } from '../shared/Button'
+import { formatDateTime } from '../shared/formatters'
+import { Icon } from '../shared/Icon'
 import { composerDisabledReason, formatFileSize } from './presentation'
 import type { StagedWhatsAppAttachment, WhatsAppConversationDetail } from './types'
 import type { NewMessageInput } from './useWhatsAppInbox'
@@ -130,6 +132,23 @@ export function MessageComposer({
         void submit()
       }}
     >
+      {!isOnline ? (
+        <div className='whatsapp-composer__status' role='status'>
+          <Icon className='size-4' name='alert' />
+          <span>Sin conexión. Conservamos lo cargado y sincronizaremos al reconectar.</span>
+        </div>
+      ) : null}
+      {conversation.waiting_for_response ? (
+        <div className='whatsapp-composer__status' role='status'>
+          <Icon className='size-4' name='clock' />
+          <span>
+            <strong>Respuesta pendiente.</strong>{' '}
+            {conversation.waiting_since_at
+              ? `Desde ${formatDateTime(conversation.waiting_since_at)}.`
+              : 'El último mensaje funcional es del cliente.'}
+          </span>
+        </div>
+      ) : null}
       {attachment ? (
         <div
           className='mb-2 flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] px-3 py-2'

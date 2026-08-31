@@ -163,7 +163,7 @@ export function HumanTemplateSelector({
                     aria-pressed={isSelected}
                     className={`ui-pressable w-full rounded-[var(--radius-control)] border p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                       isSelected
-                        ? 'border-[var(--accent-strong)] bg-[var(--accent-subtle)]'
+                        ? 'border-[var(--action-secondary)] bg-[var(--selection-surface)]'
                         : 'border-[var(--border-default)] bg-[var(--surface)] hover:bg-[var(--hover)]'
                     }`}
                     data-modal-initial-focus={templates[0] === template ? true : undefined}
