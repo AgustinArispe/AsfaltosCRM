@@ -404,16 +404,13 @@ body {
   gap: 0.75rem;
   border-bottom: 1px solid var(--divider);
   border-radius: calc(var(--radius-surface) - 1px) calc(var(--radius-surface) - 1px) 0 0;
-  background: var(--surface-secondary);
+  background: var(--brand-navy);
   padding: 0.65rem 0.75rem;
 }
-.pipeline-column__header::before {
-  position: absolute;
-  inset: 0.15rem 0.75rem auto;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--pipeline-stage-color);
-  content: "";
+.pipeline-column__header h2 {
+  color: #ffffff;
+  font-size: var(--text-subsection-size);
+  line-height: var(--text-subsection-line);
 }
 .pipeline-column__header h2::before {
   display: inline-block;
@@ -429,11 +426,11 @@ body {
   min-width: 1.55rem;
   border: 0;
   border-radius: 999px;
-  background: var(--surface-primary);
-  padding: 0.1rem 0.4rem;
-  color: var(--pipeline-stage-color);
-  font-size: 0.75rem;
-  font-weight: 600;
+  background: var(--brand-yellow);
+  padding: 0.1rem 0.45rem;
+  color: #27220a;
+  font-size: var(--text-micro-size);
+  font-weight: 700;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -454,9 +451,8 @@ body {
   box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
 .pipeline-card--selected {
-  box-shadow:
-    inset 3px 0 var(--selection-marker),
-    inset 0 0 0 1px var(--action-secondary);
+  background: var(--selection-surface);
+  box-shadow: inset 0 0 0 2px var(--action-secondary);
 }
 .pipeline-card__button {
   display: block;
@@ -492,9 +488,9 @@ body {
   display: block;
   overflow: hidden;
   color: var(--brand-deep);
-  font-size: 0.875rem;
+  font-size: var(--text-identity-size);
   font-weight: 650;
-  line-height: 1.25rem;
+  line-height: var(--text-identity-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -503,8 +499,8 @@ body {
   overflow: hidden;
   margin-top: 0.1rem;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.15rem;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -516,8 +512,8 @@ body {
   gap: 0.45rem;
   margin-top: 0.55rem;
   color: var(--text-tertiary);
-  font-size: 0.71875rem;
-  line-height: 1rem;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-line);
 }
 .pipeline-card__source::after {
   margin-inline-start: 0.45rem;
@@ -528,12 +524,7 @@ body {
   content: none;
 }
 .legendary-badge {
-  gap: 0.25rem;
-  border-color: transparent;
-  background: transparent;
-  padding: 0;
   color: var(--legendary-text);
-  font-size: 0.6875rem;
 }
 .legendary-badge svg {
   color: var(--brand-yellow);
@@ -1423,7 +1414,8 @@ a {
   gap: 0.7rem;
   border-radius: var(--radius-control);
   color: color-mix(in srgb, var(--action-secondary) 82%, var(--text-secondary));
-  font-size: 0.875rem;
+  font-size: var(--text-body-size);
+  line-height: 1.25rem;
   font-weight: 600;
 }
 .ui-sidebar-link:hover {
@@ -1433,7 +1425,21 @@ a {
 .ui-sidebar-link--active {
   background: var(--selection-surface);
   color: var(--selection-text);
-  box-shadow: inset 3px 0 var(--selection-marker);
+}
+.ui-sidebar-link--active::after {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--selection-marker);
+  content: "";
+}
+.ui-sidebar-link--active.justify-center::after {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  margin: 0;
 }
 .ui-sidebar-link--active svg {
   color: var(--action-secondary);
@@ -1466,7 +1472,7 @@ a {
   background: transparent;
   padding: 0.35rem 0.45rem;
   color: var(--text-primary);
-  font-size: 0.8125rem;
+  font-size: var(--text-small-size);
   outline: none;
 }
 .ui-account__trigger:hover,

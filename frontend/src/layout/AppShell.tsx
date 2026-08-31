@@ -248,6 +248,7 @@ export function AppShell({
               icon='menu'
               label={isCollapsed ? 'Expandir navegación' : 'Contraer navegación'}
               onClick={() => setIsCollapsed((current) => !current)}
+              size='compact'
             />
           </div>
           <SidebarNavigation
@@ -288,6 +289,7 @@ export function AppShell({
                   icon='chevron-left'
                   label='Cerrar navegación'
                   onClick={() => setIsMobileNavigationOpen(false)}
+                  size='compact'
                 />
               </div>
               <SidebarNavigation
@@ -326,7 +328,7 @@ export function AppShell({
             />
             <div className='min-w-0'>
               <h1
-                className='truncate rounded-[var(--radius-control)] text-[length:var(--text-title-size)] font-semibold tracking-[-0.025em] text-[var(--brand-deep)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+                className='truncate rounded-[var(--radius-control)] text-[length:var(--text-title-size)] font-bold leading-[var(--text-title-line)] tracking-[-0.025em] text-[var(--brand-deep)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                 data-page-heading
                 tabIndex={-1}
               >
