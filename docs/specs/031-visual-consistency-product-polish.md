@@ -1,9 +1,9 @@
 # CRM-031 — Visual Consistency & Product Polish
 
-Status: Approved
+Status: Implemented
 Owner: Frontend / Product Design
 Last updated: 2026-08-31
-Implementation commit: N/A
+Implementation commits: `309d06e`, `99929a6`, `db8cd9b`, `ed70d9a`, `2d6994f`, `279061b`
 
 ## Goal
 
@@ -270,6 +270,30 @@ keyboard interaction and contrast. Baselines are regenerated only after review.
 ## Open decisions
 
 None.
+
+## Implementation verification
+
+- Shared typography, controls, fields, tabs, filters, icon buttons, table rows, KPI
+  cards, modal/drawer headers and status badges use centralized geometry contracts.
+- Status badges render at 24 px high with 10 px horizontal padding, 13/18 typography,
+  650 weight, 6 px icon gap, pill radius and a 1 px full boundary.
+- Source audit found no decorative left or top border. The remaining top-border uses
+  are structural separators or the functional circular loading spinner.
+- The pale-yellow surface tokens were removed. Solid yellow remains on primary actions,
+  compact counts/markers, identity elements and the primary Dashboard KPI; navy remains
+  structural in navigation, headers, selected controls, summary areas and charts.
+- Visual review covered 1024, 1280 and 1440 px, including equal 24 px Broadcast status
+  pills and page-overflow checks. Eight local visual baselines were regenerated and
+  compared successfully after restoring the deterministic QA fixture.
+- Frontend checks passed: 164 tests, TypeScript, production build and dependency audit;
+  statement coverage is 86.36%.
+- Accessibility browser checks passed in Light, Dark and reduced-motion modes with no
+  WCAG violations in the exercised workspaces.
+- Backend verification remained green without CRM-031 backend changes: Ruff, strict
+  mypy, 405 tests, 93.15% coverage, compileall, Alembic check/current and dependency
+  audit.
+- Docker Compose build, health, frontend proxy and Alembic smoke checks passed.
+- CRM-031 adds no dependency and changes no backend, API, schema or business rule.
 
 ## Follow-up / future specs
 
