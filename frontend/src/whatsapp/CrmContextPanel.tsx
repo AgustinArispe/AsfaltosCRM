@@ -58,7 +58,7 @@ function OpportunityCard({
         {action}
       </div>
       {detail ? (
-        <div className='mt-3 border-t border-[var(--subtle-border)] pt-3'>
+        <div className='mt-4'>
           <p className='text-xs font-semibold text-[var(--text-secondary)]'>Productos y volumen</p>
           {detail.products.length > 0 ? (
             <ul className='mt-1.5 space-y-1 text-xs text-[var(--text-secondary)]'>
@@ -188,10 +188,7 @@ export function CrmContextPanel({
           ) : null}
         </section>
 
-        <section
-          aria-labelledby='context-opportunity-title'
-          className='mt-5 border-t border-[var(--subtle-border)] pt-4'
-        >
+        <section aria-labelledby='context-opportunity-title' className='mt-5'>
           <h3
             className='text-sm font-semibold text-[var(--text-primary)]'
             id='context-opportunity-title'
@@ -275,7 +272,7 @@ export function CrmContextPanel({
         </section>
 
         {conversation.opportunity_links.length > 0 ? (
-          <p className='mt-4 border-t border-[var(--subtle-border)] pt-3 text-[0.6875rem] leading-5 text-[var(--text-tertiary)]'>
+          <p className='mt-4 text-xs leading-5 text-[var(--text-tertiary)]'>
             El historial conserva {conversation.opportunity_links.length}{' '}
             {conversation.opportunity_links.length === 1 ? 'vínculo' : 'vínculos'}.
           </p>

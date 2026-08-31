@@ -224,7 +224,7 @@ export function ConversationList({
           </ul>
         )}
         {hasMore ? (
-          <div className='border-t border-[var(--divider)] p-3 text-center'>
+          <div className='bg-[var(--surface-interactive)] p-3 text-center'>
             <Button onClick={onLoadMore} size='compact'>
               Cargar más conversaciones
             </Button>

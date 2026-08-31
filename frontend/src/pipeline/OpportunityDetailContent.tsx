@@ -117,11 +117,7 @@ export function OpportunityDetailContent({
           </div>
         ) : null}
 
-        {actions ? (
-          <div className='mt-4 flex flex-wrap gap-2 border-t border-[var(--subtle-border)] pt-4'>
-            {actions}
-          </div>
-        ) : null}
+        {actions ? <div className='mt-5 flex flex-wrap gap-2'>{actions}</div> : null}
       </header>
 
       <div

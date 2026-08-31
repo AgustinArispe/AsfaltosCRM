@@ -155,7 +155,7 @@ export function OpportunityContextPanel({
           ) : (
             <NoteList notes={notes ?? []} />
           )}
-          <div className='mt-4 border-t border-[var(--border-subtle)] pt-4'>
+          <div className='mt-5'>
             <label className='ui-label' htmlFor={`opportunity-note-${opportunity.id}`}>
               Agregar nota
             </label>

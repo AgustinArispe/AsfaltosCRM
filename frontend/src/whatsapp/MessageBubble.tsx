@@ -160,7 +160,7 @@ export function MessageBubble({
         </p>
       ) : null}
       {resend ? (
-        <div className='mt-2 border-t border-[var(--subtle-border)]/70 pt-2 text-right'>
+        <div className='mt-2 pt-1 text-right'>
           <Button
             disabled={isSending}
             onClick={() => onResend(message)}
