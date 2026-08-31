@@ -27,7 +27,7 @@ describe('shared CRM-018 primitives', () => {
         <Button onClick={onClick} variant='primary'>
           Guardar
         </Button>
-        <IconButton icon='menu' label='Abrir navegación' onClick={onClick} />
+        <IconButton icon='menu' label='Abrir navegación' onClick={onClick} size='compact' />
         <Icon name='dashboard' />
         <Badge tone='won'>Ganada</Badge>
         <Surface>Contenido</Surface>
@@ -43,6 +43,9 @@ describe('shared CRM-018 primitives', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abrir navegación' }))
     expect(onClick).toHaveBeenCalledTimes(2)
     expect(screen.getByText('Ganada')).toHaveClass('rounded-full')
+    expect(screen.getByText('Ganada')).toHaveClass('h-6', 'px-2.5', 'text-[0.8125rem]')
+    expect(screen.getByRole('button', { name: 'Guardar' })).toHaveClass('h-11', 'text-sm')
+    expect(screen.getByRole('button', { name: 'Abrir navegación' })).toHaveClass('size-9')
     expect(screen.getByRole('img', { name: 'María del Carmen' })).toHaveTextContent('MD')
     expect(
       screen.getByRole('status', { name: '3 notificaciones activas sin leer' }),

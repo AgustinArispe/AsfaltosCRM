@@ -12,12 +12,25 @@
   --brand-yellow: #f1b809;
   --brand-navy: #1b3b5f;
   --font-sans: "Manrope", Arial, Helvetica, sans-serif;
-  --text-display-size: clamp(1.75rem, 1.45rem + 0.75vw, 2rem);
-  --text-title-size: clamp(1.25rem, 1.08rem + 0.5vw, 1.5rem);
-  --text-section-size: 1.0625rem;
-  --text-body-size: 0.875rem;
-  --text-small-size: 0.78125rem;
-  --text-label-size: 0.78125rem;
+  --text-display-size: 2.5rem;
+  --text-display-line: 2.75rem;
+  --text-title-size: 2rem;
+  --text-title-line: 2.5rem;
+  --text-section-size: 1.25rem;
+  --text-section-line: 1.75rem;
+  --text-subsection-size: 1.0625rem;
+  --text-subsection-line: 1.5rem;
+  --text-identity-size: 1rem;
+  --text-identity-line: 1.375rem;
+  --text-body-size: 0.9375rem;
+  --text-body-line: 1.4375rem;
+  --text-control-size: 0.875rem;
+  --text-control-line: 1.25rem;
+  --text-small-size: 0.8125rem;
+  --text-small-line: 1.125rem;
+  --text-label-size: 0.8125rem;
+  --text-micro-size: 0.75rem;
+  --text-micro-line: 1rem;
   --canvas: #f5f6f8;
   --canvas-subtle: #f0f2f5;
   --surface-primary: #ffffff;
@@ -44,12 +57,14 @@
   --border-default: var(--subtle-border);
   --border-strong: var(--strong-border);
   --border-interactive: #89949e;
-  --accent-muted: #fff5c7;
+  /* Transitional neutral aliases; feature references are removed in CRM-031 screen passes. */
+  --accent-muted: var(--selection-surface);
+  --accent-subtle: var(--selection-surface);
+  --warning-subtle: var(--warning-surface);
+  --quoted-pending-muted: var(--quoted-pending-surface);
   --accent: var(--brand-accent);
   --accent-hover: #d5a200;
   --accent-pressed: #bb8e00;
-  --accent-subtle: var(--accent-muted);
-  --accent-surface: #f1df89;
   --accent-solid: var(--accent);
   --accent-strong: var(--accent-hover);
   --on-accent: #27220a;
@@ -70,10 +85,10 @@
   --informational-new: var(--brand-navy);
   --informational-new-muted: #e8eff6;
   --quoted-pending: #9a6c08;
-  --quoted-pending-muted: #fff4d4;
+  --quoted-pending-surface: var(--surface-interactive);
   --negotiation: #7655a8;
   --negotiation-muted: #f1ecf8;
-  --warning-subtle: #fff5dd;
+  --warning-surface: var(--surface-interactive);
   --warning-border: #e4bf72;
   --warning-text: #7a4d08;
   --uncertain: #665d7a;
@@ -83,7 +98,7 @@
   --destructive-solid: #b52f3b;
   --destructive-text: #8c202b;
   --on-destructive: #ffffff;
-  --legendary-subtle: #fff7dc;
+  --legendary-surface: var(--surface-interactive);
   --legendary-border: #c5a85c;
   --legendary-text: #654b10;
   --text-link: var(--brand-navy);
@@ -162,12 +177,14 @@
   --border-default: var(--subtle-border);
   --border-strong: var(--strong-border);
   --border-interactive: #89939b;
-  --accent-muted: #3b3620;
+  /* Transitional neutral aliases; feature references are removed in CRM-031 screen passes. */
+  --accent-muted: var(--selection-surface);
+  --accent-subtle: var(--selection-surface);
+  --warning-subtle: var(--warning-surface);
+  --quoted-pending-muted: var(--quoted-pending-surface);
   --accent: var(--brand-accent);
   --accent-hover: #ffcc33;
   --accent-pressed: #d9a300;
-  --accent-subtle: var(--accent-muted);
-  --accent-surface: #625318;
   --accent-solid: var(--accent);
   --accent-strong: var(--accent-hover);
   --on-accent: #221d08;
@@ -188,10 +205,10 @@
   --informational-new: #9dbbd7;
   --informational-new-muted: #25384a;
   --quoted-pending: #f0d276;
-  --quoted-pending-muted: #443d1d;
+  --quoted-pending-surface: var(--surface-interactive);
   --negotiation: #c8adeb;
   --negotiation-muted: #393048;
-  --warning-subtle: #45330d;
+  --warning-surface: var(--surface-interactive);
   --warning-border: #8d691a;
   --warning-text: #f4cf70;
   --uncertain: #d1c4e5;
@@ -201,7 +218,7 @@
   --destructive-solid: #dc5c68;
   --destructive-text: #ffb7bd;
   --on-destructive: #2a0c0f;
-  --legendary-subtle: #443910;
+  --legendary-surface: var(--surface-interactive);
   --legendary-border: #a58b3f;
   --legendary-text: #f0d98f;
   --text-link: #a9c8e2;
@@ -253,6 +270,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: var(--canvas);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
 }
 
 .pipeline-controls {
@@ -607,7 +626,7 @@ a {
 }
 ::selection {
   color: var(--text-primary);
-  background: var(--accent-surface);
+  background: var(--selection-surface);
 }
 
 .ui-panel {
@@ -643,9 +662,9 @@ a {
 .ui-workspace-header h2 {
   margin: 0;
   color: var(--text-primary);
-  font-size: clamp(1.25rem, 1rem + 0.5vw, 1.625rem);
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: var(--text-title-size);
+  font-weight: 700;
+  line-height: var(--text-title-line);
   letter-spacing: -0.02em;
 }
 
@@ -653,8 +672,8 @@ a {
   max-width: 42rem;
   margin: 0.3rem 0 0;
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.45;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
 }
 
 .ui-toolbar {
@@ -694,8 +713,9 @@ a {
   background: var(--surface-interactive);
   padding: 0.4rem 2rem 0.4rem 0.7rem;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: var(--text-control-size);
+  font-weight: 600;
+  line-height: var(--text-control-line);
   outline: none;
 }
 
@@ -718,6 +738,8 @@ a {
   background: var(--surface-raised);
   padding: 0.5rem 0.75rem;
   color: var(--text-primary);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
   outline: none;
   transition:
     border-color 160ms var(--ease-ui),
@@ -737,20 +759,22 @@ a {
   height: 2.25rem;
   min-height: 2.25rem;
   padding-left: 2.15rem;
+  font-size: var(--text-control-size);
+  line-height: var(--text-control-line);
 }
 .ui-label {
   display: block;
   margin-bottom: 0.375rem;
   color: var(--text-primary);
-  font-size: 0.8125rem;
+  font-size: var(--text-label-size);
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: var(--text-small-line);
 }
 .ui-field-description,
 .ui-field-error {
   margin: 0.35rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1.1rem;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-line);
 }
 .ui-field-description {
   color: var(--text-secondary);
@@ -768,19 +792,19 @@ a {
   padding: 0.2rem;
 }
 .ui-segmented-control__button {
-  min-height: 2.25rem;
+  height: 2.5rem;
   border: 0;
   border-radius: calc(var(--radius-control) - 0.05rem);
   background: transparent;
-  padding: 0.35rem 0.75rem;
+  padding: 0 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--text-control-size);
   font-weight: 600;
 }
 .ui-segmented-control__button[aria-pressed="true"] {
-  background: var(--surface-raised);
-  box-shadow: 0 1px 2px rgb(10 20 12 / 12%);
-  color: var(--text-primary);
+  background: var(--action-secondary);
+  box-shadow: none;
+  color: var(--on-action-secondary);
 }
 
 .ui-skeleton {
@@ -925,9 +949,9 @@ a {
   height: 2.25rem;
   place-items: center;
   border-radius: 999px;
-  background: var(--accent-subtle);
-  color: var(--text-primary);
-  font-size: 0.75rem;
+  background: var(--action-secondary-subtle);
+  color: var(--selection-text);
+  font-size: var(--text-micro-size);
   font-weight: 600;
 }
 .ui-notification-badge {
