@@ -24,6 +24,8 @@ WEB_INTAKE_BODY_MAX_BYTES: Final = 32 * 1024
 META_WEBHOOK_BODY_MAX_BYTES: Final = 2 * 1024 * 1024
 WHATSAPP_MEDIA_REQUEST_MAX_BYTES: Final = 17 * 1024 * 1024
 CUSTOMER_IMPORT_REQUEST_MAX_BYTES: Final = 2_250_000
+POSTGRESQL_URL_PREFIX: Final = "postgresql://"
+PSYCOPG_POSTGRESQL_URL_PREFIX: Final = "postgresql+psycopg://"
 
 
 class RuntimeEnvironment(StrEnum):
@@ -86,6 +88,15 @@ def get_database_url() -> str:
     database_url = getenv("DATABASE_URL")
     if not database_url:
         raise RuntimeError("DATABASE_URL environment variable is required")
+    return _normalize_database_url(database_url)
+
+
+def _normalize_database_url(database_url: str) -> str:
+    if database_url.startswith(POSTGRESQL_URL_PREFIX):
+        return (
+            f"{PSYCOPG_POSTGRESQL_URL_PREFIX}"
+            f"{database_url.removeprefix(POSTGRESQL_URL_PREFIX)}"
+        )
     return database_url
 
 
