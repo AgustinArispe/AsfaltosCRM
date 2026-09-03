@@ -26,7 +26,11 @@ from app.core.security_middleware import (
 )
 from app.db.session import engine
 from app.services import DomainError
-from app.whatsapp import FakeMediaStorage, FakeWhatsAppProvider
+from app.whatsapp import (
+    DisabledWhatsAppProvider,
+    FakeMediaStorage,
+    FakeWhatsAppProvider,
+)
 from app.whatsapp.runtime import (
     WhatsAppRuntime,
     build_configured_whatsapp_runtime,
@@ -78,24 +82,25 @@ def create_app(
     if settings.is_production:
         application.add_middleware(ProductionSecurityHeadersMiddleware)
     application.include_router(api_router, prefix="/api")
-    application.include_router(create_whatsapp_router(runtime), prefix="/api")
-    application.include_router(
-        create_whatsapp_broadcast_router(runtime),
-        prefix="/api",
-    )
-    if settings.registers_whatsapp_dev_routes and isinstance(
-        runtime.provider,
-        FakeWhatsAppProvider,
-    ):
+    if not isinstance(runtime.provider, DisabledWhatsAppProvider):
+        application.include_router(create_whatsapp_router(runtime), prefix="/api")
         application.include_router(
-            create_whatsapp_dev_router(runtime, runtime.provider),
+            create_whatsapp_broadcast_router(runtime),
             prefix="/api",
         )
-    if runtime.webhook is not None:
-        application.include_router(
-            create_whatsapp_provider_webhook_router(runtime),
-            prefix="/api",
-        )
+        if settings.registers_whatsapp_dev_routes and isinstance(
+            runtime.provider,
+            FakeWhatsAppProvider,
+        ):
+            application.include_router(
+                create_whatsapp_dev_router(runtime, runtime.provider),
+                prefix="/api",
+            )
+        if runtime.webhook is not None:
+            application.include_router(
+                create_whatsapp_provider_webhook_router(runtime),
+                prefix="/api",
+            )
     return application
 
 

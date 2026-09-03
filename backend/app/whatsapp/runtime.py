@@ -27,6 +27,7 @@ from app.whatsapp.contracts import (
     WhatsAppProvider,
 )
 from app.whatsapp.cursors import WhatsAppCursorCodec
+from app.whatsapp.disabled_provider import DisabledWhatsAppProvider
 from app.whatsapp.fake_provider import FakeWhatsAppProvider
 from app.whatsapp.media_storage import (
     FakeMediaStorage,
@@ -115,6 +116,10 @@ def build_fake_whatsapp_runtime(
 
 def build_configured_whatsapp_runtime() -> WhatsAppRuntime:
     provider_name = get_whatsapp_provider_name()
+    if provider_name == "disabled":
+        return build_disabled_whatsapp_runtime(
+            storage=FilesystemMediaStorage(get_whatsapp_media_storage_root())
+        )
     storage: MediaStorage
     if get_whatsapp_media_storage_name() == "filesystem":
         storage = FilesystemMediaStorage(get_whatsapp_media_storage_root())
@@ -129,6 +134,26 @@ def build_configured_whatsapp_runtime() -> WhatsAppRuntime:
             )
         return build_fake_whatsapp_runtime(provider=provider, storage=storage)
     return build_meta_whatsapp_runtime(storage=storage)
+
+
+def build_disabled_whatsapp_runtime(
+    *,
+    storage: MediaStorage,
+    metrics: WhatsAppQueryMetrics | None = None,
+) -> WhatsAppRuntime:
+    selected_metrics = metrics or NullWhatsAppQueryMetrics()
+    return WhatsAppRuntime(
+        provider=DisabledWhatsAppProvider(),
+        storage=storage,
+        media_policy=_configured_media_policy(),
+        cursors=WhatsAppCursorCodec(get_jwt_secret(), selected_metrics),
+        metrics=selected_metrics,
+        broadcast_batch_size=get_whatsapp_broadcast_batch_size(),
+        broadcast_claim_timeout=timedelta(
+            seconds=get_whatsapp_broadcast_claim_timeout_seconds()
+        ),
+        webhook=None,
+    )
 
 
 def build_meta_whatsapp_runtime(

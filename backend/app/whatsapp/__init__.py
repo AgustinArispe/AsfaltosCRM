@@ -19,6 +19,7 @@ from app.whatsapp.contracts import (
     WindowDecision,
     WindowEvaluationContext,
 )
+from app.whatsapp.disabled_provider import DisabledWhatsAppProvider
 from app.whatsapp.fake_provider import FakeWhatsAppProvider
 from app.whatsapp.media_storage import (
     FakeMediaStorage,
@@ -51,6 +52,7 @@ from app.whatsapp.meta_webhook import (
 )
 
 __all__ = [
+    "DisabledWhatsAppProvider",
     "FakeMediaStorage",
     "FakeWhatsAppProvider",
     "FilesystemMediaStorage",

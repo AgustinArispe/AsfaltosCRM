@@ -1,8 +1,10 @@
 from argparse import ArgumentParser
 from uuid import uuid4
 
+from app.core.config import get_runtime_security_settings
 from app.db.session import SessionLocal
 from app.services.whatsapp_broadcast_service import WhatsAppBroadcastService
+from app.whatsapp import DisabledWhatsAppProvider
 from app.whatsapp.runtime import build_configured_whatsapp_runtime
 
 
@@ -19,7 +21,10 @@ def main() -> None:
     broadcast_id = parse_broadcast_id()
     if broadcast_id <= 0:
         raise SystemExit("broadcast_id must be positive")
+    get_runtime_security_settings()
     runtime = build_configured_whatsapp_runtime()
+    if isinstance(runtime.provider, DisabledWhatsAppProvider):
+        raise SystemExit("WhatsApp provider is disabled")
     with SessionLocal() as session:
         result = WhatsAppBroadcastService(
             session,

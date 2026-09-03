@@ -165,8 +165,8 @@ def get_allowed_hosts() -> tuple[str, ...]:
 @lru_cache
 def get_whatsapp_provider_name() -> str:
     provider_name = getenv("WHATSAPP_PROVIDER", "fake").strip().lower()
-    if provider_name not in {"fake", "meta"}:
-        raise RuntimeError("WHATSAPP_PROVIDER must be 'fake' or 'meta'")
+    if provider_name not in {"disabled", "fake", "meta"}:
+        raise RuntimeError("WHATSAPP_PROVIDER must be 'disabled', 'fake', or 'meta'")
     return provider_name
 
 
@@ -274,8 +274,10 @@ def clear_runtime_settings_caches() -> None:
 def validate_runtime_security_settings(settings: RuntimeSecuritySettings) -> None:
     if not settings.is_production:
         return
-    if settings.whatsapp_provider_name != "meta":
-        raise RuntimeError("WHATSAPP_PROVIDER must be 'meta' in production")
+    if settings.whatsapp_provider_name not in {"disabled", "meta"}:
+        raise RuntimeError(
+            "WHATSAPP_PROVIDER must be 'disabled' or 'meta' in production"
+        )
     if settings.whatsapp_media_storage_name != "filesystem":
         raise RuntimeError("WHATSAPP_MEDIA_STORAGE must be 'filesystem' in production")
     if settings.whatsapp_dev_routes_enabled:
@@ -296,12 +298,13 @@ def validate_runtime_security_settings(settings: RuntimeSecuritySettings) -> Non
         or settings.whatsapp_document_max_bytes > DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
     ):
         raise RuntimeError("WhatsApp media limits cannot exceed 16 MiB in production")
-    # MetaConfig owns its integration-specific typed validation.  Calling it here
-    # keeps production provider validation inside the one startup policy rather
-    # than allowing router assembly to discover missing credentials later.
-    from app.whatsapp.meta_config import MetaConfig
+    if settings.whatsapp_provider_name == "meta":
+        # MetaConfig owns its integration-specific typed validation. Calling it here
+        # keeps production provider validation inside the one startup policy rather
+        # than allowing router assembly to discover missing credentials later.
+        from app.whatsapp.meta_config import MetaConfig
 
-    MetaConfig.from_environment()
+        MetaConfig.from_environment()
 
 
 def _require_production_secret(name: str, value: str) -> None:

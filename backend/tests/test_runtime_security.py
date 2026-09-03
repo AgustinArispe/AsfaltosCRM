@@ -11,8 +11,9 @@ from app.core.config import (
     get_runtime_security_settings,
 )
 from app.main import create_app
-from app.whatsapp import FilesystemMediaStorage, MetaConfig
+from app.whatsapp import DisabledWhatsAppProvider, FilesystemMediaStorage, MetaConfig
 from app.whatsapp.runtime import (
+    build_configured_whatsapp_runtime,
     build_fake_whatsapp_runtime,
     build_meta_whatsapp_runtime,
 )
@@ -45,14 +46,9 @@ def test_production_runtime_configuration_fails_closed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _configure_production_environment(monkeypatch)
-    monkeypatch.setenv("WHATSAPP_PROVIDER", "fake")
-    clear_runtime_settings_caches()
-    with pytest.raises(RuntimeError, match="WHATSAPP_PROVIDER"):
-        get_runtime_security_settings()
-
-    monkeypatch.setenv("WHATSAPP_PROVIDER", "meta")
     monkeypatch.setenv("ALLOWED_HOSTS", "*")
     clear_runtime_settings_caches()
+
     with pytest.raises(RuntimeError, match="ALLOWED_HOSTS"):
         get_runtime_security_settings()
 
@@ -61,6 +57,62 @@ def test_production_runtime_configuration_fails_closed(
     clear_runtime_settings_caches()
     with pytest.raises(RuntimeError, match="JWT_SECRET"):
         get_runtime_security_settings()
+    clear_runtime_settings_caches()
+
+
+def test_production_rejects_fake_whatsapp_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _configure_production_environment(monkeypatch)
+    monkeypatch.setenv("WHATSAPP_PROVIDER", "fake")
+    clear_runtime_settings_caches()
+
+    with pytest.raises(RuntimeError, match="WHATSAPP_PROVIDER"):
+        get_runtime_security_settings()
+
+    clear_runtime_settings_caches()
+
+
+def test_production_disabled_whatsapp_omits_whatsapp_routes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _configure_production_environment(monkeypatch)
+    monkeypatch.setenv("WHATSAPP_PROVIDER", "disabled")
+    for name in (
+        "META_GRAPH_API_VERSION",
+        "META_ACCESS_TOKEN",
+        "META_PHONE_NUMBER_ID",
+        "META_WABA_ID",
+        "META_WEBHOOK_VERIFY_TOKEN",
+        "META_APP_SECRET",
+    ):
+        monkeypatch.delenv(name)
+    clear_runtime_settings_caches()
+
+    settings = get_runtime_security_settings()
+    runtime = build_configured_whatsapp_runtime()
+    application = create_app(runtime, security_settings=settings)
+    paths = application.openapi()["paths"]
+
+    assert isinstance(runtime.provider, DisabledWhatsAppProvider)
+    assert isinstance(runtime.storage, FilesystemMediaStorage)
+    assert runtime.webhook is None
+    assert "/api/customers" in paths
+    assert not any(path.startswith("/api/whatsapp") for path in paths)
+
+    clear_runtime_settings_caches()
+
+
+def test_production_meta_provider_still_requires_meta_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _configure_production_environment(monkeypatch)
+    monkeypatch.delenv("META_ACCESS_TOKEN")
+    clear_runtime_settings_caches()
+
+    with pytest.raises(RuntimeError, match="META_ACCESS_TOKEN"):
+        get_runtime_security_settings()
+
     clear_runtime_settings_caches()
 
 
