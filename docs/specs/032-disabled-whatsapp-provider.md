@@ -1,9 +1,9 @@
 # CRM-032 — Disabled WhatsApp Provider Mode
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-03
-Implementation commit: N/A
+Implementation commit: ef285e9cb15821da97a5a47df8930f8b3d171190
 
 ## Goal
 

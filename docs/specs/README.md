@@ -102,9 +102,6 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
-
-- [`CRM-032`](032-disabled-whatsapp-provider.md) — Approved — production-safe explicit
-  disabled WhatsApp provider mode.
 - [`CRM-026`](026-frontend-final-polish.md) — Approved — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-028 implementation.
@@ -115,6 +112,8 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-032`](032-disabled-whatsapp-provider.md) — Implemented — production-safe
+  explicit disabled WhatsApp provider mode with no provider routes or dispatch.
 - [`CRM-028`](028-visual-clarity-dashboard-simplification.md) — Implemented — neutral
   Light theme, normalized controls, clearer Pipeline stages, simplified Dashboard
   charts, and focused Lost/Opportunity/Quote/WhatsApp visual refinement after CRM-027.
