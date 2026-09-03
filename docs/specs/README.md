@@ -103,7 +103,9 @@ must describe implemented behavior only.
 
 ## Draft specifications
 
-- [`CRM-026`](026-frontend-final-polish.md) — Draft — final cross-product Frontend 2.0
+- [`CRM-032`](032-disabled-whatsapp-provider.md) — Approved — production-safe explicit
+  disabled WhatsApp provider mode.
+- [`CRM-026`](026-frontend-final-polish.md) — Approved — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-028 implementation.
 - [`CRM-017`](017-production-readiness.md) — Draft — final production deployment,
