@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 COPY requirements.in requirements.lock ./
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,id=pip-cache,target=/root/.cache/pip \
     python -m pip install --disable-pip-version-check --require-hashes \
     --retries 10 --timeout 60 -r requirements.lock
 
@@ -22,7 +22,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 FROM runtime-base AS quality
 
 COPY requirements-dev.in requirements-dev.lock ./
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,id=pip-cache,target=/root/.cache/pip \
     python -m pip install --disable-pip-version-check --require-hashes \
     --retries 10 --timeout 60 -r requirements-dev.lock
 
