@@ -1,9 +1,9 @@
 # CRM-033 — Production CORS for Separate Frontend Deployment
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-04
-Implementation commit: N/A
+Implementation commit: b2763dd16e0904ddd75672cf3025a5de3e3291f0
 
 ## Goal
 
