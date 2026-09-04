@@ -4,6 +4,7 @@ from functools import lru_cache
 from os import getenv
 from pathlib import Path
 from typing import Final
+from urllib.parse import urlsplit
 
 from sqlalchemy.engine import make_url
 
@@ -26,6 +27,9 @@ WHATSAPP_MEDIA_REQUEST_MAX_BYTES: Final = 17 * 1024 * 1024
 CUSTOMER_IMPORT_REQUEST_MAX_BYTES: Final = 2_250_000
 POSTGRESQL_URL_PREFIX: Final = "postgresql://"
 PSYCOPG_POSTGRESQL_URL_PREFIX: Final = "postgresql+psycopg://"
+REQUIRED_PRODUCTION_CORS_ORIGIN: Final = (
+    "https://robust-creativity-production-f6de.up.railway.app"
+)
 
 
 class RuntimeEnvironment(StrEnum):
@@ -50,6 +54,7 @@ class RuntimeSecuritySettings:
     web_intake_signing_secret: str = field(repr=False)
     jwt_access_token_expire_minutes: int = 60
     allowed_hosts: tuple[str, ...] = ()
+    cors_allowed_origins: tuple[str, ...] = ()
     whatsapp_provider_name: str = "fake"
     whatsapp_media_storage_name: str = "fake"
     whatsapp_dev_routes_enabled: bool = False
@@ -163,6 +168,22 @@ def get_allowed_hosts() -> tuple[str, ...]:
 
 
 @lru_cache
+def get_cors_allowed_origins() -> tuple[str, ...]:
+    raw_value = getenv("CORS_ALLOWED_ORIGINS", "")
+    if not raw_value.strip():
+        return ()
+
+    origins = tuple(origin.strip() for origin in raw_value.split(","))
+    if any(not origin for origin in origins):
+        raise RuntimeError("CORS_ALLOWED_ORIGINS cannot contain blank entries")
+    if len(set(origins)) != len(origins):
+        raise RuntimeError("CORS_ALLOWED_ORIGINS cannot contain duplicate origins")
+    for origin in origins:
+        _validate_cors_origin(origin)
+    return origins
+
+
+@lru_cache
 def get_whatsapp_provider_name() -> str:
     provider_name = getenv("WHATSAPP_PROVIDER", "fake").strip().lower()
     if provider_name not in {"disabled", "fake", "meta"}:
@@ -246,6 +267,7 @@ def get_runtime_security_settings() -> RuntimeSecuritySettings:
         web_intake_signing_secret=get_web_intake_signing_secret(),
         jwt_access_token_expire_minutes=get_access_token_expire_minutes(),
         allowed_hosts=get_allowed_hosts(),
+        cors_allowed_origins=get_cors_allowed_origins(),
         whatsapp_provider_name=get_whatsapp_provider_name(),
         whatsapp_media_storage_name=get_whatsapp_media_storage_name(),
         whatsapp_dev_routes_enabled=get_whatsapp_dev_routes_enabled(),
@@ -263,6 +285,7 @@ def clear_runtime_settings_caches() -> None:
     get_web_intake_signing_secret.cache_clear()
     get_access_token_expire_minutes.cache_clear()
     get_allowed_hosts.cache_clear()
+    get_cors_allowed_origins.cache_clear()
     get_whatsapp_provider_name.cache_clear()
     get_whatsapp_dev_routes_enabled.cache_clear()
     get_whatsapp_image_max_bytes.cache_clear()
@@ -292,6 +315,7 @@ def validate_runtime_security_settings(settings: RuntimeSecuritySettings) -> Non
     for host in settings.allowed_hosts:
         if not _is_valid_production_host(host):
             raise RuntimeError("ALLOWED_HOSTS contains an unsafe production host")
+    _validate_production_cors_origins(settings.cors_allowed_origins)
     _validate_production_database_url(settings.database_url)
     if (
         settings.whatsapp_image_max_bytes > DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
@@ -346,6 +370,52 @@ def _is_valid_production_host(host: str) -> bool:
         and all(character.isalnum() or character == "-" for character in label)
         for label in labels
     )
+
+
+def _validate_cors_origin(origin: str) -> None:
+    if "*" in origin:
+        raise RuntimeError("CORS_ALLOWED_ORIGINS cannot contain a wildcard")
+    try:
+        parsed = urlsplit(origin)
+        port = parsed.port
+    except ValueError as error:
+        raise RuntimeError("CORS_ALLOWED_ORIGINS contains an invalid origin") from error
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.hostname is None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+        or origin != f"{parsed.scheme}://{parsed.netloc}"
+    ):
+        raise RuntimeError("CORS_ALLOWED_ORIGINS contains an invalid origin")
+    if port is not None and not 1 <= port <= 65_535:
+        raise RuntimeError("CORS_ALLOWED_ORIGINS contains an invalid origin")
+
+
+def _validate_production_cors_origins(origins: tuple[str, ...]) -> None:
+    if not origins:
+        raise RuntimeError("CORS_ALLOWED_ORIGINS is required in production")
+    if origins != (REQUIRED_PRODUCTION_CORS_ORIGIN,):
+        raise RuntimeError(
+            "CORS_ALLOWED_ORIGINS must contain only the required production frontend origin"
+        )
+    for origin in origins:
+        parsed = urlsplit(origin)
+        hostname = parsed.hostname
+        if (
+            parsed.scheme != "https"
+            or parsed.port is not None
+            or hostname is None
+            or not _is_valid_production_host(hostname)
+            or not any(character.isalpha() for character in hostname)
+        ):
+            raise RuntimeError(
+                "CORS_ALLOWED_ORIGINS contains an unsafe production origin"
+            )
 
 
 def _validate_production_database_url(database_url: str) -> None:

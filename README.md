@@ -59,6 +59,7 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `JWT_SECRET` | Secreto de al menos 32 caracteres para firmar tokens JWT | reemplazar el ejemplo |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del access token en minutos | `60` |
 | `ALLOWED_HOSTS` | Hosts HTTP aceptados por FastAPI, separados por comas y sin comodines | `localhost,127.0.0.1,backend,testserver` |
+| `CORS_ALLOWED_ORIGINS` | Orígenes CORS exactos separados por comas; dejar vacío para el proxy local `/api` | vacío |
 | `WEB_INTAKE_SIGNING_SECRET` | Secreto HMAC exclusivo del servidor que envía leads Web; mínimo 32 caracteres | reemplazar el ejemplo |
 | `STALE_OPPORTUNITY_DAYS` | Días sin cambio de etapa antes de crear una notificación interna | `14` |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
@@ -67,6 +68,17 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 
 Generar un secreto de desarrollo con una herramienta segura, por ejemplo
 `openssl rand -hex 32`. No versionar el valor resultante.
+
+En producción, `CORS_ALLOWED_ORIGINS` es obligatorio y sólo acepta orígenes HTTPS
+exactos, sin puertos, paths ni comodines. Para el frontend Railway actual configurar:
+
+```text
+CORS_ALLOWED_ORIGINS=https://robust-creativity-production-f6de.up.railway.app
+```
+
+No es una alternativa a `ALLOWED_HOSTS`: ese valor continúa controlando exclusivamente
+el header HTTP `Host`. CORS no habilita cookies ni credenciales; la API conserva la
+autenticación Bearer mediante `Authorization`.
 
 ## Lead Intake Web
 

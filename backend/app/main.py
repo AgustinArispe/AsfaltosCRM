@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import api_router
@@ -74,6 +75,14 @@ def create_app(
     )
     application.state.runtime_security_settings = settings
     application.add_exception_handler(DomainError, domain_error_handler)
+    if settings.cors_allowed_origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(settings.cors_allowed_origins),
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Content-Type", "Authorization"],
+        )
     application.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=list(settings.allowed_hosts),

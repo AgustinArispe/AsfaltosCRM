@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core.config import (
+    REQUIRED_PRODUCTION_CORS_ORIGIN,
     RuntimeEnvironment,
     clear_runtime_settings_caches,
     get_runtime_security_settings,
@@ -31,6 +32,7 @@ def _configure_production_environment(monkeypatch: pytest.MonkeyPatch) -> None:
         "IntakeSecretForProductionOnly1234567890",
     )
     monkeypatch.setenv("ALLOWED_HOSTS", "crm.faa.example")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", REQUIRED_PRODUCTION_CORS_ORIGIN)
     monkeypatch.setenv("WHATSAPP_PROVIDER", "meta")
     monkeypatch.setenv("WHATSAPP_MEDIA_STORAGE", "filesystem")
     monkeypatch.setenv("WHATSAPP_DEV_ROUTES_ENABLED", "false")
@@ -57,6 +59,33 @@ def test_production_runtime_configuration_fails_closed(
     clear_runtime_settings_caches()
     with pytest.raises(RuntimeError, match="JWT_SECRET"):
         get_runtime_security_settings()
+    clear_runtime_settings_caches()
+
+
+@pytest.mark.parametrize(
+    "origins",
+    (
+        "",
+        "*",
+        "https://*.railway.app",
+        "http://robust-creativity-production-f6de.up.railway.app",
+        "https://robust-creativity-production-f6de.up.railway.app/path",
+        "https://another.example",
+        f"{REQUIRED_PRODUCTION_CORS_ORIGIN},{REQUIRED_PRODUCTION_CORS_ORIGIN}",
+        f"{REQUIRED_PRODUCTION_CORS_ORIGIN},https://another.example",
+    ),
+)
+def test_production_rejects_unsafe_cors_origins(
+    monkeypatch: pytest.MonkeyPatch,
+    origins: str,
+) -> None:
+    _configure_production_environment(monkeypatch)
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", origins)
+    clear_runtime_settings_caches()
+
+    with pytest.raises(RuntimeError, match="CORS_ALLOWED_ORIGINS"):
+        get_runtime_security_settings()
+
     clear_runtime_settings_caches()
 
 
@@ -193,7 +222,76 @@ def test_production_hides_api_documentation_and_sets_security_headers(
     clear_runtime_settings_caches()
 
 
+def test_cors_permits_allowed_origin_preflight_and_actual_request() -> None:
+    application = _cors_application()
+
+    with TestClient(application) as client:
+        preflight = client.options(
+            "/api/auth/login",
+            headers={
+                "Origin": REQUIRED_PRODUCTION_CORS_ORIGIN,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type,authorization",
+            },
+        )
+        actual = client.post(
+            "/api/auth/login",
+            headers={"Origin": REQUIRED_PRODUCTION_CORS_ORIGIN},
+            json={},
+        )
+
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == (
+        REQUIRED_PRODUCTION_CORS_ORIGIN
+    )
+    assert "POST" in preflight.headers["access-control-allow-methods"]
+    assert "content-type" in preflight.headers["access-control-allow-headers"].lower()
+    assert "authorization" in preflight.headers["access-control-allow-headers"].lower()
+    assert "access-control-allow-credentials" not in preflight.headers
+    assert actual.status_code == 422
+    assert (
+        actual.headers["access-control-allow-origin"] == REQUIRED_PRODUCTION_CORS_ORIGIN
+    )
+    assert "access-control-allow-credentials" not in actual.headers
+
+
+def test_cors_rejects_disallowed_origin_and_preserves_no_origin_requests() -> None:
+    application = _cors_application()
+
+    with TestClient(application) as client:
+        preflight = client.options(
+            "/api/auth/login",
+            headers={
+                "Origin": "https://untrusted.example",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+        disallowed_actual = client.post(
+            "/api/auth/login",
+            headers={"Origin": "https://untrusted.example"},
+            json={},
+        )
+        no_origin = client.post("/api/auth/login", json={})
+
+    assert preflight.status_code == 400
+    assert "access-control-allow-origin" not in preflight.headers
+    assert disallowed_actual.status_code == 422
+    assert "access-control-allow-origin" not in disallowed_actual.headers
+    assert no_origin.status_code == 422
+    assert "access-control-allow-origin" not in no_origin.headers
+
+
 def _has_whatsapp_dev_route(application: FastAPI) -> bool:
     return any(
         path.startswith("/api/whatsapp/dev/") for path in application.openapi()["paths"]
     )
+
+
+def _cors_application() -> FastAPI:
+    base = get_runtime_security_settings()
+    settings = replace(
+        base,
+        environment=RuntimeEnvironment.TEST,
+        cors_allowed_origins=(REQUIRED_PRODUCTION_CORS_ORIGIN,),
+    )
+    return create_app(build_fake_whatsapp_runtime(), security_settings=settings)
