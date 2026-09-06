@@ -1,13 +1,17 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
 from app.db.integrity import violates_constraint
 from app.models import User, UserRole
-from app.services.errors import DuplicateEntityError, EntityNotFoundError
+from app.services.errors import (
+    DuplicateEntityError,
+    EntityNotFoundError,
+    UserNotFoundByEmailError,
+)
 
 USER_UPDATE_FIELDS = frozenset({"full_name", "email", "role", "is_active"})
 
@@ -26,6 +30,13 @@ class UserService:
         if user is None:
             raise EntityNotFoundError("User", user_id)
         return user
+
+    def get_user_by_email(self, email: str) -> User | None:
+        return self._session.scalar(
+            select(User).where(
+                func.lower(func.btrim(User.email)) == self._normalize_email(email)
+            )
+        )
 
     def create_user(
         self,
@@ -91,11 +102,30 @@ class UserService:
             )
             if user is None:
                 raise EntityNotFoundError("User", user_id)
-            user.password_hash = password_hash
-            user.auth_session_version += 1
-            user.updated_at = datetime.now(UTC)
+            self._apply_password_change(user, password_hash)
             self._session.flush()
         return user
+
+    def change_password_by_email(self, email: str, password: str) -> User:
+        normalized_email = self._normalize_email(email)
+        password_hash = hash_password(password)
+        with self._session.begin():
+            user = self._session.scalar(
+                select(User)
+                .where(func.lower(func.btrim(User.email)) == normalized_email)
+                .with_for_update()
+            )
+            if user is None:
+                raise UserNotFoundByEmailError(normalized_email)
+            self._apply_password_change(user, password_hash)
+            self._session.flush()
+        return user
+
+    @staticmethod
+    def _apply_password_change(user: User, password_hash: str) -> None:
+        user.password_hash = password_hash
+        user.auth_session_version += 1
+        user.updated_at = datetime.now(UTC)
 
     @staticmethod
     def _normalize_email(email: str) -> str:

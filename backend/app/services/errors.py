@@ -93,6 +93,12 @@ class EntityNotFoundError(DomainError):
         super().__init__(f"{entity_name} with id {entity_id} was not found")
 
 
+class UserNotFoundByEmailError(DomainError):
+    def __init__(self, email: str) -> None:
+        self.email = email
+        super().__init__(f"User with email {email} was not found")
+
+
 class DuplicateEntityError(DomainError):
     def __init__(self, entity_name: str, field_name: str) -> None:
         self.entity_name = entity_name
