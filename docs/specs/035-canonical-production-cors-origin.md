@@ -1,9 +1,9 @@
 # CRM-035 — Canonical Production CORS Origin
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-06
-Implementation commit: N/A
+Implementation commit: 2711b60adc297c89d4dd44e7a88aad5e53e24e75
 
 ## Goal
 
