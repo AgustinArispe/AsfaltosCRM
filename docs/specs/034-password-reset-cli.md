@@ -1,9 +1,9 @@
 # CRM-034 — Production Password Reset CLI
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-06
-Implementation commit: N/A
+Implementation commit: ca6547d1a1efc35dba4bcc95609fcb3f30932396
 
 ## Goal
 
