@@ -69,11 +69,11 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 Generar un secreto de desarrollo con una herramienta segura, por ejemplo
 `openssl rand -hex 32`. No versionar el valor resultante.
 
-En producción, `CORS_ALLOWED_ORIGINS` es obligatorio y sólo acepta orígenes HTTPS
-exactos, sin puertos, paths ni comodines. Para el frontend Railway actual configurar:
+En producción, `CORS_ALLOWED_ORIGINS` es obligatorio y sólo acepta el origen HTTPS
+exacto del frontend canónico, sin puertos, paths ni comodines. Configurar:
 
 ```text
-CORS_ALLOWED_ORIGINS=https://robust-creativity-production-f6de.up.railway.app
+CORS_ALLOWED_ORIGINS=https://crm.scroll.com.ar
 ```
 
 No es una alternativa a `ALLOWED_HOSTS`: ese valor continúa controlando exclusivamente

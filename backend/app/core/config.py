@@ -27,9 +27,7 @@ WHATSAPP_MEDIA_REQUEST_MAX_BYTES: Final = 17 * 1024 * 1024
 CUSTOMER_IMPORT_REQUEST_MAX_BYTES: Final = 2_250_000
 POSTGRESQL_URL_PREFIX: Final = "postgresql://"
 PSYCOPG_POSTGRESQL_URL_PREFIX: Final = "postgresql+psycopg://"
-REQUIRED_PRODUCTION_CORS_ORIGIN: Final = (
-    "https://robust-creativity-production-f6de.up.railway.app"
-)
+REQUIRED_PRODUCTION_CORS_ORIGIN: Final = "https://crm.scroll.com.ar"
 
 
 class RuntimeEnvironment(StrEnum):
