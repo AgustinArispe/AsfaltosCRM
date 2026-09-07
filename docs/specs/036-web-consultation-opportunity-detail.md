@@ -1,9 +1,9 @@
 # CRM-036 — Web Consultation in Opportunity Detail
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-07
-Implementation commit: N/A
+Implementation commit: `c880ebc`
 
 ## Goal
 
