@@ -34,7 +34,6 @@ class FakeWhatsAppProvider:
         self._now = now or datetime.now(UTC)
         self._freeform_window = freeform_window
         self._templates = templates
-        self._next_external_id = 1
         self._behaviors: dict[UUID, ProviderErrorDetails] = {}
         self._media: dict[str, ProviderMediaPayload] = {}
         self.requests: list[RecordedProviderRequest] = []
@@ -176,8 +175,7 @@ class FakeWhatsAppProvider:
         behavior = self._behaviors.get(request.client_generated_id)
         if behavior is not None:
             raise WhatsAppProviderError(behavior)
-        external_id = f"fake-message-{self._next_external_id:06d}"
-        self._next_external_id += 1
+        external_id = f"fake-message-{request.client_generated_id.hex}"
         return ProviderSendResult(
             external_message_id=external_id,
             accepted_at=self._now,

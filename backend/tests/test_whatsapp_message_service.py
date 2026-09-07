@@ -102,7 +102,7 @@ def test_outbound_acceptance_is_idempotent_and_resolves_waiting(
     replay = service.send(request, now=NOW + timedelta(minutes=2))
 
     assert sent.dispatch_state is WhatsAppDispatchState.ACCEPTED
-    assert sent.external_message_id == "fake-message-000001"
+    assert sent.external_message_id == ("fake-message-00000000000000000000000000000001")
     assert replay.message_id == sent.message_id
     assert replay.created is False
     assert len(provider.requests) == 1
@@ -342,7 +342,7 @@ def test_status_before_provider_response_is_attached_on_acceptance(
     )
     status = WhatsAppStatusService(db_session).record(
         ProviderStatusInput(
-            external_message_id="fake-message-000001",
+            external_message_id=("fake-message-00000000000000000000000000000040"),
             state=WhatsAppProviderState.DELIVERED,
             occurred_at=NOW + timedelta(seconds=5),
         ),

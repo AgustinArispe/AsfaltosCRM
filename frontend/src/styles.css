@@ -1246,6 +1246,7 @@ a {
 .lost-workspace {
   width: 100%;
   min-width: 0;
+  overflow-x: hidden;
 }
 .lost-statistics {
   display: grid;
@@ -1359,6 +1360,7 @@ a {
   font-size: 0.8125rem;
 }
 .lost-list {
+  contain: inline-size;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -3081,6 +3083,48 @@ a {
 @media (max-width: 40rem) {
   .lost-statistics {
     grid-template-columns: 1fr;
+  }
+  .lost-list {
+    overflow-x: hidden;
+  }
+  .lost-list table,
+  .lost-list tbody,
+  .lost-list__row {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+  .lost-list thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
+  .lost-list__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 0.75rem;
+  }
+  .lost-list__row > * {
+    min-width: 0;
+    padding: 0.35rem 0.25rem;
+  }
+  .lost-list__customer {
+    grid-column: 1 / -1;
+  }
+  .lost-list__quote span {
+    overflow-wrap: anywhere;
+  }
+  .lost-list__reason,
+  .lost-list__row > td:last-child {
+    justify-self: end;
+  }
+  .lost-list__date {
+    white-space: normal;
   }
 }
 @media (prefers-reduced-motion: no-preference) {

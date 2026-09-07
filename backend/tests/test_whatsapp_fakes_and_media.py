@@ -108,10 +108,10 @@ def test_fake_provider_records_all_requests_and_has_deterministic_ids() -> None:
     )
 
     assert tuple(result.external_message_id for result in results) == (
-        "fake-message-000001",
-        "fake-message-000002",
-        "fake-message-000003",
-        "fake-message-000004",
+        "fake-message-10000000000000000000000000000001",
+        "fake-message-10000000000000000000000000000002",
+        "fake-message-10000000000000000000000000000003",
+        "fake-message-10000000000000000000000000000004",
     )
     assert len(provider.requests) == 4
     assert provider.list_templates() == (template,)
@@ -126,6 +126,26 @@ def test_fake_provider_records_all_requests_and_has_deterministic_ids() -> None:
         ).can_send_freeform
         is True
     )
+
+
+def test_fake_provider_ids_do_not_collide_after_process_restart() -> None:
+    recipient = ProviderRecipient(phone="+541100000000")
+    first = FakeWhatsAppProvider(now=NOW).send_text(
+        SendTextRequest(
+            recipient=recipient,
+            client_generated_id=UUID("20000000-0000-0000-0000-000000000001"),
+            text="Primer proceso",
+        )
+    )
+    second = FakeWhatsAppProvider(now=NOW).send_text(
+        SendTextRequest(
+            recipient=recipient,
+            client_generated_id=UUID("20000000-0000-0000-0000-000000000002"),
+            text="Segundo proceso",
+        )
+    )
+
+    assert first.external_message_id != second.external_message_id
 
 
 def test_fake_provider_supports_media_errors_and_delivery_event_scenarios() -> None:

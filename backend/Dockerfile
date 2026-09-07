@@ -32,4 +32,8 @@ COPY quality ./quality
 COPY scripts ./scripts
 COPY tests ./tests
 
+FROM quality AS browser-quality
+
+RUN playwright install --with-deps chromium
+
 FROM runtime-base AS runtime

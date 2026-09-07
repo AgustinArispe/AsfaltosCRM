@@ -45,6 +45,7 @@ from app.models import (
     WhatsAppProviderState,
     WhatsAppStorageStatus,
 )
+from app.services.customer_identity_service import comparable_phone
 from app.services.customer_service import CustomerService
 from app.services.legendary_service import LegendaryService
 from app.services.notification_service import NotificationService
@@ -89,6 +90,10 @@ _NAMESPACE = UUID("a81d2509-16e8-47ad-9c5a-49ea24be7471")
 _SUPERVISOR_EMAIL = "qa.supervisor@faa.test"
 _SELLER_EMAIL = "qa.vendedor@faa.test"
 _LEGACY_QA_EMAILS = frozenset({_SUPERVISOR_EMAIL, "crm027.visual@faa.test"})
+_BROWSER_QA_EMAILS = frozenset({"usuario.crm026@faa.test"})
+_BROWSER_QA_PRODUCT_NAMES = frozenset({"Producto CRM-026", "Producto CRM-026 editado"})
+_BROWSER_QA_CUSTOMER_NAMES = frozenset({"Cliente CRM-026"})
+_BROWSER_QA_BROADCAST_LABELS = frozenset({"Validación CRM-026"})
 _DATASET_VERSION = "crm027-visual-qa-v1"
 
 
@@ -242,6 +247,12 @@ CUSTOMERS = (
     ),
 )
 
+_VISUAL_QA_PHONE_KEYS = frozenset(
+    normalized
+    for item in CUSTOMERS
+    if (normalized := comparable_phone(item.phone)) is not None
+)
+
 OPPORTUNITIES = (
     OpportunitySeed(0, LeadSource.WEB, OpportunityStatus.NUEVA, 2, 2),
     OpportunitySeed(2, LeadSource.WHATSAPP, OpportunityStatus.NUEVA, 7, 7),
@@ -389,6 +400,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print current visual-QA row counts without changing data.",
     )
+    parser.add_argument(
+        "--anchor",
+        type=_parse_anchor,
+        help="Use a timezone-aware ISO timestamp for deterministic browser QA.",
+    )
     return parser
 
 
@@ -414,7 +430,7 @@ def main() -> int:
         session.rollback()
         supervisor_password = _required_secret("QA_SUPERVISOR_PASSWORD")
         seller_password = _required_secret("QA_SELLER_PASSWORD")
-        anchor = datetime.now(UTC).replace(microsecond=0)
+        anchor = args.anchor or datetime.now(UTC).replace(microsecond=0)
         _seed_dataset(
             session,
             supervisor_password=supervisor_password,
@@ -493,6 +509,16 @@ def _required_secret(name: str) -> str:
     return value
 
 
+def _parse_anchor(value: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("anchor must be an ISO datetime") from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise argparse.ArgumentTypeError("anchor must include a timezone offset")
+    return parsed.astimezone(UTC).replace(microsecond=0)
+
+
 def _stable_uuid(label: str) -> UUID:
     return uuid5(_NAMESPACE, label)
 
@@ -519,23 +545,24 @@ def _dataset_is_complete(session: Session) -> bool:
 
 def _reset_owned_dataset(session: Session) -> None:
     unexpected_users = set(session.scalars(select(User.email))) - (
-        _LEGACY_QA_EMAILS | {_SELLER_EMAIL}
+        _LEGACY_QA_EMAILS | _BROWSER_QA_EMAILS | {_SELLER_EMAIL}
     )
-    unexpected_products = set(session.scalars(select(Product.name))) - set(
-        PRODUCT_NAMES
+    unexpected_products = set(session.scalars(select(Product.name))) - (
+        set(PRODUCT_NAMES) | _BROWSER_QA_PRODUCT_NAMES
     )
-    unexpected_customers = set(session.scalars(select(Customer.name))) - {
-        item.name for item in CUSTOMERS
-    }
+    unexpected_customers = set(session.scalars(select(Customer.name))) - (
+        {item.name for item in CUSTOMERS} | _BROWSER_QA_CUSTOMER_NAMES
+    )
     unexpected_conversations = {
         phone
         for phone in session.scalars(select(WhatsAppConversation.external_phone))
-        if "5550-" not in phone
+        if comparable_phone(phone) not in _VISUAL_QA_PHONE_KEYS
     }
     unexpected_broadcasts = {
         label
         for label in session.scalars(select(WhatsAppBroadcast.label))
         if not label.startswith("QA visual ·")
+        and label not in _BROWSER_QA_BROADCAST_LABELS
     }
     session.rollback()
     if any(
