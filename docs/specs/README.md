@@ -102,9 +102,6 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
-- [`CRM-037`](037-compact-opportunity-detail-modal.md) — Approved — compact, cohesive
-  Opportunity Detail modal with unified identity, summary, actions, commercial content,
-  and a narrower Activity/Notes sidebar.
 - [`CRM-026`](026-frontend-final-polish.md) — Approved — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-028 implementation.
@@ -115,6 +112,9 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-037`](037-compact-opportunity-detail-modal.md) — Implemented — compact,
+  cohesive Opportunity Detail modal with unified identity, summary, actions,
+  commercial content, and a narrower Activity/Notes sidebar.
 - [`CRM-036`](036-web-consultation-opportunity-detail.md) — Implemented — expose the
   immutable original web-form consultation in authenticated Opportunity Detail.
 - [`CRM-032`](032-disabled-whatsapp-provider.md) — Implemented — production-safe

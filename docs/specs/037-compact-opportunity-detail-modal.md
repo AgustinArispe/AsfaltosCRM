@@ -1,9 +1,9 @@
 # CRM-037 — Compact Opportunity Detail Modal
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-07
-Implementation commit: N/A
+Implementation commit: `9961635`
 
 ## Goal
 
