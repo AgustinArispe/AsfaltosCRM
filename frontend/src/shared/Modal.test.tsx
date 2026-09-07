@@ -26,6 +26,28 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(trigger).toHaveFocus()
   })
+
+  it('supports an integrated accessible header and the opportunity width without changing defaults', () => {
+    render(
+      <Modal
+        closeLabel='Cerrar detalle de oportunidad'
+        isOpen
+        onClose={() => undefined}
+        renderHeader={({ titleId }) => <h2 id={titleId}>Constructora FAA</h2>}
+        size='opportunity'
+        title='Constructora FAA'
+      >
+        <p>Contenido comercial</p>
+      </Modal>,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Constructora FAA' })).toHaveClass(
+      'w-[min(64rem,calc(100%-2rem))]',
+    )
+    expect(
+      screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }),
+    ).toBeInTheDocument()
+  })
 })
 
 function Dialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

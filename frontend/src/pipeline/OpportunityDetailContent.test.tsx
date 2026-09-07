@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { OpportunityDetailContent } from './OpportunityDetailContent'
+import { OpportunityDetailContent, OpportunityDetailModalHeader } from './OpportunityDetailContent'
 import type { OpportunityDetail } from './types'
 
 const opportunity: OpportunityDetail = {
@@ -50,10 +50,17 @@ const opportunity: OpportunityDetail = {
 describe('OpportunityDetailContent', () => {
   it('renders the commercial detail, loss context, customer contacts, quote and history', () => {
     render(
-      <OpportunityDetailContent
-        actions={<button type='button'>Acción</button>}
-        opportunity={opportunity}
-      />,
+      <>
+        <OpportunityDetailModalHeader
+          opportunity={opportunity}
+          returnAffordance={<a href='/pipeline'>Volver al Pipeline</a>}
+          titleId='opportunity-title'
+        />
+        <OpportunityDetailContent
+          actions={<button type='button'>Acción</button>}
+          opportunity={opportunity}
+        />
+      </>,
     )
     expect(screen.getByRole('heading', { name: 'FAA Construcciones' })).toBeInTheDocument()
     expect(screen.getByText('Legendario')).toBeInTheDocument()
@@ -71,6 +78,25 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getByText('Total cotizado')).toBeInTheDocument()
     expect(screen.getByText('Consulta creada')).toBeInTheDocument()
     expect(screen.getByText(/Pasó de Negociación a Perdida/)).toBeInTheDocument()
+
+    const summary = document.querySelector('.opportunity-detail__summary--page')
+    expect(summary).not.toBeNull()
+    expect(
+      Array.from(summary?.querySelectorAll('dt') ?? []).map((term) => term.textContent),
+    ).toEqual([
+      'Origen',
+      'Responsable',
+      'Creada',
+      'Tiempo en etapa',
+      'Email',
+      'Teléfono',
+      'Provincia',
+    ])
+    expect(
+      screen.queryByRole('heading', { name: 'Información del cliente' }),
+    ).not.toBeInTheDocument()
+    expect(document.querySelector('.opportunity-detail__body--page')).not.toBeNull()
+    expect(document.querySelector('.opportunity-detail__context')).not.toBeNull()
   })
 
   it('renders missing customer information and the no-quote state in compact layout', () => {
@@ -97,6 +123,7 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getAllByText('No informado')).toHaveLength(2)
     expect(screen.getByText('No informada')).toBeInTheDocument()
     expect(screen.getByText('Aún no se registró una cotización.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Información del cliente' })).toBeInTheDocument()
   })
 
   it('renders a multiline web consultation between customer information and quote', () => {
@@ -115,12 +142,7 @@ describe('OpportunityDetailContent', () => {
       .map((heading) => heading.textContent)
     const message = screen.getByText(/Primera línea/)
 
-    expect(headings).toEqual([
-      'Información del cliente',
-      'Consulta del cliente',
-      'Cotización',
-      'Historial',
-    ])
+    expect(headings).toEqual(['Consulta del cliente', 'Cotización', 'Historial'])
     expect(message).toHaveTextContent('Primera línea Segunda línea')
     expect(message).toHaveClass('whitespace-pre-wrap', 'break-words', '[overflow-wrap:anywhere]')
   })

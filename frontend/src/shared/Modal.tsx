@@ -12,6 +12,8 @@ export function Modal({
   isOpen,
   title,
   description,
+  renderHeader,
+  closeLabel,
   onClose,
   closeDisabled = false,
   size = 'default',
@@ -20,15 +22,23 @@ export function Modal({
   isOpen: boolean
   title: string
   description?: string
+  renderHeader?: (ids: { titleId: string; descriptionId: string }) => ReactNode
+  closeLabel?: string
   onClose: () => void
   closeDisabled?: boolean
-  size?: 'default' | 'large'
+  size?: 'default' | 'large' | 'opportunity'
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const titleId = useId()
   const descriptionId = useId()
+  const widthClass =
+    size === 'large'
+      ? 'w-[min(72rem,calc(100%-2rem))]'
+      : size === 'opportunity'
+        ? 'w-[min(64rem,calc(100%-2rem))]'
+        : 'w-[min(34rem,calc(100%-2rem))]'
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -91,7 +101,7 @@ export function Modal({
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className={`m-auto max-h-[calc(100dvh-2rem)] ${size === 'large' ? 'w-[min(72rem,calc(100%-2rem))]' : 'w-[min(34rem,calc(100%-2rem))]'} border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55`}
+      className={`m-auto max-h-[calc(100dvh-2rem)] ${widthClass} border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55`}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
@@ -99,21 +109,30 @@ export function Modal({
     >
       <div className='max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-overlay)] border border-[var(--subtle-border)] bg-[var(--surface-overlay)] shadow-[var(--shadow-overlay)]'>
         <header className='flex items-start justify-between gap-4 border-b border-[var(--divider)] px-5 py-4 sm:px-6'>
-          <div>
-            <h2
-              className='text-base font-semibold tracking-tight text-[var(--text-primary)]'
-              id={titleId}
-            >
-              {title}
-            </h2>
-            {description ? (
-              <p className='mt-1 text-sm leading-5 text-[var(--text-secondary)]' id={descriptionId}>
-                {description}
-              </p>
-            ) : null}
+          <div className='min-w-0 flex-1'>
+            {renderHeader ? (
+              renderHeader({ titleId, descriptionId })
+            ) : (
+              <>
+                <h2
+                  className='text-base font-semibold tracking-tight text-[var(--text-primary)]'
+                  id={titleId}
+                >
+                  {title}
+                </h2>
+                {description ? (
+                  <p
+                    className='mt-1 text-sm leading-5 text-[var(--text-secondary)]'
+                    id={descriptionId}
+                  >
+                    {description}
+                  </p>
+                ) : null}
+              </>
+            )}
           </div>
           <button
-            aria-label={`Cerrar ${title.toLowerCase()}`}
+            aria-label={closeLabel ?? `Cerrar ${title.toLowerCase()}`}
             className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--hover)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-40'
             disabled={closeDisabled}
             onClick={onClose}

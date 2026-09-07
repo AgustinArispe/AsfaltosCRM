@@ -298,7 +298,7 @@ describe('authenticated frontend', () => {
 
     expect(window.location.pathname).toBe('/pipeline/opportunities/77')
     const drawer = await screen.findByRole('dialog', {
-      name: 'Detalle de oportunidad',
+      name: 'Navegación SA',
     })
     expect(within(drawer).getByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
     fireEvent(drawer, new Event('cancel', { cancelable: true }))
@@ -310,7 +310,7 @@ describe('authenticated frontend', () => {
     })
 
     expect(await screen.findByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Detalle de oportunidad' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('aria-current', 'page')
 
     fireEvent.click(screen.getByRole('link', { name: 'Volver al Pipeline' }))

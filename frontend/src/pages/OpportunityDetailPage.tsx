@@ -16,7 +16,10 @@ import { listWhatsAppConversations } from '../api/whatsapp'
 import { useAuth } from '../auth/AuthContext'
 import { LossModal } from '../pipeline/LossModal'
 import { OpportunityContextPanel } from '../pipeline/OpportunityContextPanel'
-import { OpportunityDetailContent } from '../pipeline/OpportunityDetailContent'
+import {
+  OpportunityDetailContent,
+  OpportunityDetailModalHeader,
+} from '../pipeline/OpportunityDetailContent'
 import { QuoteModal } from '../pipeline/QuoteModal'
 import type { LossReason, OpportunityDetail, Product, QuoteProductInput } from '../pipeline/types'
 import { AppLink, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
@@ -206,15 +209,17 @@ export function OpportunityDetailPage({
   const actions = opportunity ? (
     <>
       {opportunity.status === 'NUEVA' ? (
-        <Button onClick={() => openQuote('create')} variant='primary'>
+        <Button onClick={() => openQuote('create')} size='compact' variant='primary'>
           Cotizar
         </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => openQuote('edit')}>Editar cotización</Button>
+        <Button onClick={() => openQuote('edit')} size='compact'>
+          Editar cotización
+        </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => void move()} variant='primary'>
+        <Button onClick={() => void move()} size='compact' variant='primary'>
           {opportunity.status === 'COTIZADA' ? 'Pasar a negociación' : 'Marcar ganada'}
         </Button>
       ) : null}
@@ -222,19 +227,20 @@ export function OpportunityDetailPage({
         className='opportunity-whatsapp-action'
         disabled={isLookingUpConversation}
         onClick={() => void handleWhatsApp()}
+        size='compact'
       >
         <Icon name='whatsapp' />
         {isLookingUpConversation ? 'Buscando conversación…' : 'Abrir WhatsApp'}
       </Button>
       {isEligibleForReopen(opportunity) ? (
-        <Button onClick={() => setIsReopenConfirmationOpen(true)} variant='primary'>
+        <Button onClick={() => setIsReopenConfirmationOpen(true)} size='compact' variant='primary'>
           Reabrir
         </Button>
       ) : null}
       {opportunity.status === 'NUEVA' ||
       opportunity.status === 'COTIZADA' ||
       opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => setLossOpportunity(opportunity)} variant='danger'>
+        <Button onClick={() => setLossOpportunity(opportunity)} size='compact' variant='danger'>
           Marcar perdida
         </Button>
       ) : null}
@@ -261,18 +267,34 @@ export function OpportunityDetailPage({
   }
 
   return (
-    <Modal isOpen onClose={close} size='large' title='Detalle de oportunidad'>
-      <div className='px-4 pt-3'>
-        <AppLink
-          onClick={(event) => {
-            event.preventDefault()
-            close()
-          }}
-          to={{ kind: 'workspace', workspace: surface }}
-        >
-          Volver al {surface === 'lost' ? 'Perdidas' : 'Pipeline'}
-        </AppLink>
-      </div>
+    <Modal
+      closeLabel='Cerrar detalle de oportunidad'
+      isOpen
+      onClose={close}
+      renderHeader={({ titleId }) => (
+        <OpportunityDetailModalHeader
+          opportunity={opportunity}
+          returnAffordance={
+            <AppLink
+              className='inline-flex items-center gap-1 rounded-[var(--radius-control)] text-[var(--action-secondary)] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+              onClick={(event) => {
+                event.preventDefault()
+                close()
+              }}
+              to={{ kind: 'workspace', workspace: surface }}
+            >
+              <Icon className='size-3.5' name='chevron-left' />
+              Volver al {surface === 'lost' ? 'Perdidas' : 'Pipeline'}
+            </AppLink>
+          }
+          titleId={titleId}
+        />
+      )}
+      size='opportunity'
+      title={
+        opportunity?.customer.company ?? opportunity?.customer.name ?? 'Detalle de oportunidad'
+      }
+    >
       {loading ? (
         <LoadingState label='Cargando oportunidad…' />
       ) : error || !opportunity ? (
@@ -293,9 +315,9 @@ export function OpportunityDetailPage({
           )}
         </div>
       ) : (
-        <div className='max-h-[calc(100dvh-10rem)] overflow-y-auto p-4'>
+        <div>
           {whatsAppFeedback ? (
-            <div className='mb-3'>
+            <div className='px-5 pt-4 sm:px-6'>
               <InlineFeedback
                 message={whatsAppFeedback}
                 onDismiss={() => setWhatsAppFeedback(null)}
@@ -303,7 +325,7 @@ export function OpportunityDetailPage({
             </div>
           ) : null}
           {actionError ? (
-            <div className='mb-3'>
+            <div className='px-5 pt-4 sm:px-6'>
               <InlineFeedback message={actionError} onDismiss={() => setActionError(null)} />
             </div>
           ) : null}

@@ -113,6 +113,11 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
 
     expect(await screen.findByRole('heading', { name: 'Del Sur SA' })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'Del Sur SA' })
+    expect(dialog).toHaveClass('w-[min(64rem,calc(100%-2rem))]')
+    expect(
+      within(dialog).queryByRole('heading', { name: 'Detalle de oportunidad' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByText('Contacto: Constructora del Sur')).toBeInTheDocument()
     expect(screen.getByText('ventas@delsur.test')).toBeInTheDocument()
     expect(screen.getByText('+54 11 4444-5555')).toBeInTheDocument()
@@ -123,6 +128,19 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByText('Martín Vendedor')).toBeInTheDocument()
     expect(screen.getAllByText('3 ago 2026, 14:35')).toHaveLength(2)
     expect(screen.getByText('2 semanas')).toBeInTheDocument()
+
+    const summary = dialog.querySelector('.opportunity-detail__summary--page')
+    expect(
+      Array.from(summary?.querySelectorAll('dt') ?? []).map((term) => term.textContent),
+    ).toEqual([
+      'Origen',
+      'Responsable',
+      'Creada',
+      'Tiempo en etapa',
+      'Email',
+      'Teléfono',
+      'Provincia',
+    ])
 
     const quote = screen.getByRole('heading', { name: 'Cotización' }).parentElement
     expect(quote).not.toBeNull()
@@ -346,6 +364,9 @@ describe('OpportunityDetailPage', () => {
     await screen.findByRole('heading', { name: 'Del Sur SA' })
     expect(screen.getByRole('button', { name: 'Cotizar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Marcar perdida' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cotizar' })).toHaveClass('h-9')
+    expect(screen.getByRole('button', { name: 'Abrir WhatsApp' })).toHaveClass('h-9')
+    expect(screen.getByRole('button', { name: 'Marcar perdida' })).toHaveClass('h-9')
     fireEvent.click(screen.getByRole('button', { name: 'Cotizar' }))
     const product = await screen.findByRole('radio', { name: 'SuperPhalt' })
     fireEvent.click(product)
