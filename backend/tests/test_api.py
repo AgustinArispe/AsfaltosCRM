@@ -237,6 +237,7 @@ def test_opportunity_create_detail_assignee_and_history(
     assert opportunity.assigned_user is not None
     assert opportunity.assigned_user.id == user.id
     assert opportunity.products == []
+    assert opportunity.web_intake is None
     assert opportunity.history[0].from_status is None
     assert opportunity.history[0].to_status == "NUEVA"
     assert api_client.get(f"/api/opportunities/{opportunity.id}").status_code == 200
@@ -297,6 +298,7 @@ def test_opportunity_list_and_filters(
     assert response.status_code == 200
     assert response.json()["total"] == 1
     assert response.json()["items"][0]["id"] == first.id
+    assert "web_intake" not in response.json()["items"][0]
 
 
 def test_complete_won_flow_and_detail_history(

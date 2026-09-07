@@ -49,6 +49,7 @@ export type OpportunityDetail = OpportunitySummary & {
   history: OpportunityStatusHistory[]
   loss_reason: LossReason | null
   updated_at: string
+  web_intake: { message: string | null } | null
 }
 
 export type PaginatedResponse<T> = {

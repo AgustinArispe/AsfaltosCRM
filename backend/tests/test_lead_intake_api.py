@@ -86,6 +86,32 @@ def test_valid_hmac_creates_without_crm_jwt_and_replay_returns_200(
     assert replay.opportunity_id == first.opportunity_id
 
 
+def test_created_web_lead_exposes_only_message_in_authenticated_detail(
+    api_client: TestClient,
+) -> None:
+    authorization = api_client.headers["Authorization"]
+    del api_client.headers["Authorization"]
+    payload = make_payload("api-detail-web-consultation")
+    payload["message"] = "  Primera línea\r\nSegunda línea  "
+
+    intake_response = signed_post(api_client, payload)
+    intake = WebLeadIntakeResponse.model_validate(intake_response.json())
+    api_client.headers["Authorization"] = authorization
+
+    detail_response = api_client.get(f"/api/opportunities/{intake.opportunity_id}")
+    notes_response = api_client.get(f"/api/opportunities/{intake.opportunity_id}/notes")
+
+    assert intake_response.status_code == 201
+    assert detail_response.status_code == 200
+    assert detail_response.json()["web_intake"] == {
+        "message": "Primera línea\nSegunda línea"
+    }
+    assert set(detail_response.json()["web_intake"]) == {"message"}
+    assert len(detail_response.json()["history"]) == 1
+    assert notes_response.status_code == 200
+    assert notes_response.json()["items"] == []
+
+
 def test_same_id_with_different_payload_returns_409(api_client: TestClient) -> None:
     del api_client.headers["Authorization"]
     first = make_payload("api-idempotency-conflict")

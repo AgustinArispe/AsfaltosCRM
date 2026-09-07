@@ -44,6 +44,7 @@ const opportunity: OpportunityDetail = {
   ],
   loss_reason: 'PRECIO',
   updated_at: '2026-08-01T12:00:00Z',
+  web_intake: null,
 }
 
 describe('OpportunityDetailContent', () => {
@@ -96,5 +97,48 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getAllByText('No informado')).toHaveLength(2)
     expect(screen.getByText('No informada')).toBeInTheDocument()
     expect(screen.getByText('Aún no se registró una cotización.')).toBeInTheDocument()
+  })
+
+  it('renders a multiline web consultation between customer information and quote', () => {
+    render(
+      <OpportunityDetailContent
+        opportunity={{
+          ...opportunity,
+          source: 'WEB',
+          web_intake: { message: 'Primera línea\nSegunda línea' },
+        }}
+      />,
+    )
+
+    const headings = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((heading) => heading.textContent)
+    const message = screen.getByText(/Primera línea/)
+
+    expect(headings).toEqual([
+      'Información del cliente',
+      'Consulta del cliente',
+      'Cotización',
+      'Historial',
+    ])
+    expect(message).toHaveTextContent('Primera línea Segunda línea')
+    expect(message).toHaveClass('whitespace-pre-wrap', 'break-words', '[overflow-wrap:anywhere]')
+  })
+
+  it('renders the truthful empty state for a web opportunity without a message', () => {
+    render(
+      <OpportunityDetailContent
+        opportunity={{ ...opportunity, source: 'WEB', web_intake: { message: null } }}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Consulta del cliente' })).toBeInTheDocument()
+    expect(screen.getByText('No hay un mensaje del formulario web disponible.')).toBeInTheDocument()
+  })
+
+  it('does not render the web consultation for a WhatsApp opportunity', () => {
+    render(<OpportunityDetailContent opportunity={opportunity} />)
+
+    expect(screen.queryByRole('heading', { name: 'Consulta del cliente' })).not.toBeInTheDocument()
   })
 })

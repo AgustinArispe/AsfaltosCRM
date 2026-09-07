@@ -178,6 +178,29 @@ export function OpportunityDetailContent({
             </dl>
           </section>
 
+          {opportunity.source === 'WEB' ? (
+            <section
+              aria-labelledby={`customer-consultation-${opportunity.id}`}
+              className='opportunity-detail__section px-4 py-4 sm:px-5'
+            >
+              <h3
+                className='text-sm font-semibold text-[var(--text-primary)]'
+                id={`customer-consultation-${opportunity.id}`}
+              >
+                Consulta del cliente
+              </h3>
+              {opportunity.web_intake?.message ? (
+                <p className='mt-3 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-6 text-[var(--text-primary)]'>
+                  {opportunity.web_intake.message}
+                </p>
+              ) : (
+                <p className='mt-2 text-sm text-[var(--text-tertiary)]'>
+                  No hay un mensaje del formulario web disponible.
+                </p>
+              )}
+            </section>
+          ) : null}
+
           <section
             aria-labelledby={`quote-${opportunity.id}`}
             className='opportunity-detail__section px-4 py-4 sm:px-5'

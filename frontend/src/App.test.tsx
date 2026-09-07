@@ -65,6 +65,7 @@ const opportunityDetail: OpportunityDetail = {
   ],
   loss_reason: null,
   updated_at: '2026-08-04T12:00:00Z',
+  web_intake: null,
 }
 
 const customerDetail: CustomerDetail = {

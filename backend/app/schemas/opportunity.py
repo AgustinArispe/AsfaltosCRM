@@ -86,6 +86,12 @@ class OpportunityStatusHistoryResponse(BaseModel):
     transition_kind: OpportunityTransitionKind
 
 
+class OpportunityWebIntake(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    message: str | None
+
+
 class OpportunitySummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -109,3 +115,4 @@ class OpportunityDetail(OpportunitySummary):
     )
     loss_reason: LossReason | None
     updated_at: datetime
+    web_intake: OpportunityWebIntake | None = Field(validation_alias="lead_intake")

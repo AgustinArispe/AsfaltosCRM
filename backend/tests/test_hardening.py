@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import event
+from sqlalchemy import event, inspect
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -602,6 +602,7 @@ def test_pipeline_query_eager_loads_summary_relations_without_n_plus_one(
         )
         query_count_after_load = len(statements)
         for opportunity in listed:
+            assert "lead_intake" in inspect(opportunity).unloaded
             assert opportunity.customer.name == customer_name
             assert opportunity.assigned_user is not None
             assert opportunity.assigned_user.full_name == user_name

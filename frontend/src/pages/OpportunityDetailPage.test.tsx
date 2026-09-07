@@ -54,6 +54,7 @@ function makeDetail(overrides: Partial<OpportunityDetail> = {}): OpportunityDeta
     created_at: '2026-08-03T17:35:00Z',
     updated_at: '2026-08-12T17:35:00Z',
     loss_reason: null,
+    web_intake: { message: 'Consulta desde el formulario web' },
     history: [
       {
         id: 1,
