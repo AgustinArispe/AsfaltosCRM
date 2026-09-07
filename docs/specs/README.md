@@ -112,6 +112,9 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-038`](038-frontend-interaction-data-synchronization.md) — Implemented — persistent
+  Opportunity workspace, scoped mutation synchronization, deliberate Pipeline refresh,
+  dependency-aware Dashboard requests, catalog reuse, and route-level lazy loading.
 - [`CRM-037`](037-compact-opportunity-detail-modal.md) — Implemented — compact,
   cohesive Opportunity Detail modal with unified identity, summary, actions,
   commercial content, and a narrower Activity/Notes sidebar.
