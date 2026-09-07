@@ -13,7 +13,9 @@ import type {
 import { apiRequest } from './client'
 import type { ApiSession } from './opportunities'
 
-function dimensionQuery(filters: MetricsFilters): URLSearchParams {
+type MetricDimensions = Pick<MetricsFilters, 'source' | 'productId' | 'province'>
+
+function dimensionQuery(filters: MetricDimensions): URLSearchParams {
   const query = new URLSearchParams()
   if (filters.source) query.set('source', filters.source)
   if (filters.productId) query.set('product_id', String(filters.productId))
@@ -67,7 +69,7 @@ export function getTimelineMetrics(
   return apiRequest<TimelineMetrics>(endpoint('/metrics/timeline', query), session)
 }
 
-export function getPipelineMetrics(filters: MetricsFilters, session: ApiSession) {
+export function getPipelineMetrics(filters: MetricDimensions, session: ApiSession) {
   return apiRequest<PipelineMetrics>(
     endpoint('/metrics/pipeline', dimensionQuery(filters)),
     session,

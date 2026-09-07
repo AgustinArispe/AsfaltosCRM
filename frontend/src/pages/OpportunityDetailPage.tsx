@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ApiError } from '../api/client'
 import {
@@ -22,6 +22,7 @@ import {
 } from '../pipeline/OpportunityDetailContent'
 import { QuoteModal } from '../pipeline/QuoteModal'
 import type { LossReason, OpportunityDetail, Product, QuoteProductInput } from '../pipeline/types'
+import type { ActiveProductCatalog } from '../pipeline/useActiveProductCatalog'
 import { AppLink, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
 import { Button } from '../shared/Button'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
@@ -42,15 +43,26 @@ function isEligibleForReopen(opportunity: OpportunityDetail): boolean {
 }
 
 export function OpportunityDetailPage({
+  cachedOpportunity,
+  catalog,
+  onOpportunityUpdated,
   opportunityId,
   surface = 'pipeline',
 }: {
+  cachedOpportunity?: OpportunityDetail
+  catalog?: ActiveProductCatalog
+  onOpportunityUpdated?: (opportunity: OpportunityDetail) => void
   opportunityId: number
   surface?: 'pipeline' | 'lost'
 }) {
   const { token, logout } = useAuth()
-  const [opportunity, setOpportunity] = useState<OpportunityDetail | null>(null)
-  const [loading, setLoading] = useState(true)
+  const returnFocusRef = useRef<HTMLElement | null>(
+    document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  )
+  const [opportunity, setOpportunity] = useState<OpportunityDetail | null>(
+    cachedOpportunity ?? null,
+  )
+  const [loading, setLoading] = useState(!cachedOpportunity)
   const [error, setError] = useState<'not-found' | 'request' | null>(null)
   const [key, setKey] = useState(0)
   const [isReopenConfirmationOpen, setIsReopenConfirmationOpen] = useState(false)
@@ -60,11 +72,19 @@ export function OpportunityDetailPage({
   const [whatsAppFeedback, setWhatsAppFeedback] = useState<string | null>(null)
   const [isQuoteOpen, setIsQuoteOpen] = useState(false)
   const [quoteMode, setQuoteMode] = useState<'create' | 'edit'>('create')
-  const [products, setProducts] = useState<Product[] | null>(null)
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
-  const [productsError, setProductsError] = useState<string | null>(null)
+  const [localProducts, setLocalProducts] = useState<Product[] | null>(null)
+  const [isLoadingLocalProducts, setIsLoadingLocalProducts] = useState(false)
+  const [localProductsError, setLocalProductsError] = useState<string | null>(null)
   const [lossOpportunity, setLossOpportunity] = useState<OpportunityDetail | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [isMutating, setIsMutating] = useState(false)
+  const requestGenerationRef = useRef(0)
+  const opportunityRef = useRef(opportunity)
+  const cachedOpportunityRef = useRef(cachedOpportunity)
+  const onOpportunityUpdatedRef = useRef(onOpportunityUpdated)
+  opportunityRef.current = opportunity
+  cachedOpportunityRef.current = cachedOpportunity
+  onOpportunityUpdatedRef.current = onOpportunityUpdated
   const session = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
@@ -72,13 +92,20 @@ export function OpportunityDetailPage({
   useEffect(() => {
     void key
     const controller = new AbortController()
-    setLoading(true)
+    const generation = requestGenerationRef.current + 1
+    requestGenerationRef.current = generation
+    setLoading(
+      cachedOpportunityRef.current?.id !== opportunityId &&
+        opportunityRef.current?.id !== opportunityId,
+    )
     setError(null)
     getOpportunityDetail(opportunityId, { ...session, signal: controller.signal })
       .then((detail) => {
+        if (generation !== requestGenerationRef.current) return
         if (detail.status === 'PERDIDA' && surface !== 'lost')
           navigateRoute({ kind: 'opportunity', opportunityId, surface: 'lost' }, { replace: true })
         setOpportunity(detail)
+        onOpportunityUpdatedRef.current?.(detail)
       })
       .catch((value: unknown) => {
         if (!(value instanceof DOMException && value.name === 'AbortError'))
@@ -89,13 +116,32 @@ export function OpportunityDetailPage({
       })
     return () => controller.abort()
   }, [key, opportunityId, session, surface])
-  const close = () => navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
+  const close = () => {
+    const previousFocus = returnFocusRef.current
+    navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const pipelineTrigger = document.querySelector<HTMLElement>(
+          `[data-opportunity-id="${opportunityId}"] .pipeline-card__button`,
+        )
+        const fallbackHeading = document.querySelector<HTMLElement>('[data-page-heading]')
+        const target = pipelineTrigger ?? (previousFocus?.isConnected ? previousFocus : null)
+        const focusTarget = target ?? fallbackHeading
+        focusTarget?.focus()
+      })
+    })
+  }
   const handleReopen = async () => {
     if (!opportunity || !isEligibleForReopen(opportunity) || isReopening) return
+    requestGenerationRef.current += 1
     setIsReopening(true)
     setReopenError(null)
     try {
-      await reopenOpportunity(opportunity.id, session)
+      const updated = await reopenOpportunity(opportunity.id, session)
+      setOpportunity(updated)
+      onOpportunityUpdated?.(updated)
+      setIsReopenConfirmationOpen(false)
+      setReopenError(null)
       navigateRoute(
         { kind: 'opportunity', opportunityId: opportunity.id, surface: 'pipeline' },
         { origin: { kind: 'workspace', workspace: 'lost' } },
@@ -150,24 +196,29 @@ export function OpportunityDetailPage({
   }
 
   const loadProducts = () => {
-    setIsLoadingProducts(true)
-    setProductsError(null)
+    if (catalog) {
+      void catalog.load().catch(() => undefined)
+      return
+    }
+    setIsLoadingLocalProducts(true)
+    setLocalProductsError(null)
     listActiveProducts(session)
-      .then((items) => setProducts(items.filter((item) => item.is_active)))
-      .catch(() => setProductsError('No pudimos cargar los productos. Intentá nuevamente.'))
-      .finally(() => setIsLoadingProducts(false))
+      .then((items) => setLocalProducts(items.filter((item) => item.is_active)))
+      .catch(() => setLocalProductsError('No pudimos cargar los productos. Intentá nuevamente.'))
+      .finally(() => setIsLoadingLocalProducts(false))
   }
 
   const openQuote = (mode: 'create' | 'edit') => {
     setQuoteMode(mode)
     setIsQuoteOpen(true)
-    if (!products && !isLoadingProducts) {
+    if (!(catalog?.products ?? localProducts) && !(catalog?.isLoading ?? isLoadingLocalProducts)) {
       loadProducts()
     }
   }
 
   const handleQuote = async (lines: QuoteProductInput[]) => {
     if (!opportunity) return
+    requestGenerationRef.current += 1
     if (quoteMode === 'edit') {
       const updated = await updateOpportunityQuoteProducts(
         opportunity.id,
@@ -176,29 +227,40 @@ export function OpportunityDetailPage({
         session,
       )
       setOpportunity(updated)
+      onOpportunityUpdated?.(updated)
     } else {
-      await quoteOpportunity(opportunity.id, lines, session)
-      setKey((current) => current + 1)
+      const updated = await quoteOpportunity(opportunity.id, lines, session)
+      setOpportunity(updated)
+      onOpportunityUpdated?.(updated)
     }
     setIsQuoteOpen(false)
   }
 
   const move = async () => {
-    if (!opportunity) return
+    if (!opportunity || isMutating) return
+    requestGenerationRef.current += 1
     setActionError(null)
+    setIsMutating(true)
     try {
-      if (opportunity.status === 'COTIZADA')
-        await moveOpportunityToNegotiation(opportunity.id, session)
-      if (opportunity.status === 'NEGOCIACION') await winOpportunity(opportunity.id, session)
-      setKey((current) => current + 1)
+      const updated =
+        opportunity.status === 'COTIZADA'
+          ? await moveOpportunityToNegotiation(opportunity.id, session)
+          : await winOpportunity(opportunity.id, session)
+      setOpportunity(updated)
+      onOpportunityUpdated?.(updated)
     } catch {
       setActionError('No pudimos actualizar la oportunidad. Intentá nuevamente.')
+    } finally {
+      setIsMutating(false)
     }
   }
 
   const handleLoss = async (reason: LossReason) => {
     if (!lossOpportunity) return
-    await loseOpportunity(lossOpportunity.id, reason, session)
+    requestGenerationRef.current += 1
+    const updated = await loseOpportunity(lossOpportunity.id, reason, session)
+    setOpportunity(updated)
+    onOpportunityUpdated?.(updated)
     setLossOpportunity(null)
     navigateRoute(
       { kind: 'opportunity', opportunityId: lossOpportunity.id, surface: 'lost' },
@@ -219,7 +281,7 @@ export function OpportunityDetailPage({
         </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => void move()} size='compact' variant='primary'>
+        <Button disabled={isMutating} onClick={() => void move()} size='compact' variant='primary'>
           {opportunity.status === 'COTIZADA' ? 'Pasar a negociación' : 'Marcar ganada'}
         </Button>
       ) : null}
@@ -250,18 +312,21 @@ export function OpportunityDetailPage({
   if (opportunity && isQuoteOpen) {
     return (
       <QuoteModal
-        isLoadingProducts={isLoadingProducts}
+        isLoadingProducts={catalog?.isLoading ?? isLoadingLocalProducts}
         isOpen
         mode={quoteMode}
         onClose={() => setIsQuoteOpen(false)}
         onConfirm={handleQuote}
         onRetryProducts={() => {
-          setProducts(null)
-          loadProducts()
+          if (catalog) void catalog.retry().catch(() => undefined)
+          else {
+            setLocalProducts(null)
+            loadProducts()
+          }
         }}
         opportunity={opportunity}
-        products={products}
-        productsError={productsError}
+        products={catalog?.products ?? localProducts}
+        productsError={catalog?.error ?? localProductsError}
       />
     )
   }
@@ -290,6 +355,7 @@ export function OpportunityDetailPage({
           titleId={titleId}
         />
       )}
+      returnFocusTo={returnFocusRef.current}
       size='opportunity'
       title={
         opportunity?.customer.company ?? opportunity?.customer.name ?? 'Detalle de oportunidad'

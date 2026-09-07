@@ -1,43 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import {
   type ApiSession,
-  listPipelineOpportunities,
+  listOpportunityStage,
   moveOpportunityToNegotiation,
   quoteOpportunity,
   winOpportunity,
 } from '../api/opportunities'
-import { listActiveProducts } from '../api/products'
 import { useAuth } from '../auth/AuthContext'
 import {
   DEFAULT_PIPELINE_FILTERS,
   type PipelineFilters,
   projectPipeline,
 } from '../pipeline/board-state'
-import { canMoveTo, STAGE_BY_STATUS } from '../pipeline/config'
+import { canMoveTo, PIPELINE_STAGES, STAGE_BY_STATUS } from '../pipeline/config'
 import { pipelineErrorMessage } from '../pipeline/errors'
+import {
+  EMPTY_OPPORTUNITY_WORKSPACE_STATE,
+  opportunityWorkspaceReducer,
+  workspaceOpportunities,
+} from '../pipeline/opportunity-workspace-state'
 import { PipelineBoard } from '../pipeline/PipelineBoard'
 import { PipelineControls } from '../pipeline/PipelineControls'
 import { QuoteModal } from '../pipeline/QuoteModal'
-import type {
-  OpportunitySummary,
-  PipelineStatus,
-  Product,
-  QuoteProductInput,
-} from '../pipeline/types'
+import type { OpportunitySummary, PipelineStatus, QuoteProductInput } from '../pipeline/types'
+import { useActiveProductCatalog } from '../pipeline/useActiveProductCatalog'
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { Icon } from '../shared/Icon'
 import { EmptyState, InlineFeedback } from '../shared/StatusStates'
-
-function replaceOpportunity(
-  opportunities: OpportunitySummary[],
-  updatedOpportunity: OpportunitySummary,
-): OpportunitySummary[] {
-  return opportunities.map((opportunity) =>
-    opportunity.id === updatedOpportunity.id ? updatedOpportunity : opportunity,
-  )
-}
+import { OpportunityDetailPage } from './OpportunityDetailPage'
 
 function BoardSkeleton() {
   return (
@@ -61,7 +53,10 @@ function BoardSkeleton() {
 
 export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?: number }) {
   const { token, logout } = useAuth()
-  const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([])
+  const [workspace, dispatch] = useReducer(
+    opportunityWorkspaceReducer,
+    EMPTY_OPPORTUNITY_WORKSPACE_STATE,
+  )
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -69,19 +64,20 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const [reloadKey, setReloadKey] = useState(0)
   const [busyOpportunityIds, setBusyOpportunityIds] = useState<Set<number>>(new Set())
   const [quoteOpportunityId, setQuoteOpportunityId] = useState<number | null>(null)
-  const [products, setProducts] = useState<Product[] | null>(null)
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
-  const [productsError, setProductsError] = useState<string | null>(null)
   const [filters, setFilters] = useState<PipelineFilters>(DEFAULT_PIPELINE_FILTERS)
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showStageAge, setShowStageAge] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const hasLoadedRef = useRef(false)
+  const requestVersionRef = useRef(0)
+  const mutationGenerationRef = useRef<Record<number, number>>({})
 
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
   )
+  const catalog = useActiveProductCatalog(apiSession)
+  const opportunities = useMemo(() => workspaceOpportunities(workspace), [workspace])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(filters.search), 180)
@@ -91,16 +87,49 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   useEffect(() => {
     void reloadKey
     const controller = new AbortController()
+    const requestVersion = requestVersionRef.current + 1
+    requestVersionRef.current = requestVersion
+    const mutationGenerationsAtStart = { ...mutationGenerationRef.current }
     setIsRefreshing(hasLoadedRef.current)
     setLoadError(null)
-    listPipelineOpportunities({ ...apiSession, signal: controller.signal }, filters.source)
-      .then(setOpportunities)
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        setLoadError(pipelineErrorMessage(error, 'load'))
+    const requestSession = { ...apiSession, signal: controller.signal }
+    void Promise.allSettled(
+      PIPELINE_STAGES.map((stage) =>
+        listOpportunityStage(stage.status, filters.source, requestSession),
+      ),
+    )
+      .then((results) => {
+        if (controller.signal.aborted || requestVersionRef.current !== requestVersion) return
+        const failedStages: string[] = []
+        results.forEach((result, index) => {
+          const stage = PIPELINE_STAGES[index]
+          if (!stage) return
+          if (result.status === 'fulfilled') {
+            const protectedOpportunityIds = Object.entries(mutationGenerationRef.current)
+              .filter(
+                ([id, generation]) => generation > (mutationGenerationsAtStart[Number(id)] ?? 0),
+              )
+              .map(([id]) => Number(id))
+            dispatch({
+              type: 'replace-stage',
+              status: stage.status,
+              opportunities: result.value,
+              protectedOpportunityIds,
+            })
+          } else {
+            failedStages.push(stage.label)
+          }
+        })
+        if (failedStages.length > 0) {
+          setLoadError(
+            hasLoadedRef.current
+              ? `La actualización fue parcial. No pudimos actualizar: ${failedStages.join(', ')}.`
+              : 'No pudimos conectar con el servidor. Revisá tu conexión e intentá nuevamente.',
+          )
+        }
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && requestVersionRef.current === requestVersion) {
           hasLoadedRef.current = true
           setHasLoaded(true)
           setIsRefreshing(false)
@@ -118,26 +147,12 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     })
   }
 
-  const findOpportunity = (opportunityId: number) =>
-    opportunities.find((opportunity) => opportunity.id === opportunityId) ?? null
-
-  const loadProducts = async () => {
-    setIsLoadingProducts(true)
-    setProductsError(null)
-    try {
-      const activeProducts = await listActiveProducts(apiSession)
-      setProducts(activeProducts.filter((product) => product.is_active))
-    } catch (error) {
-      setProductsError(pipelineErrorMessage(error, 'quote'))
-    } finally {
-      setIsLoadingProducts(false)
-    }
-  }
+  const findOpportunity = (opportunityId: number) => workspace.summariesById[opportunityId] ?? null
 
   const openQuoteModal = (opportunityId: number) => {
     setOperationError(null)
     setQuoteOpportunityId(opportunityId)
-    if (!products && !isLoadingProducts) void loadProducts()
+    if (!catalog.products && !catalog.isLoading) void catalog.load().catch(() => undefined)
   }
 
   const handleMove = async (opportunityId: number, targetStatus: PipelineStatus) => {
@@ -161,18 +176,23 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
       status: targetStatus,
       current_status_entered_at: new Date().toISOString(),
     }
-    setOpportunities((current) => replaceOpportunity(current, optimisticOpportunity))
+    const generation = (mutationGenerationRef.current[opportunityId] ?? 0) + 1
+    mutationGenerationRef.current[opportunityId] = generation
+    dispatch({ type: 'start-mutation', opportunityId })
+    dispatch({ type: 'upsert', opportunity: optimisticOpportunity })
     try {
       const updatedOpportunity =
         targetStatus === 'NEGOCIACION'
           ? await moveOpportunityToNegotiation(opportunityId, apiSession)
           : await winOpportunity(opportunityId, apiSession)
-      setOpportunities((current) => replaceOpportunity(current, updatedOpportunity))
+      if (mutationGenerationRef.current[opportunityId] === generation)
+        dispatch({ type: 'upsert', opportunity: updatedOpportunity })
       setAnnouncement(
         `${opportunity.customer.name} pasó a ${STAGE_BY_STATUS.get(targetStatus)?.singularLabel}.`,
       )
     } catch (error) {
-      setOpportunities((current) => replaceOpportunity(current, opportunity))
+      if (mutationGenerationRef.current[opportunityId] === generation)
+        dispatch({ type: 'upsert', opportunity })
       setOperationError(pipelineErrorMessage(error, 'transition'))
       setAnnouncement(
         `No se pudo mover ${opportunity.customer.name}; se mantuvo en ${STAGE_BY_STATUS.get(opportunity.status as PipelineStatus)?.singularLabel}.`,
@@ -185,10 +205,13 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const handleQuote = async (quoteProducts: QuoteProductInput[]) => {
     const opportunity = quoteOpportunityId ? findOpportunity(quoteOpportunityId) : null
     if (!opportunity) throw new Error('La oportunidad ya no está disponible.')
+    mutationGenerationRef.current[opportunity.id] =
+      (mutationGenerationRef.current[opportunity.id] ?? 0) + 1
+    dispatch({ type: 'start-mutation', opportunityId: opportunity.id })
     setOpportunityBusy(opportunity.id, true)
     try {
       const updatedOpportunity = await quoteOpportunity(opportunity.id, quoteProducts, apiSession)
-      setOpportunities((current) => replaceOpportunity(current, updatedOpportunity))
+      dispatch({ type: 'upsert', opportunity: updatedOpportunity })
       setQuoteOpportunityId(null)
       setAnnouncement(`${opportunity.customer.name} pasó a Cotizada.`)
     } catch (error) {
@@ -297,14 +320,27 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         {announcement}
       </p>
       <QuoteModal
-        isLoadingProducts={isLoadingProducts}
+        isLoadingProducts={catalog.isLoading}
         onClose={() => setQuoteOpportunityId(null)}
         onConfirm={handleQuote}
-        onRetryProducts={() => void loadProducts()}
+        onRetryProducts={() => void catalog.retry().catch(() => undefined)}
         opportunity={quotedOpportunity}
-        products={products}
-        productsError={productsError}
+        products={catalog.products}
+        productsError={catalog.error}
       />
+      {selectedOpportunityId ? (
+        <OpportunityDetailPage
+          catalog={catalog}
+          cachedOpportunity={workspace.detailsById[selectedOpportunityId]}
+          onOpportunityUpdated={(opportunity) => {
+            mutationGenerationRef.current[opportunity.id] =
+              (mutationGenerationRef.current[opportunity.id] ?? 0) + 1
+            dispatch({ type: 'cache-detail', opportunity })
+          }}
+          opportunityId={selectedOpportunityId}
+          surface='pipeline'
+        />
+      ) : null}
     </section>
   )
 }

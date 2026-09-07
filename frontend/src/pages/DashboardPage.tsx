@@ -12,6 +12,7 @@ import {
 } from '../metrics/DashboardVisuals'
 import { activeFilterCount, defaultDashboardFilters } from '../metrics/filters'
 import { useDashboardMetrics } from '../metrics/useDashboardMetrics'
+import { useNotificationAttentionContext } from '../notifications/NotificationAttention'
 import { AppLink } from '../routing/router'
 import { Icon, type IconName } from '../shared/Icon'
 import { EmptyState, Skeleton } from '../shared/StatusStates'
@@ -115,9 +116,11 @@ export function DashboardPage() {
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
   )
+  const notificationAttention = useNotificationAttentionContext()
   const { attention, data, errors, hasLoaded, isRefreshing, products, retry } = useDashboardMetrics(
     filters,
     session,
+    notificationAttention?.count ?? null,
   )
   const provinces = useMemo(
     () =>

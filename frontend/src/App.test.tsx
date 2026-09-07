@@ -293,6 +293,11 @@ describe('authenticated frontend', () => {
     const cardButton = await screen.findByRole('button', {
       name: /Abrir oportunidad de Navegación SA/,
     })
+    const board = document.querySelector('.pipeline-board')
+    const main = document.querySelector('#main-content')
+    const stageRequestsBeforeOpen = fetchMock.mock.calls.filter(([input]) =>
+      String(input).includes('/api/opportunities?'),
+    ).length
     cardButton.focus()
     fireEvent.click(cardButton)
 
@@ -301,8 +306,33 @@ describe('authenticated frontend', () => {
       name: 'Navegación SA',
     })
     expect(within(drawer).getByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
-    fireEvent(drawer, new Event('cancel', { cancelable: true }))
+    expect(document.querySelector('.pipeline-board')).toBe(board)
+    expect(document.querySelector('#main-content')).toBe(main)
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?')),
+    ).toHaveLength(stageRequestsBeforeOpen)
+
+    act(() => window.history.back())
     await waitFor(() => expect(window.location.pathname).toBe('/pipeline'))
+    expect(document.querySelector('.pipeline-board')).toBe(board)
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?')),
+    ).toHaveLength(stageRequestsBeforeOpen)
+    act(() => window.history.forward())
+    await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/77'))
+    expect(await screen.findByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(document.querySelector('.pipeline-board')).toBe(board)
+
+    fireEvent(
+      screen.getByRole('dialog', { name: 'Navegación SA' }),
+      new Event('cancel', { cancelable: true }),
+    )
+    await waitFor(() => expect(window.location.pathname).toBe('/pipeline'))
+    expect(document.querySelector('.pipeline-board')).toBe(board)
+    expect(document.querySelector('#main-content')).toBe(main)
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?')),
+    ).toHaveLength(stageRequestsBeforeOpen)
 
     act(() => {
       window.history.pushState(null, '', '/opportunities/77')
@@ -319,6 +349,33 @@ describe('authenticated frontend', () => {
     expect(await screen.findByRole('heading', { name: 'Nueva' })).toBeInTheDocument()
   })
 
+  it('loads a direct Pipeline detail link with one board generation and one detail request', async () => {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
+    const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = new URL(String(input), 'http://localhost')
+      if (url.pathname === '/api/auth/me') return jsonResponse(200, supervisor)
+      if (url.pathname === '/api/opportunities/77') return jsonResponse(200, opportunityDetail)
+      if (url.pathname === '/api/opportunities') {
+        return jsonResponse(200, {
+          ...emptyOpportunityPage,
+          items: url.searchParams.get('status') === 'NUEVA' ? [opportunitySummary] : [],
+        })
+      }
+      throw new Error(`Unexpected request: ${url.pathname}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderApp('/pipeline/opportunities/77')
+
+    expect(await screen.findByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?')),
+    ).toHaveLength(4)
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/opportunities/77')),
+    ).toHaveLength(1)
+  })
+
   it('hides Users and redirects its route for sellers', async () => {
     mockRestoredSession(seller)
     renderApp('/users')
@@ -327,6 +384,21 @@ describe('authenticated frontend', () => {
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
+  })
+
+  it('loads the authorized Users workspace through its route chunk', async () => {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url = new URL(String(input), 'http://localhost')
+        if (url.pathname === '/api/auth/me') return jsonResponse(200, supervisor)
+        if (url.pathname === '/api/users') return jsonResponse(200, [])
+        throw new Error(`Unexpected request: ${url.pathname}`)
+      }),
+    )
+    renderApp('/users')
+    expect(await screen.findByText('Todavía no hay usuarios')).toBeInTheDocument()
   })
 
   it('keeps the sidebar navigation reachable below the desktop breakpoint', async () => {

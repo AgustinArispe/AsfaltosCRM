@@ -284,6 +284,47 @@ describe('DashboardPage', () => {
     expect(screen.getByLabelText('Producto')).toHaveValue('')
   })
 
+  it('refetches only resources that depend on changed commercial filters', async () => {
+    const fetchMock = await renderLoaded()
+    const counts = () => {
+      const paths = fetchMock.mock.calls.map(
+        ([input]) => new URL(String(input), 'http://localhost').pathname,
+      )
+      return {
+        commercial: paths.filter(
+          (path) => path.startsWith('/api/metrics/') && path !== '/api/metrics/pipeline',
+        ).length,
+        pipeline: paths.filter((path) => path === '/api/metrics/pipeline').length,
+        notifications: paths.filter((path) => path === '/api/notifications').length,
+        waiting: paths.filter((path) => path === '/api/whatsapp/conversations').length,
+        catalog: paths.filter((path) => path === '/api/products').length,
+      }
+    }
+    const initial = counts()
+    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'last-three-months' } })
+    await waitFor(() => expect(counts().commercial).toBe(initial.commercial + 5))
+    expect(counts()).toEqual({
+      commercial: initial.commercial + 5,
+      pipeline: initial.pipeline,
+      notifications: initial.notifications,
+      waiting: initial.waiting,
+      catalog: initial.catalog,
+    })
+
+    const beforeDimension = counts()
+    fireEvent.change(screen.getByLabelText('Origen', { selector: 'select' }), {
+      target: { value: 'WHATSAPP' },
+    })
+    await waitFor(() => expect(counts().commercial).toBe(beforeDimension.commercial + 5))
+    expect(counts()).toEqual({
+      commercial: beforeDimension.commercial + 5,
+      pipeline: beforeDimension.pipeline + 1,
+      notifications: beforeDimension.notifications,
+      waiting: beforeDimension.waiting,
+      catalog: beforeDimension.catalog,
+    })
+  })
+
   it('supports custom dates and changes long periods to monthly timeline buckets', async () => {
     const fetchMock = await renderLoaded()
     fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'custom' } })

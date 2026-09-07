@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { ApiError } from '../api/client'
 import {
   getMetricsOverview,
@@ -8,13 +9,13 @@ import {
   getSourceMetrics,
   getTimelineMetrics,
 } from '../api/metrics'
-import { getActiveNotificationTotal, getNotificationTotal } from '../api/notifications'
+import { getNotificationTotal } from '../api/notifications'
 import type { ApiSession } from '../api/opportunities'
 import { listProducts } from '../api/products'
 import { listWhatsAppConversations } from '../api/whatsapp'
 import type { Product } from '../products/types'
 import type { DashboardFilters } from './filters'
-import { timelineGranularity } from './filters'
+import { pipelineDimensions, timelineGranularity } from './filters'
 import type { DashboardData } from './types'
 
 export type DashboardAttention = {
@@ -34,15 +35,25 @@ function dashboardErrorMessage(error: unknown): string {
   return 'No pudimos actualizar esta información. Conservamos los últimos datos disponibles.'
 }
 
-function fulfilled<T>(result: PromiseSettledResult<T>): T | null {
-  return result.status === 'fulfilled' ? result.value : null
+function commercialValue(
+  key: 'overview' | 'products' | 'sources' | 'provinces' | 'timeline',
+  value: unknown,
+): unknown {
+  if (key === 'products' || key === 'sources' || key === 'provinces') {
+    return (value as { items: unknown[] }).items
+  }
+  return value
 }
 
-export function useDashboardMetrics(filters: DashboardFilters, session: ApiSession) {
+export function useDashboardMetrics(
+  filters: DashboardFilters,
+  session: ApiSession,
+  unreadTotal: number | null,
+) {
   const [data, setData] = useState<Partial<DashboardData>>({})
   const [attention, setAttention] = useState<DashboardAttention>({
     staleTotal: null,
-    unreadTotal: null,
+    unreadTotal,
     hasWaitingConversation: null,
   })
   const [products, setProducts] = useState<Product[]>([])
@@ -50,10 +61,27 @@ export function useDashboardMetrics(filters: DashboardFilters, session: ApiSessi
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const commercialVersion = useRef(0)
+  const pipelineVersion = useRef(0)
   const hasLoadedRef = useRef(false)
-  const requestVersion = useRef(0)
-
+  const attentionFailuresRef = useRef({ stale: false, waiting: false })
   const retry = useCallback(() => setRefreshKey((value) => value + 1), [])
+  const setAttentionFailure = useCallback((resource: 'stale' | 'waiting', failed: boolean) => {
+    attentionFailuresRef.current[resource] = failed
+    setErrors((current) => {
+      const next = { ...current }
+      if (attentionFailuresRef.current.stale || attentionFailuresRef.current.waiting) {
+        next.attention = 'unavailable'
+      } else {
+        delete next.attention
+      }
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    setAttention((current) => ({ ...current, unreadTotal }))
+  }, [unreadTotal])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -71,95 +99,103 @@ export function useDashboardMetrics(filters: DashboardFilters, session: ApiSessi
   useEffect(() => {
     void refreshKey
     const controller = new AbortController()
-    const version = requestVersion.current + 1
-    requestVersion.current = version
+    const version = commercialVersion.current + 1
+    commercialVersion.current = version
     setIsRefreshing(hasLoadedRef.current)
-
     const requestSession = { ...session, signal: controller.signal }
-    const granularity = timelineGranularity(filters)
     void Promise.allSettled([
       getMetricsOverview(filters, requestSession),
       getProductMetrics(filters, requestSession),
       getSourceMetrics(filters, requestSession),
       getProvinceMetrics(filters, requestSession),
-      getTimelineMetrics(filters, granularity, requestSession),
-      getPipelineMetrics(filters, requestSession),
-      getNotificationTotal(false, requestSession),
-      getActiveNotificationTotal(requestSession),
-      listWhatsAppConversations(
-        { limit: 1, pageCursor: null, waitingOnly: true, unreadOnly: false, search: '' },
-        requestSession,
-      ),
+      getTimelineMetrics(filters, timelineGranularity(filters), requestSession),
     ]).then((results) => {
-      if (controller.signal.aborted || requestVersion.current !== version) return
-      const [
-        overview,
-        productsResult,
-        sources,
-        provinces,
-        timeline,
-        pipeline,
-        stale,
-        unread,
-        waiting,
-      ] = results
+      if (controller.signal.aborted || commercialVersion.current !== version) return
+      const keys = ['overview', 'products', 'sources', 'provinces', 'timeline'] as const
       const nextData: Partial<DashboardData> = {}
       const nextErrors: DashboardErrors = {}
-      const overviewValue = fulfilled(overview)
-      const productsValue = fulfilled(productsResult)
-      const sourcesValue = fulfilled(sources)
-      const provincesValue = fulfilled(provinces)
-      const timelineValue = fulfilled(timeline)
-      const pipelineValue = fulfilled(pipeline)
-
-      if (overviewValue) nextData.overview = overviewValue
-      else
-        nextErrors.overview = dashboardErrorMessage(
-          overview.status === 'rejected' ? overview.reason : null,
-        )
-      if (productsValue) nextData.products = productsValue.items
-      else
-        nextErrors.products = dashboardErrorMessage(
-          productsResult.status === 'rejected' ? productsResult.reason : null,
-        )
-      if (sourcesValue) nextData.sources = sourcesValue.items
-      else
-        nextErrors.sources = dashboardErrorMessage(
-          sources.status === 'rejected' ? sources.reason : null,
-        )
-      if (provincesValue) nextData.provinces = provincesValue.items
-      else
-        nextErrors.provinces = dashboardErrorMessage(
-          provinces.status === 'rejected' ? provinces.reason : null,
-        )
-      if (timelineValue) nextData.timeline = timelineValue
-      else
-        nextErrors.timeline = dashboardErrorMessage(
-          timeline.status === 'rejected' ? timeline.reason : null,
-        )
-      if (pipelineValue) nextData.pipeline = pipelineValue
-      else
-        nextErrors.pipeline = dashboardErrorMessage(
-          pipeline.status === 'rejected' ? pipeline.reason : null,
-        )
-
-      const staleValue = fulfilled(stale)
-      const unreadValue = fulfilled(unread)
-      const waitingValue = fulfilled(waiting)
-      if (!staleValue || !unreadValue || !waitingValue) nextErrors.attention = 'unavailable'
-      setData((current) => ({ ...current, ...nextData }))
-      setAttention({
-        staleTotal: staleValue?.total ?? null,
-        unreadTotal: unreadValue?.total ?? null,
-        hasWaitingConversation: waitingValue ? waitingValue.items.length > 0 : null,
+      results.forEach((result, index) => {
+        const key = keys[index]
+        if (!key) return
+        if (result.status === 'fulfilled') {
+          Object.assign(nextData, { [key]: commercialValue(key, result.value) })
+        } else {
+          nextErrors[key] = dashboardErrorMessage(result.reason)
+        }
       })
-      setErrors(nextErrors)
+      setData((current) => ({ ...current, ...nextData }))
+      setErrors((current) => {
+        const next = { ...current }
+        for (const key of keys) delete next[key]
+        return { ...next, ...nextErrors }
+      })
       hasLoadedRef.current = true
       setHasLoaded(true)
       setIsRefreshing(false)
     })
     return () => controller.abort()
   }, [filters, refreshKey, session])
+
+  const { productId, province, source } = pipelineDimensions(filters)
+  useEffect(() => {
+    void refreshKey
+    const controller = new AbortController()
+    const version = pipelineVersion.current + 1
+    pipelineVersion.current = version
+    getPipelineMetrics({ productId, province, source }, { ...session, signal: controller.signal })
+      .then((pipeline) => {
+        if (controller.signal.aborted || pipelineVersion.current !== version) return
+        setData((current) => ({ ...current, pipeline }))
+        setErrors((current) => {
+          const next = { ...current }
+          delete next.pipeline
+          return next
+        })
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted)
+          setErrors((current) => ({ ...current, pipeline: dashboardErrorMessage(error) }))
+      })
+    return () => controller.abort()
+  }, [productId, province, source, refreshKey, session])
+
+  useEffect(() => {
+    void refreshKey
+    const controller = new AbortController()
+    getNotificationTotal(false, { ...session, signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setAttention((current) => ({ ...current, staleTotal: result.total }))
+          setAttentionFailure('stale', false)
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAttentionFailure('stale', true)
+      })
+    return () => controller.abort()
+  }, [refreshKey, session, setAttentionFailure])
+
+  useEffect(() => {
+    void refreshKey
+    const controller = new AbortController()
+    listWhatsAppConversations(
+      { limit: 1, pageCursor: null, waitingOnly: true, unreadOnly: false, search: '' },
+      { ...session, signal: controller.signal },
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setAttention((current) => ({
+            ...current,
+            hasWaitingConversation: result.items.length > 0,
+          }))
+          setAttentionFailure('waiting', false)
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAttentionFailure('waiting', true)
+      })
+    return () => controller.abort()
+  }, [refreshKey, session, setAttentionFailure])
 
   return { attention, data, errors, hasLoaded, isRefreshing, products, retry }
 }

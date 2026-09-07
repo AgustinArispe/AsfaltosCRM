@@ -59,7 +59,7 @@ export function createWhatsAppOpportunity(customerId: number, session: ApiSessio
   })
 }
 
-async function listOpportunityStage(
+export async function listOpportunityStage(
   stage: PipelineStatus,
   source: OpportunitySummary['source'] | 'ALL',
   session: ApiSession,
@@ -104,7 +104,7 @@ export function quoteOpportunity(
   products: QuoteProductInput[],
   session: ApiSession,
 ) {
-  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/quote`, {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/quote`, {
     ...session,
     method: 'POST',
     body: { products },
@@ -138,7 +138,7 @@ export function updateOpportunityAssignee(
 }
 
 export function moveOpportunityToNegotiation(opportunityId: number, session: ApiSession) {
-  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/move-to-negotiation`, {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/move-to-negotiation`, {
     ...session,
     method: 'POST',
     body: {},
@@ -146,7 +146,7 @@ export function moveOpportunityToNegotiation(opportunityId: number, session: Api
 }
 
 export function winOpportunity(opportunityId: number, session: ApiSession) {
-  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/win`, {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/win`, {
     ...session,
     method: 'POST',
     body: {},
@@ -158,7 +158,7 @@ export function loseOpportunity(
   lossReason: LossReason,
   session: ApiSession,
 ) {
-  return apiRequest<OpportunitySummary>(`/opportunities/${opportunityId}/lose`, {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/lose`, {
     ...session,
     method: 'POST',
     body: { loss_reason: lossReason },

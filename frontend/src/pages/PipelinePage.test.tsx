@@ -360,4 +360,28 @@ describe('PipelinePage', () => {
       ),
     )
   })
+
+  it('keeps failed-stage data and reports a truthful partial manual refresh', async () => {
+    const item = opportunity('COTIZADA', 2)
+    let refresh = false
+    const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = new URL(String(input), 'http://localhost')
+      const status = url.searchParams.get('status')
+      if (refresh && status === 'COTIZADA') throw new TypeError('network unavailable')
+      const items = status === 'COTIZADA' ? [item] : []
+      return response(200, { items, page: 1, page_size: 100, total: items.length })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { container } = render(<PipelinePage />)
+    await ready()
+    const board = container.querySelector('.pipeline-board')
+    refresh = true
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'La actualización fue parcial. No pudimos actualizar: Cotizada.',
+    )
+    expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
+    expect(container.querySelector('.pipeline-board')).toBe(board)
+    expect(fetchMock).toHaveBeenCalledTimes(8)
+  })
 })

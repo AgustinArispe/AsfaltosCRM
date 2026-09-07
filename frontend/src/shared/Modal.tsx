@@ -17,6 +17,7 @@ export function Modal({
   onClose,
   closeDisabled = false,
   size = 'default',
+  returnFocusTo,
   children,
 }: {
   isOpen: boolean
@@ -27,6 +28,7 @@ export function Modal({
   onClose: () => void
   closeDisabled?: boolean
   size?: 'default' | 'large' | 'opportunity'
+  returnFocusTo?: HTMLElement | null
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -45,7 +47,7 @@ export function Modal({
     if (!dialog) return
 
     if (isOpen && !dialog.open) {
-      previousFocusRef.current = document.activeElement as HTMLElement | null
+      previousFocusRef.current = returnFocusTo ?? (document.activeElement as HTMLElement | null)
       dialog.showModal()
       dialog.querySelector<HTMLElement>('[data-modal-initial-focus]')?.focus()
     }
@@ -55,11 +57,17 @@ export function Modal({
       previousFocusRef.current?.focus()
       previousFocusRef.current = null
     }
-  }, [isOpen])
+  }, [isOpen, returnFocusTo])
 
   useEffect(
     () => () => {
-      previousFocusRef.current?.focus()
+      const dialog = dialogRef.current
+      if (dialog?.open) dialog.close()
+      const previousFocus = previousFocusRef.current
+      previousFocus?.focus()
+      window.requestAnimationFrame(() => {
+        if (previousFocus?.isConnected) previousFocus.focus()
+      })
     },
     [],
   )

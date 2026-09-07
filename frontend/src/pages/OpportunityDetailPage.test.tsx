@@ -328,6 +328,7 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Reabrir oportunidad' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir en negociación' }))
     await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/42'))
+    expect(screen.queryByRole('dialog', { name: 'Reabrir oportunidad' })).not.toBeInTheDocument()
     expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/reopen')
   })
 
@@ -375,8 +376,11 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(screen.getByRole('button', { name: 'Revisar y confirmar' }))
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/opportunities/42/quote')
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input) === '/api/opportunities/42'),
+    ).toHaveLength(1)
   })
 
   it('guides quote keyboard progression and protects a dirty review from dismissal', async () => {
@@ -435,6 +439,41 @@ describe('OpportunityDetailPage', () => {
     await waitFor(() =>
       expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/move-to-negotiation'),
     )
+  })
+
+  it('does not let an older background detail response overwrite a successful mutation', async () => {
+    const cached = makeDetail({ status: 'COTIZADA' })
+    const updated = makeDetail({
+      status: 'NEGOCIACION',
+      updated_at: '2026-08-13T17:35:00Z',
+    })
+    let resolveDetail: ((response: Response) => void) | undefined
+    const detailResponse = new Promise<Response>((resolve) => {
+      resolveDetail = resolve
+    })
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/move-to-negotiation')) return Promise.resolve(jsonResponse(200, updated))
+      return detailResponse
+    })
+    const onOpportunityUpdated = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <OpportunityDetailPage
+        cachedOpportunity={cached}
+        onOpportunityUpdated={onOpportunityUpdated}
+        opportunityId={42}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Pasar a negociación' }))
+    await waitFor(() => expect(onOpportunityUpdated).toHaveBeenCalledWith(updated))
+
+    resolveDetail?.(jsonResponse(200, cached))
+    await Promise.resolve()
+
+    expect(screen.getByText('Negociación')).toBeInTheDocument()
+    expect(onOpportunityUpdated).toHaveBeenCalledTimes(1)
   })
 
   it('navigates to the exact internal WhatsApp conversation and never uses an external fallback', async () => {
