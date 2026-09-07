@@ -102,6 +102,9 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
+- [`CRM-037`](037-compact-opportunity-detail-modal.md) — Approved — compact, cohesive
+  Opportunity Detail modal with unified identity, summary, actions, commercial content,
+  and a narrower Activity/Notes sidebar.
 - [`CRM-026`](026-frontend-final-polish.md) — Approved — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-028 implementation.
