@@ -102,6 +102,8 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
+- [`CRM-036`](036-web-consultation-opportunity-detail.md) — Approved — expose the
+  immutable original web-form consultation in authenticated Opportunity Detail.
 - [`CRM-026`](026-frontend-final-polish.md) — Approved — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-028 implementation.
