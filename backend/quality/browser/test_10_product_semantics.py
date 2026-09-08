@@ -28,9 +28,7 @@ def test_authentication_and_protected_route_behavior(qa_pages: QaPageFactory) ->
     expect(page).to_have_url(re.compile(r"/login$"))
 
     supervisor = qa_pages.create(role="SUPERVISOR", artifact_suffix="logout")
-    supervisor.page.get_by_role(
-        "button", name="Cuenta de Sofía Supervisora QA"
-    ).click()
+    supervisor.page.get_by_role("button", name="Cuenta de Sofía Supervisora QA").click()
     supervisor.page.get_by_role("button", name="Cerrar sesión").click()
     supervisor.page.wait_for_url("**/login")
     supervisor.page.goto(f"{FRONTEND_URL}/pipeline")
@@ -235,7 +233,9 @@ def test_broadcast_customers_products_lost_and_users_are_understandable(
         )
     ).to_be_visible()
     expect(page.get_by_role("button", name="Nuevo envío masivo")).to_be_visible()
-    expect(page.get_by_text(re.compile("Borrador|Enviando|Completado")).first).to_be_visible()
+    expect(
+        page.get_by_text(re.compile("Borrador|Enviando|Completado")).first
+    ).to_be_visible()
 
     wait_for_workspace(page, "customers", "Clientes")
     expect(page.get_by_role("searchbox", name=re.compile("Buscar"))).to_be_visible()
