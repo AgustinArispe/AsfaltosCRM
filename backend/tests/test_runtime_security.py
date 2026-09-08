@@ -105,9 +105,11 @@ def test_production_rejects_fake_whatsapp_provider(
 
 def test_production_disabled_whatsapp_omits_whatsapp_routes(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     _configure_production_environment(monkeypatch)
     monkeypatch.setenv("WHATSAPP_PROVIDER", "disabled")
+    monkeypatch.setenv("WHATSAPP_MEDIA_STORAGE_ROOT", str(tmp_path / "whatsapp-media"))
     for name in (
         "META_GRAPH_API_VERSION",
         "META_ACCESS_TOKEN",
