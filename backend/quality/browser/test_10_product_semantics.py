@@ -157,7 +157,9 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     expect(result).to_be_visible()
     expect(result.get_by_role("link", name="Ver ganadas")).to_be_visible()
     expect(result.get_by_role("link", name="Ver pérdidas")).to_be_visible()
-    expect(page.get_by_role("region", name="Oportunidades activas ahora")).to_be_visible()
+    expect(
+        page.get_by_role("region", name="Oportunidades activas ahora")
+    ).to_be_visible()
     expect(page.get_by_role("heading", name="Evolución comercial")).to_be_visible()
     series = page.get_by_role("list", name="Series de evolución")
     for label in ("Creadas", "Ganadas", "Pérdidas"):
@@ -166,7 +168,9 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     page.get_by_label("Período", exact=True).select_option("custom")
     page.get_by_label("Desde").fill("2026-08-10")
     page.get_by_label("Hasta").fill("2026-08-14")
-    peak = page.get_by_role("button", name=re.compile(r"Creadas [1-9].*abrir oportunidades"))
+    peak = page.get_by_role(
+        "button", name=re.compile(r"Creadas [1-9].*abrir oportunidades")
+    )
     expect(peak.first).to_be_visible()
     peak.first.focus()
     peak.first.click()
@@ -177,9 +181,7 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     expect(detail).not_to_be_visible()
 
     expect(
-        page.get_by_role(
-            "img", name=re.compile("Nueva: .*Cotizada: .*Negociación:")
-        )
+        page.get_by_role("img", name=re.compile("Nueva: .*Cotizada: .*Negociación:"))
     ).to_be_visible()
     expect(page.get_by_role("region", name="Origen de oportunidades")).to_be_visible()
     for dimension in ("Productos", "Provincias"):
