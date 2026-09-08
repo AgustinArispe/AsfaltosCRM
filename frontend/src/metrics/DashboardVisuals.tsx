@@ -217,39 +217,46 @@ export function TimelineChart({
                   const showLabel =
                     index === 0 || index === timeline.items.length - 1 || index % labelStride === 0
                   const canOpen = timeline.granularity === 'day' && value > 0
+                  const barClassName = `${series.className} dashboard-bar-chart__bar${peaks.has(index) ? ' dashboard-bar-chart__bar--peak' : ''}`
+                  const barStyle = {
+                    '--dashboard-bar-height': `${maximum === 0 ? 0 : (value / maximum) * 100}%`,
+                  } as CSSProperties
                   return (
                     <li key={bucket.bucket}>
-                      <button
-                        aria-controls={canOpen ? 'timeline-day-detail' : undefined}
-                        aria-expanded={
-                          canOpen
-                            ? detail.selected?.bucket === bucket.bucket &&
-                              detail.selected.series === seriesKey
-                            : undefined
-                        }
-                        aria-haspopup={canOpen ? 'dialog' : undefined}
-                        aria-label={`${label}: ${series.label} ${formatCount(value)}${peaks.has(index) ? ', pico del período' : ''}${canOpen ? ', abrir oportunidades' : ''}`}
-                        aria-pressed={safeSelectedIndex === index}
-                        className={`${series.className} dashboard-bar-chart__bar${peaks.has(index) ? ' dashboard-bar-chart__bar--peak' : ''}`}
-                        onClick={() => {
-                          setSelectedIndex(index)
-                          if (canOpen) detail.open(bucket.bucket, seriesKey)
-                        }}
-                        onFocus={() => {
-                          setSelectedIndex(index)
-                          if (canOpen) detail.open(bucket.bucket, seriesKey)
-                        }}
-                        onMouseEnter={() => setSelectedIndex(index)}
-                        style={
-                          {
-                            '--dashboard-bar-height': `${maximum === 0 ? 0 : (value / maximum) * 100}%`,
-                          } as CSSProperties
-                        }
-                        title={`${label}: ${formatCount(value)}`}
-                        type='button'
-                      >
-                        <span className='sr-only'>{formatCount(value)}</span>
-                      </button>
+                      {canOpen ? (
+                        <button
+                          aria-controls='timeline-day-detail'
+                          aria-expanded={
+                            detail.selected?.bucket === bucket.bucket &&
+                            detail.selected.series === seriesKey
+                          }
+                          aria-haspopup='dialog'
+                          aria-label={`${label}: ${series.label} ${formatCount(value)}${peaks.has(index) ? ', pico del período' : ''}, abrir oportunidades`}
+                          aria-pressed={safeSelectedIndex === index}
+                          className={barClassName}
+                          onClick={() => {
+                            setSelectedIndex(index)
+                            detail.open(bucket.bucket, seriesKey)
+                          }}
+                          onFocus={() => {
+                            setSelectedIndex(index)
+                            detail.open(bucket.bucket, seriesKey)
+                          }}
+                          onMouseEnter={() => setSelectedIndex(index)}
+                          style={barStyle}
+                          title={`${label}: ${formatCount(value)}`}
+                          type='button'
+                        ></button>
+                      ) : (
+                        <span
+                          aria-label={`${label}: ${series.label} ${formatCount(value)}${peaks.has(index) ? ', pico del período' : ''}`}
+                          className={barClassName}
+                          onMouseEnter={() => setSelectedIndex(index)}
+                          role='img'
+                          style={barStyle}
+                          title={`${label}: ${formatCount(value)}`}
+                        />
+                      )}
                       <span aria-hidden={!showLabel} className='dashboard-bar-chart__label'>
                         {showLabel ? label : ''}
                       </span>

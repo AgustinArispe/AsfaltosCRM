@@ -39,7 +39,7 @@ export function Modal({
     size === 'large'
       ? 'w-[min(72rem,calc(100%-2rem))]'
       : size === 'opportunity'
-        ? 'w-[min(64rem,calc(100%-2rem))]'
+        ? 'w-[min(70rem,calc(100%-2rem))]'
         : 'w-[min(34rem,calc(100%-2rem))]'
 
   useEffect(() => {

@@ -142,6 +142,7 @@ export function NotificationsPage() {
     loadMore,
     pendingFirstPage,
     refresh,
+    removeActiveUnread,
     replaceNotification,
     total,
   } = useNotifications(view, session)
@@ -193,7 +194,8 @@ export function NotificationsPage() {
     setReadError(null)
     void markAllActiveNotificationsAsRead(session)
       .then((response) => {
-        refresh()
+        if (view === 'unread') removeActiveUnread(response.updated_count)
+        else refresh()
         attention?.refresh()
         setAnnouncement(
           response.updated_count === 1

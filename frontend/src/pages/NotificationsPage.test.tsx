@@ -160,4 +160,15 @@ describe('NotificationsPage', () => {
     )
     expect(screen.getByRole('button', { name: /Obra histórica/ })).toBeInTheDocument()
   })
+
+  it('removes acknowledged active items immediately from the unread view', async () => {
+    vi.stubGlobal('fetch', mockApi())
+    render(<NotificationsPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Sin leer' }))
+    await screen.findByRole('button', { name: /Obra nueva/ })
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar activas como leídas' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Sin notificaciones sin leer' }),
+    ).toBeInTheDocument()
+  })
 })

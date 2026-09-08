@@ -42,7 +42,7 @@ describe('Modal', () => {
     )
 
     expect(screen.getByRole('dialog', { name: 'Constructora FAA' })).toHaveClass(
-      'w-[min(64rem,calc(100%-2rem))]',
+      'w-[min(70rem,calc(100%-2rem))]',
     )
     expect(
       screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }),

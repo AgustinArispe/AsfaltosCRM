@@ -277,38 +277,60 @@ export function OpportunityDetailPage({
   const actions = opportunity ? (
     <>
       {opportunity.status === 'NUEVA' ? (
-        <Button onClick={() => openQuote('create')} size='compact' variant='primary'>
+        <Button
+          className='opportunity-detail__action'
+          onClick={() => openQuote('create')}
+          variant='primary'
+        >
           Cotizar
         </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => openQuote('edit')} size='compact'>
-          Editar cotización
+        <Button
+          className='opportunity-detail__action'
+          disabled={isMutating}
+          isLoading={isMutating}
+          onClick={() => void move()}
+          variant='primary'
+        >
+          {isMutating
+            ? 'Actualizando…'
+            : opportunity.status === 'COTIZADA'
+              ? 'Pasar a negociación'
+              : 'Marcar ganada'}
         </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
-        <Button disabled={isMutating} onClick={() => void move()} size='compact' variant='primary'>
-          {opportunity.status === 'COTIZADA' ? 'Pasar a negociación' : 'Marcar ganada'}
+        <Button className='opportunity-detail__action' onClick={() => openQuote('edit')}>
+          Editar cotización
         </Button>
       ) : null}
       <Button
-        className='opportunity-whatsapp-action'
+        className='opportunity-detail__action opportunity-whatsapp-action'
         disabled={isLookingUpConversation}
+        isLoading={isLookingUpConversation}
         onClick={() => void handleWhatsApp()}
-        size='compact'
       >
         <Icon name='whatsapp' />
         {isLookingUpConversation ? 'Buscando conversación…' : 'Abrir WhatsApp'}
       </Button>
       {isEligibleForReopen(opportunity) ? (
-        <Button onClick={() => setIsReopenConfirmationOpen(true)} size='compact' variant='primary'>
+        <Button
+          className='opportunity-detail__action'
+          onClick={() => setIsReopenConfirmationOpen(true)}
+          variant='primary'
+        >
           Reabrir
         </Button>
       ) : null}
       {opportunity.status === 'NUEVA' ||
       opportunity.status === 'COTIZADA' ||
       opportunity.status === 'NEGOCIACION' ? (
-        <Button onClick={() => setLossOpportunity(opportunity)} size='compact' variant='danger'>
+        <Button
+          className='opportunity-detail__action opportunity-detail__action--destructive'
+          onClick={() => setLossOpportunity(opportunity)}
+          variant='danger'
+        >
           Marcar perdida
         </Button>
       ) : null}

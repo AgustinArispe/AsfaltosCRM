@@ -114,7 +114,7 @@ describe('OpportunityDetailPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Del Sur SA' })).toBeInTheDocument()
     const dialog = screen.getByRole('dialog', { name: 'Del Sur SA' })
-    expect(dialog).toHaveClass('w-[min(64rem,calc(100%-2rem))]')
+    expect(dialog).toHaveClass('w-[min(70rem,calc(100%-2rem))]')
     expect(
       within(dialog).queryByRole('heading', { name: 'Detalle de oportunidad' }),
     ).not.toBeInTheDocument()
@@ -142,7 +142,7 @@ describe('OpportunityDetailPage', () => {
       'Provincia',
     ])
 
-    const quote = screen.getByRole('heading', { name: 'Cotización' }).parentElement
+    const quote = screen.getByRole('heading', { name: 'Cotización' }).closest('section')
     expect(quote).not.toBeNull()
     expect(within(quote as HTMLElement).getByText('SuperPhalt')).toBeInTheDocument()
     expect(within(quote as HTMLElement).getByText('Bituplast')).toBeInTheDocument()
@@ -389,9 +389,9 @@ describe('OpportunityDetailPage', () => {
     await screen.findByRole('heading', { name: 'Del Sur SA' })
     expect(screen.getByRole('button', { name: 'Cotizar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Marcar perdida' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cotizar' })).toHaveClass('h-9')
-    expect(screen.getByRole('button', { name: 'Abrir WhatsApp' })).toHaveClass('h-9')
-    expect(screen.getByRole('button', { name: 'Marcar perdida' })).toHaveClass('h-9')
+    expect(screen.getByRole('button', { name: 'Cotizar' })).toHaveClass('h-11')
+    expect(screen.getByRole('button', { name: 'Abrir WhatsApp' })).toHaveClass('h-11')
+    expect(screen.getByRole('button', { name: 'Marcar perdida' })).toHaveClass('h-11')
     fireEvent.click(screen.getByRole('button', { name: 'Cotizar' }))
     const product = await screen.findByRole('radio', { name: 'SuperPhalt' })
     fireEvent.click(product)

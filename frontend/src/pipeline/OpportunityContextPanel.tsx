@@ -102,7 +102,7 @@ export function OpportunityContextPanel({
       className='opportunity-detail__section px-4 py-4 sm:px-5'
     >
       <h3
-        className='text-sm font-semibold text-[var(--text-primary)]'
+        className='text-base font-semibold text-[var(--text-primary)]'
         id={`opportunity-context-${opportunity.id}`}
       >
         Contexto

@@ -74,31 +74,32 @@ function ContactDetails({ opportunity }: { opportunity: OpportunityDetail }) {
 function OpportunitySummary({ opportunity }: { opportunity: OpportunityDetail }) {
   return (
     <dl className='opportunity-detail__summary opportunity-detail__summary--page'>
-      <div>
-        <dt className='text-xs font-medium text-[var(--text-tertiary)]'>Origen</dt>
-        <dd className='mt-0.5 text-sm font-medium text-[var(--text-primary)]'>
-          {SOURCE_LABELS[opportunity.source]}
-        </dd>
+      <div className='opportunity-detail__summary-group'>
+        <p className='opportunity-detail__summary-heading'>Relación</p>
+        <div>
+          <dt>Origen</dt>
+          <dd>{SOURCE_LABELS[opportunity.source]}</dd>
+        </div>
+        <div>
+          <dt>Responsable</dt>
+          <dd>{opportunity.assigned_user?.full_name ?? 'Sin responsable'}</dd>
+        </div>
       </div>
-      <div>
-        <dt className='text-xs font-medium text-[var(--text-tertiary)]'>Responsable</dt>
-        <dd className='mt-0.5 text-sm font-medium text-[var(--text-primary)]'>
-          {opportunity.assigned_user?.full_name ?? 'Sin responsable'}
-        </dd>
+      <div className='opportunity-detail__summary-group'>
+        <p className='opportunity-detail__summary-heading'>Tiempo</p>
+        <div>
+          <dt>Creada</dt>
+          <dd>{formatDateTime(opportunity.created_at)}</dd>
+        </div>
+        <div>
+          <dt>Tiempo en etapa</dt>
+          <dd>{formatStageDuration(opportunity.current_status_entered_at)}</dd>
+        </div>
       </div>
-      <div>
-        <dt className='text-xs font-medium text-[var(--text-tertiary)]'>Creada</dt>
-        <dd className='mt-0.5 text-sm text-[var(--text-primary)]'>
-          {formatDateTime(opportunity.created_at)}
-        </dd>
+      <div className='opportunity-detail__summary-group opportunity-detail__summary-group--contact'>
+        <p className='opportunity-detail__summary-heading'>Contacto</p>
+        <ContactDetails opportunity={opportunity} />
       </div>
-      <div>
-        <dt className='text-xs font-medium text-[var(--text-tertiary)]'>Tiempo en etapa</dt>
-        <dd className='mt-0.5 text-sm text-[var(--text-primary)]'>
-          {formatStageDuration(opportunity.current_status_entered_at)}
-        </dd>
-      </div>
-      <ContactDetails opportunity={opportunity} />
     </dl>
   )
 }
@@ -146,7 +147,10 @@ export function OpportunityDetailModalHeader({
               opportunity?.customer.name ??
               'Detalle de oportunidad'}
           </h2>
-          {opportunity?.customer.legendary_historical_override ? <LegendaryBadge /> : null}
+          {opportunity?.customer.is_legendary ||
+          opportunity?.customer.legendary_historical_override ? (
+            <LegendaryBadge className='opportunity-detail__legendary' />
+          ) : null}
         </div>
         {opportunity?.customer.company ? (
           <p className='mt-0.5 break-words text-sm text-[var(--text-secondary)] [overflow-wrap:anywhere]'>
@@ -155,7 +159,10 @@ export function OpportunityDetailModalHeader({
         ) : null}
       </div>
       {opportunity ? (
-        <Badge className='mt-0.5 shrink-0' tone={OPPORTUNITY_STATUS_TONES[opportunity.status]}>
+        <Badge
+          className='opportunity-detail__status mt-0.5 shrink-0'
+          tone={OPPORTUNITY_STATUS_TONES[opportunity.status]}
+        >
           {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
         </Badge>
       ) : null}
@@ -230,7 +237,7 @@ function CustomerInformation({ opportunity }: { opportunity: OpportunityDetail }
       className='opportunity-detail__section px-4 py-4 sm:px-5'
     >
       <h3
-        className='text-sm font-semibold text-[var(--text-primary)]'
+        className='text-base font-semibold text-[var(--text-primary)]'
         id={`customer-information-${opportunity.id}`}
       >
         Información del cliente
@@ -257,7 +264,7 @@ function Consultation({ opportunity }: { opportunity: OpportunityDetail }) {
         Consulta del cliente
       </h3>
       {opportunity.web_intake?.message ? (
-        <p className='mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-primary)] [overflow-wrap:anywhere]'>
+        <p className='opportunity-detail__consultation mt-3 whitespace-pre-wrap break-words text-[var(--text-primary)] [overflow-wrap:anywhere]'>
           {opportunity.web_intake.message}
         </p>
       ) : (
@@ -279,17 +286,24 @@ function Quote({ opportunity }: { opportunity: OpportunityDetail }) {
       aria-labelledby={`quote-${opportunity.id}`}
       className='opportunity-detail__section px-4 py-4 sm:px-5'
     >
-      <h3
-        className='text-sm font-semibold text-[var(--text-primary)]'
-        id={`quote-${opportunity.id}`}
-      >
-        Cotización
-      </h3>
+      <div className='flex flex-wrap items-baseline justify-between gap-2'>
+        <h3
+          className='text-base font-semibold text-[var(--text-primary)]'
+          id={`quote-${opportunity.id}`}
+        >
+          Cotización
+        </h3>
+        <span className='text-[0.8125rem] font-semibold text-[var(--text-secondary)]'>
+          {opportunity.products.length > 0
+            ? `${opportunity.products.length} ${opportunity.products.length === 1 ? 'producto' : 'productos'} · ${formatQuantityKg(totalQuantityKg)}`
+            : 'Sin cotización'}
+        </span>
+      </div>
       {opportunity.products.length > 0 ? (
         <div className='mt-3 overflow-x-auto'>
           <table
             aria-label='Productos y cantidades cotizadas'
-            className='w-full border-collapse text-left text-sm'
+            className='w-full border-collapse text-left text-[0.9375rem]'
           >
             <thead>
               <tr className='border-b border-[var(--subtle-border)] text-xs text-[var(--text-tertiary)]'>

@@ -17,6 +17,7 @@ type NotificationListState = {
   loadMore: () => void
   pendingFirstPage: OperationalNotification[] | null
   refresh: () => void
+  removeActiveUnread: (updatedCount: number) => void
   total: number
   applyPendingFirstPage: () => void
   replaceNotification: (notification: OperationalNotification) => void
@@ -161,6 +162,15 @@ export function useNotifications(
     setItems((current) => mergeNotifications(current, [notification]))
   }, [])
 
+  const removeActiveUnread = useCallback((updatedCount: number) => {
+    setItems((current) =>
+      current.filter(
+        (notification) => notification.read_at !== null || notification.resolved_at !== null,
+      ),
+    )
+    setTotal((current) => Math.max(0, current - updatedCount))
+  }, [])
+
   return {
     applyPendingFirstPage,
     error,
@@ -171,6 +181,7 @@ export function useNotifications(
     loadMore,
     pendingFirstPage,
     refresh: () => loadFirstPage(),
+    removeActiveUnread,
     replaceNotification,
     total,
   }

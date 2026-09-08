@@ -10,6 +10,7 @@ export type PipelineDragData = {
   customerName: string
   fromStatus: PipelineStatus
   toStatus: PipelineStatus
+  statusLabel: string
 }
 
 export function OpportunityCard({
@@ -37,6 +38,7 @@ export function OpportunityCard({
           customerName: opportunity.customer.name,
           fromStatus: opportunity.status,
           toStatus: nextStatus,
+          statusLabel: STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status,
         }
       : undefined,
   })
@@ -48,13 +50,16 @@ export function OpportunityCard({
       className={[
         'pipeline-card',
         isSelected ? 'pipeline-card--selected' : '',
-        isDragging ? 'opacity-40' : '',
+        isDragging ? 'pipeline-card--dragging' : '',
+        isBusy ? 'pipeline-card--busy' : '',
+        !nextStatus ? 'pipeline-card--terminal' : '',
       ].join(' ')}
       data-opportunity-id={opportunity.id}
     >
       <button
         aria-current={isSelected ? 'true' : undefined}
-        aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}${isDraggable ? '. Se puede arrastrar a la siguiente etapa.' : ''}`}
+        aria-describedby={isBusy ? `pipeline-card-pending-${opportunity.id}` : undefined}
+        aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}, estado ${STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}${isDraggable ? '. Se puede arrastrar a la siguiente etapa.' : '. Etapa terminal, no se puede arrastrar.'}`}
         className={[
           'pipeline-card__button',
           isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
@@ -74,6 +79,9 @@ export function OpportunityCard({
             {identity.supporting}
           </span>
         ) : null}
+        <span className='pipeline-card__commercial-status'>
+          {STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}
+        </span>
         <span className='pipeline-card__meta'>
           <span className='pipeline-card__source'>{SOURCE_LABELS[opportunity.source]}</span>
           {opportunity.customer.is_legendary ? <LegendaryBadge /> : null}
@@ -83,6 +91,14 @@ export function OpportunityCard({
             En etapa: {formatStageAge(opportunity.current_status_entered_at)}
           </span>
         ) : null}
+        <span
+          className='pipeline-card__pending'
+          id={`pipeline-card-pending-${opportunity.id}`}
+          role={isBusy ? 'status' : undefined}
+        >
+          <span aria-hidden='true' className='pipeline-card__spinner' />
+          Actualizando…
+        </span>
       </button>
     </article>
   )

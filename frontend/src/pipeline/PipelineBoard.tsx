@@ -90,8 +90,13 @@ export function PipelineBoard({
 
       <DragOverlay dropAnimation={null}>
         {(source) => (
-          <div className='ui-surface-raised w-64 px-3 py-3 text-sm font-semibold text-[var(--text-primary)]'>
-            {(source.data as PipelineDragData | undefined)?.customerName ?? 'Oportunidad'}
+          <div className='pipeline-card-drag-overlay w-64'>
+            <span className='pipeline-card__identity'>
+              {(source.data as PipelineDragData | undefined)?.customerName ?? 'Oportunidad'}
+            </span>
+            <span className='pipeline-card__commercial-status'>
+              {(source.data as PipelineDragData | undefined)?.statusLabel ?? 'En movimiento'}
+            </span>
           </div>
         )}
       </DragOverlay>
