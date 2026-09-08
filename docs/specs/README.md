@@ -112,6 +112,9 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-040`](040-pipeline-opportunity-workspace-hierarchy.md) — Implemented — stronger
+  Pipeline card interaction states and a medium/large Opportunity commercial workspace
+  hierarchy without changing CRM-038/039 behavior.
 - [`CRM-038`](038-frontend-interaction-data-synchronization.md) — Implemented — persistent
   Opportunity workspace, scoped mutation synchronization, deliberate Pipeline refresh,
   dependency-aware Dashboard requests, catalog reuse, and route-level lazy loading.
