@@ -1,9 +1,9 @@
 # CRM-041 — Dashboard Commercial Overview and Outcome Navigation
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-08
-Implementation commit: N/A
+Implementation commit: `56aa6b79b1ae307acb1f5dac89d16fe961273064`
 
 ## Goal
 
