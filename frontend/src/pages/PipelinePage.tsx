@@ -70,6 +70,8 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const [announcement, setAnnouncement] = useState('')
   const hasLoadedRef = useRef(false)
   const requestVersionRef = useRef(0)
+  const wonRequestVersionRef = useRef(0)
+  const wonReconciliationControllerRef = useRef<AbortController | null>(null)
   const mutationGenerationRef = useRef<Record<number, number>>({})
 
   const apiSession = useMemo<ApiSession>(
@@ -78,6 +80,80 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   )
   const catalog = useActiveProductCatalog(apiSession)
   const opportunities = useMemo(() => workspaceOpportunities(workspace), [workspace])
+  const wonOpportunities = useMemo(
+    () => opportunities.filter((opportunity) => opportunity.status === 'GANADA'),
+    [opportunities],
+  )
+
+  useEffect(() => {
+    if (wonOpportunities.length === 0) return
+    let timer: number | null = null
+    const reconcileWon = () => {
+      wonReconciliationControllerRef.current?.abort()
+      const controller = new AbortController()
+      wonReconciliationControllerRef.current = controller
+      const requestVersion = wonRequestVersionRef.current + 1
+      wonRequestVersionRef.current = requestVersion
+      const generations = { ...mutationGenerationRef.current }
+      void listOpportunityStage('GANADA', filters.source, {
+        ...apiSession,
+        signal: controller.signal,
+      })
+        .then((items) => {
+          if (wonRequestVersionRef.current !== requestVersion) return
+          const protectedOpportunityIds = Object.entries(mutationGenerationRef.current)
+            .filter(([id, generation]) => generation > (generations[Number(id)] ?? 0))
+            .map(([id]) => Number(id))
+          dispatch({
+            type: 'replace-stage',
+            status: 'GANADA',
+            opportunities: items,
+            protectedOpportunityIds,
+          })
+        })
+        .catch(() => setLoadError('No pudimos reconciliar la columna Ganada.'))
+    }
+    const expireAndReconcile = () => {
+      const now = Date.now()
+      for (const opportunity of wonOpportunities) {
+        if (Date.parse(opportunity.current_status_entered_at) + 30 * 86_400_000 <= now)
+          dispatch({ type: 'remove', opportunityId: opportunity.id })
+      }
+      reconcileWon()
+    }
+    const earliest = Math.min(
+      ...wonOpportunities.map(
+        (opportunity) => Date.parse(opportunity.current_status_entered_at) + 30 * 86_400_000,
+      ),
+    )
+    const schedule = () => {
+      const remaining = earliest - Date.now()
+      if (remaining <= 0) {
+        expireAndReconcile()
+        return
+      }
+      timer = window.setTimeout(schedule, Math.min(remaining, 2_147_000_000))
+    }
+    schedule()
+    const recover = () => {
+      if (document.visibilityState === 'visible') reconcileWon()
+    }
+    window.addEventListener('focus', recover)
+    document.addEventListener('visibilitychange', recover)
+    return () => {
+      if (timer !== null) window.clearTimeout(timer)
+      window.removeEventListener('focus', recover)
+      document.removeEventListener('visibilitychange', recover)
+    }
+  }, [apiSession, filters.source, wonOpportunities])
+
+  useEffect(
+    () => () => {
+      wonReconciliationControllerRef.current?.abort()
+      wonRequestVersionRef.current += 1
+    },
+    [],
+  )
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(filters.search), 180)

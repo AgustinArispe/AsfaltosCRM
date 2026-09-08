@@ -112,6 +112,40 @@ class LostStatisticsResponse(BaseModel):
     timeline: list[StatisticBucket]
 
 
+class WonOpportunityResponse(BaseModel):
+    opportunity: OpportunitySummary
+    won_at: datetime
+    won_total_kg: Decimal
+
+
+class WonOpportunityPageResponse(BaseModel):
+    items: list[WonOpportunityResponse]
+    next_cursor: str | None
+
+
+class WonStatisticsResponse(BaseModel):
+    won_count: int
+    won_quantity_kg: Decimal
+
+
+class WonProductOptionResponse(BaseModel):
+    id: int
+    name: str
+    is_active: bool
+
+
+class WonUserOptionResponse(BaseModel):
+    id: int
+    full_name: str
+    is_active: bool
+
+
+class WonFilterOptionsResponse(BaseModel):
+    products: list[WonProductOptionResponse]
+    provinces: list[str]
+    responsible_users: list[WonUserOptionResponse]
+
+
 class CustomerImportIssueResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

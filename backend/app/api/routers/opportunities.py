@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Query, status
+from fastapi import APIRouter, Body, HTTPException, Query, status
 
 from app.api.dependencies import (
     CurrentUser,
@@ -86,7 +86,13 @@ def list_opportunities(
     customer_id: Annotated[int | None, Query(gt=0)] = None,
     assigned_user_id: Annotated[int | None, Query(gt=0)] = None,
     source: LeadSource | None = None,
+    active_board: bool = False,
 ) -> PaginatedResponse[OpportunitySummary]:
+    if active_board and status_filter is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="active_board requires an explicit status",
+        )
     opportunities, total = OpportunityQueryService(session).list_opportunities(
         page=pagination.page,
         page_size=pagination.page_size,
@@ -94,6 +100,7 @@ def list_opportunities(
         customer_id=customer_id,
         assigned_user_id=assigned_user_id,
         source=source,
+        active_board=active_board,
     )
     return PaginatedResponse(
         items=[

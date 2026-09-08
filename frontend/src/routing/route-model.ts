@@ -6,6 +6,7 @@ export type Workspace =
   | 'customers'
   | 'products'
   | 'lost'
+  | 'won'
   | 'whatsapp-sends'
   | 'users'
 
@@ -13,7 +14,7 @@ export type WorkspaceRoute = { kind: 'workspace'; workspace: Workspace }
 export type OpportunityRoute = {
   kind: 'opportunity'
   opportunityId: number
-  surface: 'pipeline' | 'lost'
+  surface: 'pipeline' | 'lost' | 'won'
 }
 export type CustomerRoute = { kind: 'customer'; customerId: number }
 export type ConversationRoute = { kind: 'conversation'; conversationId: number }
@@ -37,6 +38,7 @@ const WORKSPACE_PATHS: Record<Workspace, string> = {
   customers: '/customers',
   products: '/products',
   lost: '/lost',
+  won: '/won',
   'whatsapp-sends': '/whatsapp-sends',
   users: '/users',
 }
@@ -65,11 +67,15 @@ export function parseRoute(pathname: string): CrmRoute | null {
   const workspace = workspaceFromPath(normalized)
   if (workspace) return { kind: 'workspace', workspace }
 
-  const opportunity = /^\/(pipeline|lost)\/opportunities\/([1-9]\d*)$/.exec(normalized)
+  const opportunity = /^\/(pipeline|lost|won)\/opportunities\/([1-9]\d*)$/.exec(normalized)
   if (opportunity) {
     const opportunityId = validId(opportunity[2])
     if (opportunityId) {
-      return { kind: 'opportunity', opportunityId, surface: opportunity[1] as 'pipeline' | 'lost' }
+      return {
+        kind: 'opportunity',
+        opportunityId,
+        surface: opportunity[1] as 'pipeline' | 'lost' | 'won',
+      }
     }
   }
 
@@ -140,7 +146,9 @@ function pathForMaybeRoute(value: unknown): string | null {
     typeof candidate.opportunityId === 'number' &&
     Number.isSafeInteger(candidate.opportunityId) &&
     candidate.opportunityId > 0 &&
-    (candidate.surface === 'pipeline' || candidate.surface === 'lost')
+    (candidate.surface === 'pipeline' ||
+      candidate.surface === 'lost' ||
+      candidate.surface === 'won')
   ) {
     return pathForRoute(candidate as OpportunityRoute)
   }

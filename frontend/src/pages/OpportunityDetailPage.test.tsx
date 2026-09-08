@@ -256,6 +256,30 @@ describe('OpportunityDetailPage', () => {
     expect(window.location.pathname).toBe('/pipeline')
   })
 
+  it('renders a direct won detail route and preserves its filtered return URL', async () => {
+    window.history.replaceState(null, '', '/won/opportunities/42?period=all&source=WEB')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())))
+    render(<OpportunityDetailPage opportunityId={42} surface='won' />)
+
+    const backLink = await screen.findByRole('link', { name: 'Volver a Ganadas' })
+    expect(backLink).toHaveAttribute('href', '/won')
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }))
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      '/won?period=all&source=WEB',
+    )
+  })
+
+  it('redirects a non-won detail opened from Ganadas to its canonical pipeline route', async () => {
+    window.history.replaceState(null, '', '/won/opportunities/42')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(200, makeDetail({ status: 'NEGOCIACION' }))),
+    )
+    render(<OpportunityDetailPage opportunityId={42} surface='won' />)
+
+    await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/42'))
+  })
+
   it('loads Notes only when opened and saves a multiline Note with Ctrl+Enter', async () => {
     const note = {
       id: 5,

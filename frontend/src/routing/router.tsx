@@ -37,9 +37,9 @@ export function navigate(to: string, options: { replace?: boolean } = {}) {
 
 export function navigateRoute(
   route: CrmRoute,
-  options: { replace?: boolean; origin?: RouteOrigin } = {},
+  options: { replace?: boolean; origin?: RouteOrigin; search?: string } = {},
 ) {
-  const target = pathForRoute(route)
+  const target = `${pathForRoute(route)}${options.search ?? ''}`
   const state: CrmHistoryState | null = options.origin ? { crmOrigin: options.origin } : null
   if (options.replace) {
     window.history.replaceState(state, '', target)

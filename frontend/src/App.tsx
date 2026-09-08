@@ -26,6 +26,9 @@ const DashboardPage = lazy(() =>
 const LostPage = lazy(() =>
   import('./pages/LostPage').then((module) => ({ default: module.LostPage })),
 )
+const WonPage = lazy(() =>
+  import('./pages/WonPage').then((module) => ({ default: module.WonPage })),
+)
 const ProductsPage = lazy(() =>
   import('./pages/ProductsPage').then((module) => ({ default: module.ProductsPage })),
 )
@@ -73,6 +76,15 @@ function RoutedApp() {
     )
   }
   if (route.kind === 'opportunity') {
+    if (route.surface === 'won') {
+      return (
+        <AppShell activeNavigationPath='/won' pageTitle='Ganadas'>
+          <LazyWorkspace>
+            <WonPage selectedOpportunityId={route.opportunityId} />
+          </LazyWorkspace>
+        </AppShell>
+      )
+    }
     return (
       <AppShell activeNavigationPath='/lost' pageTitle='Perdidas'>
         <LazyWorkspace>
@@ -128,6 +140,8 @@ function RoutedApp() {
       <ProductsPage />
     ) : route.workspace === 'lost' ? (
       <LostPage />
+    ) : route.workspace === 'won' ? (
+      <WonPage />
     ) : route.workspace === 'whatsapp' ? (
       <WhatsAppInboxPage />
     ) : route.workspace === 'whatsapp-sends' ? (

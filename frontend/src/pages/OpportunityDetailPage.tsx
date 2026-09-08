@@ -23,7 +23,7 @@ import {
 import { QuoteModal } from '../pipeline/QuoteModal'
 import type { LossReason, OpportunityDetail, Product, QuoteProductInput } from '../pipeline/types'
 import type { ActiveProductCatalog } from '../pipeline/useActiveProductCatalog'
-import { AppLink, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
+import { AppLink, navigate, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
 import { Button } from '../shared/Button'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { Icon } from '../shared/Icon'
@@ -53,7 +53,7 @@ export function OpportunityDetailPage({
   catalog?: ActiveProductCatalog
   onOpportunityUpdated?: (opportunity: OpportunityDetail) => void
   opportunityId: number
-  surface?: 'pipeline' | 'lost'
+  surface?: 'pipeline' | 'lost' | 'won'
 }) {
   const { token, logout } = useAuth()
   const returnFocusRef = useRef<HTMLElement | null>(
@@ -104,6 +104,11 @@ export function OpportunityDetailPage({
         if (generation !== requestGenerationRef.current) return
         if (detail.status === 'PERDIDA' && surface !== 'lost')
           navigateRoute({ kind: 'opportunity', opportunityId, surface: 'lost' }, { replace: true })
+        else if (surface === 'won' && detail.status !== 'GANADA')
+          navigateRoute(
+            { kind: 'opportunity', opportunityId, surface: 'pipeline' },
+            { replace: true },
+          )
         setOpportunity(detail)
         onOpportunityUpdatedRef.current?.(detail)
       })
@@ -118,7 +123,8 @@ export function OpportunityDetailPage({
   }, [key, opportunityId, session, surface])
   const close = () => {
     const previousFocus = returnFocusRef.current
-    navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
+    if (surface === 'won') navigate(`/won${window.location.search}`)
+    else navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         const pipelineTrigger = document.querySelector<HTMLElement>(
@@ -349,7 +355,9 @@ export function OpportunityDetailPage({
               to={{ kind: 'workspace', workspace: surface }}
             >
               <Icon className='size-3.5' name='chevron-left' />
-              Volver al {surface === 'lost' ? 'Perdidas' : 'Pipeline'}
+              {surface === 'won'
+                ? 'Volver a Ganadas'
+                : `Volver al ${surface === 'lost' ? 'Perdidas' : 'Pipeline'}`}
             </AppLink>
           }
           titleId={titleId}

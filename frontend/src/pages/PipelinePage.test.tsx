@@ -137,7 +137,7 @@ describe('PipelinePage', () => {
       opportunity('NUEVA', 1),
       opportunity('COTIZADA', 2),
       opportunity('NEGOCIACION', 3),
-      opportunity('GANADA', 4),
+      opportunity('GANADA', 4, { current_status_entered_at: new Date().toISOString() }),
     ]
     mockApi(items)
     const { container } = render(<PipelinePage />)
@@ -147,6 +147,18 @@ describe('PipelinePage', () => {
       expect(stage(container, status)).toBeInTheDocument()
     }
     expect(container.querySelector('[data-stage="PERDIDA"]')).not.toBeInTheDocument()
+    const stageUrls = (fetch as ReturnType<typeof vi.fn>).mock.calls
+      .map(([input]) => new URL(String(input), 'http://localhost'))
+      .filter((url) => url.pathname === '/api/opportunities')
+    expect(stageUrls).toHaveLength(4)
+    expect(stageUrls.filter((url) => url.searchParams.get('active_board') === 'true')).toHaveLength(
+      1,
+    )
+    expect(
+      stageUrls
+        .find((url) => url.searchParams.get('active_board') === 'true')
+        ?.searchParams.get('status'),
+    ).toBe('GANADA')
     const card = within(stage(container, 'COTIZADA')).getByRole('button', {
       name: /Abrir oportunidad/,
     })
@@ -383,5 +395,70 @@ describe('PipelinePage', () => {
     expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
     expect(container.querySelector('.pipeline-board')).toBe(board)
     expect(fetchMock).toHaveBeenCalledTimes(8)
+  })
+
+  it('expires simultaneous GANADA cards with one narrow server reconciliation', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-08T15:00:00Z'))
+    try {
+      const expiresSoon = '2026-08-09T15:00:01Z'
+      const wonItems = [
+        opportunity('GANADA', 4, { current_status_entered_at: expiresSoon }),
+        opportunity('GANADA', 5, { current_status_entered_at: expiresSoon }),
+      ]
+      let wonRequests = 0
+      const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url = new URL(String(input), 'http://localhost')
+        const status = url.searchParams.get('status')
+        if (status === 'GANADA') wonRequests += 1
+        const items = status === 'GANADA' && wonRequests === 1 ? wonItems : []
+        return response(200, { items, page: 1, page_size: 100, total: items.length })
+      })
+      vi.stubGlobal('fetch', fetchMock)
+      let container!: HTMLElement
+      await act(async () => {
+        ;({ container } = render(<PipelinePage />))
+      })
+      expect(within(stage(container, 'GANADA')).getAllByRole('button')).toHaveLength(2)
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_000)
+      })
+
+      expect(within(stage(container, 'GANADA')).queryAllByRole('button')).toHaveLength(0)
+      const stageCalls = fetchMock.mock.calls.map(([input]) =>
+        new URL(String(input), 'http://localhost').searchParams.get('status'),
+      )
+      expect(stageCalls.filter((status) => status === 'GANADA')).toHaveLength(2)
+      expect(stageCalls.filter((status) => status !== 'GANADA')).toHaveLength(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('recovers from focus with only a GANADA reconciliation', async () => {
+    const won = opportunity('GANADA', 4, {
+      current_status_entered_at: new Date(Date.now() - 86_400_000).toISOString(),
+    })
+    let wonRequests = 0
+    const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = new URL(String(input), 'http://localhost')
+      const status = url.searchParams.get('status')
+      if (status === 'GANADA') wonRequests += 1
+      const items = status === 'GANADA' && wonRequests === 1 ? [won] : []
+      return response(200, { items, page: 1, page_size: 100, total: items.length })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<PipelinePage />)
+    await ready()
+
+    act(() => window.dispatchEvent(new Event('focus')))
+    await waitFor(() => expect(wonRequests).toBe(2))
+
+    const stageCalls = fetchMock.mock.calls.map(([input]) =>
+      new URL(String(input), 'http://localhost').searchParams.get('status'),
+    )
+    expect(stageCalls.filter((status) => status === 'GANADA')).toHaveLength(2)
+    expect(stageCalls.filter((status) => status !== 'GANADA')).toHaveLength(3)
   })
 })

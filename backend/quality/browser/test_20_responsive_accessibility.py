@@ -31,7 +31,15 @@ def test_representative_viewport_matrix(
         artifact_suffix=f"{width}x{height}",
     )
     page = qa_page.page
-    for path in ("pipeline", "dashboard", "whatsapp", "lost", "customers", "users"):
+    for path in (
+        "pipeline",
+        "dashboard",
+        "whatsapp",
+        "lost",
+        "won",
+        "customers",
+        "users",
+    ):
         wait_for_workspace(page, path)
         assert_no_horizontal_overflow(page)
         expect(page.get_by_role("heading", level=1)).to_be_visible()
@@ -168,7 +176,7 @@ def test_light_dark_accessibility_and_reduced_motion(
         bool, page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     )
     assert reduced
-    for path in ("pipeline", "dashboard", "whatsapp", "lost"):
+    for path in ("pipeline", "dashboard", "whatsapp", "lost", "won"):
         wait_for_workspace(page, path)
         run_axe(page)
         assert_no_horizontal_overflow(page)

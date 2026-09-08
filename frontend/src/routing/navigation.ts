@@ -58,6 +58,12 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
     description: 'Oportunidades comerciales perdidas.',
   },
   {
+    path: '/won',
+    group: 'management',
+    label: 'Ganadas',
+    description: 'Historial de oportunidades comerciales ganadas.',
+  },
+  {
     path: '/users',
     group: 'administration',
     label: 'Usuarios',

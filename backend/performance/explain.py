@@ -51,6 +51,53 @@ CHANGE_CURSOR = "timestamptz '2023-01-01 00:00:00+00'"
 
 QUERIES = (
     CriticalQuery(
+        "won_history_page",
+        """
+        SELECT opportunity.id, opportunity.current_status_entered_at
+        FROM opportunities AS opportunity
+        WHERE opportunity.status = 'GANADA' AND opportunity.deleted_at IS NULL
+        ORDER BY opportunity.current_status_entered_at DESC, opportunity.id DESC
+        LIMIT 21
+        """,
+    ),
+    CriticalQuery(
+        "won_history_filtered",
+        """
+        SELECT opportunity.id, opportunity.current_status_entered_at
+        FROM opportunities AS opportunity
+        JOIN customers AS customer ON customer.id = opportunity.customer_id
+        WHERE opportunity.status = 'GANADA' AND opportunity.deleted_at IS NULL
+          AND opportunity.source = 'WEB'
+          AND lower(btrim(customer.province)) = lower('Buenos Aires')
+          AND EXISTS (SELECT 1 FROM opportunity_products AS line
+                      WHERE line.opportunity_id = opportunity.id
+                        AND line.product_id = (SELECT min(id) FROM products))
+        ORDER BY opportunity.current_status_entered_at DESC, opportunity.id DESC
+        LIMIT 21
+        """,
+    ),
+    CriticalQuery(
+        "won_history_statistics",
+        """
+        SELECT count(DISTINCT opportunity.id), coalesce(sum(line.quantity_kg), 0)
+        FROM opportunities AS opportunity
+        LEFT JOIN opportunity_products AS line ON line.opportunity_id = opportunity.id
+        WHERE opportunity.status = 'GANADA' AND opportunity.deleted_at IS NULL
+        """,
+    ),
+    CriticalQuery(
+        "active_board_won",
+        """
+        SELECT opportunity.id
+        FROM opportunities AS opportunity
+        WHERE opportunity.status = 'GANADA' AND opportunity.deleted_at IS NULL
+          AND opportunity.current_status_entered_at > now() - interval '30 days'
+          AND opportunity.current_status_entered_at <= now()
+        ORDER BY opportunity.created_at DESC, opportunity.id DESC
+        LIMIT 100
+        """,
+    ),
+    CriticalQuery(
         "conversation_changes_polling",
         f"""
         SELECT conversation.id,

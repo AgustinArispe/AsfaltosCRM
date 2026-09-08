@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.sql.base import ExecutableOption
@@ -25,6 +27,8 @@ class OpportunityQueryService:
         customer_id: int | None,
         assigned_user_id: int | None,
         source: LeadSource | None,
+        active_board: bool = False,
+        as_of: datetime | None = None,
     ) -> tuple[list[Opportunity], int]:
         filters: list[ColumnElement[bool]] = [
             Opportunity.deleted_at.is_(None),
@@ -38,6 +42,15 @@ class OpportunityQueryService:
             filters.append(Opportunity.assigned_user_id == assigned_user_id)
         if source is not None:
             filters.append(Opportunity.source == source)
+        if active_board and status is OpportunityStatus.GANADA:
+            captured_as_of = as_of or datetime.now(UTC)
+            filters.extend(
+                [
+                    Opportunity.current_status_entered_at
+                    > captured_as_of - timedelta(days=30),
+                    Opportunity.current_status_entered_at <= captured_as_of,
+                ]
+            )
 
         total = self._session.scalar(
             select(func.count()).select_from(Opportunity).where(*filters)

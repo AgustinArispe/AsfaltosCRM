@@ -74,6 +74,7 @@ export async function listOpportunityStage(
       page: String(page),
       page_size: String(PIPELINE_PAGE_SIZE),
     })
+    if (stage === 'GANADA') query.set('active_board', 'true')
     if (source !== 'ALL') query.set('source', source)
     const response = await apiRequest<PaginatedResponse<OpportunitySummary>>(
       `/opportunities?${query}`,

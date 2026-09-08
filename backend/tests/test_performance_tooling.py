@@ -35,6 +35,7 @@ def test_explain_suite_covers_every_critical_query() -> None:
     names = {query.name for query in QUERIES}
     assert names == {
         "broadcast_recipient_claiming",
+        "active_board_won",
         "conversation_changes_polling",
         "latest_marketing_consent_batched",
         "latest_marketing_consent_single",
@@ -45,6 +46,9 @@ def test_explain_suite_covers_every_critical_query() -> None:
         "metrics_timeline_filtered",
         "opportunity_detail_reopen_count",
         "opportunity_list_reopen_count",
+        "won_history_filtered",
+        "won_history_page",
+        "won_history_statistics",
     }
     assert all("EXPLAIN" not in query.sql.upper() for query in QUERIES)
 
