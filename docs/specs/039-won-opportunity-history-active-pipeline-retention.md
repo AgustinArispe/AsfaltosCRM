@@ -1,9 +1,9 @@
 # CRM-039 — Won Opportunity History and Active Pipeline Retention
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-07
-Implementation commit: N/A
+Implementation commit: 459634e
 
 ## Goal
 
