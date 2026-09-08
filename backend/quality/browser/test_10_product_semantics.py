@@ -149,44 +149,46 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     qa_page = qa_pages.create(role="SUPERVISOR")
     page = qa_page.page
     wait_for_workspace(page, "dashboard", "Dashboard")
-    expect(
-        page.get_by_role("heading", name="Lo que necesita seguimiento ahora")
-    ).to_be_visible()
-    for action in ("Ver seguimientos", "Revisar notificaciones", "Abrir WhatsApp"):
+    expect(page.get_by_role("heading", name="Necesita atención")).to_be_visible()
+    for action in ("Ver seguimientos", "Abrir pendientes"):
         expect(page.get_by_role("link", name=re.compile(action))).to_be_visible()
 
-    expect(page.get_by_role("region", name="Indicadores clave")).to_be_visible()
+    result = page.get_by_role("region", name="Resultado del período")
+    expect(result).to_be_visible()
+    expect(result.get_by_role("link", name="Ver ganadas")).to_be_visible()
+    expect(result.get_by_role("link", name="Ver pérdidas")).to_be_visible()
+    expect(page.get_by_role("region", name="Oportunidades activas ahora")).to_be_visible()
     expect(page.get_by_role("heading", name="Evolución comercial")).to_be_visible()
-    for series in ("Creadas", "Ganadas", "Perdidas"):
-        expect(page.get_by_role("button", name=series, exact=True)).to_be_visible()
-    page.get_by_role("button", name="Ganadas", exact=True).click()
-    peak = page.get_by_role(
-        "button", name=re.compile(r"Ganadas [1-9].*pico del período")
-    )
+    series = page.get_by_role("list", name="Series de evolución")
+    for label in ("Creadas", "Ganadas", "Pérdidas"):
+        expect(series.get_by_text(label, exact=True)).to_be_visible()
+
+    page.get_by_label("Período", exact=True).select_option("custom")
+    page.get_by_label("Desde").fill("2026-08-10")
+    page.get_by_label("Hasta").fill("2026-08-14")
+    peak = page.get_by_role("button", name=re.compile(r"Creadas [1-9].*abrir oportunidades"))
     expect(peak.first).to_be_visible()
     peak.first.focus()
-    detail = page.get_by_role("dialog", name=re.compile("Oportunidades ganadas del"))
+    peak.first.click()
+    detail = page.get_by_role("region", name="Oportunidades del día seleccionado")
     expect(detail).to_be_visible()
     expect(detail.get_by_role("link").first).to_be_visible()
-    page.keyboard.press("Escape")
+    detail.get_by_role("button", name="Cerrar detalle del día").click()
     expect(detail).not_to_be_visible()
 
     expect(
-        page.get_by_role("img", name=re.compile("Resultados cerrados: .*conversión"))
-    ).to_be_visible()
-    expect(
         page.get_by_role(
-            "img", name=re.compile("Nueva: .*Cotizada: .*Negociación: .*Ganada:")
+            "img", name=re.compile("Nueva: .*Cotizada: .*Negociación:")
         )
     ).to_be_visible()
-    for dimension in ("Productos", "Origen", "Provincias"):
+    expect(page.get_by_role("region", name="Origen de oportunidades")).to_be_visible()
+    for dimension in ("Productos", "Provincias"):
         page.get_by_role("button", name=dimension, exact=True).click()
         expect(
             page.get_by_role("button", name=dimension, exact=True)
         ).to_have_attribute("aria-pressed", "true")
-    page.get_by_text("Ver datos exactos de provincias", exact=False).click()
     expect(
-        page.get_by_role("region", name=re.compile("Tabla de Provincias"))
+        page.get_by_role("region", name="Productos y provincias").get_by_role("list")
     ).to_be_visible()
 
 

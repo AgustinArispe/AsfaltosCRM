@@ -23,6 +23,15 @@ export type ConversationListRequest = {
   search: string
 }
 
+export type WhatsAppAttentionSummary = {
+  waiting_count: number
+  oldest_waiting_since_at: string | null
+}
+
+export function getWhatsAppAttentionSummary(session: ApiSession) {
+  return apiRequest<WhatsAppAttentionSummary>('/whatsapp/conversations/attention-summary', session)
+}
+
 export function listWhatsAppConversations(request: ConversationListRequest, session: ApiSession) {
   const query = new URLSearchParams({
     limit: String(request.limit ?? 50),

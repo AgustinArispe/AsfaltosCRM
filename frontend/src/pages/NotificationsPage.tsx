@@ -23,6 +23,7 @@ import { EmptyState, ErrorState, Skeleton } from '../shared/StatusStates'
 
 const VIEW_SEGMENTS = [
   { value: 'all', label: 'Todas' },
+  { value: 'active', label: 'Activas' },
   { value: 'unread', label: 'Sin leer' },
 ] as const
 const READ_ERROR_STORAGE_KEY = 'faa-crm.notifications.read-error'
@@ -117,7 +118,9 @@ function NotificationRow({
 
 export function NotificationsPage() {
   const { token, logout } = useAuth()
-  const [view, setView] = useState<NotificationView>('all')
+  const [view, setView] = useState<NotificationView>(() =>
+    new URLSearchParams(window.location.search).get('view') === 'active' ? 'active' : 'all',
+  )
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
   const [isMarkingAll, setIsMarkingAll] = useState(false)
   const [readError, setReadError] = useState<string | null>(() => {
@@ -220,7 +223,15 @@ export function NotificationsPage() {
       <div className='notifications-page__controls'>
         <SegmentedControl
           label='Vista de notificaciones'
-          onChange={(value) => setView(value as NotificationView)}
+          onChange={(value) => {
+            const next = value as NotificationView
+            window.history.replaceState(
+              window.history.state,
+              '',
+              next === 'all' ? '/notifications' : `/notifications?view=${next}`,
+            )
+            setView(next)
+          }}
           segments={VIEW_SEGMENTS}
           value={view}
         />
@@ -259,10 +270,16 @@ export function NotificationsPage() {
           description={
             view === 'unread'
               ? 'No hay notificaciones sin leer.'
-              : 'Todavía no hay historial de notificaciones.'
+              : view === 'active'
+                ? 'No hay seguimientos activos.'
+                : 'Todavía no hay historial de notificaciones.'
           }
           title={
-            view === 'unread' ? 'Sin notificaciones sin leer' : 'Sin historial de notificaciones'
+            view === 'unread'
+              ? 'Sin notificaciones sin leer'
+              : view === 'active'
+                ? 'Sin seguimientos activos'
+                : 'Sin historial de notificaciones'
           }
           icon='bell'
           size='workspace'

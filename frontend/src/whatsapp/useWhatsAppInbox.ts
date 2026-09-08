@@ -67,7 +67,11 @@ function createClientGeneratedId(): string {
   return crypto.randomUUID()
 }
 
-export function useWhatsAppInbox(initialConversationId?: number, isContextRequested = false) {
+export function useWhatsAppInbox(
+  initialConversationId?: number,
+  isContextRequested = false,
+  initialWaitingOnly = false,
+) {
   const { token, logout } = useAuth()
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -80,7 +84,7 @@ export function useWhatsAppInbox(initialConversationId?: number, isContextReques
   const [conversationReloadKey, setConversationReloadKey] = useState(0)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
-  const [waitingOnly, setWaitingOnly] = useState(false)
+  const [waitingOnly, setWaitingOnly] = useState(initialWaitingOnly)
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(
     initialConversationId ?? null,

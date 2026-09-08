@@ -23,6 +23,7 @@ from app.api.dependencies import CurrentUser, DatabaseSession
 from app.api.whatsapp_presenter import WhatsAppApiPresenter
 from app.models import WhatsAppDispatchState, WhatsAppMessageType
 from app.schemas.whatsapp import (
+    ConversationAttentionSummaryResponse,
     ConversationChangePageResponse,
     ConversationDetailResponse,
     ConversationPageResponse,
@@ -66,6 +67,20 @@ from app.whatsapp.runtime import WhatsAppRuntime
 def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
     router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
     presenter = WhatsAppApiPresenter(runtime.provider)
+
+    @router.get(
+        "/conversations/attention-summary",
+        response_model=ConversationAttentionSummaryResponse,
+    )
+    def conversation_attention_summary(
+        session: DatabaseSession,
+        _current_user: CurrentUser,
+    ) -> ConversationAttentionSummaryResponse:
+        result = ConversationQueryService(session, runtime.metrics).attention_summary()
+        return ConversationAttentionSummaryResponse.model_validate(
+            result,
+            from_attributes=True,
+        )
 
     @router.get("/conversations", response_model=ConversationPageResponse)
     def list_conversations(

@@ -210,11 +210,12 @@ def get_timeline_day_opportunities(
         total=total,
         items=[
             TimelineOpportunityItemResponse(
-                opportunity_id=opportunity.id,
-                customer_name=opportunity.customer.name,
-                customer_company=opportunity.customer.company,
-                current_status=opportunity.status,
-                source=opportunity.source,
+                opportunity_id=item.opportunity.id,
+                loss_event_id=item.loss_event_id,
+                customer_name=item.opportunity.customer.name,
+                customer_company=item.opportunity.customer.company,
+                current_status=item.opportunity.status,
+                source=item.opportunity.source,
                 products=[
                     TimelineOpportunityProductResponse(
                         product_id=line.product.id,
@@ -223,12 +224,12 @@ def get_timeline_day_opportunities(
                         is_active=line.product.is_active,
                     )
                     for line in sorted(
-                        opportunity.opportunity_products,
+                        item.opportunity.opportunity_products,
                         key=lambda item: (item.product.name, item.product.id),
                     )
                 ],
             )
-            for opportunity in opportunities
+            for item in opportunities
         ],
     )
 

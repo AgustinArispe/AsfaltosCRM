@@ -13,6 +13,8 @@ from app.models import (
     Customer,
     LeadSource,
     Opportunity,
+    OpportunityLossEvent,
+    OpportunityLossProductSnapshot,
     OpportunityProduct,
     OpportunityStatus,
     Product,
@@ -31,17 +33,16 @@ OPEN_OPPORTUNITY_STATUSES = frozenset(
 QUOTED_OPEN_STATUSES = frozenset(
     {OpportunityStatus.COTIZADA, OpportunityStatus.NEGOCIACION}
 )
-TERMINAL_OPPORTUNITY_STATUSES = frozenset(
-    {OpportunityStatus.GANADA, OpportunityStatus.PERDIDA}
-)
 ZERO_KG = Decimal("0.000")
 RATIO_QUANTUM = Decimal("0.0001")
 MAX_DAY_TIMELINE_BUCKETS = 366
+MAX_WEEK_TIMELINE_BUCKETS = 5_200
 MAX_MONTH_TIMELINE_BUCKETS = 1_200
 
 
 class TimelineGranularity(StrEnum):
     DAY = "day"
+    WEEK = "week"
     MONTH = "month"
 
 
@@ -156,6 +157,12 @@ class PipelineStatusMetrics:
     count: int
 
 
+@dataclass(frozen=True, slots=True)
+class TimelineOpportunityProjection:
+    opportunity: Opportunity
+    loss_event_id: int | None = None
+
+
 def conversion_rate(
     numerator: int | Decimal,
     denominator: int | Decimal,
@@ -195,18 +202,41 @@ class MetricsService:
                 closed_in_period,
             ),
             func.count(Opportunity.id).filter(
-                Opportunity.status == OpportunityStatus.PERDIDA,
-                closed_in_period,
-            ),
-            func.count(Opportunity.id).filter(
                 Opportunity.status.in_(OPEN_OPPORTUNITY_STATUSES),
                 created_in_period,
             ),
         ).select_from(Opportunity)
         if filters.dimensions.province is not None:
             opportunity_statement = opportunity_statement.join(Customer)
-        created, won, lost, open_count = self._session.execute(
+        created, won, open_count = self._session.execute(
             opportunity_statement.where(*base_filters)
+        ).one()
+
+        loss_statement = (
+            select(
+                func.count(OpportunityLossEvent.id),
+                func.sum(self._loss_kg_column(filters.dimensions)),
+            )
+            .select_from(OpportunityLossEvent)
+            .join(Opportunity)
+        )
+        if filters.dimensions.product_id is not None:
+            loss_statement = loss_statement.join(
+                OpportunityLossProductSnapshot,
+                and_(
+                    OpportunityLossProductSnapshot.loss_event_id
+                    == OpportunityLossEvent.id,
+                    OpportunityLossProductSnapshot.product_id
+                    == filters.dimensions.product_id,
+                ),
+            )
+        lost, lost_kg = self._session.execute(
+            loss_statement.where(
+                *self._loss_event_filters(
+                    self._loss_dimensions_without_joined_product(filters.dimensions)
+                ),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+            )
         ).one()
 
         volume_filters = self._line_filters(filters.dimensions)
@@ -215,10 +245,6 @@ class MetricsService:
                 func.sum(OpportunityProduct.quantity_kg).filter(created_in_period),
                 func.sum(OpportunityProduct.quantity_kg).filter(
                     Opportunity.status == OpportunityStatus.GANADA,
-                    closed_in_period,
-                ),
-                func.sum(OpportunityProduct.quantity_kg).filter(
-                    Opportunity.status == OpportunityStatus.PERDIDA,
                     closed_in_period,
                 ),
                 func.sum(OpportunityProduct.quantity_kg).filter(
@@ -231,7 +257,7 @@ class MetricsService:
         )
         if filters.dimensions.province is not None:
             volume_statement = volume_statement.join(Customer)
-        quoted_kg, won_kg, lost_kg, open_kg = self._session.execute(
+        quoted_kg, won_kg, open_kg = self._session.execute(
             volume_statement.where(*volume_filters)
         ).one()
 
@@ -268,10 +294,6 @@ class MetricsService:
             Opportunity.status == OpportunityStatus.GANADA,
             closed_in_period,
         )
-        lost_in_period = and_(
-            Opportunity.status == OpportunityStatus.PERDIDA,
-            closed_in_period,
-        )
         filters_sql = self._line_filters(filters.dimensions)
         statement = (
             select(
@@ -281,8 +303,6 @@ class MetricsService:
                 func.sum(OpportunityProduct.quantity_kg).filter(created_in_period),
                 func.count(func.distinct(Opportunity.id)).filter(won_in_period),
                 func.sum(OpportunityProduct.quantity_kg).filter(won_in_period),
-                func.count(func.distinct(Opportunity.id)).filter(lost_in_period),
-                func.sum(OpportunityProduct.quantity_kg).filter(lost_in_period),
             )
             .select_from(OpportunityProduct)
             .join(Product)
@@ -293,7 +313,7 @@ class MetricsService:
         rows = self._session.execute(
             statement.where(
                 *filters_sql,
-                or_(created_in_period, won_in_period, lost_in_period),
+                or_(created_in_period, won_in_period),
             )
             .group_by(Product.id, Product.name)
             .order_by(
@@ -305,23 +325,66 @@ class MetricsService:
             )
         ).all()
 
+        loss_rows = self._session.execute(
+            select(
+                OpportunityLossProductSnapshot.product_id,
+                OpportunityLossProductSnapshot.product_name,
+                func.count(OpportunityLossProductSnapshot.loss_event_id),
+                func.sum(OpportunityLossProductSnapshot.quantity_kg),
+            )
+            .select_from(OpportunityLossProductSnapshot)
+            .join(OpportunityLossEvent)
+            .join(Opportunity)
+            .where(
+                *self._loss_event_filters(
+                    self._loss_dimensions_without_joined_product(filters.dimensions)
+                ),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+                *(
+                    [
+                        OpportunityLossProductSnapshot.product_id
+                        == filters.dimensions.product_id
+                    ]
+                    if filters.dimensions.product_id is not None
+                    else []
+                ),
+            )
+            .group_by(
+                OpportunityLossProductSnapshot.product_id,
+                OpportunityLossProductSnapshot.product_name,
+            )
+        ).all()
+        losses = {row[0]: (row[1], row[2], self._kg(row[3])) for row in loss_rows}
+        current = {row[0]: row for row in rows}
+
         metrics: list[ProductMetrics] = []
-        for row in rows:
-            won_kg = self._kg(row[5])
-            lost_kg = self._kg(row[7])
+        product_ids = set(current) | set(losses)
+        for product_id in product_ids:
+            row = current.get(product_id)
+            loss = losses.get(product_id)
+            if row is not None:
+                product_name = row[1]
+            elif loss is not None:
+                product_name = loss[0]
+            else:
+                continue
+            won_kg = self._kg(row[5] if row is not None else None)
+            lost_kg = loss[2] if loss is not None else ZERO_KG
+            won_count = row[4] if row is not None else 0
+            lost_count = loss[1] if loss is not None else 0
             metrics.append(
                 ProductMetrics(
-                    product_id=row[0],
-                    product_name=row[1],
-                    opportunities_quoted=row[2],
-                    kg_quoted=self._kg(row[3]),
-                    opportunities_won=row[4],
+                    product_id=product_id,
+                    product_name=product_name,
+                    opportunities_quoted=row[2] if row is not None else 0,
+                    kg_quoted=self._kg(row[3] if row is not None else None),
+                    opportunities_won=won_count,
                     kg_won=won_kg,
-                    opportunities_lost=row[6],
+                    opportunities_lost=lost_count,
                     kg_lost=lost_kg,
                     conversion_rate_opportunities=conversion_rate(
-                        row[4],
-                        row[4] + row[6],
+                        won_count,
+                        won_count + lost_count,
                     ),
                     conversion_rate_kg=conversion_rate(
                         won_kg,
@@ -329,7 +392,7 @@ class MetricsService:
                     ),
                 )
             )
-        return metrics
+        return sorted(metrics, key=lambda item: (-item.kg_quoted, item.product_id))
 
     def sources(self, filters: MetricsFilters) -> list[SourceMetrics]:
         period = filters.period
@@ -342,35 +405,47 @@ class MetricsService:
             Opportunity.status == OpportunityStatus.GANADA,
             closed_in_period,
         )
-        lost_in_period = and_(
-            Opportunity.status == OpportunityStatus.PERDIDA,
-            closed_in_period,
-        )
         statement = select(
             Opportunity.source,
             func.count(Opportunity.id).filter(created_in_period),
             func.count(Opportunity.id).filter(won_in_period),
-            func.count(Opportunity.id).filter(lost_in_period),
         ).select_from(Opportunity)
         if filters.dimensions.province is not None:
             statement = statement.join(Customer)
         rows = self._session.execute(
             statement.where(
                 *self._opportunity_filters(filters.dimensions),
-                or_(created_in_period, won_in_period, lost_in_period),
+                or_(created_in_period, won_in_period),
             )
             .group_by(Opportunity.source)
             .order_by(Opportunity.source)
         ).all()
+        loss_rows = self._session.execute(
+            select(OpportunityLossEvent.source, func.count(OpportunityLossEvent.id))
+            .select_from(OpportunityLossEvent)
+            .join(Opportunity)
+            .where(
+                *self._loss_event_filters(filters.dimensions),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+            )
+            .group_by(OpportunityLossEvent.source)
+        ).all()
+        current = {row[0]: (row[1], row[2]) for row in rows}
+        losses = {row[0]: row[1] for row in loss_rows}
         return [
             SourceMetrics(
-                source=row[0],
-                created=row[1],
-                won=row[2],
-                lost=row[3],
-                conversion_rate=conversion_rate(row[2], row[2] + row[3]),
+                source=source,
+                created=current.get(source, (0, 0))[0],
+                won=current.get(source, (0, 0))[1],
+                lost=losses.get(source, 0),
+                conversion_rate=conversion_rate(
+                    current.get(source, (0, 0))[1],
+                    current.get(source, (0, 0))[1] + losses.get(source, 0),
+                ),
             )
-            for row in rows
+            for source in sorted(
+                set(current) | set(losses), key=lambda item: item.value
+            )
         ]
 
     def provinces(self, filters: MetricsFilters) -> list[ProvinceMetrics]:
@@ -385,48 +460,77 @@ class MetricsService:
             Opportunity.status == OpportunityStatus.GANADA,
             closed_in_period,
         )
-        lost_in_period = and_(
-            Opportunity.status == OpportunityStatus.PERDIDA,
-            closed_in_period,
-        )
         rows = self._session.execute(
             select(
                 Customer.province,
                 func.count(Opportunity.id).filter(created_in_period),
                 func.count(Opportunity.id).filter(won_in_period),
-                func.count(Opportunity.id).filter(lost_in_period),
                 func.sum(line_totals.c.total_kg).filter(created_in_period),
                 func.sum(line_totals.c.total_kg).filter(won_in_period),
-                func.sum(line_totals.c.total_kg).filter(lost_in_period),
             )
             .select_from(Opportunity)
             .join(Customer)
             .outerjoin(line_totals, line_totals.c.opportunity_id == Opportunity.id)
             .where(
                 *self._opportunity_filters(filters.dimensions),
-                or_(created_in_period, won_in_period, lost_in_period),
+                or_(created_in_period, won_in_period),
             )
             .group_by(Customer.province)
             .order_by(Customer.province.asc().nulls_last())
         ).all()
 
+        loss_statement = (
+            select(
+                OpportunityLossEvent.customer_province,
+                func.count(OpportunityLossEvent.id),
+                func.sum(self._loss_kg_column(filters.dimensions)),
+            )
+            .select_from(OpportunityLossEvent)
+            .join(Opportunity)
+        )
+        if filters.dimensions.product_id is not None:
+            loss_statement = loss_statement.join(
+                OpportunityLossProductSnapshot,
+                and_(
+                    OpportunityLossProductSnapshot.loss_event_id
+                    == OpportunityLossEvent.id,
+                    OpportunityLossProductSnapshot.product_id
+                    == filters.dimensions.product_id,
+                ),
+            )
+        loss_rows = self._session.execute(
+            loss_statement.where(
+                *self._loss_event_filters(
+                    self._loss_dimensions_without_joined_product(filters.dimensions)
+                ),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+            ).group_by(OpportunityLossEvent.customer_province)
+        ).all()
+        losses = {row[0]: (row[1], self._kg(row[2])) for row in loss_rows}
+        current = {row[0]: row for row in rows}
+
         metrics: list[ProvinceMetrics] = []
-        for row in rows:
-            won_kg = self._kg(row[5])
-            lost_kg = self._kg(row[6])
+        for province in set(current) | set(losses):
+            row = current.get(province)
+            loss = losses.get(province, (0, ZERO_KG))
+            won_count = row[2] if row is not None else 0
+            won_kg = self._kg(row[4] if row is not None else None)
+            lost_count, lost_kg = loss
             metrics.append(
                 ProvinceMetrics(
-                    province=row[0],
-                    opportunities_created=row[1],
-                    opportunities_won=row[2],
-                    opportunities_lost=row[3],
-                    conversion_rate=conversion_rate(row[2], row[2] + row[3]),
-                    kg_quoted=self._kg(row[4]),
+                    province=province,
+                    opportunities_created=row[1] if row is not None else 0,
+                    opportunities_won=won_count,
+                    opportunities_lost=lost_count,
+                    conversion_rate=conversion_rate(won_count, won_count + lost_count),
+                    kg_quoted=self._kg(row[3] if row is not None else None),
                     kg_won=won_kg,
                     kg_lost=lost_kg,
                 )
             )
-        return metrics
+        return sorted(
+            metrics, key=lambda item: (item.province is None, item.province or "")
+        )
 
     def timeline(
         self,
@@ -458,45 +562,65 @@ class MetricsService:
                 self._in_period(Opportunity.created_at, period),
             ).group_by(created_bucket)
         ).all()
-        closed_statement = (
+        won_statement = (
             select(
                 closed_bucket,
-                func.count(Opportunity.id).filter(
-                    Opportunity.status == OpportunityStatus.GANADA
-                ),
-                func.count(Opportunity.id).filter(
-                    Opportunity.status == OpportunityStatus.PERDIDA
-                ),
-                func.sum(line_totals.c.total_kg).filter(
-                    Opportunity.status == OpportunityStatus.GANADA
-                ),
-                func.sum(line_totals.c.total_kg).filter(
-                    Opportunity.status == OpportunityStatus.PERDIDA
-                ),
+                func.count(Opportunity.id),
+                func.sum(line_totals.c.total_kg),
             )
             .select_from(Opportunity)
             .outerjoin(line_totals, line_totals.c.opportunity_id == Opportunity.id)
         )
         if filters.dimensions.province is not None:
-            closed_statement = closed_statement.join(Customer)
-        closed_rows = self._session.execute(
-            closed_statement.where(
+            won_statement = won_statement.join(Customer)
+        won_rows = self._session.execute(
+            won_statement.where(
                 *base_filters,
-                Opportunity.status.in_(TERMINAL_OPPORTUNITY_STATUSES),
+                Opportunity.status == OpportunityStatus.GANADA,
                 self._in_period(Opportunity.current_status_entered_at, period),
             ).group_by(closed_bucket)
         ).all()
 
+        lost_bucket = self._business_bucket(OpportunityLossEvent.lost_at, granularity)
+        lost_statement = (
+            select(
+                lost_bucket,
+                func.count(OpportunityLossEvent.id),
+                func.sum(self._loss_kg_column(filters.dimensions)),
+            )
+            .select_from(OpportunityLossEvent)
+            .join(Opportunity)
+        )
+        if filters.dimensions.product_id is not None:
+            lost_statement = lost_statement.join(
+                OpportunityLossProductSnapshot,
+                and_(
+                    OpportunityLossProductSnapshot.loss_event_id
+                    == OpportunityLossEvent.id,
+                    OpportunityLossProductSnapshot.product_id
+                    == filters.dimensions.product_id,
+                ),
+            )
+        lost_rows = self._session.execute(
+            lost_statement.where(
+                *self._loss_event_filters(
+                    self._loss_dimensions_without_joined_product(filters.dimensions)
+                ),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+            ).group_by(lost_bucket)
+        ).all()
+
         created_by_bucket = {row[0]: row[1] for row in created_rows}
-        closed_by_bucket = {row[0]: row[1:] for row in closed_rows}
+        won_by_bucket = {row[0]: row[1:] for row in won_rows}
+        lost_by_bucket = {row[0]: row[1:] for row in lost_rows}
         return [
             TimelineBucket(
                 bucket=bucket,
                 leads_created=created_by_bucket.get(bucket, 0),
-                won=closed_by_bucket.get(bucket, (0, 0, None, None))[0],
-                lost=closed_by_bucket.get(bucket, (0, 0, None, None))[1],
-                kg_won=self._kg(closed_by_bucket.get(bucket, (0, 0, None, None))[2]),
-                kg_lost=self._kg(closed_by_bucket.get(bucket, (0, 0, None, None))[3]),
+                won=won_by_bucket.get(bucket, (0, None))[0],
+                lost=lost_by_bucket.get(bucket, (0, None))[0],
+                kg_won=self._kg(won_by_bucket.get(bucket, (0, None))[1]),
+                kg_lost=self._kg(lost_by_bucket.get(bucket, (0, None))[1]),
             )
             for bucket in self._period_buckets(period, granularity)
         ]
@@ -509,9 +633,47 @@ class MetricsService:
         dimensions: MetricsDimensions,
         page: int,
         page_size: int,
-    ) -> tuple[list[Opportunity], int]:
+    ) -> tuple[list[TimelineOpportunityProjection], int]:
         """Return the bounded Opportunities behind one exact timeline day bucket."""
         period = self._day_period(bucket)
+        if series is TimelineOpportunitySeries.LOST:
+            filters = [
+                *self._loss_event_filters(dimensions),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+            ]
+            total = (
+                self._session.scalar(
+                    select(func.count(OpportunityLossEvent.id))
+                    .select_from(OpportunityLossEvent)
+                    .join(Opportunity)
+                    .where(*filters)
+                )
+                or 0
+            )
+            rows = list(
+                self._session.execute(
+                    select(OpportunityLossEvent.id, Opportunity)
+                    .join(Opportunity)
+                    .where(*filters)
+                    .options(
+                        joinedload(Opportunity.customer),
+                        selectinload(Opportunity.opportunity_products).joinedload(
+                            OpportunityProduct.product
+                        ),
+                    )
+                    .order_by(
+                        OpportunityLossEvent.lost_at.desc(),
+                        OpportunityLossEvent.id.desc(),
+                    )
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)
+                )
+            )
+            return [
+                TimelineOpportunityProjection(opportunity=row[1], loss_event_id=row[0])
+                for row in rows
+            ], total
+
         relevant_timestamp = (
             Opportunity.created_at
             if series is TimelineOpportunitySeries.CREATED
@@ -523,8 +685,6 @@ class MetricsService:
         ]
         if series is TimelineOpportunitySeries.WON:
             filters.append(Opportunity.status == OpportunityStatus.GANADA)
-        elif series is TimelineOpportunitySeries.LOST:
-            filters.append(Opportunity.status == OpportunityStatus.PERDIDA)
 
         count_statement = select(func.count()).select_from(Opportunity)
         statement = select(Opportunity)
@@ -547,7 +707,9 @@ class MetricsService:
                 .limit(page_size)
             )
         )
-        return opportunities, total
+        return [
+            TimelineOpportunityProjection(opportunity=item) for item in opportunities
+        ], total
 
     def pipeline(
         self,
@@ -608,6 +770,31 @@ class MetricsService:
         return filters
 
     @staticmethod
+    def _loss_event_filters(
+        dimensions: MetricsDimensions,
+    ) -> list[ColumnElement[bool]]:
+        filters: list[ColumnElement[bool]] = [Opportunity.deleted_at.is_(None)]
+        if dimensions.source is not None:
+            filters.append(OpportunityLossEvent.source == dimensions.source)
+        if dimensions.province is not None:
+            filters.append(
+                func.lower(func.btrim(OpportunityLossEvent.customer_province))
+                == dimensions.province.strip().lower()
+            )
+        if dimensions.product_id is not None:
+            filters.append(
+                exists(
+                    select(1).where(
+                        OpportunityLossProductSnapshot.loss_event_id
+                        == OpportunityLossEvent.id,
+                        OpportunityLossProductSnapshot.product_id
+                        == dimensions.product_id,
+                    )
+                )
+            )
+        return filters
+
+    @staticmethod
     def _line_totals(dimensions: MetricsDimensions) -> Subquery:
         statement = select(
             OpportunityProduct.opportunity_id.label("opportunity_id"),
@@ -618,6 +805,25 @@ class MetricsService:
                 OpportunityProduct.product_id == dimensions.product_id
             )
         return statement.group_by(OpportunityProduct.opportunity_id).subquery()
+
+    @staticmethod
+    def _loss_kg_column(
+        dimensions: MetricsDimensions,
+    ) -> SQLColumnExpression[Decimal]:
+        if dimensions.product_id is not None:
+            return OpportunityLossProductSnapshot.quantity_kg
+        return OpportunityLossEvent.quoted_total_kg
+
+    @staticmethod
+    def _loss_dimensions_without_joined_product(
+        dimensions: MetricsDimensions,
+    ) -> MetricsDimensions:
+        if dimensions.product_id is None:
+            return dimensions
+        return MetricsDimensions(
+            source=dimensions.source,
+            province=dimensions.province,
+        )
 
     @staticmethod
     def _in_period(
@@ -659,18 +865,22 @@ class MetricsService:
         )
         current = local_start.date()
         last = local_last.date()
-        if granularity is TimelineGranularity.MONTH:
+        if granularity is TimelineGranularity.WEEK:
+            current -= timedelta(days=current.weekday())
+            last -= timedelta(days=last.weekday())
+        elif granularity is TimelineGranularity.MONTH:
             current = current.replace(day=1)
             last = last.replace(day=1)
 
         buckets: list[date] = []
         while current <= last:
             buckets.append(current)
-            current = (
-                current + timedelta(days=1)
-                if granularity is TimelineGranularity.DAY
-                else MetricsService._next_month(current)
-            )
+            if granularity is TimelineGranularity.DAY:
+                current += timedelta(days=1)
+            elif granularity is TimelineGranularity.WEEK:
+                current += timedelta(days=7)
+            else:
+                current = MetricsService._next_month(current)
         return buckets
 
     @staticmethod
@@ -687,6 +897,11 @@ class MetricsService:
         if granularity is TimelineGranularity.DAY:
             requested = (local_last - local_start).days + 1
             maximum = MAX_DAY_TIMELINE_BUCKETS
+        elif granularity is TimelineGranularity.WEEK:
+            first_week = local_start - timedelta(days=local_start.weekday())
+            last_week = local_last - timedelta(days=local_last.weekday())
+            requested = ((last_week - first_week).days // 7) + 1
+            maximum = MAX_WEEK_TIMELINE_BUCKETS
         else:
             requested = (
                 (local_last.year - local_start.year) * 12

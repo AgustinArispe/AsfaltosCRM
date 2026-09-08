@@ -32,6 +32,30 @@ function activeFilterCount(filters: LostFilters): number {
   )
 }
 
+function readLostFilters(): LostFilters {
+  const query = new URLSearchParams(window.location.search)
+  const source = query.get('source')
+  const product = query.get('product')
+  return {
+    ...EMPTY_LOST_FILTERS,
+    source: source === 'WEB' || source === 'WHATSAPP' ? source : '',
+    productId: product && /^[1-9]\d*$/.test(product) ? Number(product) : null,
+    province: query.get('province') ?? '',
+    lostFrom: query.get('from') ?? '',
+    lostTo: query.get('to') ?? '',
+  }
+}
+
+function replaceLostQuery(filters: LostFilters): void {
+  const query = new URLSearchParams()
+  if (filters.source) query.set('source', filters.source)
+  if (filters.productId) query.set('product', String(filters.productId))
+  if (filters.province) query.set('province', filters.province)
+  if (filters.lostFrom) query.set('from', filters.lostFrom)
+  if (filters.lostTo) query.set('to', filters.lostTo)
+  window.history.replaceState(window.history.state, '', `/lost${query.size ? `?${query}` : ''}`)
+}
+
 function productEvidence(item: LostOpportunity): string {
   if (item.loss_products.length === 0) return 'Sin cotización'
   const names = item.loss_products.slice(0, 2).map((product) => product.product_name)
@@ -187,8 +211,8 @@ export function LostPage() {
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
   )
-  const [draft, setDraft] = useState<LostFilters>(EMPTY_LOST_FILTERS)
-  const [filters, setFilters] = useState<LostFilters>(EMPTY_LOST_FILTERS)
+  const [draft, setDraft] = useState<LostFilters>(readLostFilters)
+  const [filters, setFilters] = useState<LostFilters>(readLostFilters)
   const [items, setItems] = useState<LostOpportunity[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [statistics, setStatistics] = useState<LostStatistics | null>(null)
@@ -244,11 +268,15 @@ export function LostPage() {
   if (!user) return null
   const updateDraft = <K extends keyof LostFilters>(key: K, value: LostFilters[K]) =>
     setDraft((current) => ({ ...current, [key]: value }))
-  const applyFilters = () =>
-    setFilters({ ...draft, search: draft.search.trim(), province: draft.province.trim() })
+  const applyFilters = () => {
+    const next = { ...draft, search: draft.search.trim(), province: draft.province.trim() }
+    replaceLostQuery(next)
+    setFilters(next)
+  }
   const reset = () => {
     setDraft(EMPTY_LOST_FILTERS)
     setFilters(EMPTY_LOST_FILTERS)
+    replaceLostQuery(EMPTY_LOST_FILTERS)
   }
   const toggleReason = (reason: LossReason) =>
     setDraft((current) => ({
@@ -384,7 +412,7 @@ export function LostPage() {
               />
             </label>
             <label className='ui-label'>
-              Hasta (sin incluir)
+              Hasta
               <input
                 className='ui-field'
                 onChange={(event) => updateDraft('lostTo', event.target.value)}

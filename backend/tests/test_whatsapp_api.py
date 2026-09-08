@@ -27,6 +27,7 @@ from app.models import (
     WhatsAppHumanTemplateParameter,
 )
 from app.schemas.whatsapp import (
+    ConversationAttentionSummaryResponse,
     ConversationChangePageResponse,
     ConversationDetailResponse,
     ConversationPageResponse,
@@ -175,6 +176,16 @@ def test_conversation_list_filters_detail_and_cursor_validation(
     assert page.items[0].can_send_freeform is True
     assert page.items[0].template_required is False
     assert page.sync_cursor
+
+    attention_response = whatsapp_api.client.get(
+        "/api/whatsapp/conversations/attention-summary"
+    )
+    attention = ConversationAttentionSummaryResponse.model_validate(
+        attention_response.json()
+    )
+    assert attention_response.status_code == 200
+    assert attention.waiting_count == 2
+    assert attention.oldest_waiting_since_at is not None
 
     detail_response = whatsapp_api.client.get(
         f"/api/whatsapp/conversations/{first.message.conversation_id}"

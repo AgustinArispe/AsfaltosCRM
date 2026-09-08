@@ -52,6 +52,7 @@ const lostItem = {
 
 describe('LostPage', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/lost')
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -79,6 +80,23 @@ describe('LostPage', () => {
         throw new Error(`Unexpected ${url.pathname}`)
       }),
     )
+  })
+
+  it('restores Dashboard period dimensions as aware half-open loss filters', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/lost?period=custom&from=2026-08-01&to=2026-08-31&source=WEB&product=1&province=Buenos+Aires',
+    )
+    render(<LostPage />)
+    await screen.findByText('Constructora Sur')
+    const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([value]) =>
+      decodeURIComponent(String(value)),
+    )
+    expect(calls.some((value) => value.includes('lost_from=2026-08-01T00:00:00-03:00'))).toBe(true)
+    expect(calls.some((value) => value.includes('lost_to=2026-09-01T00:00:00-03:00'))).toBe(true)
+    expect(calls.some((value) => value.includes('source=WEB'))).toBe(true)
+    expect(calls.some((value) => value.includes('product_id=1'))).toBe(true)
   })
 
   it('renders current losses newest-first with bounded evidence and canonical Lost navigation', async () => {

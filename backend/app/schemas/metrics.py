@@ -174,6 +174,7 @@ class TimelineOpportunityProductResponse(BaseModel):
 
 class TimelineOpportunityItemResponse(BaseModel):
     opportunity_id: int
+    loss_event_id: int | None = None
     customer_name: str
     customer_company: str | None
     current_status: OpportunityStatus

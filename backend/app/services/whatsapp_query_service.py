@@ -39,6 +39,7 @@ from app.services.whatsapp_query_projections import (
     AttachmentContentReference,
     AttachmentProjection,
     ChangePageRequest,
+    ConversationAttentionSummary,
     ConversationChangePage,
     ConversationDetailProjection,
     ConversationListFilters,
@@ -75,6 +76,18 @@ class ConversationQueryService:
     ) -> None:
         self._session = session
         self._metrics = metrics or NullWhatsAppQueryMetrics()
+
+    def attention_summary(self) -> ConversationAttentionSummary:
+        waiting_count, oldest_waiting_since_at = self._session.execute(
+            select(
+                func.count(WhatsAppConversation.id),
+                func.min(WhatsAppConversation.waiting_since_at),
+            ).where(WhatsAppConversation.waiting_for_response.is_(True))
+        ).one()
+        return ConversationAttentionSummary(
+            waiting_count=waiting_count,
+            oldest_waiting_since_at=oldest_waiting_since_at,
+        )
 
     def list_conversations(
         self,

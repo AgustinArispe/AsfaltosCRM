@@ -4,7 +4,7 @@ import type { ApiSession } from './opportunities'
 
 export const NOTIFICATION_PAGE_SIZE = 25
 
-export type NotificationView = 'all' | 'unread'
+export type NotificationView = 'all' | 'active' | 'unread'
 
 export type OperationalNotification = {
   id: number
@@ -29,7 +29,7 @@ export function listNotifications(
   const query = new URLSearchParams({
     page: String(page),
     page_size: String(NOTIFICATION_PAGE_SIZE),
-    include_resolved: 'true',
+    include_resolved: view === 'active' ? 'false' : 'true',
   })
   if (view === 'unread') query.set('unread_only', 'true')
   return apiRequest<PaginatedResponse<OperationalNotification>>(`/notifications?${query}`, session)

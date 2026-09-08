@@ -582,6 +582,26 @@ def test_queries_do_not_recompute_or_mutate_persisted_projections(
     assert not db_session.dirty
 
 
+def test_attention_summary_counts_waiting_and_returns_oldest_timestamp(
+    db_session: Session,
+    seeded_inbox: SeededInbox,
+) -> None:
+    summary = ConversationQueryService(db_session).attention_summary()
+
+    assert summary.waiting_count == 2
+    assert summary.oldest_waiting_since_at == _BASE_TIME + timedelta(minutes=20)
+
+    seeded_inbox.primary_conversation.waiting_for_response = False
+    seeded_inbox.primary_conversation.waiting_since_at = None
+    seeded_inbox.secondary_conversation.waiting_for_response = False
+    seeded_inbox.secondary_conversation.waiting_since_at = None
+    db_session.commit()
+
+    empty = ConversationQueryService(db_session).attention_summary()
+    assert empty.waiting_count == 0
+    assert empty.oldest_waiting_since_at is None
+
+
 def test_query_statement_counts_are_bounded_and_metrics_are_safe(
     db_session: Session,
     seeded_inbox: SeededInbox,

@@ -9,7 +9,11 @@ import { useWhatsAppInbox } from '../whatsapp/useWhatsAppInbox'
 
 export function WhatsAppInboxPage({ initialConversationId }: { initialConversationId?: number }) {
   const [isContextOpen, setIsContextOpen] = useState(false)
-  const inbox = useWhatsAppInbox(initialConversationId, isContextOpen)
+  const inbox = useWhatsAppInbox(
+    initialConversationId,
+    isContextOpen,
+    new URLSearchParams(window.location.search).get('waiting') === 'true',
+  )
   const [isTemplateOpen, setIsTemplateOpen] = useState(false)
 
   useEffect(() => {

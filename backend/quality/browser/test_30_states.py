@@ -35,19 +35,17 @@ def test_empty_search_and_filter_states_explain_next_action(
     ).to_be_visible()
 
     wait_for_workspace(page, "dashboard")
-    page.get_by_label("Período").select_option("custom")
+    page.get_by_label("Período", exact=True).select_option("custom")
     page.get_by_label("Desde").fill("2025-01-01")
     page.get_by_label("Hasta").fill("2025-02-01")
     expect(page.get_by_text("Máximo 0")).to_be_visible()
-    expect(page.get_by_role("group", name="Creadas por período")).to_be_visible()
+    expect(page.get_by_role("list", name="Series de evolución")).to_be_visible()
     expect(
         page.get_by_role(
             "button", name=re.compile("abrir oportunidades", re.IGNORECASE)
         )
     ).to_have_count(0)
-    expect(
-        page.get_by_role("heading", name="No hay datos para esta dimensión")
-    ).to_be_visible()
+    expect(page.get_by_text("No hay datos para esta dimensión.").first).to_be_visible()
     expect(page.get_by_role("button", name="Restablecer")).to_be_visible()
 
 

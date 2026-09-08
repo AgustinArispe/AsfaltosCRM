@@ -115,7 +115,55 @@ export function timelineGranularity(filters: MetricsFilters): TimelineGranularit
     (utcDate(toYear, toMonth, toDay).getTime() - utcDate(fromYear, fromMonth, fromDay).getTime()) /
       86_400_000,
   )
-  return days <= 366 ? 'day' : 'month'
+  if (days <= 14) return 'day'
+  if (days <= 120) return 'week'
+  return 'month'
+}
+
+export function dashboardOutcomeQuery(filters: DashboardFilters): string {
+  const query = new URLSearchParams({
+    period: filters.preset === 'last-three-months' ? 'three-months' : filters.preset,
+    from: filters.customStart,
+    to: filters.customEnd,
+  })
+  if (filters.source) query.set('source', filters.source)
+  if (filters.productId) query.set('product', String(filters.productId))
+  if (filters.province) query.set('province', filters.province)
+  return query.toString()
+}
+
+export function dashboardFiltersFromQuery(search: string, now = new Date()): DashboardFilters {
+  const query = new URLSearchParams(search)
+  const defaults = defaultDashboardFilters(now)
+  const period = query.get('period')
+  const preset: DashboardPeriodPreset =
+    period === 'three-months'
+      ? 'last-three-months'
+      : period === 'year' || period === 'custom' || period === 'month'
+        ? period
+        : defaults.preset
+  const from = query.get('from')
+  const to = query.get('to')
+  const validDates =
+    from !== null &&
+    to !== null &&
+    /^\d{4}-\d{2}-\d{2}$/.test(from) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(to) &&
+    from <= to
+  const periodFilters = validDates
+    ? filtersForCustomRange({ ...defaults, preset }, from, to)
+    : preset === 'custom'
+      ? defaults
+      : filtersForPreset(preset, defaults, now)
+  const source = query.get('source')
+  const productId = Number(query.get('product'))
+  return {
+    ...periodFilters,
+    preset,
+    source: source === 'WEB' || source === 'WHATSAPP' ? source : null,
+    productId: Number.isInteger(productId) && productId > 0 ? productId : null,
+    province: query.get('province')?.trim() || null,
+  }
 }
 
 export function activeFilterCount(filters: DashboardFilters): number {

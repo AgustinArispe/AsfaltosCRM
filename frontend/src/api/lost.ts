@@ -12,8 +12,12 @@ function lostQuery(filters: LostFilters, cursor?: string | null, includeLimit = 
   if (filters.province) query.set('province', filters.province)
   if (filters.productId) query.set('product_id', String(filters.productId))
   if (filters.source) query.set('source', filters.source)
-  if (filters.lostFrom) query.set('lost_from', `${filters.lostFrom}T00:00:00Z`)
-  if (filters.lostTo) query.set('lost_to', `${filters.lostTo}T00:00:00Z`)
+  if (filters.lostFrom) query.set('lost_from', `${filters.lostFrom}T00:00:00-03:00`)
+  if (filters.lostTo) {
+    const next = new Date(`${filters.lostTo}T00:00:00Z`)
+    next.setUTCDate(next.getUTCDate() + 1)
+    query.set('lost_to', `${next.toISOString().slice(0, 10)}T00:00:00-03:00`)
+  }
   if (includeLimit) query.set('limit', '20')
   if (cursor) query.set('cursor', cursor)
   return query.toString()

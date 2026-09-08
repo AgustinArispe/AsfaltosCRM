@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DashboardPage } from './DashboardPage'
 
@@ -206,8 +206,8 @@ function mockDashboardApi(options: MockOptions = {}) {
         total: url.searchParams.get('unread_only') === 'true' ? 1 : 2,
       })
     }
-    if (url.pathname === '/api/whatsapp/conversations') {
-      return response({ items: [{ id: 7 }], next_page_cursor: null, sync_cursor: 'cursor' })
+    if (url.pathname === '/api/whatsapp/conversations/attention-summary') {
+      return response({ waiting_count: 3, oldest_waiting_since_at: '2026-08-14T12:00:00Z' })
     }
     throw new Error(`Unexpected request ${url.pathname}`)
   })
@@ -218,7 +218,7 @@ function mockDashboardApi(options: MockOptions = {}) {
 async function renderLoaded(options: MockOptions = {}) {
   const fetchMock = mockDashboardApi(options)
   render(<DashboardPage />)
-  await screen.findByRole('heading', { name: 'Lo que necesita seguimiento ahora' })
+  await screen.findByRole('heading', { name: 'Necesita atención' })
   return fetchMock
 }
 
@@ -229,37 +229,52 @@ describe('DashboardPage', () => {
     authState.logout.mockReset()
   })
 
-  it('renders operational evidence, five KPI semantics, charts and accessible exact data', async () => {
+  afterEach(() => {
+    window.history.replaceState(null, '', '/dashboard')
+  })
+
+  it('renders the approved attention, result, active, evolution and distribution hierarchy', async () => {
     await renderLoaded()
 
-    expect(screen.getByText('Seguimientos pendientes')).toBeInTheDocument()
-    expect(screen.getByText('Conversaciones esperando')).toBeInTheDocument()
-    expect(screen.getByText('Oportunidades creadas')).toBeInTheDocument()
-    expect(screen.getByText('2.500,125 kg')).toBeInTheDocument()
-    expect(screen.getAllByText('66,67 %').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('67 %').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('33 %').length).toBeGreaterThan(0)
-    expect(screen.getByText('Pipeline activo', { exact: false })).toBeInTheDocument()
-    expect(
-      screen.queryByText('Accesos directos a la atención operativa del equipo.'),
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('Perdida')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /1 de ago de 2026:/ })).toBeInTheDocument()
+    expect(screen.getByText('oportunidades sin seguimiento')).toBeInTheDocument()
+    expect(screen.getByText('conversaciones pendientes de respuesta')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Resultado del período' })).toBeInTheDocument()
+    expect(screen.getByText('1.200 kg ganados')).toBeInTheDocument()
+    expect(screen.getByText('600 kg perdidos')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver ganadas' })).toHaveAttribute(
+      'href',
+      '/won?period=month&from=2026-08-01&to=2026-08-31',
+    )
+    expect(screen.getByRole('link', { name: 'Ver pérdidas' })).toHaveAttribute(
+      'href',
+      '/lost?period=month&from=2026-08-01&to=2026-08-31',
+    )
+    const activeSection = screen
+      .getByRole('heading', { name: 'Oportunidades activas ahora' })
+      .closest('section')
+    if (!activeSection) throw new Error('Active Opportunities section is missing')
+    expect(within(activeSection).getByText('6')).toBeInTheDocument()
+    expect(screen.queryByText('Kg cotizados')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: /Creadas|Ganadas|Pérdidas/ }).length).toBeGreaterThan(
+      0,
+    )
 
     fireEvent.click(screen.getByText('Ver datos exactos de evolución'))
-    expect(screen.getAllByRole('table')[0]).toHaveTextContent('Leads creados')
-    expect(screen.getAllByText('Producto histórico').length).toBeGreaterThan(1)
+    expect(screen.getAllByRole('table')[0]).toHaveTextContent('Creadas')
+    expect(screen.getByText('Producto histórico')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
-    expect(screen.getAllByText('Sin provincia').length).toBeGreaterThan(1)
+    expect(screen.getByText('Sin provincia')).toBeInTheDocument()
   })
 
   it('uses typed navigation for every operational attention action', async () => {
     await renderLoaded()
     fireEvent.click(screen.getByRole('link', { name: /Ver seguimientos/ }))
     expect(window.location.pathname).toBe('/notifications')
+    expect(window.location.search).toBe('?view=active')
     window.history.replaceState(null, '', '/dashboard')
-    fireEvent.click(screen.getByRole('link', { name: /Abrir WhatsApp/ }))
+    fireEvent.click(screen.getByRole('link', { name: /Abrir pendientes/ }))
     expect(window.location.pathname).toBe('/whatsapp')
+    expect(window.location.search).toBe('?waiting=true')
   })
 
   it('applies compact filters, keeps Pipeline date-unfiltered, and resets them', async () => {
@@ -296,7 +311,8 @@ describe('DashboardPage', () => {
         ).length,
         pipeline: paths.filter((path) => path === '/api/metrics/pipeline').length,
         notifications: paths.filter((path) => path === '/api/notifications').length,
-        waiting: paths.filter((path) => path === '/api/whatsapp/conversations').length,
+        waiting: paths.filter((path) => path === '/api/whatsapp/conversations/attention-summary')
+          .length,
         catalog: paths.filter((path) => path === '/api/products').length,
       }
     }
@@ -342,9 +358,8 @@ describe('DashboardPage', () => {
 
   it('states null conversion honestly without drawing a misleading ring', async () => {
     await renderLoaded({ nullConversion: true })
-    expect(screen.getAllByText('Sin oportunidades cerradas').length).toBeGreaterThan(0)
-    expect(screen.queryByLabelText(/Resultados cerrados:/)).not.toBeInTheDocument()
-    expect(screen.getAllByText('Sin oportunidades cerradas').length).toBeGreaterThan(1)
+    expect(screen.getByText('Sin resultados cerrados en el período')).toBeInTheDocument()
+    expect(screen.getByText('Sin volumen cerrado en el período')).toBeInTheDocument()
   })
 
   it('keeps other surfaces visible when an independent chart request fails and supports loading skeletons', async () => {
@@ -356,46 +371,46 @@ describe('DashboardPage', () => {
         'No pudimos actualizar esta información. Conservamos los últimos datos disponibles.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByText('Oportunidades creadas')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Resultado del período' })).toBeInTheDocument()
   })
 
   it('keeps table and chart controls keyboard-accessible', async () => {
     await renderLoaded()
-    fireEvent.focus(screen.getByRole('button', { name: /2 de ago de 2026: Creadas 3/ }))
-    expect(screen.getByRole('status')).toHaveTextContent('2 de ago')
+    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'custom' } })
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-08-01' } })
+    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-08-10' } })
+    const createdBar = await screen.findByRole('button', { name: /Creadas 3, abrir oportunidades/ })
+    fireEvent.click(createdBar)
     expect(
-      await screen.findByRole('dialog', { name: /Oportunidades creadas del 2 de ago/ }),
+      await screen.findByRole('region', { name: 'Oportunidades del día seleccionado' }),
     ).toHaveTextContent('Hormigones Sur')
     expect(screen.getByRole('link', { name: 'Hormigones Sur' })).toHaveAttribute(
       'href',
       '/pipeline/opportunities/41',
     )
-    fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.queryByRole('dialog', { name: /Oportunidades creadas/ })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Ganadas' }))
-    expect(screen.getByRole('group', { name: 'Ganadas por período' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /1 de ago de 2026: Ganadas 1/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle del día' }))
+    expect(
+      screen.queryByRole('region', { name: 'Oportunidades del día seleccionado' }),
+    ).not.toBeInTheDocument()
   })
 
-  it('groups only the province visual while preserving every exact category', async () => {
+  it('preserves every province in the compact secondary analysis', async () => {
     await renderLoaded({ manyProvinces: true })
     fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
-    expect(screen.getByRole('list', { name: /Sin provincia: 5.*Otras:/ })).toBeInTheDocument()
-    fireEvent.click(screen.getByText('Ver datos exactos de provincias por oportunidades creadas'))
-    expect(
-      screen.getByRole('region', { name: 'Tabla de Provincias por oportunidades creadas' }),
-    ).toHaveTextContent('Mendoza')
+    expect(screen.getByRole('list', { name: /Sin provincia: 5.*Mendoza: 2/ })).toBeInTheDocument()
   })
 
-  it('switches one primary commercial dimension at a time', async () => {
+  it('keeps Origin visible and switches only the secondary dimension', async () => {
     await renderLoaded()
     expect(screen.getByRole('button', { name: 'Productos' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Origen' }))
-    expect(screen.getByRole('button', { name: 'Origen' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('list', { name: /Web: 6.*WhatsApp: 3/ })).toBeInTheDocument()
-    expect(screen.queryByRole('list', { name: /Asfalto base:/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
+    expect(screen.getByRole('button', { name: 'Provincias' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 })

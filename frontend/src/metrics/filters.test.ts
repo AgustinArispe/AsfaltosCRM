@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   activeFilterCount,
+  dashboardFiltersFromQuery,
   defaultDashboardFilters,
   filtersForCustomRange,
   filtersForPreset,
@@ -39,10 +40,27 @@ describe('Dashboard filters', () => {
     expect(custom.to).toBe('2026-02-13T00:00:00-03:00')
   })
 
-  it('chooses day only up to the backend bucket limit and exposes compact filter evidence', () => {
+  it('restores a validated Dashboard range and dimensions from browser history', () => {
+    const restored = dashboardFiltersFromQuery(
+      '?period=three-months&from=2026-06-01&to=2026-08-31&source=WEB&product=3&province=Salta',
+      now,
+    )
+
+    expect(restored.preset).toBe('last-three-months')
+    expect(restored.from).toBe('2026-06-01T00:00:00-03:00')
+    expect(restored.to).toBe('2026-09-01T00:00:00-03:00')
+    expect(restored.source).toBe('WEB')
+    expect(restored.productId).toBe(3)
+    expect(restored.province).toBe('Salta')
+  })
+
+  it('chooses the approved adaptive granularity and exposes compact filter evidence', () => {
     const filters = defaultDashboardFilters(now)
-    expect(timelineGranularity(filters)).toBe('day')
-    expect(timelineGranularity(filtersForPreset('year', filters, now))).toBe('day')
+    expect(timelineGranularity(filters)).toBe('week')
+    expect(timelineGranularity(filtersForCustomRange(filters, '2026-08-01', '2026-08-10'))).toBe(
+      'day',
+    )
+    expect(timelineGranularity(filtersForPreset('year', filters, now))).toBe('month')
     expect(timelineGranularity(filtersForCustomRange(filters, '2024-01-01', '2026-08-14'))).toBe(
       'month',
     )

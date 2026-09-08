@@ -383,6 +383,7 @@ async function openConversation() {
 describe('WhatsAppInboxPage', () => {
   beforeEach(() => {
     authState.logout.mockReset()
+    window.history.replaceState(null, '', '/whatsapp')
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
       value: vi.fn(() => 'blob:http://localhost/media'),

@@ -14,8 +14,12 @@ from app.models import (
     LeadSource,
     LossReason,
     Opportunity,
+    OpportunityLossEvent,
+    OpportunityLossProductSnapshot,
     OpportunityProduct,
     OpportunityStatus,
+    OpportunityStatusHistory,
+    OpportunityTransitionKind,
     Product,
 )
 from app.services.errors import MetricsTimelinePeriodTooLargeError
@@ -99,6 +103,40 @@ def make_opportunity(
         for line in lines
     )
     persist(db_session, opportunity)
+    if status is OpportunityStatus.PERDIDA:
+        history = OpportunityStatusHistory(
+            opportunity_id=opportunity.id,
+            from_status=OpportunityStatus.NUEVA,
+            to_status=OpportunityStatus.PERDIDA,
+            changed_at=status_entered_at,
+            transition_kind=OpportunityTransitionKind.STATUS_CHANGED,
+        )
+        db_session.add(history)
+        db_session.flush()
+        event = OpportunityLossEvent(
+            opportunity_id=opportunity.id,
+            customer_id=customer.id,
+            status_history_id=history.id,
+            from_status=OpportunityStatus.NUEVA,
+            reason=LossReason.OTRO,
+            source=source,
+            customer_display_name=customer.name,
+            customer_province=customer.province,
+            quoted_total_kg=sum((line.quantity_kg for line in lines), Decimal("0")),
+            lost_at=status_entered_at,
+        )
+        db_session.add(event)
+        db_session.flush()
+        db_session.add_all(
+            OpportunityLossProductSnapshot(
+                loss_event_id=event.id,
+                product_id=line.product.id,
+                product_name=line.product.name,
+                quantity_kg=line.quantity_kg,
+            )
+            for line in lines
+        )
+        db_session.commit()
     return opportunity
 
 
@@ -270,6 +308,85 @@ def test_overview_uses_creation_for_leads_and_terminal_entry_for_closures(
     assert overview.opportunities.won == 1
     assert overview.volume_kg.quoted == Decimal("200.000")
     assert overview.volume_kg.won == Decimal("100.000")
+
+
+def test_overview_preserves_reopened_repeated_loss_events_and_snapshot_kg(
+    db_session: Session,
+) -> None:
+    customer = make_customer(db_session)
+    product = make_product(db_session)
+    first_loss_at = PERIOD_START + timedelta(days=3)
+    opportunity = make_opportunity(
+        db_session,
+        customer,
+        status=OpportunityStatus.PERDIDA,
+        created_at=PERIOD_START + timedelta(days=1),
+        entered_at=first_loss_at,
+        lines=(MetricLine(product, Decimal("125.500")),),
+    )
+    line = opportunity.opportunity_products[0]
+    opportunity.status = OpportunityStatus.NEGOCIACION
+    opportunity.loss_reason = None
+    opportunity.current_status_entered_at = first_loss_at + timedelta(days=1)
+    opportunity.updated_at = first_loss_at + timedelta(days=1)
+    line.quantity_kg = Decimal("999.000")
+    history = OpportunityStatusHistory(
+        opportunity_id=opportunity.id,
+        from_status=OpportunityStatus.NEGOCIACION,
+        to_status=OpportunityStatus.PERDIDA,
+        changed_at=first_loss_at + timedelta(days=2),
+        transition_kind=OpportunityTransitionKind.STATUS_CHANGED,
+    )
+    db_session.add(history)
+    db_session.flush()
+    second = OpportunityLossEvent(
+        opportunity_id=opportunity.id,
+        customer_id=customer.id,
+        status_history_id=history.id,
+        from_status=OpportunityStatus.NEGOCIACION,
+        reason=LossReason.PRECIO,
+        source=LeadSource.WEB,
+        customer_display_name=customer.name,
+        customer_province=customer.province,
+        quoted_total_kg=Decimal("250.250"),
+        lost_at=history.changed_at,
+    )
+    db_session.add(second)
+    db_session.flush()
+    db_session.add(
+        OpportunityLossProductSnapshot(
+            loss_event_id=second.id,
+            product_id=product.id,
+            product_name=product.name,
+            quantity_kg=Decimal("250.250"),
+        )
+    )
+    db_session.commit()
+
+    overview = MetricsService(db_session).overview(filters())
+    timeline = MetricsService(db_session).timeline(
+        filters(), granularity=TimelineGranularity.WEEK
+    )
+
+    assert overview.opportunities.lost == 2
+    assert overview.volume_kg.lost == Decimal("375.750")
+    assert overview.opportunities.conversion_rate == Decimal("0.0000")
+    assert overview.volume_kg.conversion_rate == Decimal("0.0000")
+    product_overview = MetricsService(db_session).overview(
+        filters(product_id=product.id)
+    )
+    assert product_overview.opportunities.lost == 2
+    assert product_overview.volume_kg.lost == Decimal("375.750")
+    product_metrics = MetricsService(db_session).products(filters())
+    assert product_metrics[0].opportunities_lost == 2
+    assert product_metrics[0].kg_lost == Decimal("375.750")
+    source_metrics = MetricsService(db_session).sources(filters())
+    assert source_metrics[0].lost == 2
+    province_metrics = MetricsService(db_session).provinces(filters())
+    assert province_metrics[0].opportunities_lost == 2
+    assert province_metrics[0].kg_lost == Decimal("375.750")
+    assert sum(item.lost for item in timeline) == 2
+    assert sum((item.kg_lost for item in timeline), Decimal("0")) == Decimal("375.750")
 
 
 def test_overview_dimensions_filter_source_product_and_normalized_province(
@@ -541,6 +658,38 @@ def test_timeline_month_buckets_include_empty_periods(db_session: Session) -> No
     assert buckets[2].lost == 0
 
 
+def test_timeline_week_buckets_are_monday_anchored_and_period_bounded(
+    db_session: Session,
+) -> None:
+    """CRM-041 AC-09: partial weeks retain half-open Buenos Aires boundaries."""
+    start = datetime(2040, 1, 4, 3, tzinfo=UTC)
+    end = datetime(2040, 1, 10, 3, tzinfo=UTC)
+    customer = make_customer(db_session)
+    make_opportunity(
+        db_session,
+        customer,
+        status=OpportunityStatus.NUEVA,
+        created_at=start,
+    )
+    make_opportunity(
+        db_session,
+        customer,
+        status=OpportunityStatus.NUEVA,
+        created_at=end,
+    )
+
+    buckets = MetricsService(db_session).timeline(
+        filters(start=start, end=end),
+        granularity=TimelineGranularity.WEEK,
+    )
+
+    assert [bucket.bucket.isoformat() for bucket in buckets] == [
+        "2040-01-02",
+        "2040-01-09",
+    ]
+    assert [bucket.leads_created for bucket in buckets] == [1, 0]
+
+
 def test_timeline_day_opportunities_matches_local_bucket_dimensions_and_pagination(
     db_session: Session,
 ) -> None:
@@ -606,10 +755,15 @@ def test_timeline_day_opportunities_matches_local_bucket_dimensions_and_paginati
     )
 
     assert total == second_total == 3
-    assert [item.id for item in first_page] == [matching[2].id, matching[1].id]
-    assert [item.id for item in second_page] == [matching[0].id]
-    assert first_page[0].customer.id == customer.id
-    assert first_page[0].opportunity_products[0].quantity_kg == Decimal("125.500")
+    assert [item.opportunity.id for item in first_page] == [
+        matching[2].id,
+        matching[1].id,
+    ]
+    assert [item.opportunity.id for item in second_page] == [matching[0].id]
+    assert first_page[0].opportunity.customer.id == customer.id
+    assert first_page[0].opportunity.opportunity_products[0].quantity_kg == Decimal(
+        "125.500"
+    )
 
 
 @pytest.mark.parametrize(

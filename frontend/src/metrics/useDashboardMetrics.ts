@@ -12,7 +12,7 @@ import {
 import { getNotificationTotal } from '../api/notifications'
 import type { ApiSession } from '../api/opportunities'
 import { listProducts } from '../api/products'
-import { listWhatsAppConversations } from '../api/whatsapp'
+import { getWhatsAppAttentionSummary } from '../api/whatsapp'
 import type { Product } from '../products/types'
 import type { DashboardFilters } from './filters'
 import { pipelineDimensions, timelineGranularity } from './filters'
@@ -20,8 +20,8 @@ import type { DashboardData } from './types'
 
 export type DashboardAttention = {
   staleTotal: number | null
-  unreadTotal: number | null
-  hasWaitingConversation: boolean | null
+  waitingTotal: number | null
+  oldestWaitingSinceAt: string | null
 }
 
 type DashboardErrors = Partial<Record<keyof DashboardData | 'attention', string>>
@@ -48,13 +48,13 @@ function commercialValue(
 export function useDashboardMetrics(
   filters: DashboardFilters,
   session: ApiSession,
-  unreadTotal: number | null,
+  _unreadTotal: number | null,
 ) {
   const [data, setData] = useState<Partial<DashboardData>>({})
   const [attention, setAttention] = useState<DashboardAttention>({
     staleTotal: null,
-    unreadTotal,
-    hasWaitingConversation: null,
+    waitingTotal: null,
+    oldestWaitingSinceAt: null,
   })
   const [products, setProducts] = useState<Product[]>([])
   const [errors, setErrors] = useState<DashboardErrors>({})
@@ -78,10 +78,6 @@ export function useDashboardMetrics(
       return next
     })
   }, [])
-
-  useEffect(() => {
-    setAttention((current) => ({ ...current, unreadTotal }))
-  }, [unreadTotal])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -178,15 +174,13 @@ export function useDashboardMetrics(
   useEffect(() => {
     void refreshKey
     const controller = new AbortController()
-    listWhatsAppConversations(
-      { limit: 1, pageCursor: null, waitingOnly: true, unreadOnly: false, search: '' },
-      { ...session, signal: controller.signal },
-    )
+    getWhatsAppAttentionSummary({ ...session, signal: controller.signal })
       .then((result) => {
         if (!controller.signal.aborted) {
           setAttention((current) => ({
             ...current,
-            hasWaitingConversation: result.items.length > 0,
+            waitingTotal: result.waiting_count,
+            oldestWaitingSinceAt: result.oldest_waiting_since_at,
           }))
           setAttentionFailure('waiting', false)
         }

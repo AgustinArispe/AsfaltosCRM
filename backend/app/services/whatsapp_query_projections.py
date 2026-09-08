@@ -145,6 +145,12 @@ class ConversationListFilters:
 
 
 @dataclass(frozen=True, slots=True)
+class ConversationAttentionSummary:
+    waiting_count: int
+    oldest_waiting_since_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
 class ConversationPageCursor:
     snapshot_at: datetime
     waiting_for_response: bool

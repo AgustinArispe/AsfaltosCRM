@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { ApiSession } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
@@ -10,10 +10,16 @@ import {
   ResultsCluster,
   TimelineChart,
 } from '../metrics/DashboardVisuals'
-import { activeFilterCount, defaultDashboardFilters } from '../metrics/filters'
+import {
+  activeFilterCount,
+  dashboardFiltersFromQuery,
+  dashboardOutcomeQuery,
+  defaultDashboardFilters,
+} from '../metrics/filters'
 import { useDashboardMetrics } from '../metrics/useDashboardMetrics'
 import { useNotificationAttentionContext } from '../notifications/NotificationAttention'
 import { AppLink } from '../routing/router'
+import { formatStageDuration } from '../shared/formatters'
 import { Icon, type IconName } from '../shared/Icon'
 import { EmptyState, Skeleton } from '../shared/StatusStates'
 
@@ -40,52 +46,54 @@ function DashboardSkeleton() {
 }
 
 function OperationalAttention({
-  hasWaitingConversation,
   staleTotal,
-  unreadTotal,
+  waitingTotal,
+  oldestWaitingSinceAt,
   isUnavailable,
 }: {
-  hasWaitingConversation: boolean | null
   staleTotal: number | null
-  unreadTotal: number | null
+  waitingTotal: number | null
+  oldestWaitingSinceAt: string | null
   isUnavailable: boolean
 }) {
   const items = [
     {
-      label: 'Seguimientos pendientes',
+      label: 'oportunidades sin seguimiento',
       value: staleTotal === null ? '—' : String(staleTotal),
       icon: 'clock' as IconName,
-      target: 'notifications' as const,
+      target: '/notifications?view=active',
       action: 'Ver seguimientos',
+      detail: '14 días o más sin cambio de etapa',
+      visible: staleTotal === null || staleTotal > 0,
     },
     {
-      label: 'Notificaciones sin leer',
-      value: unreadTotal === null ? '—' : String(unreadTotal),
-      icon: 'bell' as IconName,
-      target: 'notifications' as const,
-      action: 'Revisar notificaciones',
-    },
-    {
-      label: 'Conversaciones esperando',
-      value: hasWaitingConversation === null ? '—' : hasWaitingConversation ? 'Hay' : '0',
+      label: 'conversaciones pendientes de respuesta',
+      value: waitingTotal === null ? '—' : String(waitingTotal),
       icon: 'whatsapp' as IconName,
-      target: 'whatsapp' as const,
-      action: 'Abrir WhatsApp',
+      target: '/whatsapp?waiting=true',
+      action: 'Abrir pendientes',
+      detail: oldestWaitingSinceAt
+        ? `La más antigua espera ${formatStageDuration(oldestWaitingSinceAt).toLocaleLowerCase('es-AR')}`
+        : 'Mensajes humanos aún sin respuesta válida',
+      visible: waitingTotal === null || waitingTotal > 0,
     },
   ]
+  const visibleItems = items.filter((item) => item.visible)
+  const isCalm = staleTotal === 0 && waitingTotal === 0
 
   return (
     <section aria-labelledby='dashboard-attention-title' className='dashboard-attention'>
       <div className='dashboard-attention__heading'>
-        <h2 id='dashboard-attention-title'>Lo que necesita seguimiento ahora</h2>
+        <h2 id='dashboard-attention-title'>Necesita atención</h2>
       </div>
       {isUnavailable ? (
         <p className='dashboard-attention__unavailable'>
           Parte de la evidencia operativa no está disponible en este momento.
         </p>
       ) : null}
+      {isCalm ? <p className='dashboard-attention__calm'>Sin pendientes urgentes</p> : null}
       <ul>
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <li className='dashboard-attention__item' key={item.label}>
             <span className='dashboard-attention__icon'>
               <Icon name={item.icon} />
@@ -93,11 +101,12 @@ function OperationalAttention({
             <span className='dashboard-attention__content'>
               <strong className='dashboard-attention__value'>{item.value}</strong>
               <b>{item.label}</b>
+              <small>{item.detail}</small>
             </span>
             <AppLink
               aria-label={`${item.action}: ${item.label.toLocaleLowerCase('es-AR')}`}
               className='dashboard-attention__action'
-              to={{ kind: 'workspace', workspace: item.target }}
+              to={item.target}
             >
               {item.action}
               <Icon name='chevron-right' />
@@ -111,11 +120,18 @@ function OperationalAttention({
 
 export function DashboardPage() {
   const { token, logout } = useAuth()
-  const [filters, setFilters] = useState(() => defaultDashboardFilters())
+  const [filters, setFilters] = useState(() => dashboardFiltersFromQuery(window.location.search))
   const session = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
     [logout, token],
   )
+  useEffect(() => {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `/dashboard?${dashboardOutcomeQuery(filters)}`,
+    )
+  }, [filters])
   const notificationAttention = useNotificationAttentionContext()
   const { attention, data, errors, hasLoaded, isRefreshing, products, retry } = useDashboardMetrics(
     filters,
@@ -152,13 +168,13 @@ export function DashboardPage() {
       ) : (
         <>
           <OperationalAttention
-            hasWaitingConversation={attention.hasWaitingConversation}
             isUnavailable={Boolean(errors.attention)}
+            oldestWaitingSinceAt={attention.oldestWaitingSinceAt}
             staleTotal={attention.staleTotal}
-            unreadTotal={attention.unreadTotal}
+            waitingTotal={attention.waitingTotal}
           />
           {data.overview ? (
-            <DashboardKpis overview={data.overview} />
+            <DashboardKpis filters={filters} overview={data.overview} />
           ) : (
             <EmptyState
               action={<DashboardRefresh isRefreshing={isRefreshing} onRetry={retry} />}
@@ -166,23 +182,21 @@ export function DashboardPage() {
               title='Indicadores no disponibles'
             />
           )}
-          <div className='dashboard-primary-grid'>
-            <TimelineChart
-              error={errors.timeline}
-              filters={filters}
-              hasActiveFilters={hasActiveFilters}
-              onRetry={retry}
-              session={session}
-              timeline={data.timeline}
-            />
-            <ResultsCluster
-              error={errors.pipeline}
-              hasDimensionFilters={hasDimensionFilters}
-              onRetry={retry}
-              overview={data.overview}
-              pipeline={data.pipeline}
-            />
-          </div>
+          <ResultsCluster
+            error={errors.pipeline}
+            hasDimensionFilters={hasDimensionFilters}
+            onRetry={retry}
+            overview={data.overview}
+            pipeline={data.pipeline}
+          />
+          <TimelineChart
+            error={errors.timeline}
+            filters={filters}
+            hasActiveFilters={hasActiveFilters}
+            onRetry={retry}
+            session={session}
+            timeline={data.timeline}
+          />
           <CommercialDistribution
             errors={{
               products: errors.products,

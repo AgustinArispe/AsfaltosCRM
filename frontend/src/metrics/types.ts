@@ -63,7 +63,7 @@ export type ProvinceMetric = {
   kg_lost: string
 }
 
-export type TimelineGranularity = 'day' | 'month'
+export type TimelineGranularity = 'day' | 'week' | 'month'
 export type TimelineSeries = 'created' | 'won' | 'lost'
 
 export type TimelineMetric = {
@@ -91,6 +91,7 @@ export type TimelineDayOpportunityProduct = {
 
 export type TimelineDayOpportunity = {
   opportunity_id: number
+  loss_event_id: number | null
   customer_name: string
   customer_company: string | null
   current_status: OpportunityStatus

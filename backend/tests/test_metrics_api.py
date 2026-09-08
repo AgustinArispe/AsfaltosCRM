@@ -206,6 +206,7 @@ def test_timeline_day_opportunities_returns_narrow_typed_projection(
     assert detail.items[0].products[0].quantity_kg == Decimal("2500.000")
     assert set(payload["items"][0]) == {
         "opportunity_id",
+        "loss_event_id",
         "customer_name",
         "customer_company",
         "current_status",
@@ -255,7 +256,7 @@ def test_period_metric_query_validation(
 def test_timeline_rejects_unsupported_granularity(api_client: TestClient) -> None:
     response = api_client.get(
         "/api/metrics/timeline",
-        params={**period_params(), "granularity": "week"},
+        params={**period_params(), "granularity": "quarter"},
     )
     assert response.status_code == 422
 

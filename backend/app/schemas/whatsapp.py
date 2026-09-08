@@ -106,6 +106,11 @@ class ConversationPageResponse(BaseModel):
     sync_cursor: str
 
 
+class ConversationAttentionSummaryResponse(BaseModel):
+    waiting_count: int
+    oldest_waiting_since_at: datetime | None
+
+
 class ConversationChangePageResponse(BaseModel):
     items: list[ConversationSummaryResponse]
     next_cursor: str

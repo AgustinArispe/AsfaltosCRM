@@ -17,9 +17,9 @@ function params(filters: WonFilters): URLSearchParams {
   if (filters.unassigned) query.set('unassigned', 'true')
   if (filters.from) query.set('won_from', `${filters.from}T00:00:00-03:00`)
   if (filters.to) {
-    const next = new Date(`${filters.to}T12:00:00-03:00`)
+    const next = new Date(`${filters.to}T00:00:00Z`)
     next.setUTCDate(next.getUTCDate() + 1)
-    query.set('won_to', next.toISOString())
+    query.set('won_to', `${next.toISOString().slice(0, 10)}T00:00:00-03:00`)
   }
   return query
 }
