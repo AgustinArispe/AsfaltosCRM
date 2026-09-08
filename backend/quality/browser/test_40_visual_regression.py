@@ -6,10 +6,26 @@ import pytest
 from playwright.sync_api import expect
 
 from quality.browser.support import (
+    QaPage,
     QaPageFactory,
     assert_visual_baseline,
     wait_for_workspace,
 )
+
+QA_WHATSAPP_VISUAL_CONVERSATION_ID = 2
+QA_WHATSAPP_VISUAL_READ_SEQUENCE = (5, 6, 4, 3, QA_WHATSAPP_VISUAL_CONVERSATION_ID)
+
+
+def _open_canonical_whatsapp_conversation(qa_page: QaPage) -> None:
+    page = qa_page.page
+    for conversation_id in QA_WHATSAPP_VISUAL_READ_SEQUENCE:
+        with page.expect_response(
+            f"**/api/whatsapp/conversations/{conversation_id}/read"
+        ):
+            wait_for_workspace(page, f"whatsapp/conversations/{conversation_id}")
+    expect(
+        page.get_by_role("heading", name="Paula Benítez", exact=True)
+    ).to_be_visible()
 
 
 @pytest.mark.visual
@@ -33,12 +49,11 @@ def test_dashboard_desktop_baseline(qa_pages: QaPageFactory) -> None:
 @pytest.mark.visual
 def test_whatsapp_desktop_baseline(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR", viewport=(1440, 900))
-    wait_for_workspace(qa_page.page, "whatsapp")
+    _open_canonical_whatsapp_conversation(qa_page)
     conversations = qa_page.page.get_by_role(
         "list", name="Conversaciones de WhatsApp"
     ).get_by_role("button")
     expect(conversations).to_have_count(10)
-    conversations.first.click()
     expect(
         qa_page.page.get_by_role("log", name="Historial de mensajes")
     ).to_be_visible()
@@ -105,7 +120,7 @@ def test_pipeline_effective_150_percent_baseline(qa_pages: QaPageFactory) -> Non
 @pytest.mark.visual
 def test_whatsapp_responsive_baseline(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR", viewport=(390, 844))
-    wait_for_workspace(qa_page.page, "whatsapp")
+    _open_canonical_whatsapp_conversation(qa_page)
     page = qa_page.page
     log = page.get_by_role("log", name="Historial de mensajes")
     expect(log).to_be_visible()
