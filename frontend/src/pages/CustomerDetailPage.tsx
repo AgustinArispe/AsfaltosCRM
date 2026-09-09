@@ -160,7 +160,7 @@ function CustomerOpportunities({
                   to={{
                     kind: 'opportunity',
                     opportunityId: opportunity.id,
-                    surface: opportunity.status === 'PERDIDA' ? 'lost' : 'pipeline',
+                    surface: 'pipeline',
                   }}
                 >
                   Ver detalle

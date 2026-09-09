@@ -122,7 +122,7 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
 
 
 @pytest.mark.mutating
-def test_loss_historical_evidence_and_reopen_returns_to_pipeline(
+def test_loss_action_redirects_from_hidden_workspace_to_dashboard(
     qa_pages: QaPageFactory,
 ) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR")
@@ -137,35 +137,9 @@ def test_loss_historical_evidence_and_reopen_returns_to_pipeline(
     expect(loss.get_by_role("alert")).to_have_text("Seleccioná un motivo de pérdida.")
     loss.get_by_label("Motivo").select_option("PRECIO")
     loss.get_by_role("button", name="Confirmar pérdida").click()
-    page.wait_for_url(re.compile(r"/lost/opportunities/\d+$"))
-    expect(
-        page.get_by_role("dialog", name="Ramiro Sosa").get_by_text(
-            "Perdida", exact=True
-        )
-    ).to_be_visible()
-    expect(detail.get_by_text("Precio", exact=True).first).to_be_visible()
-    page.get_by_role("dialog", name="Ramiro Sosa").get_by_role(
-        "button", name="Reabrir"
-    ).click()
-    confirmation = page.get_by_role("dialog", name="Reabrir oportunidad")
-    expect(
-        confirmation.get_by_text(
-            "El destino lo determina FAA CRM: Negociación.", exact=True
-        )
-    ).to_be_visible()
-    confirmation.get_by_role("button", name="Reabrir en negociación").click()
-    expect(
-        page.get_by_role("dialog", name="Ramiro Sosa").get_by_text(
-            "Negociación", exact=True
-        )
-    ).to_be_visible()
-    page.get_by_role("button", name="Cerrar detalle de oportunidad").click()
-    wait_for_workspace(page, "pipeline")
-    expect(
-        page.get_by_role("region", name="Negociación").get_by_role(
-            "button", name=re.compile("Ramiro Sosa")
-        )
-    ).to_be_visible()
+    page.wait_for_url("**/dashboard")
+    expect(page.get_by_role("heading", name="Dashboard", level=1)).to_be_visible()
+    expect(page.get_by_role("link", name="Perdidas")).to_have_count(0)
 
 
 @pytest.mark.mutating
@@ -218,46 +192,6 @@ def test_whatsapp_expired_window_requires_approved_template(
         )
     ).to_be_visible()
     expect(page.get_by_role("button", name="Usar plantilla")).to_be_enabled()
-
-
-@pytest.mark.mutating
-def test_broadcast_creation_validation_processing_and_audit(
-    qa_pages: QaPageFactory,
-) -> None:
-    qa_page = qa_pages.create(role="SUPERVISOR")
-    page = qa_page.page
-    wait_for_workspace(page, "whatsapp-sends")
-    page.get_by_role("button", name="Nuevo envío masivo").click()
-    dialog = page.get_by_role("dialog", name="Nuevo envío masivo")
-    dialog.get_by_label("Nombre operativo").fill("Validación CRM-026")
-    dialog.get_by_role("radio", name=re.compile("novedades_faa")).check()
-    dialog.get_by_role("button", name="Continuar a datos requeridos").click()
-    dialog.get_by_label("mes").fill("agosto")
-    dialog.get_by_role("button", name="Continuar a clientes").click()
-    dialog.get_by_role(
-        "checkbox", name=re.compile("María López.*Constructora del Sur")
-    ).check()
-    dialog.get_by_role("button", name="Revisar elegibilidad").click()
-    expect(
-        dialog.get_by_role("heading", name="Validación de elegibilidad")
-    ).to_be_visible()
-    dialog.get_by_role("button", name="Revisar elegibilidad").click()
-    expect(dialog.get_by_role("heading", name="Confirmar envío")).to_be_visible()
-    expect(dialog.get_by_text("Aptos").locator("..").get_by_text("1")).to_be_visible()
-    dialog.get_by_role("button", name="Confirmar envío").click()
-    page.wait_for_url(re.compile(r"/whatsapp-sends/\d+$"))
-    expect(page.get_by_text("Listo para enviar", exact=True).first).to_be_visible()
-    page.get_by_role("button", name="Enviar ahora").click()
-    expect(page.get_by_text("Enviando", exact=True).first).to_be_visible()
-    page.get_by_role("button", name="Continuar envío").click()
-    expect(page.get_by_text(re.compile(r"Completado")).first).to_be_visible()
-    expect(
-        page.get_by_role("heading", name="Resultados por destinatario")
-    ).to_be_visible()
-    page.get_by_text("Auditoría del envío", exact=True).click()
-    expect(page.get_by_text(re.compile("Envío confirmado")).first).to_be_visible()
-    expect(page.get_by_text(re.compile("Envío iniciado")).first).to_be_visible()
-    expect(page.get_by_text(re.compile("Envío completado")).first).to_be_visible()
 
 
 @pytest.mark.mutating

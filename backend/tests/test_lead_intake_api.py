@@ -5,8 +5,11 @@ from typing import TypedDict
 import pytest
 from fastapi.testclient import TestClient
 from httpx2 import Response
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.core.intake_security import build_web_intake_signature
+from app.models import Notification, NotificationRecipient, NotificationType, User
 from app.schemas import WebLeadIntakeResponse
 
 
@@ -68,6 +71,8 @@ def signed_post(
 
 def test_valid_hmac_creates_without_crm_jwt_and_replay_returns_200(
     api_client: TestClient,
+    db_session: Session,
+    supervisor_user: User,
 ) -> None:
     del api_client.headers["Authorization"]
     payload = make_payload("api-created-and-replayed")
@@ -84,6 +89,26 @@ def test_valid_hmac_creates_without_crm_jwt_and_replay_returns_200(
     assert replay.intake_id == first.intake_id
     assert replay.customer_id == first.customer_id
     assert replay.opportunity_id == first.opportunity_id
+    notification_ids = list(
+        db_session.scalars(
+            select(Notification.id).where(
+                Notification.opportunity_id == first.opportunity_id,
+                Notification.type == NotificationType.NEW_LEAD,
+            )
+        )
+    )
+    assert len(notification_ids) == 1
+    assert (
+        db_session.scalar(
+            select(func.count())
+            .select_from(NotificationRecipient)
+            .where(
+                NotificationRecipient.notification_id == notification_ids[0],
+                NotificationRecipient.user_id == supervisor_user.id,
+            )
+        )
+        == 1
+    )
 
 
 def test_created_web_lead_exposes_only_message_in_authenticated_detail(

@@ -95,8 +95,12 @@ por conveniencia técnica.
 - Una oportunidad en `NUEVA`, `COTIZADA` o `NEGOCIACION` que permanece catorce días
   o más sin cambiar de estado genera una notificación interna.
 - No se envían notificaciones por email.
-- Las notificaciones son globales para el equipo y registran `read_at` y
-  `resolved_at`.
+- Cada oportunidad nueva genera una notificación interna visible para todos los
+  usuarios activos al momento de su creación.
+- Las notificaciones son eventos globales para el equipo, pero cada usuario conserva
+  su propio estado de lectura. Leer una notificación no la marca como leída para los
+  demás destinatarios.
+- La resolución operativa continúa siendo global para el evento.
 - Una notificación se resuelve cuando la oportunidad cambia de estado.
 - Editar productos cotizados o el responsable no resuelve la notificación.
 

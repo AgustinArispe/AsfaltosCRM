@@ -158,7 +158,7 @@ export function useDashboardMetrics(
   useEffect(() => {
     void refreshKey
     const controller = new AbortController()
-    getNotificationTotal(false, { ...session, signal: controller.signal })
+    getNotificationTotal(false, { ...session, signal: controller.signal }, 'OPPORTUNITY_STALE')
       .then((result) => {
         if (!controller.signal.aborted) {
           setAttention((current) => ({ ...current, staleTotal: result.total }))

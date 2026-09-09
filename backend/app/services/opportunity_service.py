@@ -124,6 +124,10 @@ class OpportunityService:
             changed_by_user_id=changed_by_user_id,
             transition_kind=OpportunityTransitionKind.CREATED,
         )
+        NotificationService(self._session).create_new_lead_notification_in_transaction(
+            opportunity,
+            created_at=changed_at,
+        )
         LegendaryService(self._session).recompute_customer_in_transaction(
             customer_id,
             evaluated_at=changed_at,

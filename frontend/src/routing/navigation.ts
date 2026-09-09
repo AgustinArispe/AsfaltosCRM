@@ -34,12 +34,6 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
     description: 'Conversaciones de WhatsApp y contexto comercial.',
   },
   {
-    path: '/whatsapp-sends',
-    group: 'communication',
-    label: 'Envíos masivos',
-    description: 'Plantillas aprobadas para Clientes elegibles y con consentimiento.',
-  },
-  {
     path: '/customers',
     group: 'management',
     label: 'Clientes',
@@ -50,12 +44,6 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
     group: 'management',
     label: 'Productos',
     description: 'Catálogo de productos disponibles para cotizaciones.',
-  },
-  {
-    path: '/lost',
-    group: 'management',
-    label: 'Perdidas',
-    description: 'Oportunidades comerciales perdidas.',
   },
   {
     path: '/won',

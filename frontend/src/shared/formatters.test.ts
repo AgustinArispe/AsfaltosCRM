@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  formatCommercialPeriod,
   formatDateTime,
   formatDecimalKg,
   formatDecimalRatioPercent,
@@ -10,6 +11,11 @@ import {
 } from './formatters'
 
 describe('shared formatters', () => {
+  it('formats commercial periods in readable Spanish', () => {
+    expect(formatCommercialPeriod('2026-09-01', '2026-09-30')).toBe('1–30 septiembre 2026')
+    expect(formatCommercialPeriod('2026-08-15', '2026-09-14')).toBe('15 agosto–14 septiembre 2026')
+  })
+
   it('formats timestamps in America/Argentina/Buenos_Aires', () => {
     expect(formatDateTime('2026-08-03T17:35:00Z')).toBe('3 ago 2026, 14:35')
   })

@@ -82,7 +82,7 @@ function OpportunityCard({
         to={{
           kind: 'opportunity',
           opportunityId: opportunity.id,
-          surface: opportunity.status === 'PERDIDA' ? 'lost' : 'pipeline',
+          surface: 'pipeline',
         }}
       >
         Abrir oportunidad

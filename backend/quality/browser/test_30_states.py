@@ -24,16 +24,6 @@ def test_empty_search_and_filter_states_explain_next_action(
     expect(page.get_by_role("heading", name="No encontramos clientes")).to_be_visible()
     expect(page.get_by_text("Probá con otro nombre", exact=False)).to_be_visible()
 
-    wait_for_workspace(page, "lost")
-    page.get_by_role("searchbox", name="Buscar").fill("cliente que no existe")
-    page.get_by_role("button", name="Aplicar").click()
-    expect(
-        page.get_by_role("heading", name="No hay pérdidas con estos filtros")
-    ).to_be_visible()
-    expect(
-        page.get_by_text("Modificá o restablecé los filtros", exact=False)
-    ).to_be_visible()
-
     wait_for_workspace(page, "dashboard")
     page.get_by_label("Período", exact=True).select_option("custom")
     page.get_by_label("Desde").fill("2025-01-01")
@@ -105,8 +95,3 @@ def test_whatsapp_template_required_failed_and_unknown_evidence(
         "canonical dataset must expose a template-required conversation"
     )
     assert found_failed, "canonical dataset must expose a failed WhatsApp message"
-
-    wait_for_workspace(page, "whatsapp-sends")
-    expect(
-        page.get_by_text(re.compile("inciertos|UNKNOWN", re.IGNORECASE)).first
-    ).to_be_visible()

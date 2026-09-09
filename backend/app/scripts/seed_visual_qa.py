@@ -23,6 +23,7 @@ from app.models import (
     LeadSource,
     LossReason,
     Notification,
+    NotificationRecipient,
     NotificationType,
     Opportunity,
     OpportunityProduct,
@@ -465,7 +466,12 @@ def _seed_dataset(
     _apply_historical_timestamps(session, opportunities, anchor=anchor)
     _seed_notes(session, opportunities, actor_user_id=seller.id)
     _seed_legendary_evidence(session, customers, anchor=anchor)
-    _seed_notifications(session, opportunities, anchor=anchor)
+    _seed_notifications(
+        session,
+        opportunities,
+        recipient_user_ids=(supervisor.id, seller.id),
+        anchor=anchor,
+    )
     provider = FakeWhatsAppProvider(
         now=anchor,
         freeform_window=timedelta(hours=24),
@@ -813,6 +819,7 @@ def _seed_notifications(
     session: Session,
     opportunities: list[Opportunity],
     *,
+    recipient_user_ids: tuple[int, int],
     anchor: datetime,
 ) -> None:
     service = NotificationService(session)
@@ -820,23 +827,39 @@ def _seed_notifications(
     unread_ids = list(
         session.scalars(
             select(Notification.id)
-            .where(Notification.read_at.is_(None))
+            .join(NotificationRecipient)
+            .where(
+                NotificationRecipient.user_id == recipient_user_ids[0],
+                NotificationRecipient.read_at.is_(None),
+            )
             .order_by(Notification.id)
         )
     )
     session.commit()
     if unread_ids:
-        service.mark_as_read(unread_ids[0], now=anchor + timedelta(minutes=1))
+        service.mark_as_read(
+            unread_ids[0],
+            current_user_id=recipient_user_ids[0],
+            now=anchor + timedelta(minutes=1),
+        )
     won = opportunities[12]
     with session.begin():
-        session.add(
-            Notification(
-                type=NotificationType.OPPORTUNITY_STALE,
-                opportunity_id=won.id,
-                created_at=anchor - timedelta(days=5),
+        notification = Notification(
+            type=NotificationType.OPPORTUNITY_STALE,
+            opportunity_id=won.id,
+            created_at=anchor - timedelta(days=5),
+            resolved_at=anchor - timedelta(days=1),
+        )
+        session.add(notification)
+        session.flush()
+        session.add_all(
+            NotificationRecipient(
+                notification_id=notification.id,
+                user_id=user_id,
+                created_at=notification.created_at,
                 read_at=anchor - timedelta(days=4, hours=20),
-                resolved_at=anchor - timedelta(days=1),
             )
+            for user_id in recipient_user_ids
         )
 
 

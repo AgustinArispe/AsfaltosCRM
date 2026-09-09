@@ -4,7 +4,6 @@ import { useAuth } from './auth/AuthContext'
 import { AppShell } from './layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
-import { OpportunityDetailPage } from './pages/OpportunityDetailPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { getNavigationItem } from './routing/navigation'
@@ -23,9 +22,6 @@ const CustomersPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
 )
-const LostPage = lazy(() =>
-  import('./pages/LostPage').then((module) => ({ default: module.LostPage })),
-)
 const WonPage = lazy(() =>
   import('./pages/WonPage').then((module) => ({ default: module.WonPage })),
 )
@@ -34,11 +30,6 @@ const ProductsPage = lazy(() =>
 )
 const UsersPage = lazy(() =>
   import('./pages/UsersPage').then((module) => ({ default: module.UsersPage })),
-)
-const WhatsAppBroadcastsPage = lazy(() =>
-  import('./pages/WhatsAppBroadcastsPage').then((module) => ({
-    default: module.WhatsAppBroadcastsPage,
-  })),
 )
 const WhatsAppInboxPage = lazy(() =>
   import('./pages/WhatsAppInboxPage').then((module) => ({ default: module.WhatsAppInboxPage })),
@@ -63,6 +54,14 @@ function RoutedApp() {
 
   const route = parseRoute(pathname)
   if (!route) return <Redirect to='/pipeline' />
+  if (
+    (route.kind === 'workspace' &&
+      (route.workspace === 'lost' || route.workspace === 'whatsapp-sends')) ||
+    (route.kind === 'opportunity' && route.surface === 'lost') ||
+    route.kind === 'broadcast'
+  ) {
+    return <Redirect to='/dashboard' />
+  }
 
   if (
     (route.kind === 'workspace' && route.workspace === 'pipeline') ||
@@ -85,13 +84,7 @@ function RoutedApp() {
         </AppShell>
       )
     }
-    return (
-      <AppShell activeNavigationPath='/lost' pageTitle='Perdidas'>
-        <LazyWorkspace>
-          <OpportunityDetailPage opportunityId={route.opportunityId} surface='lost' />
-        </LazyWorkspace>
-      </AppShell>
-    )
+    return <Redirect to='/dashboard' />
   }
   if (route.kind === 'customer') {
     return (
@@ -114,16 +107,6 @@ function RoutedApp() {
       </AppShell>
     )
   }
-  if (route.kind === 'broadcast') {
-    return (
-      <AppShell activeNavigationPath='/whatsapp-sends' pageTitle='Envíos masivos'>
-        <LazyWorkspace>
-          <WhatsAppBroadcastsPage broadcastId={route.broadcastId} />
-        </LazyWorkspace>
-      </AppShell>
-    )
-  }
-
   const navigationItem = getNavigationItem(pathForRoute(route))
   if (!navigationItem) return <Redirect to='/pipeline' />
   if (navigationItem.supervisorOnly && user?.role !== 'SUPERVISOR')
@@ -138,14 +121,10 @@ function RoutedApp() {
       <CustomersPage />
     ) : route.workspace === 'products' ? (
       <ProductsPage />
-    ) : route.workspace === 'lost' ? (
-      <LostPage />
     ) : route.workspace === 'won' ? (
       <WonPage />
     ) : route.workspace === 'whatsapp' ? (
       <WhatsAppInboxPage />
-    ) : route.workspace === 'whatsapp-sends' ? (
-      <WhatsAppBroadcastsPage />
     ) : route.workspace === 'users' ? (
       <UsersPage />
     ) : (

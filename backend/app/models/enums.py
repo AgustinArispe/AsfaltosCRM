@@ -68,6 +68,7 @@ class CustomerImportIssueCode(StrEnum):
 
 class NotificationType(StrEnum):
     OPPORTUNITY_STALE = "OPPORTUNITY_STALE"
+    NEW_LEAD = "NEW_LEAD"
 
 
 class WhatsAppConversationResolution(StrEnum):

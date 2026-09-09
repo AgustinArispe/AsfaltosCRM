@@ -20,6 +20,7 @@ from app.db.base import Base, TimestampMixin
 from app.models.enums import USER_ROLE_DB_ENUM, UserRole
 
 if TYPE_CHECKING:
+    from app.models.notification import NotificationRecipient
     from app.models.opportunity import Opportunity
     from app.models.opportunity_status_history import OpportunityStatusHistory
     from app.models.whatsapp_conversation_opportunity import (
@@ -86,4 +87,8 @@ class User(TimestampMixin, Base):
             back_populates="linked_by_user",
             passive_deletes=True,
         )
+    )
+    notification_recipients: Mapped[list[NotificationRecipient]] = relationship(
+        back_populates="user",
+        passive_deletes=True,
     )

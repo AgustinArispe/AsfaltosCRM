@@ -10,6 +10,7 @@ from app.models import (
     Customer,
     LeadSource,
     LossReason,
+    Notification,
     Opportunity,
     OpportunityStatus,
     OpportunityStatusHistory,
@@ -534,6 +535,11 @@ def test_concurrent_duplicate_inbound_creates_one_message_and_conversation() -> 
                 cleanup.execute(
                     delete(OpportunityStatusHistory).where(
                         OpportunityStatusHistory.opportunity_id.in_(opportunity_ids)
+                    )
+                )
+                cleanup.execute(
+                    delete(Notification).where(
+                        Notification.opportunity_id.in_(opportunity_ids)
                     )
                 )
                 cleanup.execute(

@@ -69,6 +69,27 @@ export function formatDateTime(value: string | Date): string {
   return `${part('day')} ${part('month').replace('.', '')} ${part('year')}, ${part('hour')}:${part('minute')}`
 }
 
+export function formatCommercialPeriod(start: string, end: string): string {
+  const parse = (value: string) => new Date(`${value}T12:00:00Z`)
+  const startDate = parse(start)
+  const endDate = parse(end)
+  const parts = (value: Date) => ({
+    day: value.getUTCDate(),
+    month: new Intl.DateTimeFormat('es-AR', { month: 'long', timeZone: 'UTC' }).format(value),
+    monthIndex: value.getUTCMonth(),
+    year: value.getUTCFullYear(),
+  })
+  const first = parts(startDate)
+  const last = parts(endDate)
+  if (first.year === last.year && first.monthIndex === last.monthIndex) {
+    return `${first.day}–${last.day} ${first.month} ${first.year}`
+  }
+  if (first.year === last.year) {
+    return `${first.day} ${first.month}–${last.day} ${last.month} ${first.year}`
+  }
+  return `${first.day} ${first.month} ${first.year}–${last.day} ${last.month} ${last.year}`
+}
+
 export function formatStageDuration(enteredAt: string, now = new Date()): string {
   const elapsedMilliseconds = Math.max(0, now.getTime() - new Date(enteredAt).getTime())
   const elapsedDays = Math.floor(elapsedMilliseconds / MILLISECONDS_PER_DAY)

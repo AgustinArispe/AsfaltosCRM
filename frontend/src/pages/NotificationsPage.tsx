@@ -46,11 +46,13 @@ function identityFor(notification: OperationalNotification): string {
 }
 
 function rowName(notification: OperationalNotification): string {
+  const concept =
+    notification.type === 'NEW_LEAD' ? 'Nueva oportunidad recibida' : 'Seguimiento pendiente'
   const evidence = [
     notification.read_at ? 'leída' : 'sin leer',
     notification.resolved_at ? 'resuelta' : 'activa',
   ].join(', ')
-  return `Seguimiento pendiente: ${identityFor(notification)}. ${STATUS_LABELS[notification.opportunity.status]}. ${evidence}. ${formatTimeInStage(notification.created_at)}.`
+  return `${concept}: ${identityFor(notification)}. ${STATUS_LABELS[notification.opportunity.status]}. ${evidence}. ${formatTimeInStage(notification.created_at)}.`
 }
 
 function NotificationSkeleton() {
@@ -79,6 +81,7 @@ function NotificationRow({
   const isUnread = notification.read_at === null
   const isResolved = notification.resolved_at !== null
   const statusLabel = STATUS_LABELS[notification.opportunity.status]
+  const isNewLead = notification.type === 'NEW_LEAD'
   return (
     <li className='notification-row-wrapper'>
       <button
@@ -90,10 +93,10 @@ function NotificationRow({
         type='button'
       >
         <span className='notification-row__icon'>
-          <Icon className='size-4' name='clock' />
+          <Icon className='size-4' name={isNewLead ? 'bell' : 'clock'} />
         </span>
         <span className='notification-row__heading'>
-          <strong>Seguimiento</strong>
+          <strong>{isNewLead ? 'Nueva oportunidad recibida' : 'Seguimiento'}</strong>
           {isUnread ? (
             <span className='notification-row__unread'>Sin leer</span>
           ) : (
@@ -185,7 +188,7 @@ export function NotificationsPage() {
       {
         kind: 'opportunity',
         opportunityId: notification.opportunity.id,
-        surface: notification.opportunity.status === 'PERDIDA' ? 'lost' : 'pipeline',
+        surface: 'pipeline',
       },
       { origin: { kind: 'workspace', workspace: 'notifications' } },
     )

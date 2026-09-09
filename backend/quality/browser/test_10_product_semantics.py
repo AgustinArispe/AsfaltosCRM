@@ -42,14 +42,24 @@ def test_role_navigation_and_authorized_workspace_behavior(
     seller = qa_pages.create(role="VENDEDOR", artifact_suffix="seller")
 
     expect(supervisor.page.get_by_role("link", name="Usuarios")).to_be_visible()
-    expect(supervisor.page.get_by_role("link", name="Envíos masivos")).to_be_visible()
+    expect(supervisor.page.get_by_role("link", name="Envíos masivos")).to_have_count(0)
+    expect(supervisor.page.get_by_role("link", name="Perdidas")).to_have_count(0)
     wait_for_workspace(supervisor.page, "users")
     expect(
         supervisor.page.get_by_role("region", name="Administración de usuarios")
     ).to_be_visible()
 
     expect(seller.page.get_by_role("link", name="Usuarios")).to_have_count(0)
-    expect(seller.page.get_by_role("link", name="Envíos masivos")).to_be_visible()
+    expect(seller.page.get_by_role("link", name="Envíos masivos")).to_have_count(0)
+    expect(seller.page.get_by_role("link", name="Perdidas")).to_have_count(0)
+    for hidden_path in (
+        "lost",
+        "lost/opportunities/1",
+        "whatsapp-sends",
+        "whatsapp-sends/1",
+    ):
+        seller.page.goto(f"{FRONTEND_URL}/{hidden_path}")
+        seller.page.wait_for_url("**/dashboard")
     seller.page.goto(f"{FRONTEND_URL}/users")
     seller.page.wait_for_url("**/pipeline")
     wait_for_workspace(seller.page, "products")
@@ -156,7 +166,8 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     result = page.get_by_role("region", name="Resultado del período")
     expect(result).to_be_visible()
     expect(result.get_by_role("link", name="Ver ganadas")).to_be_visible()
-    expect(result.get_by_role("link", name="Ver pérdidas")).to_be_visible()
+    expect(result.get_by_role("link", name="Ver pérdidas")).to_have_count(0)
+    expect(result.get_by_text("Kg perdidos", exact=True)).to_be_visible()
     expect(
         page.get_by_role("region", name="Oportunidades activas ahora")
     ).to_be_visible()
@@ -223,23 +234,11 @@ def test_whatsapp_three_panel_semantics_and_states(qa_pages: QaPageFactory) -> N
     expect(context.get_by_role("complementary", name="Detalle CRM")).to_be_visible()
 
 
-def test_broadcast_customers_products_lost_and_users_are_understandable(
+def test_customers_products_and_users_are_understandable(
     qa_pages: QaPageFactory,
 ) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR")
     page = qa_page.page
-
-    wait_for_workspace(page, "whatsapp-sends", "Envíos masivos")
-    expect(page.get_by_role("heading", name="Envíos masivos recientes")).to_be_visible()
-    expect(
-        page.get_by_text(
-            "Enviá una plantilla de WhatsApp aprobada a clientes seleccionados."
-        )
-    ).to_be_visible()
-    expect(page.get_by_role("button", name="Nuevo envío masivo")).to_be_visible()
-    expect(
-        page.get_by_text(re.compile("Borrador|Enviando|Completado")).first
-    ).to_be_visible()
 
     wait_for_workspace(page, "customers", "Clientes")
     expect(page.get_by_role("searchbox", name=re.compile("Buscar"))).to_be_visible()
@@ -253,15 +252,6 @@ def test_broadcast_customers_products_lost_and_users_are_understandable(
     ).to_be_visible()
     expect(
         page.get_by_role("button", name=re.compile("Desactivar|Reactivar")).first
-    ).to_be_visible()
-
-    wait_for_workspace(page, "lost", "Perdidas")
-    expect(page.get_by_role("region", name="Resumen de pérdidas")).to_be_visible()
-    expect(
-        page.get_by_role("region", name="Oportunidades perdidas actuales")
-    ).to_be_visible()
-    expect(
-        page.get_by_role("button", name=re.compile("Aplicar|Filtrar"))
     ).to_be_visible()
 
     wait_for_workspace(page, "users", "Usuarios")
@@ -281,10 +271,8 @@ def test_primary_workspaces_have_no_automated_wcag_violations(
         "dashboard",
         "notifications",
         "whatsapp",
-        "whatsapp-sends",
         "customers",
         "products",
-        "lost",
         "users",
     ):
         wait_for_workspace(page, path)

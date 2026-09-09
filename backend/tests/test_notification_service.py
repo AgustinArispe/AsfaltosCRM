@@ -15,6 +15,7 @@ from app.models import (
     LeadSource,
     LossReason,
     Notification,
+    NotificationRecipient,
     Opportunity,
     OpportunityProduct,
     OpportunityStatus,
@@ -285,8 +286,9 @@ def test_soft_delete_resolves_active_notification(db_session: Session) -> None:
     assert notification.resolved_at is not None
 
 
-def test_mark_read_is_global_idempotent_and_does_not_resolve(
+def test_mark_read_is_user_specific_idempotent_and_does_not_resolve(
     db_session: Session,
+    supervisor_user: User,
 ) -> None:
     opportunity = make_opportunity(
         db_session,
@@ -296,13 +298,19 @@ def test_mark_read_is_global_idempotent_and_does_not_resolve(
     assert generate(db_session) == 1
     notification = notifications_for(db_session, opportunity.id)[0]
     notification_id = notification.id
+    current_user_id = supervisor_user.id
     db_session.rollback()
     service = NotificationService(db_session)
     first_read_at = NOW + timedelta(minutes=1)
 
-    first_read = service.mark_as_read(notification_id, now=first_read_at)
+    first_read = service.mark_as_read(
+        notification_id,
+        current_user_id=current_user_id,
+        now=first_read_at,
+    )
     second_read = service.mark_as_read(
         notification_id,
+        current_user_id=current_user_id,
         now=NOW + timedelta(minutes=2),
     )
 
@@ -311,7 +319,10 @@ def test_mark_read_is_global_idempotent_and_does_not_resolve(
     assert second_read.resolved_at is None
 
 
-def test_mark_all_reads_only_active_unread_notifications(db_session: Session) -> None:
+def test_mark_all_reads_only_active_unread_notifications(
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
     active_opportunity = make_opportunity(
         db_session,
         status=OpportunityStatus.NUEVA,
@@ -329,13 +340,16 @@ def test_mark_all_reads_only_active_unread_notifications(db_session: Session) ->
     )
 
     updated_count = NotificationService(db_session).mark_all_active_as_read(
-        now=NOW + timedelta(minutes=1)
+        current_user_id=supervisor_user.id, now=NOW + timedelta(minutes=1)
     )
 
-    active = notifications_for(db_session, active_opportunity.id)[0]
     resolved = notifications_for(db_session, resolved_opportunity.id)[0]
     assert updated_count == 1
-    assert active.read_at is not None
+    active_delivery = NotificationService(db_session).get_notification(
+        notifications_for(db_session, active_opportunity.id)[0].id,
+        current_user_id=supervisor_user.id,
+    )
+    assert active_delivery.read_at is not None
     assert resolved.resolved_at is not None
     assert resolved.read_at is None
 
@@ -399,6 +413,14 @@ def _cleanup_persisted_notification_data(
 ) -> None:
     with SessionLocal.begin() as session:
         session.execute(text("SET LOCAL asfaltos.test_cleanup = 'on'"))
+        notification_ids = select(Notification.id).where(
+            Notification.opportunity_id == opportunity_id
+        )
+        session.execute(
+            delete(NotificationRecipient).where(
+                NotificationRecipient.notification_id.in_(notification_ids)
+            )
+        )
         session.execute(
             delete(Notification).where(Notification.opportunity_id == opportunity_id)
         )

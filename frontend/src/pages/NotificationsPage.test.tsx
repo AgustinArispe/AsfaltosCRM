@@ -35,6 +35,17 @@ const olderResolved = {
   },
 }
 
+const newLead = {
+  ...newer,
+  id: 3,
+  type: 'NEW_LEAD' as const,
+  opportunity: {
+    ...newer.opportunity,
+    id: 30,
+    customer: { ...newer.opportunity.customer, name: 'Lead web' },
+  },
+}
+
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -80,6 +91,26 @@ function mockApi({
 }
 
 describe('NotificationsPage', () => {
+  it('labels a new lead and opens its Opportunity', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = new URL(String(input), 'http://localhost')
+        if (url.pathname === '/api/notifications/3/read') {
+          return Promise.resolve(response({ ...newLead, read_at: '2026-08-14T15:00:00Z' }))
+        }
+        return Promise.resolve(response({ items: [newLead], page: 1, page_size: 25, total: 1 }))
+      }),
+    )
+    render(<NotificationsPage />)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Nueva oportunidad recibida: Lead web/ }),
+    )
+
+    await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/30'))
+  })
+
   it('renders newest-first history and switches to unread history', async () => {
     vi.stubGlobal('fetch', mockApi())
     render(<NotificationsPage />)
@@ -104,12 +135,12 @@ describe('NotificationsPage', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/notifications/2/read', expect.any(Object))
   })
 
-  it('uses the lost canonical route and keeps acknowledgement failures visible', async () => {
+  it('uses the accessible Pipeline route and keeps acknowledgement failures visible', async () => {
     vi.stubGlobal('fetch', mockApi({ failRead: true }))
     render(<NotificationsPage />)
     const historic = await screen.findByRole('button', { name: /Obra histórica/ })
     fireEvent.click(historic)
-    expect(window.location.pathname).toBe('/lost/opportunities/10')
+    expect(window.location.pathname).toBe('/pipeline/opportunities/10')
     window.history.replaceState(null, '', '/notifications')
     const unread = screen.getByRole('button', { name: /Obra nueva/ })
     fireEvent.click(unread)

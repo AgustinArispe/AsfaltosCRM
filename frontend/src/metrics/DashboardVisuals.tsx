@@ -4,7 +4,11 @@ import type { ApiSession } from '../api/opportunities'
 import { OPPORTUNITY_STATUS_LABELS } from '../pipeline/config'
 import { AppLink } from '../routing/router'
 import { Button } from '../shared/Button'
-import { formatDateTime, formatDecimalKg, formatDecimalRatioPercent } from '../shared/formatters'
+import {
+  formatCommercialPeriod,
+  formatDecimalKg,
+  formatDecimalRatioPercent,
+} from '../shared/formatters'
 import { Icon } from '../shared/Icon'
 import { SegmentedControl } from '../shared/SegmentedControl'
 import { ChartSurface, EmptyState, ErrorState, Skeleton } from '../shared/StatusStates'
@@ -67,23 +71,29 @@ export function DashboardKpis({
           <p className='dashboard-eyebrow'>Balance comercial</p>
           <h2 id='dashboard-result-title'>Resultado del período</h2>
         </div>
-        <p>
-          {filters.customStart} — {filters.customEnd}
+        <p className='dashboard-period-label'>
+          {formatCommercialPeriod(filters.customStart, filters.customEnd)}
         </p>
       </header>
       <div className='dashboard-outcomes'>
-        <article className='dashboard-outcome dashboard-outcome--won'>
+        <div className='dashboard-outcome dashboard-outcome--won'>
           <p>Ganadas</p>
           <strong>{formatCount(overview.opportunities.won)}</strong>
-          <span>{formatDecimalKg(overview.volume_kg.won)} ganados</span>
           <AppLink to={`/won?${query}`}>Ver ganadas</AppLink>
-        </article>
-        <article className='dashboard-outcome dashboard-outcome--lost'>
+        </div>
+        <div className='dashboard-outcome dashboard-outcome--won-volume'>
+          <p>Kg ganados</p>
+          <strong>{formatDecimalKg(overview.volume_kg.won)}</strong>
+        </div>
+        <div className='dashboard-outcome dashboard-outcome--lost'>
           <p>Pérdidas</p>
           <strong>{formatCount(overview.opportunities.lost)}</strong>
-          <span>{formatDecimalKg(overview.volume_kg.lost)} perdidos</span>
-          <AppLink to={`/lost?${query}`}>Ver pérdidas</AppLink>
-        </article>
+        </div>
+        <div className='dashboard-outcome dashboard-outcome--lost-volume'>
+          <p>Kg perdidos</p>
+          <strong>{formatDecimalKg(overview.volume_kg.lost)}</strong>
+          <span>Histórico del período seleccionado</span>
+        </div>
         <dl className='dashboard-conversions'>
           <div>
             <dt>Conversión de oportunidades</dt>
@@ -146,10 +156,8 @@ export function ResultsCluster({
         <>
           <div className='dashboard-active__summary'>
             <strong>{formatCount(total)}</strong>
-            <span>
-              {hasDimensionFilters ? 'activas con los filtros actuales' : 'activas en total'}
-            </span>
-            <small>Snapshot {formatDateTime(pipeline.snapshot_at)}</small>
+            <span>oportunidades activas</span>
+            {hasDimensionFilters ? <small>Con los filtros actuales</small> : null}
           </div>
           {total === 0 ? (
             <p className='dashboard-compact-empty'>No hay oportunidades activas ahora.</p>
@@ -176,8 +184,8 @@ export function ResultsCluster({
                     <span
                       className={`dashboard-marker dashboard-marker--${item.status.toLowerCase()}`}
                     />
-                    <span>{OPPORTUNITY_STATUS_LABELS[item.status]}</span>
                     <b>{formatCount(item.count)}</b>
+                    <span>{OPPORTUNITY_STATUS_LABELS[item.status]}</span>
                     <em>{`${Math.round((item.count / total) * 100)} %`}</em>
                   </li>
                 ))}
@@ -336,7 +344,7 @@ export function TimelineChart({
                     to={{
                       kind: 'opportunity',
                       opportunityId: item.opportunity_id,
-                      surface: item.current_status === 'PERDIDA' ? 'lost' : 'pipeline',
+                      surface: 'pipeline',
                     }}
                   >
                     {item.customer_name}

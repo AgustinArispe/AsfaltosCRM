@@ -1,15 +1,19 @@
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import DateTime, exists, func, literal, select, update
+from sqlalchemy import DateTime, exists, func, literal, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import (
     Notification,
+    NotificationRecipient,
     NotificationType,
     Opportunity,
     OpportunityStatus,
+    User,
 )
 from app.models.enums import NOTIFICATION_TYPE_DB_ENUM
 from app.services.errors import EntityNotFoundError
@@ -21,6 +25,16 @@ STALE_OPPORTUNITY_STATUSES = frozenset(
         OpportunityStatus.NEGOCIACION,
     }
 )
+
+
+@dataclass(frozen=True, slots=True)
+class UserNotification:
+    id: int
+    type: NotificationType
+    created_at: datetime
+    read_at: datetime | None
+    resolved_at: datetime | None
+    opportunity: Opportunity
 
 
 class NotificationService:
@@ -71,7 +85,26 @@ class NotificationService:
                 .on_conflict_do_nothing()
                 .returning(Notification.id)
             )
-            return len(created_ids.all())
+            notification_ids = created_ids.all()
+            self._create_recipients_in_transaction(notification_ids)
+            return len(notification_ids)
+
+    def create_new_lead_notification_in_transaction(
+        self,
+        opportunity: Opportunity,
+        *,
+        created_at: datetime,
+    ) -> Notification:
+        """Create one logical event and its active-user recipients in a transaction."""
+        notification = Notification(
+            type=NotificationType.NEW_LEAD,
+            opportunity=opportunity,
+            created_at=self._aware_utc(created_at),
+        )
+        self._session.add(notification)
+        self._session.flush()
+        self._create_recipients_in_transaction([notification.id])
+        return notification
 
     def list_notifications(
         self,
@@ -80,77 +113,146 @@ class NotificationService:
         page_size: int,
         unread_only: bool,
         include_resolved: bool,
-    ) -> tuple[list[Notification], int]:
+        current_user_id: int,
+        notification_type: NotificationType | None = None,
+    ) -> tuple[list[UserNotification], int]:
         filters: list[ColumnElement[bool]] = []
         if unread_only:
-            filters.append(Notification.read_at.is_(None))
+            filters.append(NotificationRecipient.read_at.is_(None))
         if not include_resolved:
             filters.append(Notification.resolved_at.is_(None))
+        if notification_type is not None:
+            filters.append(Notification.type == notification_type)
 
         total = self._session.scalar(
-            select(func.count()).select_from(Notification).where(*filters)
+            select(func.count())
+            .select_from(NotificationRecipient)
+            .join(Notification)
+            .where(NotificationRecipient.user_id == current_user_id, *filters)
         )
-        notifications = list(
-            self._session.scalars(
-                select(Notification)
-                .where(*filters)
-                .options(
-                    joinedload(Notification.opportunity).joinedload(
-                        Opportunity.customer
-                    )
-                )
-                .order_by(Notification.created_at.desc(), Notification.id.desc())
-                .offset((page - 1) * page_size)
-                .limit(page_size)
-            )
-        )
-        return notifications, total or 0
-
-    def get_notification(self, notification_id: int) -> Notification:
-        notification = self._session.scalar(
-            select(Notification)
-            .where(Notification.id == notification_id)
+        rows = self._session.execute(
+            select(Notification, NotificationRecipient.read_at)
+            .join(NotificationRecipient)
+            .where(NotificationRecipient.user_id == current_user_id, *filters)
             .options(
                 joinedload(Notification.opportunity).joinedload(Opportunity.customer)
             )
-        )
-        if notification is None:
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        ).all()
+        return [
+            self._delivery(notification, read_at) for notification, read_at in rows
+        ], total or 0
+
+    def get_notification(
+        self,
+        notification_id: int,
+        *,
+        current_user_id: int,
+    ) -> UserNotification:
+        row = self._session.execute(
+            select(Notification, NotificationRecipient.read_at)
+            .join(NotificationRecipient)
+            .where(
+                Notification.id == notification_id,
+                NotificationRecipient.user_id == current_user_id,
+            )
+            .options(
+                joinedload(Notification.opportunity).joinedload(Opportunity.customer)
+            )
+        ).one_or_none()
+        if row is None:
             raise EntityNotFoundError("Notification", notification_id)
-        return notification
+        return self._delivery(*row)
 
     def mark_as_read(
         self,
         notification_id: int,
         *,
+        current_user_id: int,
         now: datetime,
-    ) -> Notification:
+    ) -> UserNotification:
         read_at = self._aware_utc(now)
         with self._session.begin():
-            notification = self._session.scalar(
-                select(Notification)
-                .where(Notification.id == notification_id)
-                .with_for_update()
+            recipient = self._session.scalar(
+                select(NotificationRecipient)
+                .where(
+                    NotificationRecipient.notification_id == notification_id,
+                    NotificationRecipient.user_id == current_user_id,
+                )
+                .options(
+                    joinedload(NotificationRecipient.notification)
+                    .joinedload(Notification.opportunity)
+                    .joinedload(Opportunity.customer)
+                )
+                .with_for_update(of=NotificationRecipient)
             )
-            if notification is None:
+            if recipient is None:
                 raise EntityNotFoundError("Notification", notification_id)
-            if notification.read_at is None:
-                notification.read_at = read_at
+            if recipient.read_at is None:
+                recipient.read_at = read_at
                 self._session.flush()
-        return notification
+            return self._delivery(recipient.notification, recipient.read_at)
 
-    def mark_all_active_as_read(self, *, now: datetime) -> int:
+    def mark_all_active_as_read(self, *, current_user_id: int, now: datetime) -> int:
         read_at = self._aware_utc(now)
         with self._session.begin():
             updated_ids = self._session.scalars(
-                update(Notification)
+                update(NotificationRecipient)
                 .where(
-                    Notification.read_at.is_(None),
-                    Notification.resolved_at.is_(None),
+                    NotificationRecipient.user_id == current_user_id,
+                    NotificationRecipient.read_at.is_(None),
+                    NotificationRecipient.notification_id.in_(
+                        select(Notification.id).where(
+                            Notification.resolved_at.is_(None)
+                        )
+                    ),
                 )
                 .values(read_at=read_at)
-                .returning(Notification.id)
+                .returning(NotificationRecipient.id)
             )
             return len(updated_ids.all())
+
+    def _create_recipients_in_transaction(
+        self,
+        notification_ids: Sequence[int],
+    ) -> None:
+        for notification_id in notification_ids:
+            recipients = (
+                select(
+                    Notification.id,
+                    User.id,
+                    Notification.created_at,
+                )
+                .select_from(Notification)
+                .join(User, true())
+                .where(
+                    Notification.id == notification_id,
+                    User.is_active.is_(True),
+                )
+            )
+            self._session.execute(
+                insert(NotificationRecipient)
+                .from_select(["notification_id", "user_id", "created_at"], recipients)
+                .on_conflict_do_nothing(
+                    constraint="uq_notification_recipients_notification_user"
+                )
+            )
+
+    @staticmethod
+    def _delivery(
+        notification: Notification,
+        read_at: datetime | None,
+    ) -> UserNotification:
+        return UserNotification(
+            id=notification.id,
+            type=notification.type,
+            created_at=notification.created_at,
+            read_at=read_at,
+            resolved_at=notification.resolved_at,
+            opportunity=notification.opportunity,
+        )
 
     def resolve_stale_for_opportunity_in_transaction(
         self,

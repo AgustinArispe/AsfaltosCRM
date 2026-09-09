@@ -8,7 +8,7 @@ export type NotificationView = 'all' | 'active' | 'unread'
 
 export type OperationalNotification = {
   id: number
-  type: 'OPPORTUNITY_STALE'
+  type: 'OPPORTUNITY_STALE' | 'NEW_LEAD'
   created_at: string
   read_at: string | null
   resolved_at: string | null
@@ -32,15 +32,18 @@ export function listNotifications(
     include_resolved: view === 'active' ? 'false' : 'true',
   })
   if (view === 'unread') query.set('unread_only', 'true')
+  if (view === 'active') query.set('notification_type', 'OPPORTUNITY_STALE')
   return apiRequest<PaginatedResponse<OperationalNotification>>(`/notifications?${query}`, session)
 }
 
 export function getNotificationTotal(
   unreadOnly: boolean,
   session: ApiSession,
+  notificationType?: OperationalNotification['type'],
 ): Promise<{ total: number }> {
   const query = new URLSearchParams({ page: '1', page_size: '1', unread_only: 'true' })
   if (!unreadOnly) query.delete('unread_only')
+  if (notificationType) query.set('notification_type', notificationType)
   return apiRequest<{ total: number }>(`/notifications?${query}`, session)
 }
 

@@ -35,7 +35,6 @@ def test_representative_viewport_matrix(
         "pipeline",
         "dashboard",
         "whatsapp",
-        "lost",
         "won",
         "customers",
         "users",
@@ -68,7 +67,7 @@ def test_effective_zoom_matrix_uses_reduced_css_viewport(
         artifact_suffix=f"zoom-{scale}",
     )
     page = qa_page.page
-    for path in ("dashboard", "pipeline", "whatsapp", "customers", "lost", "users"):
+    for path in ("dashboard", "pipeline", "whatsapp", "customers", "users"):
         wait_for_workspace(page, path)
         assert_no_horizontal_overflow(page)
     wait_for_workspace(page, "pipeline")
@@ -176,7 +175,7 @@ def test_light_dark_accessibility_and_reduced_motion(
         bool, page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     )
     assert reduced
-    for path in ("pipeline", "dashboard", "whatsapp", "lost", "won"):
+    for path in ("pipeline", "dashboard", "whatsapp", "won"):
         wait_for_workspace(page, path)
         run_axe(page)
         assert_no_horizontal_overflow(page)

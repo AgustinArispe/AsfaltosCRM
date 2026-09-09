@@ -231,7 +231,8 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Envíos masivos' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Envíos masivos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Perdidas' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }))
     expect(screen.getByRole('button', { name: 'Expandir navegación' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('title', 'Pipeline')
@@ -242,6 +243,19 @@ describe('authenticated frontend', () => {
     expect(screen.queryByLabelText('Tema')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' })).toHaveFocus()
   })
+
+  it.each(['/lost', '/lost/opportunities/77', '/whatsapp-sends', '/whatsapp-sends/9'])(
+    'redirects hidden product route %s to Dashboard',
+    async (pathname) => {
+      mockRestoredSession(supervisor)
+      renderApp(pathname)
+
+      await waitFor(() => expect(window.location.pathname).toBe('/dashboard'))
+      expect(
+        await screen.findByRole('heading', { name: 'Dashboard', level: 1 }),
+      ).toBeInTheDocument()
+    },
+  )
 
   it('shows the exact active-unread badge in expanded and collapsed Notifications navigation', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')

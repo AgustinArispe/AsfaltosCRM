@@ -14,6 +14,7 @@ from app.models import (
     Customer,
     LeadIntake,
     LeadSource,
+    Notification,
     Opportunity,
     OpportunityStatus,
     OpportunityStatusHistory,
@@ -496,6 +497,9 @@ def _cleanup_concurrent_results(results: list[LeadIntakeResult]) -> None:
         )
         session.execute(
             delete(LeadIntake).where(LeadIntake.opportunity_id.in_(opportunity_ids))
+        )
+        session.execute(
+            delete(Notification).where(Notification.opportunity_id.in_(opportunity_ids))
         )
         session.execute(delete(Opportunity).where(Opportunity.id.in_(opportunity_ids)))
         session.execute(delete(Customer).where(Customer.id.in_(customer_ids)))

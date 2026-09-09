@@ -239,21 +239,26 @@ describe('DashboardPage', () => {
     expect(screen.getByText('oportunidades sin seguimiento')).toBeInTheDocument()
     expect(screen.getByText('conversaciones pendientes de respuesta')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Resultado del período' })).toBeInTheDocument()
-    expect(screen.getByText('1.200 kg ganados')).toBeInTheDocument()
-    expect(screen.getByText('600 kg perdidos')).toBeInTheDocument()
+    expect(screen.getByText('1.200 kg')).toBeInTheDocument()
+    expect(screen.getByText('600 kg')).toBeInTheDocument()
+    expect(screen.getByText('1–31 agosto 2026')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver ganadas' })).toHaveAttribute(
       'href',
       '/won?period=month&from=2026-08-01&to=2026-08-31',
     )
-    expect(screen.getByRole('link', { name: 'Ver pérdidas' })).toHaveAttribute(
-      'href',
-      '/lost?period=month&from=2026-08-01&to=2026-08-31',
-    )
+    expect(screen.queryByRole('link', { name: 'Ver pérdidas' })).not.toBeInTheDocument()
     const activeSection = screen
       .getByRole('heading', { name: 'Oportunidades activas ahora' })
       .closest('section')
     if (!activeSection) throw new Error('Active Opportunities section is missing')
     expect(within(activeSection).getByText('6')).toBeInTheDocument()
+    expect(within(activeSection).getByText('Nueva')).toBeInTheDocument()
+    expect(within(activeSection).getByText('Cotizada')).toBeInTheDocument()
+    expect(within(activeSection).getByText('Negociación')).toBeInTheDocument()
+    expect(within(activeSection).queryByText(/Snapshot/i)).not.toBeInTheDocument()
+    expect(
+      activeSection.querySelector('.dashboard-pipeline-bar__segment--cotizada'),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Kg cotizados')).not.toBeInTheDocument()
     expect(screen.getAllByRole('img', { name: /Creadas|Ganadas|Pérdidas/ }).length).toBeGreaterThan(
       0,

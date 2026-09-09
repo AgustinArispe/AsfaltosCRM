@@ -102,9 +102,7 @@ export function OpportunityDetailPage({
     getOpportunityDetail(opportunityId, { ...session, signal: controller.signal })
       .then((detail) => {
         if (generation !== requestGenerationRef.current) return
-        if (detail.status === 'PERDIDA' && surface !== 'lost')
-          navigateRoute({ kind: 'opportunity', opportunityId, surface: 'lost' }, { replace: true })
-        else if (surface === 'won' && detail.status !== 'GANADA')
+        if (surface === 'won' && detail.status !== 'GANADA')
           navigateRoute(
             { kind: 'opportunity', opportunityId, surface: 'pipeline' },
             { replace: true },
@@ -268,10 +266,7 @@ export function OpportunityDetailPage({
     setOpportunity(updated)
     onOpportunityUpdated?.(updated)
     setLossOpportunity(null)
-    navigateRoute(
-      { kind: 'opportunity', opportunityId: lossOpportunity.id, surface: 'lost' },
-      { origin: { kind: 'workspace', workspace: 'pipeline' } },
-    )
+    navigate('/dashboard')
   }
 
   const actions = opportunity ? (
