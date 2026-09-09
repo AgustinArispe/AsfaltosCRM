@@ -1,9 +1,9 @@
 # CRM-042 — Dashboard Visibility and Per-user Lead Notifications
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-09-08
-Implementation commit: N/A
+Last updated: 2026-09-09
+Implementation commit: a219c17bbb2edfec66d5303f54df2f2aa78e8db4
 
 ## Goal
 
