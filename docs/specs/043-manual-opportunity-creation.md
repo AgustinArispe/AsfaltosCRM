@@ -1,9 +1,9 @@
 # CRM-043 — Manual Opportunity Creation
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-10
-Implementation commit: N/A
+Implementation commit: 4943297
 
 ## Goal
 
