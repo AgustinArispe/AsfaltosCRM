@@ -1,9 +1,9 @@
 # CRM-043 — Manual Opportunity Creation
 
-Status: Implemented
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-09-10
-Implementation commit: 2304dbd
+Implementation commit: N/A
 
 ## Goal
 
@@ -92,8 +92,7 @@ source value and therefore must recognize any approved new source consistently.
 
 - `manual` describes how a CRM user entered the record; it is not an acquisition
   source and must not be persisted as `MANUAL`.
-- The persisted domain value is `REFERIDO`, with the user-facing label
-  `Referido / boca a boca`.
+- The persisted domain value is `REFERIDO`, with the user-facing label `Manual`.
 - Every Opportunity created through the manual endpoint has backend-owned
   `source=REFERIDO`. The client cannot submit or override `source`.
 - `WEB` and `WHATSAPP` remain server-controlled by their existing intake flows and are
@@ -327,7 +326,7 @@ by the modal. Existing string-only error responses remain backward compatible.
 - New mode shows only name, company, phone, email, and province. Fields use accessible
   labels, inline validation, autocomplete/input modes where appropriate, and no large
   form sections.
-- The modal shows the non-editable origin `Referido / boca a boca`; it contains no
+- The modal shows the non-editable origin `Manual`; it contains no
   source selector. Responsible is selectable only for Supervisors; Vendedores see the
   fixed unassigned outcome without an enabled administrative control.
 - Primary action is `Crear oportunidad`; secondary action closes the modal. Pending,
@@ -471,7 +470,7 @@ Before implementation is considered complete, run the repository gates required 
 - AC-09: The resulting card supports the same click, detail, drag, quote, transition,
   assignment, loss, notification, stale-follow-up, and reconciliation behavior as any
   other `NUEVA` Opportunity.
-- AC-10: `REFERIDO` is persisted and displayed as `Referido / boca a boca` consistently
+- AC-10: `REFERIDO` is persisted and displayed as `Manual` consistently
   in every backend/frontend source contract, filter, metric, drilldown, URL, and
   historical loss snapshot. The manual endpoint always sets it server-side, rejects a
   client source, and existing Web/WhatsApp ingestion remains unchanged.
