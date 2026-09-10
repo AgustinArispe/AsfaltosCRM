@@ -102,6 +102,9 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
+- [`CRM-043`](043-manual-opportunity-creation.md) — Approved — atomic manual Opportunity
+  creation from Pipeline with Customer selection/creation, audited `NUEVA` entry, and
+  referral-source integration.
 - [`CRM-026`](026-frontend-final-polish.md) — Approved — final cross-product Frontend 2.0
   accessibility, responsive, interaction, browser, and visual-quality pass after
   CRM-028 implementation.
