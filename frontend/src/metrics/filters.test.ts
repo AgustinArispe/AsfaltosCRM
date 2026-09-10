@@ -69,7 +69,7 @@ describe('Dashboard filters', () => {
     ).toBe(3)
     expect(sourceLabel('WEB')).toBe('Web')
     expect(sourceLabel('WHATSAPP')).toBe('WhatsApp')
-    expect(sourceLabel('REFERIDO')).toBe('Referido / boca a boca')
+    expect(sourceLabel('REFERIDO')).toBe('Manual')
   })
 
   it('restores the REFERIDO origin from Dashboard URLs', () => {

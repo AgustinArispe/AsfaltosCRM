@@ -428,7 +428,7 @@ describe('PipelinePage', () => {
     mockApi([])
     render(<PipelinePage />)
     await ready()
-    expect(screen.getByRole('option', { name: 'Referido / boca a boca' })).toHaveValue('REFERIDO')
+    expect(screen.getByRole('option', { name: 'Manual' })).toHaveValue('REFERIDO')
   })
 
   it('keeps failed-stage data and reports a truthful partial manual refresh', async () => {

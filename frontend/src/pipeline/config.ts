@@ -87,7 +87,7 @@ export const LOSS_REASON_OPTIONS: readonly {
 export const SOURCE_LABELS: Record<LeadSource, string> = {
   WEB: 'Web',
   WHATSAPP: 'WhatsApp',
-  REFERIDO: 'Referido / boca a boca',
+  REFERIDO: 'Manual',
 }
 
 export const SOURCE_OPTIONS: readonly { value: LeadSource; label: string }[] = (

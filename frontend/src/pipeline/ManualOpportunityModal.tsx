@@ -295,7 +295,7 @@ export function ManualOpportunityModal({
             </span>
             <span>
               <small>Origen</small>
-              <strong>Referido / boca a boca</strong>
+              <strong>Manual</strong>
             </span>
           </div>
 

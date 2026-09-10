@@ -93,7 +93,7 @@ describe('ManualOpportunityModal', () => {
     const { onCreated } = renderModal()
     const dialog = screen.getByRole('dialog', { name: 'Nueva oportunidad' })
 
-    expect(within(dialog).getByText('Referido / boca a boca')).toBeInTheDocument()
+    expect(within(dialog).getByText('Manual')).toBeInTheDocument()
     expect(within(dialog).queryByRole('combobox', { name: 'Origen' })).not.toBeInTheDocument()
     fireEvent.change(within(dialog).getByLabelText('Buscar cliente'), {
       target: { value: 'Vial' },
