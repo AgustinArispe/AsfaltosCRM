@@ -87,7 +87,12 @@ export const LOSS_REASON_OPTIONS: readonly {
 export const SOURCE_LABELS: Record<LeadSource, string> = {
   WEB: 'Web',
   WHATSAPP: 'WhatsApp',
+  REFERIDO: 'Referido / boca a boca',
 }
+
+export const SOURCE_OPTIONS: readonly { value: LeadSource; label: string }[] = (
+  Object.entries(SOURCE_LABELS) as [LeadSource, string][]
+).map(([value, label]) => ({ value, label }))
 
 export function isPipelineStatus(value: string): value is PipelineStatus {
   return PIPELINE_STATUS_SET.has(value as PipelineStatus)

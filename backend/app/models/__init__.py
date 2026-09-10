@@ -37,6 +37,9 @@ from app.models.enums import (
     WhatsAppStorageStatus,
 )
 from app.models.lead_intake import LeadIntake
+from app.models.manual_opportunity_creation_command import (
+    ManualOpportunityCreationCommand,
+)
 from app.models.notification import Notification, NotificationRecipient
 from app.models.opportunity import Opportunity
 from app.models.opportunity_product import OpportunityProduct
@@ -73,6 +76,7 @@ __all__ = [
     "LeadSource",
     "LegendaryEventType",
     "LossReason",
+    "ManualOpportunityCreationCommand",
     "Notification",
     "NotificationRecipient",
     "NotificationType",

@@ -1,6 +1,7 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
+from app.schemas.customer import CustomerSummary
 from app.services import (
     AuthenticationError,
     ClosedOpportunityError,
@@ -22,6 +23,10 @@ from app.services import (
     InvalidWhatsAppCursorError,
     InvalidWhatsAppMessageError,
     LeadIntakeIdempotencyConflictError,
+    ManualCustomerIdentityAmbiguousError,
+    ManualCustomerIdentityDeletedError,
+    ManualCustomerMatchExistsError,
+    ManualOpportunityCommandConflictError,
     MetricsTimelinePeriodTooLargeError,
     PermissionDeniedError,
     RevisionConflictError,
@@ -42,6 +47,10 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (DeletedCustomerError, status.HTTP_409_CONFLICT),
     (DuplicateEntityError, status.HTTP_409_CONFLICT),
     (CustomerIdentityConflictError, status.HTTP_409_CONFLICT),
+    (ManualCustomerMatchExistsError, status.HTTP_409_CONFLICT),
+    (ManualCustomerIdentityAmbiguousError, status.HTTP_409_CONFLICT),
+    (ManualCustomerIdentityDeletedError, status.HTTP_409_CONFLICT),
+    (ManualOpportunityCommandConflictError, status.HTTP_409_CONFLICT),
     (LeadIntakeIdempotencyConflictError, status.HTTP_409_CONFLICT),
     (WhatsAppFreeformWindowClosedError, status.HTTP_409_CONFLICT),
     (WhatsAppConversationResolutionError, status.HTTP_409_CONFLICT),
@@ -102,6 +111,30 @@ async def domain_error_handler(_: Request, error: Exception) -> JSONResponse:
                     "current_updated_at": error.current_updated_at.isoformat(),
                 }
             },
+        )
+    if isinstance(error, ManualCustomerMatchExistsError):
+        return JSONResponse(
+            status_code=response_status,
+            content={
+                "detail": {
+                    "code": error.code,
+                    "customer": CustomerSummary.model_validate(
+                        error.customer
+                    ).model_dump(mode="json"),
+                }
+            },
+        )
+    if isinstance(
+        error,
+        (
+            ManualCustomerIdentityAmbiguousError,
+            ManualCustomerIdentityDeletedError,
+            ManualOpportunityCommandConflictError,
+        ),
+    ):
+        return JSONResponse(
+            status_code=response_status,
+            content={"detail": {"code": error.code}},
         )
     return JSONResponse(
         status_code=response_status,

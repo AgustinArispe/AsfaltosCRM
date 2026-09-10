@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-
+import { SOURCE_OPTIONS } from '../pipeline/config'
+import type { LeadSource } from '../pipeline/types'
 import type { Product } from '../products/types'
 import { Select } from '../shared/FormControls'
 import { FilterControl, Toolbar } from '../shared/Workspace'
@@ -54,14 +55,17 @@ export function DashboardFilters({
         onChange={(event) =>
           onChange({
             ...filters,
-            source: event.target.value ? (event.target.value as 'WEB' | 'WHATSAPP') : null,
+            source: event.target.value ? (event.target.value as LeadSource) : null,
           })
         }
         value={filters.source ?? ''}
       >
         <option value=''>Todos los orígenes</option>
-        <option value='WEB'>{sourceLabel('WEB')}</option>
-        <option value='WHATSAPP'>{sourceLabel('WHATSAPP')}</option>
+        {SOURCE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {sourceLabel(option.value)}
+          </option>
+        ))}
       </FilterControl>
       {customRange ? (
         <div className='dashboard-custom-range'>

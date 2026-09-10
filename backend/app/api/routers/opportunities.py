@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query, status
+from fastapi import APIRouter, Body, HTTPException, Query, Response, status
 
 from app.api.dependencies import (
     CurrentUser,
@@ -12,6 +12,9 @@ from app.models import LeadSource, OpportunityStatus, UserRole
 from app.schemas import (
     AssigneeUpdate,
     LoseOpportunityRequest,
+    ManualOpportunityCreate,
+    ManualOpportunityCreateResponse,
+    NewCustomerForManualOpportunity,
     NotePageResponse,
     NoteRevisionResponse,
     OpportunityCreate,
@@ -26,7 +29,13 @@ from app.schemas import (
     ReopenOpportunityRequest,
     StatusChangeRequest,
 )
-from app.services import OpportunityService, QuoteProductInput
+from app.services import (
+    ExistingCustomerInput,
+    ManualOpportunityService,
+    NewCustomerInput,
+    OpportunityService,
+    QuoteProductInput,
+)
 from app.services.errors import PermissionDeniedError
 from app.services.opportunity_note_service import OpportunityNoteService
 from app.services.opportunity_query_service import OpportunityQueryService
@@ -71,6 +80,43 @@ def create_opportunity(
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity.id)
+
+
+@router.post(
+    "/manual",
+    response_model=ManualOpportunityCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a manual referral opportunity in NUEVA",
+)
+def create_manual_opportunity(
+    payload: ManualOpportunityCreate,
+    response: Response,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> ManualOpportunityCreateResponse:
+    customer_input = (
+        NewCustomerInput(
+            name=payload.customer.name,
+            company=payload.customer.company,
+            phone=payload.customer.phone,
+            email=payload.customer.email,
+            province=payload.customer.province,
+        )
+        if isinstance(payload.customer, NewCustomerForManualOpportunity)
+        else ExistingCustomerInput(customer_id=payload.customer.customer_id)
+    )
+    result = ManualOpportunityService(session).create(
+        command_id=payload.command_id,
+        customer_input=customer_input,
+        assigned_user_id=payload.assigned_user_id,
+        actor=current_user,
+    )
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    return ManualOpportunityCreateResponse(
+        created=result.created,
+        opportunity=_detail(session, result.opportunity_id),
+    )
 
 
 @router.get(

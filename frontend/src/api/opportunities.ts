@@ -1,6 +1,8 @@
 import { PIPELINE_STAGES } from '../pipeline/config'
 import type {
   LossReason,
+  ManualOpportunityCreatePayload,
+  ManualOpportunityCreateResponse,
   OpportunityDetail,
   OpportunityNote,
   OpportunityNotePage,
@@ -56,6 +58,17 @@ export function createWhatsAppOpportunity(customerId: number, session: ApiSessio
     ...session,
     method: 'POST',
     body: { customer_id: customerId, source: 'WHATSAPP', assigned_user_id: null },
+  })
+}
+
+export function createManualOpportunity(
+  payload: ManualOpportunityCreatePayload,
+  session: ApiSession,
+) {
+  return apiRequest<ManualOpportunityCreateResponse>('/opportunities/manual', {
+    ...session,
+    method: 'POST',
+    body: payload,
   })
 }
 

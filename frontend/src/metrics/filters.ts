@@ -1,4 +1,5 @@
-import type { LeadSource } from '../pipeline/types'
+import { SOURCE_LABELS } from '../pipeline/config'
+import { isLeadSource, type LeadSource } from '../pipeline/types'
 import type { MetricsFilters, TimelineGranularity } from './types'
 
 export type DashboardPeriodPreset = 'month' | 'last-three-months' | 'year' | 'custom'
@@ -160,7 +161,7 @@ export function dashboardFiltersFromQuery(search: string, now = new Date()): Das
   return {
     ...periodFilters,
     preset,
-    source: source === 'WEB' || source === 'WHATSAPP' ? source : null,
+    source: isLeadSource(source) ? source : null,
     productId: Number.isInteger(productId) && productId > 0 ? productId : null,
     province: query.get('province')?.trim() || null,
   }
@@ -176,7 +177,7 @@ export function activeFilterCount(filters: DashboardFilters): number {
 }
 
 export function sourceLabel(source: LeadSource): string {
-  return source === 'WEB' ? 'Web' : 'WhatsApp'
+  return SOURCE_LABELS[source]
 }
 
 export function pipelineDimensions(

@@ -15,6 +15,7 @@ import {
 } from '../pipeline/board-state'
 import { canMoveTo, PIPELINE_STAGES, STAGE_BY_STATUS } from '../pipeline/config'
 import { pipelineErrorMessage } from '../pipeline/errors'
+import { ManualOpportunityModal } from '../pipeline/ManualOpportunityModal'
 import {
   EMPTY_OPPORTUNITY_WORKSPACE_STATE,
   opportunityWorkspaceReducer,
@@ -52,7 +53,7 @@ function BoardSkeleton() {
 }
 
 export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?: number }) {
-  const { token, logout } = useAuth()
+  const { token, logout, user } = useAuth()
   const [workspace, dispatch] = useReducer(
     opportunityWorkspaceReducer,
     EMPTY_OPPORTUNITY_WORKSPACE_STATE,
@@ -68,11 +69,15 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showStageAge, setShowStageAge] = useState(false)
   const [announcement, setAnnouncement] = useState('')
+  const [isManualCreationOpen, setIsManualCreationOpen] = useState(false)
+  const [hiddenCreatedOpportunity, setHiddenCreatedOpportunity] =
+    useState<OpportunitySummary | null>(null)
   const hasLoadedRef = useRef(false)
   const requestVersionRef = useRef(0)
   const wonRequestVersionRef = useRef(0)
   const wonReconciliationControllerRef = useRef<AbortController | null>(null)
   const mutationGenerationRef = useRef<Record<number, number>>({})
+  const manualCreationTriggerRef = useRef<HTMLButtonElement>(null)
 
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -316,22 +321,82 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const noMatches =
     hasLoaded && !loadError && opportunities.length > 0 && projectedOpportunities.length === 0
 
+  const handleManualCreated = (opportunity: OpportunitySummary) => {
+    mutationGenerationRef.current[opportunity.id] =
+      (mutationGenerationRef.current[opportunity.id] ?? 0) + 1
+    dispatch({ type: 'upsert', opportunity })
+    const isHidden = projectPipeline([opportunity], filters).length === 0
+    setHiddenCreatedOpportunity(isHidden ? opportunity : null)
+    setIsManualCreationOpen(false)
+    setAnnouncement(
+      isHidden
+        ? 'Oportunidad creada. Los filtros actuales la están ocultando.'
+        : `${opportunity.customer.name} fue creada en Nueva.`,
+    )
+  }
+
+  const revealCreatedOpportunity = () => {
+    if (!hiddenCreatedOpportunity) return
+    setFilters((current) => {
+      const matchesSearch =
+        projectPipeline([hiddenCreatedOpportunity], {
+          ...current,
+          source: 'ALL',
+          productId: 'ALL',
+        }).length > 0
+      return {
+        ...current,
+        search: matchesSearch ? current.search : '',
+        source:
+          current.source !== 'ALL' && current.source !== hiddenCreatedOpportunity.source
+            ? 'ALL'
+            : current.source,
+        productId:
+          current.productId !== 'ALL' &&
+          !hiddenCreatedOpportunity.products.some(
+            (line) => String(line.product.id) === current.productId,
+          )
+            ? 'ALL'
+            : current.productId,
+      }
+    })
+    setHiddenCreatedOpportunity(null)
+    setAnnouncement(`${hiddenCreatedOpportunity.customer.name} está visible en Nueva.`)
+  }
+
   return (
     <section aria-label='Pipeline' className='pipeline-page'>
       <PipelineControls
         action={
-          <Button
-            disabled={isRefreshing || busyOpportunityIds.size > 0}
-            onClick={() => setReloadKey((current) => current + 1)}
-            size='compact'
-            variant='ghost'
-          >
-            <Icon
-              className={isRefreshing ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'}
-              name='refresh'
-            />
-            {isRefreshing ? 'Actualizando…' : 'Actualizar'}
-          </Button>
+          <div className='pipeline-controls__actions'>
+            <Button
+              className='pipeline-control-button'
+              onClick={() => setIsManualCreationOpen(true)}
+              ref={manualCreationTriggerRef}
+              size='compact'
+              variant='primary'
+            >
+              <span aria-hidden='true' className='text-base leading-none'>
+                +
+              </span>
+              Nueva oportunidad
+            </Button>
+            <Button
+              className='pipeline-control-button'
+              disabled={isRefreshing || busyOpportunityIds.size > 0}
+              onClick={() => setReloadKey((current) => current + 1)}
+              size='compact'
+              variant='ghost'
+            >
+              <Icon
+                className={
+                  isRefreshing ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'
+                }
+                name='refresh'
+              />
+              {isRefreshing ? 'Actualizando…' : 'Actualizar'}
+            </Button>
+          </div>
         }
         filters={filters}
         onFiltersChange={setFilters}
@@ -346,6 +411,17 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
       {operationError ? (
         <div className='mb-3'>
           <InlineFeedback message={operationError} onDismiss={() => setOperationError(null)} />
+        </div>
+      ) : null}
+      {hiddenCreatedOpportunity ? (
+        <div className='pipeline-created-hidden' role='status'>
+          <span>
+            <Icon className='pipeline-created-hidden__icon' name='check' />
+            Oportunidad creada. Los filtros actuales la están ocultando.
+          </span>
+          <Button onClick={revealCreatedOpportunity} size='compact' variant='secondary'>
+            Ver en Nueva
+          </Button>
         </div>
       ) : null}
       {loadError && opportunities.length > 0 ? (
@@ -404,6 +480,16 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         products={catalog.products}
         productsError={catalog.error}
       />
+      {user ? (
+        <ManualOpportunityModal
+          apiSession={apiSession}
+          isOpen={isManualCreationOpen}
+          onClose={() => setIsManualCreationOpen(false)}
+          onCreated={handleManualCreated}
+          returnFocusTo={manualCreationTriggerRef.current}
+          user={user}
+        />
+      ) : null}
       {selectedOpportunityId ? (
         <OpportunityDetailPage
           catalog={catalog}

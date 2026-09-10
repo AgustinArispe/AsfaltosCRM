@@ -69,5 +69,15 @@ describe('Dashboard filters', () => {
     ).toBe(3)
     expect(sourceLabel('WEB')).toBe('Web')
     expect(sourceLabel('WHATSAPP')).toBe('WhatsApp')
+    expect(sourceLabel('REFERIDO')).toBe('Referido / boca a boca')
+  })
+
+  it('restores the REFERIDO origin from Dashboard URLs', () => {
+    const restored = dashboardFiltersFromQuery(
+      '?period=month&from=2026-09-01&to=2026-09-30&source=REFERIDO',
+      new Date('2026-09-10T12:00:00-03:00'),
+    )
+
+    expect(restored.source).toBe('REFERIDO')
   })
 })

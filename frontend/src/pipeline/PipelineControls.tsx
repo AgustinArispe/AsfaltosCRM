@@ -3,18 +3,13 @@ import type { ReactNode } from 'react'
 import { Button } from '../shared/Button'
 import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 import { activeFilterCount, type PipelineFilters, type PipelineSort } from './board-state'
-import type { LeadSource } from './types'
+import { SOURCE_OPTIONS } from './config'
 
 const SORT_OPTIONS: readonly { value: PipelineSort; label: string }[] = [
   { value: 'newest', label: 'Más recientes' },
   { value: 'oldest', label: 'Más antiguas' },
   { value: 'stage-oldest', label: 'Más tiempo en etapa' },
   { value: 'stage-newest', label: 'Menos tiempo en etapa' },
-]
-
-const SOURCE_OPTIONS: readonly { value: LeadSource; label: string }[] = [
-  { value: 'WEB', label: 'Web' },
-  { value: 'WHATSAPP', label: 'WhatsApp' },
 ]
 
 export function PipelineControls({

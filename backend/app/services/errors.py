@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from app.models import OpportunityStatus
+
+if TYPE_CHECKING:
+    from app.models import Customer
 
 
 class DomainError(Exception):
@@ -21,6 +27,26 @@ class IntakeAuthenticationError(DomainError):
 
 class CustomerIdentityConflictError(DomainError):
     """Raised when intake identity signals resolve ambiguously."""
+
+
+class ManualCustomerMatchExistsError(DomainError):
+    code = "MANUAL_CUSTOMER_MATCH_EXISTS"
+
+    def __init__(self, customer: Customer) -> None:
+        self.customer = customer
+        super().__init__("Manual customer data matches an active customer")
+
+
+class ManualCustomerIdentityAmbiguousError(DomainError):
+    code = "MANUAL_CUSTOMER_IDENTITY_AMBIGUOUS"
+
+
+class ManualCustomerIdentityDeletedError(DomainError):
+    code = "MANUAL_CUSTOMER_IDENTITY_DELETED"
+
+
+class ManualOpportunityCommandConflictError(DomainError):
+    code = "MANUAL_OPPORTUNITY_COMMAND_CONFLICT"
 
 
 class LeadIntakeIdempotencyConflictError(DomainError):

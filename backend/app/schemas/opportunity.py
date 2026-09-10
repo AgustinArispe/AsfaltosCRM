@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models import (
     LeadSource,
@@ -11,8 +11,8 @@ from app.models import (
     OpportunityStatus,
     OpportunityTransitionKind,
 )
-from app.schemas.common import StrictRequestModel
-from app.schemas.customer import CustomerSummary
+from app.schemas.common import EmailInput, StrictRequestModel
+from app.schemas.customer import CustomerSummary, NonBlankString, OptionalNonBlankString
 from app.schemas.product import ProductResponse
 
 PositiveId = Annotated[int, Field(gt=0)]
@@ -26,6 +26,39 @@ class OpportunityCreate(StrictRequestModel):
     customer_id: PositiveId
     source: LeadSource
     assigned_user_id: PositiveId | None = None
+
+
+class ExistingCustomerForManualOpportunity(StrictRequestModel):
+    kind: Literal["existing"]
+    customer_id: PositiveId
+
+
+class NewCustomerForManualOpportunity(StrictRequestModel):
+    kind: Literal["new"]
+    name: NonBlankString
+    company: OptionalNonBlankString = None
+    phone: OptionalNonBlankString = None
+    email: EmailInput | None = None
+    province: OptionalNonBlankString = None
+
+    @field_validator("company", "phone", "email", "province", mode="before")
+    @classmethod
+    def normalize_optional_blanks(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+
+ManualOpportunityCustomer = Annotated[
+    ExistingCustomerForManualOpportunity | NewCustomerForManualOpportunity,
+    Field(discriminator="kind"),
+]
+
+
+class ManualOpportunityCreate(StrictRequestModel):
+    command_id: UUID
+    assigned_user_id: PositiveId | None = None
+    customer: ManualOpportunityCustomer
 
 
 class QuoteProductRequest(StrictRequestModel):
@@ -116,3 +149,8 @@ class OpportunityDetail(OpportunitySummary):
     loss_reason: LossReason | None
     updated_at: datetime
     web_intake: OpportunityWebIntake | None = Field(validation_alias="lead_intake")
+
+
+class ManualOpportunityCreateResponse(BaseModel):
+    created: bool
+    opportunity: OpportunityDetail

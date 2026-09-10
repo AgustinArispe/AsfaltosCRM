@@ -1,7 +1,12 @@
 import type { CustomerSummary } from '../customers/types'
 import type { Product as ProductModel } from '../products/types'
 
-export type LeadSource = 'WEB' | 'WHATSAPP'
+export const LEAD_SOURCES = ['WEB', 'WHATSAPP', 'REFERIDO'] as const
+export type LeadSource = (typeof LEAD_SOURCES)[number]
+
+export function isLeadSource(value: string | null): value is LeadSource {
+  return value !== null && LEAD_SOURCES.some((source) => source === value)
+}
 
 export type OpportunityStatus = 'NUEVA' | 'COTIZADA' | 'NEGOCIACION' | 'GANADA' | 'PERDIDA'
 
@@ -50,6 +55,28 @@ export type OpportunityDetail = OpportunitySummary & {
   loss_reason: LossReason | null
   updated_at: string
   web_intake: { message: string | null } | null
+}
+
+export type ManualOpportunityCustomerInput =
+  | { kind: 'existing'; customer_id: number }
+  | {
+      kind: 'new'
+      name: string
+      company: string | null
+      phone: string | null
+      email: string | null
+      province: string | null
+    }
+
+export type ManualOpportunityCreatePayload = {
+  command_id: string
+  assigned_user_id: number | null
+  customer: ManualOpportunityCustomerInput
+}
+
+export type ManualOpportunityCreateResponse = {
+  created: boolean
+  opportunity: OpportunityDetail
 }
 
 export type PaginatedResponse<T> = {

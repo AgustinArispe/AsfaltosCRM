@@ -10,8 +10,13 @@ import {
   type LostOpportunity,
   type LostStatistics,
 } from '../lost/types'
-import { LOSS_REASON_LABELS, LOSS_REASON_OPTIONS, SOURCE_LABELS } from '../pipeline/config'
-import type { LossReason } from '../pipeline/types'
+import {
+  LOSS_REASON_LABELS,
+  LOSS_REASON_OPTIONS,
+  SOURCE_LABELS,
+  SOURCE_OPTIONS,
+} from '../pipeline/config'
+import { isLeadSource, type LossReason } from '../pipeline/types'
 import { AppLink } from '../routing/router'
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
@@ -38,7 +43,7 @@ function readLostFilters(): LostFilters {
   const product = query.get('product')
   return {
     ...EMPTY_LOST_FILTERS,
-    source: source === 'WEB' || source === 'WHATSAPP' ? source : '',
+    source: isLeadSource(source) ? source : '',
     productId: product && /^[1-9]\d*$/.test(product) ? Number(product) : null,
     province: query.get('province') ?? '',
     lostFrom: query.get('from') ?? '',
@@ -398,8 +403,11 @@ export function LostPage() {
                 value={draft.source}
               >
                 <option value=''>Todos</option>
-                <option value='WEB'>Web</option>
-                <option value='WHATSAPP'>WhatsApp</option>
+                {SOURCE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className='ui-label'>

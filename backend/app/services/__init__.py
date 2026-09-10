@@ -19,6 +19,10 @@ from app.services.errors import (
     InvalidWhatsAppCursorError,
     InvalidWhatsAppMessageError,
     LeadIntakeIdempotencyConflictError,
+    ManualCustomerIdentityAmbiguousError,
+    ManualCustomerIdentityDeletedError,
+    ManualCustomerMatchExistsError,
+    ManualOpportunityCommandConflictError,
     MetricsTimelinePeriodTooLargeError,
     PermissionDeniedError,
     RevisionConflictError,
@@ -34,6 +38,12 @@ from app.services.lead_intake_service import (
     LeadIntakeInput,
     LeadIntakeResult,
     LeadIntakeService,
+)
+from app.services.manual_opportunity_service import (
+    ExistingCustomerInput,
+    ManualOpportunityCreationResult,
+    ManualOpportunityService,
+    NewCustomerInput,
 )
 from app.services.notification_service import NotificationService
 from app.services.opportunity_service import OpportunityService, QuoteProductInput
@@ -130,6 +140,7 @@ __all__ = [
     "DomainError",
     "DuplicateEntityError",
     "EntityNotFoundError",
+    "ExistingCustomerInput",
     "HumanTemplateParameterInput",
     "HumanTemplateSelection",
     "HumanTemplateSendPreparation",
@@ -152,6 +163,12 @@ __all__ = [
     "LeadIntakeInput",
     "LeadIntakeResult",
     "LeadIntakeService",
+    "ManualCustomerIdentityAmbiguousError",
+    "ManualCustomerIdentityDeletedError",
+    "ManualCustomerMatchExistsError",
+    "ManualOpportunityCommandConflictError",
+    "ManualOpportunityCreationResult",
+    "ManualOpportunityService",
     "MessageChangePage",
     "MessagePage",
     "MessagePageCursor",
@@ -160,6 +177,7 @@ __all__ = [
     "MessageQueryService",
     "MessageStatusProjection",
     "MetricsTimelinePeriodTooLargeError",
+    "NewCustomerInput",
     "NotificationService",
     "NullWhatsAppQueryMetrics",
     "OpportunityLinkProjection",

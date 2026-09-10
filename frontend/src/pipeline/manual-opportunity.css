@@ -1,0 +1,284 @@
+/* CRM-043 — compact manual opportunity creation within the mounted Pipeline. */
+.pipeline-controls__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pipeline-created-hidden {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--brand-deep) 18%, var(--border-subtle));
+  border-radius: var(--radius-surface);
+  background: color-mix(in srgb, var(--brand-deep) 5%, var(--surface-primary));
+  padding: 0.7rem 0.85rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pipeline-created-hidden > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.pipeline-created-hidden__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  color: var(--brand-deep);
+}
+
+.manual-opportunity-modal__body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.manual-opportunity-modal__modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--brand-deep) 14%, var(--border-subtle));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--brand-deep) 4%, var(--surface-secondary));
+  padding: 0.25rem;
+}
+
+.manual-opportunity-modal__mode {
+  min-height: 2.5rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-control) - 0.2rem);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  outline: none;
+  transition:
+    color 160ms var(--ease-ui),
+    border-color 160ms var(--ease-ui),
+    background-color 160ms var(--ease-ui),
+    box-shadow 160ms var(--ease-ui),
+    transform 160ms var(--ease-ui);
+}
+
+.manual-opportunity-modal__mode[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--brand-deep) 18%, var(--border-subtle));
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-subtle);
+  color: var(--brand-deep);
+}
+
+.manual-opportunity-modal__mode:focus-visible,
+.manual-opportunity-modal__result:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 25%, transparent);
+}
+
+.manual-opportunity-modal__mode:active,
+.manual-opportunity-modal__result:active {
+  transform: translateY(0);
+}
+
+.manual-opportunity-modal__source,
+.manual-opportunity-modal__selected,
+.manual-opportunity-modal__fixed-responsible {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--brand-deep) 13%, var(--border-subtle));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--brand-deep) 4%, var(--surface-primary));
+  padding: 0.75rem;
+}
+
+.manual-opportunity-modal__source-icon,
+.manual-opportunity-modal__customer-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  place-items: center;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--brand-accent) 22%, var(--surface-primary));
+  color: var(--brand-deep);
+}
+
+.manual-opportunity-modal__identity-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.manual-opportunity-modal__source small,
+.manual-opportunity-modal__source strong,
+.manual-opportunity-modal__selected small,
+.manual-opportunity-modal__selected strong,
+.manual-opportunity-modal__fixed-responsible small,
+.manual-opportunity-modal__fixed-responsible strong {
+  display: block;
+}
+
+.manual-opportunity-modal__source small,
+.manual-opportunity-modal__selected small,
+.manual-opportunity-modal__fixed-responsible small,
+.manual-opportunity-modal__hint,
+.manual-opportunity-modal__results > p {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.manual-opportunity-modal__source strong,
+.manual-opportunity-modal__selected strong,
+.manual-opportunity-modal__fixed-responsible strong {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.manual-opportunity-modal__customer-area {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.manual-opportunity-modal__selected > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+
+.manual-opportunity-modal__selected small {
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
+.manual-opportunity-modal__results ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manual-opportunity-modal__result {
+  display: flex;
+  width: 100%;
+  min-height: 3.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-primary);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 1px 2px rgb(10 24 42 / 5%);
+  transition:
+    color 160ms var(--ease-ui),
+    border-color 160ms var(--ease-ui),
+    background-color 160ms var(--ease-ui),
+    box-shadow 160ms var(--ease-ui),
+    transform 160ms var(--ease-ui);
+}
+
+.manual-opportunity-modal__result span {
+  min-width: 0;
+}
+
+.manual-opportunity-modal__result strong,
+.manual-opportunity-modal__result small {
+  display: block;
+}
+
+.manual-opportunity-modal__result strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manual-opportunity-modal__result small {
+  margin-top: 0.15rem;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manual-opportunity-modal__result-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform 160ms var(--ease-ui);
+}
+
+.manual-opportunity-modal__new-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.manual-opportunity-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  border-top: 1px solid var(--divider);
+  padding: 0.9rem 1.25rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .manual-opportunity-modal__mode:hover:not(:disabled) {
+    color: var(--brand-deep);
+  }
+
+  .manual-opportunity-modal__result:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--brand-deep) 24%, var(--border-default));
+    background: color-mix(in srgb, var(--brand-deep) 3%, var(--surface-primary));
+    box-shadow: 0 7px 18px rgb(10 24 42 / 9%);
+  }
+
+  .manual-opportunity-modal__result:hover:not(:disabled) .manual-opportunity-modal__result-icon {
+    transform: translateX(2px);
+  }
+}
+
+@media (min-width: 40rem) {
+  .manual-opportunity-modal__new-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 46rem) {
+  .pipeline-controls__actions,
+  .pipeline-created-hidden {
+    width: 100%;
+  }
+
+  .pipeline-controls__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pipeline-created-hidden {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manual-opportunity-modal__mode,
+  .manual-opportunity-modal__result,
+  .manual-opportunity-modal__result-icon {
+    transition: none;
+  }
+}

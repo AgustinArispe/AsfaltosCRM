@@ -15,7 +15,12 @@ type ApiBinaryRequestOptions = Omit<RequestInit, 'body' | 'headers'> & {
 
 export type ApiErrorDetail =
   | string
-  | { code?: string; resource?: string; current_updated_at?: string }
+  | {
+      code?: string
+      resource?: string
+      current_updated_at?: string
+      customer?: import('../customers/types').CustomerSummary
+    }
 
 type ErrorPayload = { detail?: ApiErrorDetail }
 

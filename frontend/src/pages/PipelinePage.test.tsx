@@ -373,6 +373,64 @@ describe('PipelinePage', () => {
     )
   })
 
+  it('creates a manual opportunity without reloading stages and reveals it only on explicit action', async () => {
+    const referred = opportunity('NUEVA', 9, {
+      source: 'REFERIDO',
+      customer: {
+        ...opportunity('NUEVA', 9).customer,
+        name: 'Cliente referido',
+        company: 'Referidos del Sur',
+      },
+    })
+    const items: OpportunitySummary[] = [opportunity('NUEVA', 1)]
+    const fetchMock = mockApi(items, (url) => {
+      if (url.pathname === '/api/users') return response(200, [])
+      if (url.pathname === '/api/opportunities/manual') {
+        items.push(referred)
+        return response(201, { created: true, opportunity: { ...referred, history: [] } })
+      }
+      return undefined
+    })
+    const { container } = render(<PipelinePage />)
+    await ready()
+    fireEvent.change(screen.getByLabelText('Buscar oportunidades'), {
+      target: { value: 'otra búsqueda' },
+    })
+    await waitFor(() => expect(screen.getByText('Sin resultados')).toBeInTheDocument())
+    const stageRequestsBeforeCreate = fetchMock.mock.calls.filter(([input]) =>
+      String(input).includes('/api/opportunities?'),
+    ).length
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva oportunidad' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Nueva oportunidad' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cliente nuevo' }))
+    fireEvent.change(within(dialog).getByLabelText('Nombre *'), {
+      target: { value: 'Cliente referido' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Crear oportunidad' }))
+
+    expect(
+      await screen.findAllByText('Oportunidad creada. Los filtros actuales la están ocultando.'),
+    ).toHaveLength(2)
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?')),
+    ).toHaveLength(stageRequestsBeforeCreate)
+    expect(container.querySelector('[data-stage="NUEVA"]')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver en Nueva' }))
+    await waitFor(() =>
+      expect(within(stage(container, 'NUEVA')).getByText('Referidos del Sur')).toBeInTheDocument(),
+    )
+    expect(screen.getByLabelText('Buscar oportunidades')).toHaveValue('')
+  })
+
+  it('offers Referido in the Pipeline source filter', async () => {
+    mockApi([])
+    render(<PipelinePage />)
+    await ready()
+    expect(screen.getByRole('option', { name: 'Referido / boca a boca' })).toHaveValue('REFERIDO')
+  })
+
   it('keeps failed-stage data and reports a truthful partial manual refresh', async () => {
     const item = opportunity('COTIZADA', 2)
     let refresh = false

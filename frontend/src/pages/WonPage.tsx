@@ -3,6 +3,7 @@ import type { ApiSession } from '../api/opportunities'
 import { getWonFilterOptions, getWonStatistics, listWonOpportunities } from '../api/won'
 import { useAuth } from '../auth/AuthContext'
 import { SOURCE_LABELS } from '../pipeline/config'
+import { isLeadSource } from '../pipeline/types'
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { Input, Select } from '../shared/FormControls'
@@ -44,6 +45,7 @@ const DEFAULT_FILTERS: WonFilters = {
 }
 function readFilters(): WonFilters {
   const query = new URLSearchParams(window.location.search)
+  const source = query.get('source')
   const period = query.get('period')
   const validPeriod =
     period === 'three-months' ||
@@ -60,7 +62,7 @@ function readFilters(): WonFilters {
     from: query.get('from') ?? periodDates(validPeriod).from,
     to: query.get('to') ?? periodDates(validPeriod).to,
     search: query.get('search') ?? '',
-    source: (query.get('source') as WonFilters['source']) ?? '',
+    source: isLeadSource(source) ? source : '',
     product: query.get('product') ?? '',
     province: query.get('province') ?? '',
     responsible: query.get('responsible') ?? '',

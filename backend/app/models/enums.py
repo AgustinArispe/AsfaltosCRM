@@ -11,6 +11,7 @@ class UserRole(StrEnum):
 class LeadSource(StrEnum):
     WEB = "WEB"
     WHATSAPP = "WHATSAPP"
+    REFERIDO = "REFERIDO"
 
 
 class OpportunityStatus(StrEnum):
