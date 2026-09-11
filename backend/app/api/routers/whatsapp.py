@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from app.api.dependencies import CurrentUser, DatabaseSession
 from app.api.whatsapp_presenter import WhatsAppApiPresenter
 from app.models import WhatsAppDispatchState, WhatsAppMessageType
+from app.schemas.opportunity import OpportunityDetail
 from app.schemas.whatsapp import (
     ConversationAttentionSummaryResponse,
     ConversationChangePageResponse,
@@ -55,6 +56,7 @@ from app.services import (
     WhatsAppHumanTemplateService,
     WhatsAppMessageService,
 )
+from app.services.opportunity_query_service import OpportunityQueryService
 from app.services.whatsapp_api_media_service import (
     MediaContentResult,
     MediaUploadInput,
@@ -388,6 +390,25 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
             runtime,
             presenter,
             conversation_id,
+        )
+
+    @router.post(
+        "/conversations/{conversation_id}/opportunity",
+        response_model=OpportunityDetail,
+        status_code=status.HTTP_201_CREATED,
+        summary="Create an opportunity from a resolved WhatsApp conversation",
+    )
+    def create_whatsapp_opportunity(
+        conversation_id: int,
+        session: DatabaseSession,
+        current_user: CurrentUser,
+    ) -> OpportunityDetail:
+        opportunity = WhatsAppConversationService(session).create_opportunity(
+            conversation_id,
+            changed_by_user_id=current_user.id,
+        )
+        return OpportunityDetail.model_validate(
+            OpportunityQueryService(session).get_detail(opportunity.id)
         )
 
     @router.post(

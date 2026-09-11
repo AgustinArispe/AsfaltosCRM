@@ -1943,8 +1943,10 @@ table td {
 .pipeline-controls__search {
   flex: 1 1 18rem;
 }
+.pipeline-controls__search.ui-search-field .ui-field,
 .pipeline-controls__select,
-.pipeline-control-button {
+.pipeline-control-button,
+.pipeline-more-filters > summary {
   min-height: 2.75rem;
   height: 2.75rem;
 }
@@ -3001,6 +3003,14 @@ a {
   padding-left: 2.15rem;
   font-size: var(--text-control-size);
   line-height: var(--text-control-line);
+}
+.pipeline-controls__search.ui-search-field .ui-field {
+  height: 2.75rem;
+  min-height: 2.75rem;
+}
+.ui-filter-control.pipeline-controls__select {
+  height: 2.75rem;
+  min-height: 2.75rem;
 }
 .ui-label {
   display: block;

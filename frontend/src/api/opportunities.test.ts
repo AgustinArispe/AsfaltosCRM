@@ -57,6 +57,7 @@ describe('Opportunity API client', () => {
     expect(paths).toContain('/api/opportunities/9/assignee')
     expect(paths).toContain('/api/opportunities/9/lose')
     expect(paths).toContain('/api/opportunities/9/reopen')
+    expect(paths).toContain('/api/whatsapp/conversations/8/opportunity')
     expect(paths.filter((path) => path === '/api/opportunities/9/notes')).toHaveLength(2)
   })
 })

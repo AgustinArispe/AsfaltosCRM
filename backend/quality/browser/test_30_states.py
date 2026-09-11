@@ -28,7 +28,7 @@ def test_empty_search_and_filter_states_explain_next_action(
     page.get_by_label("Período", exact=True).select_option("custom")
     page.get_by_label("Desde").fill("2025-01-01")
     page.get_by_label("Hasta").fill("2025-02-01")
-    expect(page.get_by_text("Máximo 0")).to_be_visible()
+    expect(page.get_by_text("No hay evolución en el período")).to_be_visible()
     expect(page.get_by_role("list", name="Series de evolución")).to_be_visible()
     expect(
         page.get_by_role(

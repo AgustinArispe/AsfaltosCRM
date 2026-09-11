@@ -97,8 +97,8 @@ def test_sidebar_collapsed_and_mobile_drawer_keyboard_contract(
     expect(
         desktop.page.get_by_role("button", name="Expandir navegación")
     ).to_be_visible()
-    expect(desktop.page.get_by_role("link", name="Pipeline")).to_have_attribute(
-        "title", "Pipeline"
+    expect(desktop.page.get_by_role("link", name="Oportunidades")).to_have_attribute(
+        "title", "Oportunidades"
     )
     desktop.page.get_by_role("button", name="Expandir navegación").click()
     expect(
@@ -113,7 +113,7 @@ def test_sidebar_collapsed_and_mobile_drawer_keyboard_contract(
     trigger.click()
     drawer = mobile.page.get_by_role("complementary", name="Navegación móvil")
     expect(drawer).to_be_visible()
-    expect(drawer.get_by_role("link", name="Dashboard")).to_be_visible()
+    expect(drawer.get_by_role("link", name="Resumen comercial")).to_be_visible()
     mobile.page.keyboard.press("Escape")
     expect(drawer).not_to_be_visible()
     expect(trigger).to_be_focused()

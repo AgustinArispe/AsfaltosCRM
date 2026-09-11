@@ -294,7 +294,7 @@ function mockInboxApi({
       if (url.pathname === '/api/opportunities/77') {
         return jsonResponse(200, opportunityDetail)
       }
-      if (url.pathname === '/api/opportunities' && method === 'POST') {
+      if (url.pathname === '/api/whatsapp/conversations/1/opportunity' && method === 'POST') {
         return jsonResponse(201, opportunityDetail)
       }
       if (url.pathname === '/api/whatsapp/conversations/1/messages' && method === 'POST') {
@@ -705,16 +705,10 @@ describe('WhatsAppInboxPage', () => {
       expect(
         fetchMock.mock.calls.some(
           ([input, init]) =>
-            String(input).endsWith('/api/opportunities') && init?.method === 'POST',
+            String(input).endsWith('/api/whatsapp/conversations/1/opportunity') &&
+            init?.method === 'POST',
         ),
       ).toBe(true)
-    })
-    const call = fetchMock.mock.calls.find(
-      ([input, init]) => String(input).endsWith('/api/opportunities') && init?.method === 'POST',
-    )
-    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
-      customer_id: 11,
-      source: 'WHATSAPP',
     })
   })
 

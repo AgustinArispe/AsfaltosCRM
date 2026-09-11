@@ -148,7 +148,7 @@ def test_pipeline_controls_search_detail_and_opportunity_evidence(
     expect(dialog.get_by_role("button", name="Notas")).to_be_visible()
     expect(dialog.get_by_role("button", name="Abrir WhatsApp")).to_be_visible()
     expect(dialog.get_by_role("button", name="Cotizar")).to_be_visible()
-    expect(dialog.get_by_role("button", name="Marcar perdida")).to_be_visible()
+    expect(dialog.get_by_role("button", name="Marcar pérdida")).to_be_visible()
     dialog.get_by_role("button", name="Cerrar detalle de oportunidad").click()
     expect(dialog).not_to_be_visible()
 
@@ -158,19 +158,13 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
 ) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR")
     page = qa_page.page
-    wait_for_workspace(page, "dashboard", "Dashboard")
-    expect(page.get_by_role("heading", name="Necesita atención")).to_be_visible()
-    for action in ("Ver seguimientos", "Abrir pendientes"):
-        expect(page.get_by_role("link", name=re.compile(action))).to_be_visible()
+    wait_for_workspace(page, "dashboard", "Resumen comercial")
 
     result = page.get_by_role("region", name="Resultado del período")
     expect(result).to_be_visible()
-    expect(result.get_by_role("link", name="Ver ganadas")).to_be_visible()
-    expect(result.get_by_role("link", name="Ver pérdidas")).to_have_count(0)
-    expect(result.get_by_text("Kg perdidos", exact=True)).to_be_visible()
-    expect(
-        page.get_by_role("region", name="Oportunidades activas ahora")
-    ).to_be_visible()
+    expect(result.get_by_role("button", name=re.compile("Ganadas"))).to_be_visible()
+    expect(result.get_by_role("button", name=re.compile("Pérdidas"))).to_be_visible()
+    expect(page.get_by_role("region", name="Oportunidades activas")).to_be_visible()
     expect(page.get_by_role("heading", name="Evolución comercial")).to_be_visible()
     series = page.get_by_role("list", name="Series de evolución")
     for label in ("Creadas", "Ganadas", "Pérdidas"):
@@ -180,29 +174,25 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     page.get_by_label("Desde").fill("2026-08-10")
     page.get_by_label("Hasta").fill("2026-08-14")
     peak = page.get_by_role(
-        "button", name=re.compile(r"Creadas [1-9].*abrir oportunidades")
+        "button", name=re.compile(r"Abrir movimientos.*[1-9] creadas")
     )
     expect(peak.first).to_be_visible()
     peak.first.focus()
     peak.first.click()
-    detail = page.get_by_role("region", name="Oportunidades del día seleccionado")
+    detail = page.get_by_role("dialog", name=re.compile("Movimientos"))
     expect(detail).to_be_visible()
-    expect(detail.get_by_role("link").first).to_be_visible()
-    detail.get_by_role("button", name="Cerrar detalle del día").click()
+    expect(
+        detail.get_by_role("button", name=re.compile("creada|ganada|pérdida"))
+    ).to_be_visible()
+    page.keyboard.press("Escape")
     expect(detail).not_to_be_visible()
 
     expect(
-        page.get_by_role("img", name=re.compile("Nueva: .*Cotizada: .*Negociación:"))
+        page.get_by_role("img", name="Distribución de oportunidades activas por etapa")
     ).to_be_visible()
     expect(page.get_by_role("region", name="Origen de oportunidades")).to_be_visible()
-    for dimension in ("Productos", "Provincias"):
-        page.get_by_role("button", name=dimension, exact=True).click()
-        expect(
-            page.get_by_role("button", name=dimension, exact=True)
-        ).to_have_attribute("aria-pressed", "true")
-    expect(
-        page.get_by_role("region", name="Productos y provincias").get_by_role("list")
-    ).to_be_visible()
+    expect(page.get_by_role("region", name="Productos")).to_be_visible()
+    expect(page.get_by_role("region", name="Provincias")).to_be_visible()
 
 
 def test_whatsapp_three_panel_semantics_and_states(qa_pages: QaPageFactory) -> None:
@@ -248,7 +238,7 @@ def test_customers_products_and_users_are_understandable(
     wait_for_workspace(page, "products", "Productos")
     expect(page.get_by_role("region", name="Listado de productos FAA")).to_be_visible()
     expect(
-        page.get_by_role("table", name="Productos disponibles en el CRM")
+        page.get_by_role("list").filter(has=page.get_by_text("Producto FAA")).first
     ).to_be_visible()
     expect(
         page.get_by_role("button", name=re.compile("Desactivar|Reactivar")).first

@@ -53,11 +53,10 @@ export function getOpportunityDetail(opportunityId: number, session: ApiSession)
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}`, session)
 }
 
-export function createWhatsAppOpportunity(customerId: number, session: ApiSession) {
-  return apiRequest<OpportunityDetail>('/opportunities', {
+export function createWhatsAppOpportunity(conversationId: number, session: ApiSession) {
+  return apiRequest<OpportunityDetail>(`/whatsapp/conversations/${conversationId}/opportunity`, {
     ...session,
     method: 'POST',
-    body: { customer_id: customerId, source: 'WHATSAPP', assigned_user_id: null },
   })
 }
 

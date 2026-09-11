@@ -683,7 +683,7 @@ export function useWhatsAppInbox(
     setIsCreatingOpportunity(true)
     setLinkError(null)
     try {
-      await createWhatsAppOpportunity(selectedDetail.customer.id, apiSession)
+      await createWhatsAppOpportunity(selectedDetail.id, apiSession)
       await refreshSelectedConversation()
     } catch (error: unknown) {
       setLinkError(errorMessage(error, 'No pudimos crear la oportunidad.'))

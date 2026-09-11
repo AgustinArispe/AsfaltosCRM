@@ -46,7 +46,7 @@ def create_opportunity(
     client: TestClient,
     customer_id: int,
     *,
-    source: str = "WEB",
+    source: str = "REFERIDO",
     assigned_user_id: int | None = None,
 ) -> OpportunityDetail:
     payload: dict[str, object] = {"customer_id": customer_id, "source": source}
@@ -229,7 +229,7 @@ def test_opportunity_create_detail_assignee_and_history(
     opportunity = create_opportunity(
         api_client,
         customer.id,
-        source="WHATSAPP",
+        source="REFERIDO",
         assigned_user_id=user.id,
     )
 
@@ -249,7 +249,7 @@ def test_opportunity_create_rejects_missing_customer_and_inactive_assignee(
 ) -> None:
     missing_customer = api_client.post(
         "/api/opportunities",
-        json={"customer_id": 999999999, "source": "WEB"},
+        json={"customer_id": 999999999, "source": "REFERIDO"},
     )
     assert missing_customer.status_code == 404
 
@@ -260,7 +260,7 @@ def test_opportunity_create_rejects_missing_customer_and_inactive_assignee(
         "/api/opportunities",
         json={
             "customer_id": customer.id,
-            "source": "WEB",
+            "source": "REFERIDO",
             "assigned_user_id": user.id,
         },
     )
@@ -278,10 +278,10 @@ def test_opportunity_list_and_filters(
     first = create_opportunity(
         api_client,
         first_customer.id,
-        source="WEB",
+        source="REFERIDO",
         assigned_user_id=user.id,
     )
-    create_opportunity(api_client, second_customer.id, source="WHATSAPP")
+    create_opportunity(api_client, second_customer.id, source="REFERIDO")
 
     response = api_client.get(
         "/api/opportunities",
@@ -289,7 +289,7 @@ def test_opportunity_list_and_filters(
             "status": "NUEVA",
             "customer_id": first_customer.id,
             "assigned_user_id": user.id,
-            "source": "WEB",
+            "source": "REFERIDO",
             "page": 1,
             "page_size": 20,
         },
@@ -437,6 +437,29 @@ def test_opportunity_request_validation_and_not_found(api_client: TestClient) ->
     assert invalid_source.status_code == 422
     assert invalid_quantity.status_code == 422
     assert api_client.get("/api/opportunities/999999999").status_code == 404
+
+
+def test_authenticated_generic_opportunity_creation_accepts_only_referido(
+    api_client: TestClient,
+) -> None:
+    customer = create_customer(api_client, "Cliente de origen protegido")
+
+    web = api_client.post(
+        "/api/opportunities",
+        json={"customer_id": customer.id, "source": "WEB"},
+    )
+    whatsapp = api_client.post(
+        "/api/opportunities",
+        json={"customer_id": customer.id, "source": "WHATSAPP"},
+    )
+    referred = api_client.post(
+        "/api/opportunities",
+        json={"customer_id": customer.id, "source": "REFERIDO"},
+    )
+
+    assert web.status_code == whatsapp.status_code == 422
+    assert referred.status_code == 201
+    assert referred.json()["source"] == "REFERIDO"
 
 
 def test_soft_deleted_records_remain_persisted_but_hidden(

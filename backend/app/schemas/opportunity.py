@@ -24,7 +24,7 @@ PositiveQuantity = Annotated[
 
 class OpportunityCreate(StrictRequestModel):
     customer_id: PositiveId
-    source: LeadSource
+    source: Literal[LeadSource.REFERIDO]
     assigned_user_id: PositiveId | None = None
 
 

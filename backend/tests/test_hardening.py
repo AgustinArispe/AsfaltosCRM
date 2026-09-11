@@ -96,7 +96,7 @@ def test_request_contracts_validate_emails_and_reject_internal_fields(
             "/api/opportunities",
             json={
                 "customer_id": customer.json()["id"],
-                "source": "WEB",
+                "source": "REFERIDO",
                 "status": "GANADA",
             },
         ).status_code
@@ -147,7 +147,7 @@ def test_soft_deleted_customer_rejects_edits_and_new_opportunities(
     ).json()
     opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "WEB"},
+        json={"customer_id": customer["id"], "source": "REFERIDO"},
     ).json()
 
     assert api_client.delete(f"/api/customers/{customer['id']}").status_code == 204
@@ -164,7 +164,7 @@ def test_soft_deleted_customer_rejects_edits_and_new_opportunities(
     assert (
         api_client.post(
             "/api/opportunities",
-            json={"customer_id": customer["id"], "source": "WHATSAPP"},
+            json={"customer_id": customer["id"], "source": "REFERIDO"},
         ).status_code
         == 409
     )
@@ -197,7 +197,7 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
     ).json()
     quoted_opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "WEB"},
+        json={"customer_id": customer["id"], "source": "REFERIDO"},
     ).json()
     quote_payload = {
         "products": [{"product_id": product["id"], "quantity_kg": "500.000"}]
@@ -242,7 +242,7 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
 
     new_opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "WHATSAPP"},
+        json={"customer_id": customer["id"], "source": "REFERIDO"},
     ).json()
     assert (
         api_client.post(
@@ -274,14 +274,14 @@ def test_inactive_assignee_remains_visible_but_cannot_be_assigned_again(
         "/api/opportunities",
         json={
             "customer_id": customer["id"],
-            "source": "WEB",
+            "source": "REFERIDO",
             "assigned_user_id": user["id"],
         },
     ).json()
     api_client.headers["Authorization"] = f"Bearer {create_access_token(user['id'])}"
     actor_opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "WHATSAPP"},
+        json={"customer_id": customer["id"], "source": "REFERIDO"},
     ).json()
     api_client.headers["Authorization"] = (
         f"Bearer {create_access_token(supervisor_user.id)}"
@@ -304,7 +304,7 @@ def test_inactive_assignee_remains_visible_but_cannot_be_assigned_again(
 
     unassigned = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "WHATSAPP"},
+        json={"customer_id": customer["id"], "source": "REFERIDO"},
     ).json()
     unassigned_detail = api_client.get(f"/api/opportunities/{unassigned['id']}").json()
     assert (

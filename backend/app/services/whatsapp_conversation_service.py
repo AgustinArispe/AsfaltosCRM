@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     Customer,
+    LeadSource,
     Opportunity,
     OpportunityStatus,
     User,
@@ -18,6 +19,7 @@ from app.services.errors import (
     WhatsAppConversationResolutionError,
     WhatsAppOpportunityAssociationError,
 )
+from app.services.opportunity_service import OpportunityService
 from app.services.whatsapp_projection_service import later_datetime
 
 OPEN_OPPORTUNITY_STATUSES = frozenset(
@@ -78,6 +80,40 @@ class WhatsAppConversationService:
             )
             self._session.flush()
         return conversation
+
+    def create_opportunity(
+        self,
+        conversation_id: int,
+        *,
+        changed_by_user_id: int,
+    ) -> Opportunity:
+        """Create a server-owned WhatsApp opportunity for a resolved conversation."""
+        customer_id = self._conversation_customer_id(conversation_id)
+        self._session.rollback()
+        with self._session.begin():
+            customer = self._session.scalar(
+                select(Customer)
+                .where(Customer.id == customer_id, Customer.deleted_at.is_(None))
+                .with_for_update()
+            )
+            if customer is None:
+                raise WhatsAppConversationResolutionError(
+                    "Conversation customer is not available"
+                )
+            conversation = self._get_for_update(conversation_id)
+            if (
+                conversation.resolution_status
+                is not WhatsAppConversationResolution.RESOLVED
+                or conversation.customer_id != customer.id
+            ):
+                raise WhatsAppConversationResolutionError(
+                    "Conversation must be resolved before creating an opportunity"
+                )
+            return OpportunityService(self._session).create_opportunity_in_transaction(
+                customer_id=customer.id,
+                source=LeadSource.WHATSAPP,
+                changed_by_user_id=changed_by_user_id,
+            )
 
     def link_opportunity(
         self,
@@ -210,6 +246,20 @@ class WhatsAppConversationService:
         if conversation is None:
             raise EntityNotFoundError("WhatsAppConversation", conversation_id)
         return conversation
+
+    def _conversation_customer_id(self, conversation_id: int) -> int:
+        conversation = self._session.get(WhatsAppConversation, conversation_id)
+        if conversation is None:
+            raise EntityNotFoundError("WhatsAppConversation", conversation_id)
+        if (
+            conversation.resolution_status
+            is not WhatsAppConversationResolution.RESOLVED
+            or conversation.customer_id is None
+        ):
+            raise WhatsAppConversationResolutionError(
+                "Conversation must be resolved before creating an opportunity"
+            )
+        return conversation.customer_id
 
     def _active_link_for_update(
         self,

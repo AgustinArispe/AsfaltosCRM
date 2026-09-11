@@ -224,7 +224,7 @@ def test_new_opportunity_notifies_active_users_with_independent_read_state(
 
     created = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer_id, "source": "WEB"},
+        json={"customer_id": customer_id, "source": "REFERIDO"},
     )
     assert created.status_code == 201
     opportunity_id = created.json()["id"]

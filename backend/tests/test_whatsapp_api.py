@@ -1054,6 +1054,33 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     assert supervisor_user.id > 0
 
 
+def test_whatsapp_conversation_creation_keeps_source_server_controlled(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+) -> None:
+    customer = Customer(
+        name="Cliente WhatsApp controlado",
+        phone="+54 11 6000-0091",
+    )
+    db_session.add(customer)
+    db_session.commit()
+    assert customer.phone is not None
+
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.server-controlled-opportunity",
+        phone=customer.phone,
+    )
+    response = whatsapp_api.client.post(
+        f"/api/whatsapp/conversations/{inbound.message.conversation_id}/opportunity"
+    )
+
+    assert response.status_code == 201
+    assert response.json()["customer"]["id"] == customer.id
+    assert response.json()["source"] == "WHATSAPP"
+    assert response.json()["status"] == "NUEVA"
+
+
 def test_closed_window_and_identity_review_return_conflicts(
     db_session: Session,
     supervisor_user: User,

@@ -452,7 +452,7 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
     customer = api_client.post("/api/customers", json={"name": "Cliente auditoría"})
     opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer.json()["id"], "source": "WEB"},
+        json={"customer_id": customer.json()["id"], "source": "REFERIDO"},
     )
     assert opportunity.status_code == 201
     opportunity_id = opportunity.json()["id"]
@@ -481,7 +481,7 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
 
     second_opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer.json()["id"], "source": "WHATSAPP"},
+        json={"customer_id": customer.json()["id"], "source": "REFERIDO"},
     )
     second_id = second_opportunity.json()["id"]
     second_detail = api_client.get(f"/api/opportunities/{second_id}").json()
@@ -500,7 +500,7 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
             "/api/opportunities",
             json={
                 "customer_id": customer.json()["id"],
-                "source": "WEB",
+                "source": "REFERIDO",
                 "assigned_user_id": vendor.id,
             },
         ).status_code
