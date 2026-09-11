@@ -116,8 +116,7 @@ export function timelineGranularity(filters: MetricsFilters): TimelineGranularit
     (utcDate(toYear, toMonth, toDay).getTime() - utcDate(fromYear, fromMonth, fromDay).getTime()) /
       86_400_000,
   )
-  if (days <= 14) return 'day'
-  if (days <= 120) return 'week'
+  if (days <= 366) return 'day'
   return 'month'
 }
 

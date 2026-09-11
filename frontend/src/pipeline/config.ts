@@ -1,10 +1,12 @@
 import type { BadgeTone } from '../shared/Badge'
+import type { IconName } from '../shared/Icon'
 import type { LeadSource, LossReason, OpportunityStatus, PipelineStatus } from './types'
 
 export type PipelineStage = {
   status: PipelineStatus
   label: string
   singularLabel: string
+  icon: IconName
   nextStatus: PipelineStatus | null
   tone: 'neutral' | 'success'
 }
@@ -14,6 +16,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     status: 'NUEVA',
     label: 'Nueva',
     singularLabel: 'Nueva',
+    icon: 'document',
     nextStatus: 'COTIZADA',
     tone: 'neutral',
   },
@@ -21,6 +24,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     status: 'COTIZADA',
     label: 'Cotizada',
     singularLabel: 'Cotizada',
+    icon: 'coins',
     nextStatus: 'NEGOCIACION',
     tone: 'neutral',
   },
@@ -28,6 +32,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     status: 'NEGOCIACION',
     label: 'Negociación',
     singularLabel: 'Negociación',
+    icon: 'handshake',
     nextStatus: 'GANADA',
     tone: 'neutral',
   },
@@ -35,6 +40,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     status: 'GANADA',
     label: 'Ganada',
     singularLabel: 'Ganada',
+    icon: 'trophy',
     nextStatus: null,
     tone: 'success',
   },
@@ -51,7 +57,7 @@ export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   COTIZADA: 'Cotizada',
   NEGOCIACION: 'Negociación',
   GANADA: 'Ganada',
-  PERDIDA: 'Perdida',
+  PERDIDA: 'Pérdida',
 }
 
 export const OPPORTUNITY_STATUS_TONES: Record<OpportunityStatus, BadgeTone> = {
@@ -60,6 +66,18 @@ export const OPPORTUNITY_STATUS_TONES: Record<OpportunityStatus, BadgeTone> = {
   NEGOCIACION: 'negotiation',
   GANADA: 'won',
   PERDIDA: 'lost',
+}
+
+export const OPPORTUNITY_STATUS_COLOR_CLASSES: Record<OpportunityStatus, string> = {
+  NUEVA: 'opportunity-stage-tone--nueva',
+  COTIZADA: 'opportunity-stage-tone--cotizada',
+  NEGOCIACION: 'opportunity-stage-tone--negociacion',
+  GANADA: 'opportunity-stage-tone--ganada',
+  PERDIDA: 'opportunity-stage-tone--perdida',
+}
+
+export function opportunityStatusColorClass(status: OpportunityStatus): string {
+  return `opportunity-stage-tone ${OPPORTUNITY_STATUS_COLOR_CLASSES[status]}`
 }
 
 export const LOSS_REASON_LABELS: Record<LossReason, string> = {

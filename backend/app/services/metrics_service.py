@@ -12,6 +12,7 @@ from sqlalchemy.sql.selectable import Subquery
 from app.models import (
     Customer,
     LeadSource,
+    LossReason,
     Opportunity,
     OpportunityLossEvent,
     OpportunityLossProductSnapshot,
@@ -50,6 +51,13 @@ class TimelineOpportunitySeries(StrEnum):
     CREATED = "created"
     WON = "won"
     LOST = "lost"
+
+
+class MetricOpportunityKind(StrEnum):
+    CREATED = "created"
+    WON = "won"
+    LOST = "lost"
+    ACTIVE = "active"
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,6 +169,9 @@ class PipelineStatusMetrics:
 class TimelineOpportunityProjection:
     opportunity: Opportunity
     loss_event_id: int | None = None
+    relevant_at: datetime | None = None
+    quantity_kg: Decimal = ZERO_KG
+    loss_reason: LossReason | None = None
 
 
 def conversion_rate(
@@ -709,6 +720,125 @@ class MetricsService:
         )
         return [
             TimelineOpportunityProjection(opportunity=item) for item in opportunities
+        ], total
+
+    def metric_opportunities(
+        self,
+        *,
+        kind: MetricOpportunityKind,
+        dimensions: MetricsDimensions,
+        period: MetricsPeriod | None,
+        status: OpportunityStatus | None,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[TimelineOpportunityProjection], int]:
+        """Return a bounded, authoritative list behind a Dashboard metric."""
+        if kind is MetricOpportunityKind.LOST:
+            if period is None:
+                raise ValueError("Lost metric detail requires a period")
+            filters = [
+                *self._loss_event_filters(dimensions),
+                self._in_period(OpportunityLossEvent.lost_at, period),
+            ]
+            total = (
+                self._session.scalar(
+                    select(func.count(OpportunityLossEvent.id))
+                    .select_from(OpportunityLossEvent)
+                    .join(Opportunity)
+                    .where(*filters)
+                )
+                or 0
+            )
+            quantity = OpportunityLossEvent.quoted_total_kg
+            loss_statement = select(OpportunityLossEvent, Opportunity, quantity).join(
+                Opportunity
+            )
+            if dimensions.product_id is not None:
+                quantity = OpportunityLossProductSnapshot.quantity_kg
+                loss_statement = (
+                    select(OpportunityLossEvent, Opportunity, quantity)
+                    .join(Opportunity)
+                    .join(
+                        OpportunityLossProductSnapshot,
+                        and_(
+                            OpportunityLossProductSnapshot.loss_event_id
+                            == OpportunityLossEvent.id,
+                            OpportunityLossProductSnapshot.product_id
+                            == dimensions.product_id,
+                        ),
+                    )
+                )
+            rows = self._session.execute(
+                loss_statement.where(*filters)
+                .options(joinedload(Opportunity.customer))
+                .order_by(
+                    OpportunityLossEvent.lost_at.desc(), OpportunityLossEvent.id.desc()
+                )
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            ).all()
+            return [
+                TimelineOpportunityProjection(
+                    opportunity=opportunity,
+                    loss_event_id=event.id,
+                    relevant_at=event.lost_at,
+                    quantity_kg=quantity_kg,
+                    loss_reason=event.reason,
+                )
+                for event, opportunity, quantity_kg in rows
+            ], total
+
+        relevant_at = (
+            Opportunity.created_at
+            if kind is MetricOpportunityKind.CREATED
+            else Opportunity.current_status_entered_at
+        )
+        filters = list(self._opportunity_filters(dimensions))
+        if kind is MetricOpportunityKind.ACTIVE:
+            filters.append(
+                Opportunity.status == status
+                if status is not None
+                else Opportunity.status.in_(OPEN_OPPORTUNITY_STATUSES)
+            )
+        else:
+            if period is None:
+                raise ValueError("Period metric detail requires a period")
+            filters.append(self._in_period(relevant_at, period))
+            if kind is MetricOpportunityKind.WON:
+                filters.append(Opportunity.status == OpportunityStatus.GANADA)
+        count_statement = select(func.count()).select_from(Opportunity)
+        statement = select(Opportunity)
+        if dimensions.province is not None:
+            count_statement = count_statement.join(Customer)
+            statement = statement.join(Customer)
+        total = self._session.scalar(count_statement.where(*filters)) or 0
+        opportunities = list(
+            self._session.scalars(
+                statement.where(*filters)
+                .options(
+                    joinedload(Opportunity.customer),
+                    selectinload(Opportunity.opportunity_products).joinedload(
+                        OpportunityProduct.product
+                    ),
+                )
+                .order_by(relevant_at.desc(), Opportunity.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
+        )
+        return [
+            TimelineOpportunityProjection(
+                opportunity=item,
+                relevant_at=(
+                    item.created_at
+                    if kind is MetricOpportunityKind.CREATED
+                    else item.current_status_entered_at
+                ),
+                quantity_kg=sum(
+                    (line.quantity_kg for line in item.opportunity_products), ZERO_KG
+                ),
+            )
+            for item in opportunities
         ], total
 
     def pipeline(

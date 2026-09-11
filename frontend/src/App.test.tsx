@@ -112,6 +112,7 @@ async function fillAndSubmitLogin() {
 describe('authenticated frontend', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
+    window.localStorage.clear()
   })
 
   afterEach(() => {
@@ -153,7 +154,9 @@ describe('authenticated frontend', () => {
       )
     })
 
-    expect(await screen.findByRole('heading', { name: 'Pipeline', level: 1 })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Oportunidades', level: 1 }),
+    ).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBe('new-token')
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/login')
@@ -194,7 +197,9 @@ describe('authenticated frontend', () => {
     renderApp('/')
 
     expect(screen.getByRole('status')).toHaveTextContent('Restaurando sesión…')
-    expect(await screen.findByRole('heading', { name: 'Pipeline', level: 1 })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Oportunidades', level: 1 }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Supervisor FAA')).toBeInTheDocument()
     expect(screen.getByText('Supervisor')).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
@@ -235,7 +240,10 @@ describe('authenticated frontend', () => {
     expect(screen.queryByRole('link', { name: 'Perdidas' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }))
     expect(screen.getByRole('button', { name: 'Expandir navegación' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('title', 'Pipeline')
+    expect(screen.getByRole('link', { name: 'Oportunidades' })).toHaveAttribute(
+      'title',
+      'Oportunidades',
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Expandir navegación' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' }))
     expect(screen.getByLabelText('Tema')).toBeInTheDocument()
@@ -252,7 +260,7 @@ describe('authenticated frontend', () => {
 
       await waitFor(() => expect(window.location.pathname).toBe('/dashboard'))
       expect(
-        await screen.findByRole('heading', { name: 'Dashboard', level: 1 }),
+        await screen.findByRole('heading', { name: 'Resumen comercial', level: 1 }),
       ).toBeInTheDocument()
     },
   )
@@ -355,9 +363,12 @@ describe('authenticated frontend', () => {
 
     expect(await screen.findByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Pipeline' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Oportunidades' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
 
-    fireEvent.click(screen.getByRole('link', { name: 'Volver al Pipeline' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Volver a oportunidades' }))
 
     expect(window.location.pathname).toBe('/pipeline')
     expect(await screen.findByRole('heading', { name: 'Nueva' })).toBeInTheDocument()
@@ -394,7 +405,9 @@ describe('authenticated frontend', () => {
     mockRestoredSession(seller)
     renderApp('/users')
 
-    expect(await screen.findByRole('heading', { name: 'Pipeline', level: 1 })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Oportunidades', level: 1 }),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
@@ -412,13 +425,13 @@ describe('authenticated frontend', () => {
       }),
     )
     renderApp('/users')
-    expect(await screen.findByText('Todavía no hay usuarios')).toBeInTheDocument()
+    expect(await screen.findByText('No hay usuarios para mostrar')).toBeInTheDocument()
   })
 
   it('keeps the sidebar navigation reachable below the desktop breakpoint', async () => {
     mockRestoredSession(supervisor)
     renderApp('/pipeline')
-    await screen.findByRole('heading', { name: 'Pipeline', level: 1 })
+    await screen.findByRole('heading', { name: 'Oportunidades', level: 1 })
 
     const trigger = screen.getByRole('button', { name: 'Abrir navegación' })
     fireEvent.click(trigger)
@@ -454,7 +467,7 @@ describe('authenticated frontend', () => {
   it('logs out, clears storage, and returns to login', async () => {
     mockRestoredSession(supervisor)
     renderApp('/pipeline')
-    await screen.findByRole('heading', { name: 'Pipeline', level: 1 })
+    await screen.findByRole('heading', { name: 'Oportunidades', level: 1 })
 
     fireEvent.click(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))

@@ -69,7 +69,7 @@ function RoutedApp() {
   ) {
     const selectedOpportunityId = route.kind === 'opportunity' ? route.opportunityId : undefined
     return (
-      <AppShell activeNavigationPath='/pipeline' pageTitle='Pipeline'>
+      <AppShell activeNavigationPath='/pipeline' pageTitle='Oportunidades'>
         <PipelinePage selectedOpportunityId={selectedOpportunityId} />
       </AppShell>
     )

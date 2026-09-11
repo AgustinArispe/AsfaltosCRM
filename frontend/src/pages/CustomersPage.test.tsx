@@ -172,7 +172,7 @@ describe('CustomersPage', () => {
     authState.logout.mockReset()
   })
 
-  it('loads a compact customer table with columns, links and pagination metadata', async () => {
+  it('loads compact interactive customer records with contact and pagination metadata', async () => {
     mockCustomerApi()
     render(<CustomersPage />)
 
@@ -181,13 +181,13 @@ describe('CustomersPage', () => {
       'href',
       '/customers/1',
     )
-    expect(screen.getByRole('columnheader', { name: 'Contacto' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Legendary' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'ventas@austral.test' })).toHaveAttribute(
       'href',
       'mailto:ventas@austral.test',
     )
-    expect(screen.getByText('Legendario')).toBeInTheDocument()
+    const legendaryBadge = screen.getByText('Legendario')
+    expect(legendaryBadge).toBeInTheDocument()
+    expect(legendaryBadge.closest('.customer-record__identity')).not.toBeNull()
     expect(screen.getByText('1–2 de 2 clientes')).toBeInTheDocument()
     expect(screen.getByText('Página 1 de 1')).toBeInTheDocument()
   })
@@ -202,7 +202,9 @@ describe('CustomersPage', () => {
     })
 
     expect(
-      await screen.findByRole('heading', { name: 'No encontramos clientes' }),
+      await screen.findByRole('heading', {
+        name: 'No encontramos clientes con estos filtros',
+      }),
     ).toBeInTheDocument()
     expect(screen.getByText(/Probá con otro nombre/)).toBeInTheDocument()
     expect(
@@ -214,9 +216,7 @@ describe('CustomersPage', () => {
     let shouldFail = false
     mockCustomerApi({ initialCustomers: [], failList: () => shouldFail })
     const { unmount } = render(<CustomersPage />)
-    expect(
-      await screen.findByRole('heading', { name: 'Todavía no hay clientes' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'No hay clientes' })).toBeInTheDocument()
     unmount()
 
     shouldFail = true

@@ -17,12 +17,13 @@ const ROLE_LABELS = { SUPERVISOR: 'Supervisor', VENDEDOR: 'Vendedor' } as const
 const SIDEBAR_STORAGE_KEY = 'faa-crm.sidebar-collapsed'
 
 const NAVIGATION_ICONS: Record<string, IconName> = {
-  '/pipeline': 'pipeline',
+  '/pipeline': 'layers',
   '/dashboard': 'dashboard',
-  '/notifications': 'inbox',
+  '/notifications': 'bell',
   '/whatsapp': 'whatsapp',
   '/customers': 'users',
   '/products': 'products',
+  '/won': 'trophy',
   '/lost': 'pipeline',
   '/whatsapp-sends': 'send',
   '/users': 'users',
@@ -236,15 +237,16 @@ export function AppShell({
     <NotificationAttentionBoundary session={apiSession}>
       <div
         className='grid min-h-dvh bg-[var(--canvas)] text-[var(--text-primary)] transition-[grid-template-columns] duration-200 motion-reduce:transition-none lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]'
-        style={{ '--sidebar-width': isCollapsed ? '4.75rem' : '16rem' } as React.CSSProperties}
+        style={{ '--sidebar-width': isCollapsed ? '4rem' : '16rem' } as React.CSSProperties}
       >
         <a className='ui-skip-link' href='#main-content'>
           Saltar al contenido
         </a>
         <aside className='ui-sidebar sticky top-0 hidden h-dvh flex-col lg:flex'>
-          <div className='ui-sidebar__brand flex min-h-[4.5rem] items-center justify-between gap-2 px-3'>
+          <div className={`ui-sidebar__brand ${isCollapsed ? 'ui-sidebar__brand--collapsed' : ''}`}>
             <Brand collapsed={isCollapsed} />
             <IconButton
+              className={isCollapsed ? 'ui-sidebar__collapse-control' : ''}
               icon='menu'
               label={isCollapsed ? 'Expandir navegación' : 'Contraer navegación'}
               onClick={() => setIsCollapsed((current) => !current)}

@@ -20,6 +20,7 @@ import type {
   CustomerWritePayload,
 } from '../customers/types'
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import { SearchField, Toolbar } from '../shared/Workspace'
 
@@ -166,31 +167,32 @@ export function CustomersPage() {
   }
 
   return (
-    <section aria-label='Cartera de clientes' className='mx-auto max-w-[90rem]'>
+    <section aria-label='Cartera de clientes' className='records-workspace mx-auto max-w-[90rem]'>
       <div aria-live='polite' className='sr-only'>
         {announcement}
       </div>
 
-      <div className='flex flex-wrap justify-end gap-2'>
-        {user.role === 'SUPERVISOR' ? (
-          <Button onClick={() => setIsImportOpen(true)}>Importar CSV</Button>
-        ) : null}
-        <Button onClick={openCreate} variant='primary'>
-          Nuevo cliente
-        </Button>
-      </div>
-
-      <Toolbar aria-label='Herramientas de clientes' className='mt-4'>
+      <Toolbar aria-label='Herramientas de clientes' className='workspace-toolbar-card'>
         <SearchField
+          className='workspace-toolbar-search'
           id='customer-search'
           label='Buscar clientes'
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder='Nombre, empresa, email o teléfono'
           value={searchInput}
         />
+        <div className='workspace-toolbar-actions'>
+          {user.role === 'SUPERVISOR' ? (
+            <Button onClick={() => setIsImportOpen(true)}>Importar CSV</Button>
+          ) : null}
+          <Button onClick={openCreate} variant='primary'>
+            <Icon name='plus' />
+            Nuevo cliente
+          </Button>
+        </div>
       </Toolbar>
 
-      <div className='mt-4'>
+      <div>
         {loadError ? (
           <div className='ui-panel px-5 py-6'>
             <InlineFeedback message={loadError} />
@@ -201,16 +203,18 @@ export function CustomersPage() {
         ) : isLoading ? (
           <WorkspaceSkeleton label='Cargando clientes…' />
         ) : customers.length === 0 ? (
-          <EmptyState
-            description={
-              search
-                ? 'Probá con otro nombre, empresa, email o teléfono.'
-                : 'Creá el primer cliente para comenzar a registrar oportunidades.'
-            }
-            icon='users'
-            size='workspace'
-            title={search ? 'No encontramos clientes' : 'Todavía no hay clientes'}
-          />
+          <section className='workspace-empty-card'>
+            <EmptyState
+              description={
+                search
+                  ? 'Probá con otro nombre, empresa, email o teléfono.'
+                  : 'Creá el primer cliente para comenzar a registrar oportunidades.'
+              }
+              icon='users'
+              size='small'
+              title={search ? 'No encontramos clientes con estos filtros' : 'No hay clientes'}
+            />
+          </section>
         ) : (
           <>
             <CustomerTable
@@ -219,10 +223,7 @@ export function CustomersPage() {
               onEdit={openEdit}
               role={user.role}
             />
-            <nav
-              aria-label='Paginación de clientes'
-              className='mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--divider)] px-1 py-2.5'
-            >
+            <nav aria-label='Paginación de clientes' className='workspace-pagination'>
               <p className='text-sm text-[var(--text-secondary)]'>
                 {total === 0
                   ? 'Sin clientes'

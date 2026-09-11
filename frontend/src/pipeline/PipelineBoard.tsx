@@ -7,8 +7,9 @@ import {
   PointerSensor,
 } from '@dnd-kit/react'
 
+import { LegendaryBadge } from '../customers/LegendaryBadge'
 import { opportunitiesForStage } from './board-state'
-import { canMoveTo, isPipelineStatus, PIPELINE_STAGES } from './config'
+import { canMoveTo, isPipelineStatus, opportunityStatusColorClass, PIPELINE_STAGES } from './config'
 import type { PipelineDragData } from './OpportunityCard'
 import { PipelineColumn } from './PipelineColumn'
 import type { OpportunitySummary, PipelineStatus } from './types'
@@ -89,16 +90,32 @@ export function PipelineBoard({
       </section>
 
       <DragOverlay dropAnimation={null}>
-        {(source) => (
-          <div className='pipeline-card-drag-overlay w-64'>
-            <span className='pipeline-card__identity'>
-              {(source.data as PipelineDragData | undefined)?.customerName ?? 'Oportunidad'}
-            </span>
-            <span className='pipeline-card__commercial-status'>
-              {(source.data as PipelineDragData | undefined)?.statusLabel ?? 'En movimiento'}
-            </span>
-          </div>
-        )}
+        {(source) => {
+          const dragData = source.data as PipelineDragData | undefined
+          return (
+            <div
+              className={`pipeline-card-drag-overlay w-64 ${
+                dragData?.fromStatus ? opportunityStatusColorClass(dragData.fromStatus) : ''
+              }`}
+            >
+              <span className='pipeline-card__identity'>
+                {dragData?.customerName ?? 'Oportunidad'}
+              </span>
+              {dragData?.supportingName ? (
+                <span className='pipeline-card__contact'>{dragData.supportingName}</span>
+              ) : null}
+              <span className='pipeline-card__commercial-status'>
+                <span aria-hidden='true' className='pipeline-card__status-dot' />
+                {dragData?.statusLabel ?? 'En movimiento'}
+              </span>
+              {dragData?.isLegendary ? (
+                <span className='pipeline-card__meta'>
+                  <LegendaryBadge />
+                </span>
+              ) : null}
+            </div>
+          )
+        }}
       </DragOverlay>
     </DragDropProvider>
   )

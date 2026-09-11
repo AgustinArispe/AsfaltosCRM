@@ -13,7 +13,10 @@ type MockOptions = {
   delay?: boolean
   manyProvinces?: boolean
   nullConversion?: boolean
+  zeroPipeline?: boolean
+  zeroTimeline?: boolean
   timelineFailure?: boolean
+  twoStagePipeline?: boolean
 }
 
 function response(body: unknown, status = 200): Response {
@@ -24,6 +27,26 @@ function response(body: unknown, status = 200): Response {
 }
 
 const period = { from: '2026-08-01T03:00:00Z', to: '2026-09-01T03:00:00Z' }
+
+function dailyTimelineItems(from: string, to: string, zeroTimeline: boolean) {
+  const items = []
+  const cursor = new Date(`${from.slice(0, 10)}T12:00:00Z`)
+  const end = new Date(`${to.slice(0, 10)}T12:00:00Z`)
+  let index = 0
+  while (cursor < end) {
+    items.push({
+      bucket: cursor.toISOString().slice(0, 10),
+      leads_created: zeroTimeline ? 0 : index === 0 ? 2 : index === 1 ? 3 : 0,
+      won: zeroTimeline ? 0 : index === 0 ? 1 : 0,
+      lost: zeroTimeline ? 0 : index === 1 ? 1 : 0,
+      kg_won: index === 0 ? '100.000' : '0.000',
+      kg_lost: index === 1 ? '50.000' : '0.000',
+    })
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+    index += 1
+  }
+  return items
+}
 
 function mockDashboardApi(options: MockOptions = {}) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
@@ -56,28 +79,17 @@ function mockDashboardApi(options: MockOptions = {}) {
     }
     if (url.pathname === '/api/metrics/timeline') {
       if (options.timelineFailure) return response({ detail: 'timeline failed' }, 500)
+      const from = url.searchParams.get('from') ?? period.from
+      const to = url.searchParams.get('to') ?? period.to
+      const granularity = url.searchParams.get('granularity') ?? 'day'
       return response({
         period,
-        granularity: url.searchParams.get('granularity') ?? 'day',
+        granularity,
         timezone: 'America/Argentina/Buenos_Aires',
-        items: [
-          {
-            bucket: '2026-08-01',
-            leads_created: 2,
-            won: 1,
-            lost: 0,
-            kg_won: '100.000',
-            kg_lost: '0.000',
-          },
-          {
-            bucket: '2026-08-02',
-            leads_created: 3,
-            won: 0,
-            lost: 1,
-            kg_won: '0.000',
-            kg_lost: '50.000',
-          },
-        ],
+        items:
+          granularity === 'day'
+            ? dailyTimelineItems(from, to, Boolean(options.zeroTimeline))
+            : dailyTimelineItems('2026-08-01', '2026-08-03', Boolean(options.zeroTimeline)),
       })
     }
     if (url.pathname === '/api/metrics/timeline/day-opportunities') {
@@ -107,13 +119,39 @@ function mockDashboardApi(options: MockOptions = {}) {
         ],
       })
     }
+    if (url.pathname === '/api/metrics/opportunities') {
+      return response({
+        page: 1,
+        page_size: 20,
+        total: 1,
+        items: [
+          {
+            opportunity_id: 41,
+            loss_event_id: null,
+            customer_name: 'Hormigones Sur',
+            customer_company: 'HS SA',
+            current_status: 'COTIZADA',
+            source: 'WEB',
+            relevant_at: '2026-08-14T12:00:00Z',
+            quantity_kg: '750.000',
+            loss_reason: null,
+          },
+        ],
+      })
+    }
     if (url.pathname === '/api/metrics/pipeline') {
       return response({
         snapshot_at: '2026-08-14T14:00:00Z',
         items: [
-          { status: 'NUEVA', count: 3 },
-          { status: 'COTIZADA', count: 2 },
-          { status: 'NEGOCIACION', count: 1 },
+          { status: 'NUEVA', count: options.zeroPipeline ? 0 : options.twoStagePipeline ? 8 : 9 },
+          {
+            status: 'COTIZADA',
+            count: options.zeroPipeline ? 0 : options.twoStagePipeline ? 2 : 4,
+          },
+          {
+            status: 'NEGOCIACION',
+            count: options.zeroPipeline || options.twoStagePipeline ? 0 : 5,
+          },
           { status: 'GANADA', count: 4 },
           { status: 'PERDIDA', count: 2 },
         ],
@@ -218,7 +256,7 @@ function mockDashboardApi(options: MockOptions = {}) {
 async function renderLoaded(options: MockOptions = {}) {
   const fetchMock = mockDashboardApi(options)
   render(<DashboardPage />)
-  await screen.findByRole('heading', { name: 'Necesita atención' })
+  await screen.findByRole('heading', { name: 'Resultado del período' })
   return fetchMock
 }
 
@@ -233,53 +271,146 @@ describe('DashboardPage', () => {
     window.history.replaceState(null, '', '/dashboard')
   })
 
-  it('renders the approved attention, result, active, evolution and distribution hierarchy', async () => {
+  it('renders the approved result, active, evolution and distribution hierarchy without attention', async () => {
     await renderLoaded()
 
-    expect(screen.getByText('oportunidades sin seguimiento')).toBeInTheDocument()
-    expect(screen.getByText('conversaciones pendientes de respuesta')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Resumen comercial' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Necesita atención')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Resultado del período' })).toBeInTheDocument()
     expect(screen.getByText('1.200 kg')).toBeInTheDocument()
     expect(screen.getByText('600 kg')).toBeInTheDocument()
     expect(screen.getByText('1–31 agosto 2026')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver ganadas' })).toHaveAttribute(
-      'href',
-      '/won?period=month&from=2026-08-01&to=2026-08-31',
-    )
+    expect(screen.getByRole('button', { name: /^Ganadas4 ganadas/ })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Ver pérdidas' })).not.toBeInTheDocument()
     const activeSection = screen
-      .getByRole('heading', { name: 'Oportunidades activas ahora' })
+      .getByRole('heading', { name: 'Oportunidades activas' })
       .closest('section')
     if (!activeSection) throw new Error('Active Opportunities section is missing')
-    expect(within(activeSection).getByText('6')).toBeInTheDocument()
+    expect(within(activeSection).getByText('18')).toBeInTheDocument()
     expect(within(activeSection).getByText('Nueva')).toBeInTheDocument()
     expect(within(activeSection).getByText('Cotizada')).toBeInTheDocument()
     expect(within(activeSection).getByText('Negociación')).toBeInTheDocument()
     expect(within(activeSection).queryByText(/Snapshot/i)).not.toBeInTheDocument()
+    expect(activeSection.querySelector('.dashboard-pipeline-bar')).not.toBeInTheDocument()
     expect(
-      activeSection.querySelector('.dashboard-pipeline-bar__segment--cotizada'),
+      within(activeSection).getByRole('button', { name: /etapa Cotizada/i }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Kg cotizados')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('img', { name: /Creadas|Ganadas|Pérdidas/ }).length).toBeGreaterThan(
-      0,
-    )
+    expect(screen.getByLabelText('Evolución comercial diaria')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Abrir movimientos de/ })).toHaveLength(31)
+    const dailyChart = screen.getByLabelText('Evolución comercial diaria')
+    expect(dailyChart.querySelectorAll('[data-bucket="2026-08-01"]')).toHaveLength(2)
+    expect(dailyChart.querySelectorAll('[data-bucket="2026-08-03"]')).toHaveLength(0)
 
     fireEvent.click(screen.getByText('Ver datos exactos de evolución'))
     expect(screen.getAllByRole('table')[0]).toHaveTextContent('Creadas')
-    expect(screen.getByText('Producto histórico')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
+    expect(screen.getAllByText('Producto histórico').length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: 'Provincias' })).toBeInTheDocument()
     expect(screen.getByText('Sin provincia')).toBeInTheDocument()
   })
 
-  it('uses typed navigation for every operational attention action', async () => {
+  it('loads metric drilldown only when an interactive metric is opened', async () => {
+    const fetchMock = await renderLoaded()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/metrics/opportunities')),
+    ).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: /Cotizada: 4, 22 %; abrir detalle/i }))
+
+    expect(await screen.findByRole('dialog')).toHaveAccessibleName('Oportunidades cotizadas')
+    expect(await screen.findByText('Hormigones Sur')).toBeVisible()
+    const opportunityCard = screen.getByRole('button', {
+      name: 'Abrir oportunidad 41 de Hormigones Sur',
+    })
+    expect(opportunityCard).toHaveClass(
+      'metric-drilldown__card',
+      'opportunity-stage-tone',
+      'opportunity-stage-tone--cotizada',
+    )
+    expect(opportunityCard.querySelector('.metric-drilldown__icon')).toBeInTheDocument()
+    expect(screen.getByText('750 kg')).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const url = new URL(String(input), 'http://localhost')
+        return (
+          url.pathname === '/api/metrics/opportunities' &&
+          url.searchParams.get('status') === 'COTIZADA'
+        )
+      }),
+    ).toBe(true)
+
+    fireEvent.click(opportunityCard)
+    expect(window.location.pathname).toBe('/pipeline/opportunities/41')
+  })
+
+  it('draws all active stages proportionally and links donut and legend hover states', async () => {
     await renderLoaded()
-    fireEvent.click(screen.getByRole('link', { name: /Ver seguimientos/ }))
-    expect(window.location.pathname).toBe('/notifications')
-    expect(window.location.search).toBe('?view=active')
-    window.history.replaceState(null, '', '/dashboard')
-    fireEvent.click(screen.getByRole('link', { name: /Abrir pendientes/ }))
-    expect(window.location.pathname).toBe('/whatsapp')
-    expect(window.location.search).toBe('?waiting=true')
+    const donut = screen.getByLabelText('Distribución de oportunidades activas por etapa')
+    const nueva = within(donut).getByRole('button', { name: /Nueva: 9, 50 %/ })
+    const cotizada = within(donut).getByRole('button', { name: /Cotizada: 4, 22 %/ })
+    const negociacion = within(donut).getByRole('button', { name: /Negociación: 5, 28 %/ })
+    const segmentLengths = [nueva, cotizada, negociacion].map(
+      (segment) => Number(segment.getAttribute('data-share')) * 100,
+    )
+
+    expect(segmentLengths[0]).toBeCloseTo(50, 3)
+    expect(segmentLengths[1]).toBeCloseTo(22.222, 3)
+    expect(segmentLengths[2]).toBeCloseTo(27.778, 3)
+    expect(donut.querySelector('[stroke-dasharray]')).not.toBeInTheDocument()
+    expect(donut.querySelector('[class*="ganada"]')).not.toBeInTheDocument()
+
+    const quotedRow = screen.getByRole('button', { name: /etapa Cotizada/i })
+    fireEvent.mouseEnter(cotizada)
+    expect(quotedRow).toHaveClass('is-highlighted')
+    fireEvent.mouseLeave(cotizada)
+    fireEvent.mouseEnter(quotedRow)
+    expect(cotizada).toHaveClass('is-highlighted')
+  })
+
+  it('shows a neutral zero-active donut and keeps the total action available', async () => {
+    await renderLoaded({ zeroPipeline: true })
+    const donut = screen.getByLabelText('Distribución de oportunidades activas por etapa')
+
+    expect(within(donut).queryAllByRole('button')).toHaveLength(0)
+    expect(
+      screen.getByRole('button', { name: 'Ver las 0 oportunidades activas' }),
+    ).toHaveTextContent('0activas')
+  })
+
+  it('renders two stages as one continuous 80/20 ring without repeated color patterns', async () => {
+    await renderLoaded({ twoStagePipeline: true })
+    const donut = screen.getByLabelText('Distribución de oportunidades activas por etapa')
+    const segments = within(donut).getAllByRole('button')
+
+    expect(segments).toHaveLength(2)
+    expect(Number(segments[0]?.getAttribute('data-share')) * 100).toBeCloseTo(80, 3)
+    expect(Number(segments[1]?.getAttribute('data-share')) * 100).toBeCloseTo(20, 3)
+    expect(donut.querySelector('[stroke-dasharray]')).not.toBeInTheDocument()
+  })
+
+  it('shows aligned values in the commercial evolution tooltip', async () => {
+    await renderLoaded()
+    const createdPoint = screen.getByRole('button', { name: /Abrir movimientos de 1 de agosto:/ })
+
+    fireEvent.mouseEnter(createdPoint)
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('1 de agosto')
+    expect(tooltip).toHaveTextContent('Creadas2')
+    expect(tooltip).toHaveTextContent('Ganadas1')
+    expect(tooltip).toHaveTextContent('Pérdidas0')
+  })
+
+  it('closes the opportunity modal and restores focus to its trigger', async () => {
+    await renderLoaded()
+    const trigger = screen.getByRole('button', { name: /Ver oportunidades en etapa Cotizada/i })
+    trigger.focus()
+    fireEvent.click(trigger)
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Cerrar oportunidades cotizadas/i }))
+
+    await waitFor(() => expect(trigger).toHaveFocus())
   })
 
   it('applies compact filters, keeps Pipeline date-unfiltered, and resets them', async () => {
@@ -346,7 +477,30 @@ describe('DashboardPage', () => {
     })
   })
 
-  it('supports custom dates and changes long periods to monthly timeline buckets', async () => {
+  it('renders leap-year February with 29 clickable calendar days', async () => {
+    window.history.replaceState(null, '', '/dashboard?period=custom&from=2024-02-01&to=2024-02-29')
+    const fetchMock = await renderLoaded()
+
+    expect(screen.getAllByRole('button', { name: /Abrir movimientos de/ })).toHaveLength(29)
+    const timeline = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input), 'http://localhost'))
+      .find((url) => url.pathname === '/api/metrics/timeline')
+    expect(timeline?.searchParams.get('granularity')).toBe('day')
+  })
+
+  it.each([
+    ['2025-02-01', '2025-02-28', 28],
+    ['2026-09-01', '2026-09-30', 30],
+  ])('renders the calendar range from %s through %s', async (from, to, expectedDays) => {
+    window.history.replaceState(null, '', `/dashboard?period=custom&from=${from}&to=${to}`)
+    await renderLoaded()
+
+    expect(screen.getAllByRole('button', { name: /Abrir movimientos de/ })).toHaveLength(
+      expectedDays,
+    )
+  })
+
+  it('keeps the bounded monthly fallback for custom periods longer than one year', async () => {
     const fetchMock = await renderLoaded()
     fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'custom' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2024-01-01' } })
@@ -379,43 +533,87 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('heading', { name: 'Resultado del período' })).toBeInTheDocument()
   })
 
-  it('keeps table and chart controls keyboard-accessible', async () => {
-    await renderLoaded()
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'custom' } })
-    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-08-01' } })
-    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-08-10' } })
-    const createdBar = await screen.findByRole('button', { name: /Creadas 3, abrir oportunidades/ })
-    fireEvent.click(createdBar)
+  it('opens a bucket, then an exact daily movement in the same modal', async () => {
+    const fetchMock = await renderLoaded()
+    fireEvent.click(screen.getByRole('button', { name: /Abrir movimientos de 1 de agosto:/ }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Movimientos · 1 de agosto' })
+    const movement = await within(dialog).findByRole('button', { name: /2 creadas/i })
+    fireEvent.click(movement)
+
+    expect(await within(dialog).findByRole('heading', { name: 'Creadas · 1 agosto' })).toBeVisible()
     expect(
-      await screen.findByRole('region', { name: 'Oportunidades del día seleccionado' }),
-    ).toHaveTextContent('Hormigones Sur')
-    expect(screen.getByRole('link', { name: 'Hormigones Sur' })).toHaveAttribute(
-      'href',
-      '/pipeline/opportunities/41',
+      within(dialog).getByRole('button', { name: 'Abrir oportunidad 41 de Hormigones Sur' }),
+    ).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const url = new URL(String(input), 'http://localhost')
+        return (
+          url.pathname === '/api/metrics/timeline/day-opportunities' &&
+          url.searchParams.get('bucket') === '2026-08-01' &&
+          url.searchParams.get('series') === 'created'
+        )
+      }),
+    ).toBe(true)
+    expect(within(dialog).getByRole('button', { name: 'Volver a movimientos' })).toHaveFocus()
+  })
+
+  it('shows a compact empty Evolution state when every movement is zero', async () => {
+    await renderLoaded({ zeroTimeline: true })
+    expect(screen.getByText('No hay evolución en el período')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Evolución comercial diaria')).not.toBeInTheDocument()
+  })
+
+  it('shows the five highest-ranked provinces in an interactive donut', async () => {
+    const fetchMock = await renderLoaded({ manyProvinces: true })
+    const donut = screen.getByLabelText('Distribución de oportunidades creadas por provincia')
+    const legend = screen.getByRole('list', {
+      name: 'Detalle de oportunidades creadas por provincia',
+    })
+
+    const shares = [...donut.querySelectorAll('[data-share]')].map((segment) =>
+      Number(segment.getAttribute('data-share')),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle del día' }))
+    expect(shares).toHaveLength(5)
+    expect(shares.reduce((sum, share) => sum + share, 0)).toBeCloseTo(1, 5)
+    expect(within(legend).getByText('Sin provincia')).toBeInTheDocument()
+    expect(within(legend).getByText('Mendoza')).toBeInTheDocument()
+    expect(within(legend).queryByText('Río Negro')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('region', { name: 'Oportunidades del día seleccionado' }),
-    ).not.toBeInTheDocument()
+      within(legend).getByRole('button', { name: 'Ver oportunidades de Córdoba' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(within(legend).getByRole('button', { name: 'Ver oportunidades de Córdoba' }))
+    expect(await screen.findByRole('dialog')).toHaveAccessibleName('Oportunidades de Córdoba')
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const url = new URL(String(input), 'http://localhost')
+        return (
+          url.pathname === '/api/metrics/opportunities' &&
+          url.searchParams.get('province') === 'Córdoba'
+        )
+      }),
+    ).toBe(true)
   })
 
-  it('preserves every province in the compact secondary analysis', async () => {
-    await renderLoaded({ manyProvinces: true })
-    fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
-    expect(screen.getByRole('list', { name: /Sin provincia: 5.*Mendoza: 2/ })).toBeInTheDocument()
-  })
-
-  it('keeps Origin visible and switches only the secondary dimension', async () => {
+  it('places losses beside Origin and Products, with Provinces spanning the next row', async () => {
     await renderLoaded()
-    expect(screen.getByRole('button', { name: 'Productos' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    const origin = screen.getByRole('heading', { name: 'Origen de oportunidades' })
+    const layout = origin.closest('.dashboard-lower-analytics')
+    if (!layout) throw new Error('Lower Dashboard analytics layout is missing')
+
+    expect([...layout.querySelectorAll('h2')].map((heading) => heading.textContent)).toEqual([
+      'Origen de oportunidades',
+      'Productos',
+      'Pérdidas del período',
+      'Provincias',
+    ])
+    expect(
+      screen.getByRole('heading', { name: 'Pérdidas del período' }).closest('section'),
+    ).toHaveClass('dashboard-losses')
+    expect(screen.getByRole('heading', { name: 'Provincias' }).closest('section')).toHaveClass(
+      'dashboard-provinces-wide',
     )
     expect(screen.getByRole('list', { name: /Web: 6.*WhatsApp: 3/ })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Provincias' }))
-    expect(screen.getByRole('button', { name: 'Provincias' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
   })
 })

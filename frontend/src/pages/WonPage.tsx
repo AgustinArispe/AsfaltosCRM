@@ -8,6 +8,7 @@ import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { Input, Select } from '../shared/FormControls'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
+import { Icon } from '../shared/Icon'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import type { WonFilterOptions, WonFilters, WonOpportunity, WonStatistics } from '../won/types'
 import { OpportunityDetailPage } from './OpportunityDetailPage'
@@ -131,6 +132,11 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
     window.history.replaceState(window.history.state, '', `/won?${query}`)
     setFilters(next)
   }
+  const resetFilters = () => {
+    setDraft(DEFAULT_FILTERS)
+    setFilters(DEFAULT_FILTERS)
+    window.history.replaceState(null, '', '/won')
+  }
   const changePeriod = (period: WonFilters['period']) =>
     setDraft((current) => ({ ...current, period, ...periodDates(period) }))
   const loadMore = async () => {
@@ -147,138 +153,162 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
     }
   }
   return (
-    <section aria-label='Ganadas' className='mx-auto w-full min-w-0 max-w-[90rem] space-y-4'>
+    <section aria-label='Ganadas' className='won-workspace mx-auto w-full min-w-0 max-w-[90rem]'>
       <form
         aria-label='Filtrar Ganadas'
-        className='ui-toolbar grid gap-3 md:grid-cols-4'
+        className='won-filters'
         onSubmit={(event) => {
           event.preventDefault()
           apply()
         }}
       >
-        <Input
-          id='won-search'
-          label='Buscar cliente, empresa o ID'
-          value={draft.search}
-          onChange={(event) => setDraft({ ...draft, search: event.target.value })}
-        />
-        <Select
-          id='won-period'
-          label='Período'
-          value={draft.period}
-          onChange={(event) => changePeriod(event.target.value as WonFilters['period'])}
-        >
-          <option value='month'>Este mes</option>
-          <option value='three-months'>Últimos 3 meses</option>
-          <option value='year'>Este año</option>
-          <option value='custom'>Personalizado</option>
-          <option value='all'>Todo el historial</option>
-        </Select>
+        <div className='won-filter won-filter--search'>
+          <Icon className='won-filter__search-icon' name='search' />
+          <Input
+            className='won-filter__search-input'
+            id='won-search'
+            label='Buscar cliente, empresa o ID'
+            value={draft.search}
+            onChange={(event) => setDraft({ ...draft, search: event.target.value })}
+          />
+        </div>
+        <div className='won-filter'>
+          <Select
+            id='won-period'
+            label='Período'
+            value={draft.period}
+            onChange={(event) => changePeriod(event.target.value as WonFilters['period'])}
+          >
+            <option value='month'>Este mes</option>
+            <option value='three-months'>Últimos 3 meses</option>
+            <option value='year'>Este año</option>
+            <option value='custom'>Personalizado</option>
+            <option value='all'>Todo el historial</option>
+          </Select>
+        </div>
         {draft.period === 'custom' ? (
           <>
-            <Input
-              id='won-from'
-              label='Desde'
-              type='date'
-              value={draft.from}
-              onChange={(event) => setDraft({ ...draft, from: event.target.value })}
-            />
-            <Input
-              id='won-to'
-              label='Hasta'
-              type='date'
-              value={draft.to}
-              onChange={(event) => setDraft({ ...draft, to: event.target.value })}
-            />
+            <div className='won-filter'>
+              <Input
+                id='won-from'
+                label='Desde'
+                type='date'
+                value={draft.from}
+                onChange={(event) => setDraft({ ...draft, from: event.target.value })}
+              />
+            </div>
+            <div className='won-filter'>
+              <Input
+                id='won-to'
+                label='Hasta'
+                type='date'
+                value={draft.to}
+                onChange={(event) => setDraft({ ...draft, to: event.target.value })}
+              />
+            </div>
           </>
         ) : null}
-        <Select
-          id='won-product'
-          label='Producto'
-          value={draft.product}
-          onChange={(event) => setDraft({ ...draft, product: event.target.value })}
-        >
-          <option value=''>Todos</option>
-          {options?.products.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-              {option.is_active ? '' : ' (inactivo)'}
-            </option>
-          ))}
-        </Select>
-        <Select
-          id='won-source'
-          label='Origen'
-          value={draft.source}
-          onChange={(event) =>
-            setDraft({ ...draft, source: event.target.value as WonFilters['source'] })
-          }
-        >
-          <option value=''>Todos</option>
-          {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-        <Select
-          id='won-province'
-          label='Provincia'
-          value={draft.province}
-          onChange={(event) => setDraft({ ...draft, province: event.target.value })}
-        >
-          <option value=''>Todas</option>
-          {options?.provinces.map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </Select>
-        <Select
-          id='won-responsible'
-          label='Responsable'
-          value={draft.unassigned ? 'unassigned' : draft.responsible}
-          onChange={(event) =>
-            setDraft({
-              ...draft,
-              responsible: event.target.value === 'unassigned' ? '' : event.target.value,
-              unassigned: event.target.value === 'unassigned',
-            })
-          }
-        >
-          <option value=''>Todos</option>
-          <option value='unassigned'>Sin responsable</option>
-          {options?.responsible_users.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.full_name}
-              {option.is_active ? '' : ' (inactivo)'}
-            </option>
-          ))}
-        </Select>
-        <div className='flex items-end gap-2'>
-          <Button type='submit'>Aplicar</Button>
-          <Button
-            type='button'
-            variant='ghost'
-            onClick={() => {
-              setDraft(DEFAULT_FILTERS)
-              setFilters(DEFAULT_FILTERS)
-              window.history.replaceState(null, '', '/won')
-            }}
+        <div className='won-filter'>
+          <Select
+            id='won-product'
+            label='Producto'
+            value={draft.product}
+            onChange={(event) => setDraft({ ...draft, product: event.target.value })}
           >
+            <option value=''>Todos</option>
+            {options?.products.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+                {option.is_active ? '' : ' (inactivo)'}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className='won-filter'>
+          <Select
+            id='won-source'
+            label='Origen'
+            value={draft.source}
+            onChange={(event) =>
+              setDraft({ ...draft, source: event.target.value as WonFilters['source'] })
+            }
+          >
+            <option value=''>Todos</option>
+            {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className='won-filter'>
+          <Select
+            id='won-province'
+            label='Provincia'
+            value={draft.province}
+            onChange={(event) => setDraft({ ...draft, province: event.target.value })}
+          >
+            <option value=''>Todas</option>
+            {options?.provinces.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </Select>
+        </div>
+        <div className='won-filter'>
+          <Select
+            id='won-responsible'
+            label='Responsable'
+            value={draft.unassigned ? 'unassigned' : draft.responsible}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                responsible: event.target.value === 'unassigned' ? '' : event.target.value,
+                unassigned: event.target.value === 'unassigned',
+              })
+            }
+          >
+            <option value=''>Todos</option>
+            <option value='unassigned'>Sin responsable</option>
+            {options?.responsible_users.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.full_name}
+                {option.is_active ? '' : ' (inactivo)'}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className='won-filter-actions'>
+          <Button size='compact' type='submit'>
+            <Icon name='filter' />
+            Aplicar
+          </Button>
+          <Button size='compact' type='button' variant='ghost' onClick={resetFilters}>
             Restablecer
           </Button>
         </div>
       </form>
       {statistics ? (
-        <section aria-label='Resumen de Ganadas' className='grid grid-cols-2 gap-3'>
-          <div className='ui-surface p-4'>
-            <p>Total Ganadas</p>
-            <strong className='text-2xl tabular-nums'>{statistics.won_count}</strong>
+        <section aria-label='Resumen de Ganadas' className='won-summary'>
+          <div className='won-summary-card'>
+            <span className='won-summary-card__icon'>
+              <Icon name='trophy' />
+            </span>
+            <span>
+              <small>Ganadas</small>
+              <strong>
+                {statistics.won_count}{' '}
+                {statistics.won_count === 1 ? 'oportunidad' : 'oportunidades'}
+              </strong>
+            </span>
           </div>
-          <div className='ui-surface p-4'>
-            <p>Total kg ganados</p>
-            <strong className='text-2xl tabular-nums'>
-              {formatDecimalKg(statistics.won_quantity_kg)}
-            </strong>
+          <div className='won-summary-card'>
+            <span className='won-summary-card__icon'>
+              <Icon name='coins' />
+            </span>
+            <span>
+              <small>Kg ganados</small>
+              <strong>{formatDecimalKg(statistics.won_quantity_kg)}</strong>
+            </span>
           </div>
         </section>
       ) : null}
@@ -286,61 +316,23 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
       {loading && items.length === 0 ? (
         <WorkspaceSkeleton label='Cargando Ganadas' />
       ) : items.length === 0 ? (
-        <EmptyState
-          title={filters.period === 'month' ? 'Todavía no hay Ganadas este mes' : 'Sin resultados'}
-          description='Probá otro período o restablecé los filtros.'
-          icon='search'
-          action={
-            <Button
-              onClick={() => {
-                setDraft(DEFAULT_FILTERS)
-                setFilters(DEFAULT_FILTERS)
-              }}
-            >
-              Restablecer
-            </Button>
-          }
-        />
+        <section className='won-empty-card ui-surface'>
+          <EmptyState
+            title='No hay oportunidades ganadas en este período'
+            description='Probá otro período o ajustá los filtros.'
+            icon='trophy'
+            size='small'
+            action={<Button onClick={resetFilters}>Restablecer filtros</Button>}
+          />
+        </section>
       ) : (
-        <section aria-label='Historial de Ganadas'>
-          <div className='grid gap-3 md:hidden'>
+        <section aria-label='Historial de Ganadas' className='won-results'>
+          <ul className='won-results__list'>
             {items.map((item) => (
-              <article className='ui-surface grid gap-3 p-4 text-sm' key={item.opportunity.id}>
-                <div>
-                  <p className='text-xs text-[var(--text-muted)]'>Fecha de ganancia</p>
-                  <time dateTime={item.won_at}>{formatDateTime(item.won_at)}</time>
-                </div>
-                <div>
-                  <p className='text-xs text-[var(--text-muted)]'>Cliente / empresa</p>
-                  <strong>{item.opportunity.customer.name}</strong>
-                  {item.opportunity.customer.company ? (
-                    <span className='block'>{item.opportunity.customer.company}</span>
-                  ) : null}
-                </div>
-                <div>
-                  <p className='text-xs text-[var(--text-muted)]'>Productos y cantidades</p>
-                  <p>{products(item)}</p>
-                </div>
-                <dl className='grid grid-cols-2 gap-3'>
-                  <div>
-                    <dt className='text-xs text-[var(--text-muted)]'>Kg ganados</dt>
-                    <dd>{formatDecimalKg(item.won_total_kg)}</dd>
-                  </div>
-                  <div>
-                    <dt className='text-xs text-[var(--text-muted)]'>Origen</dt>
-                    <dd>{SOURCE_LABELS[item.opportunity.source]}</dd>
-                  </div>
-                  <div>
-                    <dt className='text-xs text-[var(--text-muted)]'>Provincia</dt>
-                    <dd>{item.opportunity.customer.province ?? '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className='text-xs text-[var(--text-muted)]'>Responsable</dt>
-                    <dd>{item.opportunity.assigned_user?.full_name ?? 'Sin responsable'}</dd>
-                  </div>
-                </dl>
-                <Button
-                  variant='ghost'
+              <li key={item.opportunity.id}>
+                <button
+                  aria-label={`Abrir oportunidad ${item.opportunity.id} de ${item.opportunity.customer.name}`}
+                  className='won-result-card'
                   onClick={() =>
                     navigateRoute(
                       {
@@ -354,77 +346,54 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
                       },
                     )
                   }
+                  type='button'
                 >
-                  Abrir oportunidad
-                </Button>
-              </article>
+                  <span className='won-result-card__icon'>
+                    <Icon name='trophy' />
+                  </span>
+                  <span className='won-result-card__customer'>
+                    <strong>{item.opportunity.customer.name}</strong>
+                    {item.opportunity.customer.company ? (
+                      <span>{item.opportunity.customer.company}</span>
+                    ) : null}
+                  </span>
+                  <span className='won-result-card__product'>
+                    <small>Productos</small>
+                    <span>{products(item)}</span>
+                  </span>
+                  <span className='won-result-card__quantity'>
+                    <strong>{formatDecimalKg(item.won_total_kg)}</strong>
+                    <small>Kg ganados</small>
+                  </span>
+                  <span className='won-result-card__meta'>
+                    <span>{SOURCE_LABELS[item.opportunity.source]}</span>
+                    <span>{item.opportunity.customer.province ?? 'Sin provincia'}</span>
+                    <span>{item.opportunity.assigned_user?.full_name ?? 'Sin responsable'}</span>
+                    <time dateTime={item.won_at}>{formatDateTime(item.won_at)}</time>
+                  </span>
+                  <Icon className='won-result-card__chevron' name='chevron-right' />
+                </button>
+              </li>
             ))}
-          </div>
-          <div className='hidden w-full min-w-0 overflow-x-auto md:block'>
-            <table className='w-full min-w-[58rem] text-left text-sm'>
-              <thead>
-                <tr>
-                  <th>Fecha de ganancia</th>
-                  <th>Cliente / empresa</th>
-                  <th>Productos y cantidades</th>
-                  <th>Kg ganados</th>
-                  <th>Origen</th>
-                  <th>Provincia</th>
-                  <th>Responsable</th>
-                  <th>
-                    <span className='sr-only'>Acción</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.opportunity.id} className='border-t border-[var(--border-subtle)]'>
-                    <td>
-                      <time dateTime={item.won_at}>{formatDateTime(item.won_at)}</time>
-                    </td>
-                    <th scope='row'>
-                      {item.opportunity.customer.name}
-                      <span className='block font-normal'>{item.opportunity.customer.company}</span>
-                    </th>
-                    <td>{products(item)}</td>
-                    <td>{formatDecimalKg(item.won_total_kg)}</td>
-                    <td>{SOURCE_LABELS[item.opportunity.source]}</td>
-                    <td>{item.opportunity.customer.province ?? '—'}</td>
-                    <td>{item.opportunity.assigned_user?.full_name ?? 'Sin responsable'}</td>
-                    <td>
-                      <Button
-                        variant='ghost'
-                        onClick={() =>
-                          navigateRoute(
-                            {
-                              kind: 'opportunity',
-                              opportunityId: item.opportunity.id,
-                              surface: 'won',
-                            },
-                            {
-                              origin: { kind: 'workspace', workspace: 'won' },
-                              search: window.location.search,
-                            },
-                          )
-                        }
-                      >
-                        Abrir oportunidad
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          </ul>
         </section>
       )}
       {error && items.length === 0 ? (
         <Button onClick={() => setRetry((value) => value + 1)}>Reintentar</Button>
       ) : null}
       {nextCursor ? (
-        <Button disabled={loadingMore} onClick={() => void loadMore()}>
-          {loadingMore ? 'Cargando…' : 'Cargar más'}
-        </Button>
+        <footer className='won-pagination'>
+          <span>Más resultados disponibles</span>
+          <Button
+            isLoading={loadingMore}
+            onClick={() => void loadMore()}
+            size='compact'
+            variant='secondary'
+          >
+            Cargar más
+            <Icon name='chevron-right' />
+          </Button>
+        </footer>
       ) : null}
       {selectedOpportunityId ? (
         <OpportunityDetailPage opportunityId={selectedOpportunityId} surface='won' />

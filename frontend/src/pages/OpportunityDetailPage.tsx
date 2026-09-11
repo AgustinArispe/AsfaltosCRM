@@ -277,6 +277,7 @@ export function OpportunityDetailPage({
           onClick={() => openQuote('create')}
           variant='primary'
         >
+          <Icon name='coins' />
           Cotizar
         </Button>
       ) : null}
@@ -288,6 +289,7 @@ export function OpportunityDetailPage({
           onClick={() => void move()}
           variant='primary'
         >
+          <Icon name={opportunity.status === 'COTIZADA' ? 'handshake' : 'trophy'} />
           {isMutating
             ? 'Actualizando…'
             : opportunity.status === 'COTIZADA'
@@ -297,6 +299,7 @@ export function OpportunityDetailPage({
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
         <Button className='opportunity-detail__action' onClick={() => openQuote('edit')}>
+          <Icon name='pencil' />
           Editar cotización
         </Button>
       ) : null}
@@ -315,6 +318,7 @@ export function OpportunityDetailPage({
           onClick={() => setIsReopenConfirmationOpen(true)}
           variant='primary'
         >
+          <Icon name='refresh' />
           Reabrir
         </Button>
       ) : null}
@@ -326,7 +330,8 @@ export function OpportunityDetailPage({
           onClick={() => setLossOpportunity(opportunity)}
           variant='danger'
         >
-          Marcar perdida
+          <Icon name='x-circle' />
+          Marcar pérdida
         </Button>
       ) : null}
     </>
@@ -357,6 +362,7 @@ export function OpportunityDetailPage({
   return (
     <Modal
       closeLabel='Cerrar detalle de oportunidad'
+      contentClassName='opportunity-modal-panel'
       isOpen
       onClose={close}
       renderHeader={({ titleId }) => (
@@ -364,7 +370,7 @@ export function OpportunityDetailPage({
           opportunity={opportunity}
           returnAffordance={
             <AppLink
-              className='inline-flex items-center gap-1 rounded-[var(--radius-control)] text-[var(--action-secondary)] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+              className='inline-flex items-center gap-1 text-[var(--action-secondary)] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
               onClick={(event) => {
                 event.preventDefault()
                 close()
@@ -372,9 +378,7 @@ export function OpportunityDetailPage({
               to={{ kind: 'workspace', workspace: surface }}
             >
               <Icon className='size-3.5' name='chevron-left' />
-              {surface === 'won'
-                ? 'Volver a Ganadas'
-                : `Volver al ${surface === 'lost' ? 'Perdidas' : 'Pipeline'}`}
+              Volver a oportunidades
             </AppLink>
           }
           titleId={titleId}

@@ -8,6 +8,7 @@ import {
   formatStageDuration,
   sumQuantitiesKg,
 } from '../shared/formatters'
+import { Icon } from '../shared/Icon'
 import {
   LOSS_REASON_LABELS,
   OPPORTUNITY_STATUS_LABELS,
@@ -75,7 +76,10 @@ function OpportunitySummary({ opportunity }: { opportunity: OpportunityDetail })
   return (
     <dl className='opportunity-detail__summary opportunity-detail__summary--page'>
       <div className='opportunity-detail__summary-group'>
-        <p className='opportunity-detail__summary-heading'>Relación</p>
+        <p className='opportunity-detail__summary-heading'>
+          <Icon name='users' />
+          Relación
+        </p>
         <div>
           <dt>Origen</dt>
           <dd>{SOURCE_LABELS[opportunity.source]}</dd>
@@ -86,7 +90,10 @@ function OpportunitySummary({ opportunity }: { opportunity: OpportunityDetail })
         </div>
       </div>
       <div className='opportunity-detail__summary-group'>
-        <p className='opportunity-detail__summary-heading'>Tiempo</p>
+        <p className='opportunity-detail__summary-heading'>
+          <Icon name='clock' />
+          Tiempo
+        </p>
         <div>
           <dt>Creada</dt>
           <dd>{formatDateTime(opportunity.created_at)}</dd>
@@ -97,7 +104,10 @@ function OpportunitySummary({ opportunity }: { opportunity: OpportunityDetail })
         </div>
       </div>
       <div className='opportunity-detail__summary-group opportunity-detail__summary-group--contact'>
-        <p className='opportunity-detail__summary-heading'>Contacto</p>
+        <p className='opportunity-detail__summary-heading'>
+          <Icon name='profile' />
+          Contacto
+        </p>
         <ContactDetails opportunity={opportunity} />
       </div>
     </dl>
@@ -129,16 +139,8 @@ export function OpportunityDetailModalHeader({
   return (
     <div className='opportunity-detail__modal-header'>
       <div className='min-w-0'>
-        <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-[var(--text-tertiary)]'>
-          {returnAffordance}
-          {opportunity ? (
-            <>
-              <span aria-hidden='true'>·</span>
-              <span>Oportunidad #{opportunity.id}</span>
-            </>
-          ) : null}
-        </div>
-        <div className='mt-1 flex min-w-0 flex-wrap items-center gap-2'>
+        <div className='opportunity-detail__back'>{returnAffordance}</div>
+        <div className='opportunity-detail__identity'>
           <h2
             className='break-words text-xl font-semibold tracking-tight text-[var(--brand-deep)] [overflow-wrap:anywhere]'
             id={titleId}
@@ -151,21 +153,22 @@ export function OpportunityDetailModalHeader({
           opportunity?.customer.legendary_historical_override ? (
             <LegendaryBadge className='opportunity-detail__legendary' />
           ) : null}
+          {opportunity ? (
+            <Badge
+              className='opportunity-detail__status'
+              tone={OPPORTUNITY_STATUS_TONES[opportunity.status]}
+            >
+              {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
+            </Badge>
+          ) : null}
         </div>
         {opportunity?.customer.company ? (
-          <p className='mt-0.5 break-words text-sm text-[var(--text-secondary)] [overflow-wrap:anywhere]'>
-            Contacto: {opportunity.customer.name}
-          </p>
+          <p className='opportunity-detail__person'>{opportunity.customer.name}</p>
+        ) : null}
+        {opportunity ? (
+          <p className='opportunity-detail__reference'>Oportunidad #{opportunity.id}</p>
         ) : null}
       </div>
-      {opportunity ? (
-        <Badge
-          className='opportunity-detail__status mt-0.5 shrink-0'
-          tone={OPPORTUNITY_STATUS_TONES[opportunity.status]}
-        >
-          {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
-        </Badge>
-      ) : null}
     </div>
   )
 }
@@ -258,9 +261,12 @@ function Consultation({ opportunity }: { opportunity: OpportunityDetail }) {
       className='opportunity-detail__section px-4 py-4 sm:px-5'
     >
       <h3
-        className='text-sm font-semibold text-[var(--text-primary)]'
+        className='opportunity-detail__section-title text-sm font-semibold text-[var(--text-primary)]'
         id={`customer-consultation-${opportunity.id}`}
       >
+        <span className='opportunity-detail__section-icon' aria-hidden='true'>
+          <Icon name='inbox' />
+        </span>
         Consulta del cliente
       </h3>
       {opportunity.web_intake?.message ? (
@@ -269,7 +275,7 @@ function Consultation({ opportunity }: { opportunity: OpportunityDetail }) {
         </p>
       ) : (
         <p className='mt-2 text-sm text-[var(--text-tertiary)]'>
-          No hay un mensaje del formulario web disponible.
+          No hay una consulta web disponible.
         </p>
       )}
     </section>
@@ -288,9 +294,12 @@ function Quote({ opportunity }: { opportunity: OpportunityDetail }) {
     >
       <div className='flex flex-wrap items-baseline justify-between gap-2'>
         <h3
-          className='text-base font-semibold text-[var(--text-primary)]'
+          className='opportunity-detail__section-title text-base font-semibold text-[var(--text-primary)]'
           id={`quote-${opportunity.id}`}
         >
+          <span className='opportunity-detail__section-icon' aria-hidden='true'>
+            <Icon name='document' />
+          </span>
           Cotización
         </h3>
         <span className='text-[0.8125rem] font-semibold text-[var(--text-secondary)]'>

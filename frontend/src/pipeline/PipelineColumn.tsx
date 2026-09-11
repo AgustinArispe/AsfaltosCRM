@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/react'
-import { EmptyState } from '../shared/StatusStates'
-import type { PipelineStage } from './config'
+import { Icon } from '../shared/Icon'
+import { opportunityStatusColorClass, type PipelineStage } from './config'
 import { OpportunityCard } from './OpportunityCard'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
@@ -30,6 +30,7 @@ export function PipelineColumn({
       aria-labelledby={headingId}
       className={[
         'pipeline-column',
+        opportunityStatusColorClass(stage.status),
         stage.tone === 'success' ? 'pipeline-column--success' : '',
         isDropTarget ? 'pipeline-column--drop-target' : '',
       ].join(' ')}
@@ -37,9 +38,12 @@ export function PipelineColumn({
       ref={ref}
     >
       <header className='pipeline-column__header'>
-        <h2 className='text-sm font-semibold text-[var(--text-primary)]' id={headingId}>
-          {stage.label}
-        </h2>
+        <span className='pipeline-column__heading'>
+          <span className='pipeline-column__stage-icon'>
+            <Icon name={stage.icon} />
+          </span>
+          <h2 id={headingId}>{stage.label}</h2>
+        </span>
         <span className='pipeline-column__count'>
           {opportunities.length}
           <span className='sr-only'>
@@ -62,12 +66,10 @@ export function PipelineColumn({
             />
           ))
         ) : (
-          <EmptyState
-            description='Las oportunidades aparecerán aquí al ingresar en esta etapa.'
-            icon='inbox'
-            size='small'
-            title='Sin oportunidades'
-          />
+          <div className='pipeline-column__empty'>
+            <Icon name='inbox' />
+            <span>Sin oportunidades</span>
+          </div>
         )}
       </div>
     </section>

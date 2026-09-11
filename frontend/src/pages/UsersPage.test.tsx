@@ -87,7 +87,7 @@ describe('UsersPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar usuario' }))
     expect(await screen.findByText('Vendedora FAA')).toBeInTheDocument()
 
-    const row = screen.getByRole('row', { name: /Vendedora FAA/ })
+    const row = screen.getByRole('listitem', { name: /Vendedora FAA/ })
     fireEvent.click(within(row).getByRole('button', { name: 'Editar' }))
     dialog = await screen.findByRole('dialog', { name: 'Editar usuario' })
     fireEvent.change(within(dialog).getByLabelText('Nombre completo'), {
@@ -96,7 +96,7 @@ describe('UsersPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar usuario' }))
     expect(await screen.findByText('Vendedora Norte')).toBeInTheDocument()
 
-    const updatedRow = screen.getByRole('row', { name: /Vendedora Norte/ })
+    const updatedRow = screen.getByRole('listitem', { name: /Vendedora Norte/ })
     fireEvent.click(within(updatedRow).getByRole('button', { name: 'Contraseña' }))
     dialog = await screen.findByRole('dialog', { name: 'Reemplazar contraseña' })
     fireEvent.change(within(dialog).getByLabelText('Nueva contraseña'), {
@@ -127,7 +127,7 @@ describe('UsersPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, [])))
     render(<UsersPage />)
     expect(
-      await screen.findByRole('heading', { name: 'Todavía no hay usuarios' }),
+      await screen.findByRole('heading', { name: 'No hay usuarios para mostrar' }),
     ).toBeInTheDocument()
   })
 })

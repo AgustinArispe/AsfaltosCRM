@@ -10,12 +10,20 @@ import type {
 } from '../pipeline/types'
 import { PipelinePage } from './PipelinePage'
 
-const dndState = vi.hoisted(() => ({ onDragEnd: null as ((event: unknown) => void) | null }))
+const dndState = vi.hoisted(() => ({
+  keyboardConfig: null as Record<string, unknown> | null,
+  onDragEnd: null as ((event: unknown) => void) | null,
+}))
 const logout = vi.hoisted(() => vi.fn())
 
 vi.mock('@dnd-kit/react', () => ({
   PointerSensor: { configure: vi.fn(() => function ConfiguredPointerSensor() {}) },
-  KeyboardSensor: { configure: vi.fn(() => function ConfiguredKeyboardSensor() {}) },
+  KeyboardSensor: {
+    configure: vi.fn((config: Record<string, unknown>) => {
+      dndState.keyboardConfig = config
+      return function ConfiguredKeyboardSensor() {}
+    }),
+  },
   DragDropProvider: ({
     children,
     onDragEnd,
@@ -32,7 +40,19 @@ vi.mock('@dnd-kit/react', () => ({
 }))
 
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ token: 'pipeline-token', logout, user: { role: 'SUPERVISOR' } }),
+  useAuth: () => ({
+    token: 'pipeline-token',
+    logout,
+    user: {
+      id: 1,
+      full_name: 'Supervisora FAA',
+      email: 'supervisora@faa.test',
+      role: 'SUPERVISOR',
+      is_active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    },
+  }),
 }))
 
 const products: Product[] = [
@@ -164,11 +184,45 @@ describe('PipelinePage', () => {
     })
     expect(card).toHaveTextContent('Empresa 2')
     expect(card).toHaveTextContent('WhatsApp')
+    expect(card).toHaveAccessibleName(/estado Cotizada/)
+    expect(card.querySelector('.pipeline-card__commercial-status')).not.toBeInTheDocument()
     expect(card).not.toHaveTextContent('Vendedor no visible')
     expect(card).not.toHaveTextContent('2500')
     expect(card).not.toHaveTextContent('Buenos Aires')
     expect(card).not.toHaveTextContent('no-mostrar')
     expect(screen.getByText('Legendario')).toBeInTheDocument()
+    expect(screen.getByText('Legendario').closest('.pipeline-card__meta')).not.toBeNull()
+    expect(stage(container, 'NUEVA').querySelector('[data-icon="document"]')).toBeInTheDocument()
+    expect(stage(container, 'COTIZADA').querySelector('[data-icon="coins"]')).toBeInTheDocument()
+    expect(
+      stage(container, 'NEGOCIACION').querySelector('[data-icon="handshake"]'),
+    ).toBeInTheDocument()
+    expect(stage(container, 'GANADA').querySelector('[data-icon="trophy"]')).toBeInTheDocument()
+  })
+
+  it('preserves keyboard drag controls and keeps Ganada clickable without a drag cursor', async () => {
+    const won = opportunity('GANADA', 4, { current_status_entered_at: new Date().toISOString() })
+    mockApi([won])
+    const { container } = render(<PipelinePage />)
+    await ready()
+
+    const keyboardConfig = dndState.keyboardConfig as {
+      keyboardCodes: { start: string[]; cancel: string[]; end: string[] }
+    }
+    expect(keyboardConfig.keyboardCodes).toMatchObject({
+      start: ['Space'],
+      cancel: ['Escape'],
+      end: ['Space', 'Enter', 'Tab'],
+    })
+
+    const wonCard = within(stage(container, 'GANADA')).getByRole('button', {
+      name: /Abrir oportunidad/,
+    })
+    expect(wonCard).toHaveClass('cursor-pointer')
+    expect(wonCard).not.toHaveClass('cursor-grab')
+    expect(wonCard.closest('.pipeline-card')).toHaveClass('pipeline-card--terminal')
+    fireEvent.click(wonCard)
+    expect(window.location.pathname).toBe('/pipeline/opportunities/4')
   })
 
   it('uses deterministic identity fallback and opens the canonical CRM-020 route on card activation', async () => {

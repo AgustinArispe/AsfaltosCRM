@@ -3,6 +3,7 @@ import { type KeyboardEvent, useCallback, useEffect, useState } from 'react'
 import { type ApiSession, createOpportunityNote, listOpportunityNotes } from '../api/opportunities'
 import { Button } from '../shared/Button'
 import { formatDateTime } from '../shared/formatters'
+import { Icon } from '../shared/Icon'
 import { SegmentedControl } from '../shared/SegmentedControl'
 import { InlineFeedback } from '../shared/StatusStates'
 import { OPPORTUNITY_STATUS_LABELS } from './config'
@@ -102,10 +103,13 @@ export function OpportunityContextPanel({
       className='opportunity-detail__section px-4 py-4 sm:px-5'
     >
       <h3
-        className='text-base font-semibold text-[var(--text-primary)]'
+        className='opportunity-detail__section-title text-base font-semibold text-[var(--text-primary)]'
         id={`opportunity-context-${opportunity.id}`}
       >
-        Contexto
+        <span className='opportunity-detail__section-icon' aria-hidden='true'>
+          <Icon name='clock' />
+        </span>
+        Actividad y notas
       </h3>
       <div className='mt-3'>
         <SegmentedControl
@@ -119,12 +123,9 @@ export function OpportunityContextPanel({
         />
       </div>
       {view === 'activity' ? (
-        <ol className='mt-4'>
+        <ol className='opportunity-activity mt-4'>
           {opportunity.history.map((entry) => (
-            <li
-              className='border-b border-[var(--border-subtle)] py-3 first:pt-0 last:border-0'
-              key={entry.id}
-            >
+            <li className='opportunity-activity__item' key={entry.id}>
               <time className='text-xs text-[var(--text-secondary)]' dateTime={entry.changed_at}>
                 {formatDateTime(entry.changed_at)}
               </time>

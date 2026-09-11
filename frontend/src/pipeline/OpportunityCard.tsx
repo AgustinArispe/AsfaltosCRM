@@ -1,13 +1,16 @@
 import { useDraggable } from '@dnd-kit/react'
 
 import { LegendaryBadge } from '../customers/LegendaryBadge'
+import { Icon } from '../shared/Icon'
 import { customerIdentity } from './board-state'
-import { SOURCE_LABELS, STAGE_BY_STATUS } from './config'
+import { opportunityStatusColorClass, SOURCE_LABELS, STAGE_BY_STATUS } from './config'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
 export type PipelineDragData = {
   opportunityId: number
   customerName: string
+  supportingName: string | null
+  isLegendary: boolean
   fromStatus: PipelineStatus
   toStatus: PipelineStatus
   statusLabel: string
@@ -28,6 +31,7 @@ export function OpportunityCard({
 }) {
   const nextStatus = STAGE_BY_STATUS.get(opportunity.status)?.nextStatus ?? null
   const isDraggable = Boolean(nextStatus) && !isBusy
+  const identity = customerIdentity(opportunity.customer)
   const { ref, isDragging } = useDraggable<PipelineDragData>({
     id: opportunity.id,
     type: nextStatus ?? 'CLOSED',
@@ -35,20 +39,22 @@ export function OpportunityCard({
     data: nextStatus
       ? {
           opportunityId: opportunity.id,
-          customerName: opportunity.customer.name,
+          customerName: identity.primary,
+          supportingName: identity.supporting,
+          isLegendary: Boolean(opportunity.customer.is_legendary),
           fromStatus: opportunity.status,
           toStatus: nextStatus,
           statusLabel: STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status,
         }
       : undefined,
   })
-  const identity = customerIdentity(opportunity.customer)
 
   return (
     <article
       aria-busy={isBusy}
       className={[
         'pipeline-card',
+        opportunityStatusColorClass(opportunity.status),
         isSelected ? 'pipeline-card--selected' : '',
         isDragging ? 'pipeline-card--dragging' : '',
         isBusy ? 'pipeline-card--busy' : '',
@@ -71,26 +77,28 @@ export function OpportunityCard({
         ref={isDraggable ? ref : undefined}
         type='button'
       >
-        <span className='pipeline-card__identity' title={identity.primary}>
-          {identity.primary}
-        </span>
-        {identity.supporting ? (
-          <span className='pipeline-card__contact' title={identity.supporting}>
-            {identity.supporting}
+        <span className='pipeline-card__topline'>
+          <span className='pipeline-card__identity-block'>
+            <span className='pipeline-card__identity' title={identity.primary}>
+              {identity.primary}
+            </span>
+            {identity.supporting ? (
+              <span className='pipeline-card__contact' title={identity.supporting}>
+                {identity.supporting}
+              </span>
+            ) : null}
           </span>
-        ) : null}
-        <span className='pipeline-card__commercial-status'>
-          {STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}
+          <Icon className='pipeline-card__chevron' name='chevron-right' />
         </span>
         <span className='pipeline-card__meta'>
           <span className='pipeline-card__source'>{SOURCE_LABELS[opportunity.source]}</span>
+          {showStageAge ? (
+            <span className='pipeline-card__stage-age'>
+              En etapa: {formatStageAge(opportunity.current_status_entered_at)}
+            </span>
+          ) : null}
           {opportunity.customer.is_legendary ? <LegendaryBadge /> : null}
         </span>
-        {showStageAge ? (
-          <span className='pipeline-card__stage-age'>
-            En etapa: {formatStageAge(opportunity.current_status_entered_at)}
-          </span>
-        ) : null}
         <span
           className='pipeline-card__pending'
           id={`pipeline-card-pending-${opportunity.id}`}

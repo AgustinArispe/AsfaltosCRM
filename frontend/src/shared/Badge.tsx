@@ -18,7 +18,7 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   quoted:
     'border-[var(--quoted-pending)] bg-[var(--quoted-pending-surface)] text-[var(--quoted-pending)]',
   negotiation:
-    'border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning-text)]',
+    'border-[var(--negotiation)] bg-[var(--negotiation-muted)] text-[var(--negotiation)]',
   won: 'border-[var(--success-border)] bg-[var(--success-subtle)] text-[var(--success-text)]',
   lost: 'border-[var(--destructive-border)] bg-[var(--destructive-subtle)] text-[var(--destructive-text)]',
   unknown: 'border-[var(--uncertain)] bg-[var(--uncertain-muted)] text-[var(--uncertain)]',

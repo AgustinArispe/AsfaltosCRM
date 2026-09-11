@@ -123,7 +123,7 @@ describe('CustomerDetailPage', () => {
     expect(opportunitiesSection).not.toBeNull()
     const section = opportunitiesSection as HTMLElement
     expect(within(section).getByText('Nueva')).toBeInTheDocument()
-    expect(within(section).getByText('Perdida')).toBeInTheDocument()
+    expect(within(section).getByText('Pérdida')).toBeInTheDocument()
     expect(within(section).getByText('SuperPhalt')).toBeInTheDocument()
     expect(within(section).getByText(/2\.500 kg/)).toBeInTheDocument()
     expect(within(section).getByText('Sin cotización')).toBeInTheDocument()

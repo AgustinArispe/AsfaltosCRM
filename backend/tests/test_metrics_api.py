@@ -16,6 +16,7 @@ from app.models import (
     Product,
 )
 from app.schemas.metrics import (
+    MetricOpportunitiesResponse,
     MetricsOverviewResponse,
     PipelineMetricsResponse,
     ProductMetricsResponse,
@@ -213,6 +214,25 @@ def test_timeline_day_opportunities_returns_narrow_typed_projection(
         "source",
         "products",
     }
+
+
+def test_metric_opportunities_returns_bounded_period_drilldown(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    customer, product, won = seed_metrics_data(db_session)
+    response = api_client.get(
+        "/api/metrics/opportunities",
+        params={**period_params(), "kind": "won", "product_id": product.id},
+    )
+
+    assert response.status_code == 200
+    detail = MetricOpportunitiesResponse.model_validate(response.json())
+    assert detail.total == 1
+    assert detail.page_size == 20
+    assert detail.items[0].opportunity_id == won.id
+    assert detail.items[0].customer_name == customer.name
+    assert detail.items[0].quantity_kg == Decimal("2500.000")
 
 
 @pytest.mark.parametrize(

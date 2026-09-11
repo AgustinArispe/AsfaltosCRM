@@ -1,5 +1,6 @@
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import type { Product } from './types'
 
 function ProductStatus({ isActive }: { isActive: boolean }) {
@@ -34,78 +35,63 @@ export function ProductTable({
   onReactivate: (product: Product) => void
 }) {
   return (
-    <section aria-label='Listado de productos FAA' className='product-table overflow-x-auto'>
-      <table className='w-full min-w-[38rem] border-collapse text-left text-sm'>
-        <caption className='sr-only'>Productos disponibles en el CRM</caption>
-        <thead>
-          <tr className='border-b border-[var(--subtle-border)] text-xs text-[var(--text-secondary)]'>
-            <th className='px-4 py-2.5 font-semibold' scope='col'>
-              Producto
-            </th>
-            <th className='w-40 px-4 py-2.5 font-semibold' scope='col'>
-              Estado
-            </th>
-            {canManage ? (
-              <th className='w-64 px-4 py-2.5 text-right font-semibold' scope='col'>
-                Acciones
-              </th>
-            ) : null}
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => {
-            const isBusy = busyProductIds.has(product.id)
-            return (
-              <tr
-                className='border-b border-[var(--divider)] last:border-b-0 hover:bg-[var(--surface-hover)]'
-                key={product.id}
-              >
-                <th className='px-4 py-2 font-semibold text-[var(--brand-deep)]' scope='row'>
-                  {product.name}
-                </th>
-                <td className='px-4 py-2'>
-                  <ProductStatus isActive={product.is_active} />
-                </td>
-                {canManage ? (
-                  <td className='px-4 py-2'>
-                    <div className='flex min-w-max justify-end gap-2'>
-                      <Button
-                        aria-label={`Editar ${product.name}`}
-                        disabled={isBusy}
-                        onClick={() => onEdit(product)}
-                        size='compact'
-                      >
-                        Editar
-                      </Button>
-                      {product.is_active ? (
-                        <Button
-                          aria-label={`Desactivar ${product.name}`}
-                          className='text-[var(--destructive-text)] hover:bg-[var(--destructive-subtle)] hover:text-[var(--destructive-text)]'
-                          disabled={isBusy}
-                          onClick={() => onDeactivate(product)}
-                          size='compact'
-                          variant='ghost'
-                        >
-                          Desactivar
-                        </Button>
-                      ) : (
-                        <Button
-                          aria-label={`Reactivar ${product.name}`}
-                          disabled={isBusy}
-                          onClick={() => onReactivate(product)}
-                          size='compact'
-                        >
-                          {isBusy ? 'Reactivando…' : 'Reactivar'}
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                ) : null}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <section aria-label='Listado de productos FAA' className='product-records'>
+      <ul className='workspace-record-list'>
+        {products.map((product) => {
+          const isBusy = busyProductIds.has(product.id)
+          return (
+            <li
+              aria-label={`Producto ${product.name}`}
+              className={`workspace-record-card product-record ${product.is_active ? '' : 'product-record--inactive'}`}
+              key={product.id}
+            >
+              <span className='workspace-record-icon product-record__icon'>
+                <Icon name='products' />
+              </span>
+              <span className='workspace-record-identity'>
+                <strong>{product.name}</strong>
+                <span>Producto FAA</span>
+              </span>
+              <ProductStatus isActive={product.is_active} />
+              {canManage ? (
+                <div className='workspace-record-actions'>
+                  <Button
+                    aria-label={`Editar ${product.name}`}
+                    disabled={isBusy}
+                    onClick={() => onEdit(product)}
+                    size='compact'
+                    variant='ghost'
+                  >
+                    <Icon name='pencil' />
+                    Editar
+                  </Button>
+                  {product.is_active ? (
+                    <Button
+                      aria-label={`Desactivar ${product.name}`}
+                      className='text-[var(--destructive-text)] hover:bg-[var(--destructive-subtle)] hover:text-[var(--destructive-text)]'
+                      disabled={isBusy}
+                      onClick={() => onDeactivate(product)}
+                      size='compact'
+                      variant='ghost'
+                    >
+                      Desactivar
+                    </Button>
+                  ) : (
+                    <Button
+                      aria-label={`Reactivar ${product.name}`}
+                      disabled={isBusy}
+                      onClick={() => onReactivate(product)}
+                      size='compact'
+                    >
+                      {isBusy ? 'Reactivando…' : 'Reactivar'}
+                    </Button>
+                  )}
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
     </section>
   )
 }

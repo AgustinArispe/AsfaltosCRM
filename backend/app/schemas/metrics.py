@@ -11,9 +11,10 @@ from pydantic import (
     model_validator,
 )
 
-from app.models import LeadSource, OpportunityStatus
+from app.models import LeadSource, LossReason, OpportunityStatus
 from app.schemas.common import StrictRequestModel
 from app.services.metrics_service import (
+    MetricOpportunityKind,
     TimelineGranularity,
     TimelineOpportunitySeries,
 )
@@ -62,6 +63,27 @@ class TimelineDayOpportunitiesQuery(PipelineMetricsQuery):
     series: TimelineOpportunitySeries
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
+
+
+class MetricOpportunitiesQuery(MetricsQuery):
+    kind: MetricOpportunityKind
+    status: OpportunityStatus | None = None
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_status(self) -> Self:
+        if self.status is not None and (
+            self.kind is not MetricOpportunityKind.ACTIVE
+            or self.status
+            not in {
+                OpportunityStatus.NUEVA,
+                OpportunityStatus.COTIZADA,
+                OpportunityStatus.NEGOCIACION,
+            }
+        ):
+            raise ValueError("status is only valid for an active stage")
+        return self
 
 
 class MetricsPeriodResponse(BaseModel):
@@ -180,6 +202,25 @@ class TimelineOpportunityItemResponse(BaseModel):
     current_status: OpportunityStatus
     source: LeadSource
     products: list[TimelineOpportunityProductResponse]
+
+
+class MetricOpportunityItemResponse(BaseModel):
+    opportunity_id: int
+    loss_event_id: int | None = None
+    customer_name: str
+    customer_company: str | None
+    current_status: OpportunityStatus
+    source: LeadSource
+    relevant_at: datetime
+    quantity_kg: Decimal
+    loss_reason: LossReason | None = None
+
+
+class MetricOpportunitiesResponse(BaseModel):
+    page: int
+    page_size: int
+    total: int
+    items: list[MetricOpportunityItemResponse]
 
 
 class TimelineDayOpportunitiesResponse(BaseModel):

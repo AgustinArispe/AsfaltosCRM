@@ -173,7 +173,7 @@ describe('NotificationsPage', () => {
     )
     render(<NotificationsPage />)
     expect(
-      await screen.findByRole('heading', { name: 'Sin historial de notificaciones' }),
+      await screen.findByRole('heading', { name: 'No tenés notificaciones por ahora' }),
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Sin leer' }))
     expect(

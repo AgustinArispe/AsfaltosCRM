@@ -8,6 +8,7 @@ import { ProductFormModal } from '../products/ProductFormModal'
 import { ProductTable } from '../products/ProductTable'
 import type { Product } from '../products/types'
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 
 function sortProducts(products: Product[]): Product[] {
@@ -38,10 +39,11 @@ export function ProductsPage() {
     [logout, token],
   )
   const canManage = user?.role === 'SUPERVISOR'
+  const hasUser = user !== null
 
   useEffect(() => {
     void reloadKey
-    if (!user) return
+    if (!hasUser) return
     const controller = new AbortController()
     setIsLoading(true)
     setLoadError(null)
@@ -61,7 +63,7 @@ export function ProductsPage() {
       })
 
     return () => controller.abort()
-  }, [apiSession, canManage, reloadKey, user])
+  }, [apiSession, canManage, hasUser, reloadKey])
 
   if (!user) return null
 
@@ -145,43 +147,47 @@ export function ProductsPage() {
   }
 
   return (
-    <section aria-label='Catálogo de productos' className='mx-auto max-w-6xl'>
+    <section aria-label='Catálogo de productos' className='records-workspace mx-auto max-w-6xl'>
       <div aria-live='polite' className='sr-only'>
         {announcement}
       </div>
 
-      <div className='flex flex-wrap justify-end gap-4'>
+      <div className='workspace-action-bar'>
+        <span className='workspace-action-bar__context'>Catálogo comercial FAA</span>
         {canManage ? (
           <Button onClick={openCreate} variant='primary'>
+            <Icon name='plus' />
             Nuevo producto
           </Button>
         ) : null}
       </div>
 
       {!isLoading && !loadError ? (
-        <p
-          className='mt-4 border-b border-[var(--divider)] px-1 pb-3 text-sm text-[var(--text-secondary)]'
-          role='status'
-        >
-          <span className='font-semibold tabular-nums text-[var(--text-primary)]'>
-            {products.length}
-          </span>{' '}
-          {products.length === 1 ? 'producto' : 'productos'}
+        <section aria-label='Resumen de productos' className='workspace-summary-grid' role='status'>
+          <div className='workspace-summary-card'>
+            <span>
+              <Icon name='products' />
+            </span>
+            <small>Productos</small>
+            <strong>{products.length}</strong>
+          </div>
+          <div className='workspace-summary-card workspace-summary-card--success'>
+            <span>
+              <Icon name='check-circle' />
+            </span>
+            <small>Activos</small>
+            <strong>{activeCount}</strong>
+          </div>
           {canManage ? (
-            <>
-              {' · '}
-              <span className='font-semibold tabular-nums text-[var(--success-text)]'>
-                {activeCount}
-              </span>{' '}
-              {activeCount === 1 ? 'activo' : 'activos'}
-              {' · '}
-              <span className='font-semibold tabular-nums text-[var(--text-secondary)]'>
-                {inactiveCount}
-              </span>{' '}
-              {inactiveCount === 1 ? 'inactivo' : 'inactivos'}
-            </>
+            <div className='workspace-summary-card workspace-summary-card--neutral'>
+              <span>
+                <Icon name='pause-circle' />
+              </span>
+              <small>Inactivos</small>
+              <strong>{inactiveCount}</strong>
+            </div>
           ) : null}
-        </p>
+        </section>
       ) : null}
 
       {operationError ? (
@@ -190,7 +196,7 @@ export function ProductsPage() {
         </div>
       ) : null}
 
-      <div className='mt-4'>
+      <div>
         {loadError ? (
           <div className='ui-panel px-5 py-6'>
             <InlineFeedback message={loadError} />
@@ -201,16 +207,18 @@ export function ProductsPage() {
         ) : isLoading ? (
           <WorkspaceSkeleton label='Cargando productos…' />
         ) : products.length === 0 ? (
-          <EmptyState
-            description={
-              canManage
-                ? 'Creá el catálogo que después usarás en las cotizaciones.'
-                : 'Un supervisor debe activar productos para que aparezcan en este catálogo.'
-            }
-            icon='products'
-            size='workspace'
-            title='Todavía no hay productos'
-          />
+          <section className='workspace-empty-card'>
+            <EmptyState
+              description={
+                canManage
+                  ? 'Creá el catálogo que después usarás en las cotizaciones.'
+                  : 'Un supervisor debe activar productos para que aparezcan en este catálogo.'
+              }
+              icon='products'
+              size='small'
+              title='No hay productos cargados'
+            />
+          </section>
         ) : (
           <ProductTable
             busyProductIds={busyProductIds}

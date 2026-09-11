@@ -33,7 +33,7 @@ const STATUS_LABELS: Record<OpportunityStatus, string> = {
   COTIZADA: 'Cotizada',
   NEGOCIACION: 'Negociación',
   GANADA: 'Ganada',
-  PERDIDA: 'Perdida',
+  PERDIDA: 'Pérdida',
 }
 
 function identityFor(notification: OperationalNotification): string {
@@ -110,10 +110,12 @@ function NotificationRow({
         </span>
         <span className='notification-row__meta' id={`notification-${notification.id}-details`}>
           <time dateTime={notification.created_at} title={formatDateTime(notification.created_at)}>
-            {formatTimeInStage(notification.created_at)}
+            <span>{formatTimeInStage(notification.created_at)}</span>
+            <small>{formatDateTime(notification.created_at)}</small>
           </time>
           {isPending ? <span>Guardando lectura…</span> : null}
         </span>
+        <Icon className='notification-row__chevron' name='chevron-right' />
       </button>
     </li>
   )
@@ -215,14 +217,6 @@ export function NotificationsPage() {
 
   return (
     <section aria-label='Historial de notificaciones' className='notifications-page'>
-      <div className='notifications-page__heading'>
-        <span />
-        {hasLoadedUnreadActive ? (
-          <Button disabled={isMarkingAll} onClick={markAllActiveAsRead} size='compact'>
-            {isMarkingAll ? 'Marcando…' : 'Marcar activas como leídas'}
-          </Button>
-        ) : null}
-      </div>
       <div className='notifications-page__controls'>
         <SegmentedControl
           label='Vista de notificaciones'
@@ -238,9 +232,16 @@ export function NotificationsPage() {
           segments={VIEW_SEGMENTS}
           value={view}
         />
-        {isRefreshing ? (
-          <span className='notifications-page__refreshing'>Actualizando…</span>
-        ) : null}
+        <div className='notifications-page__control-actions'>
+          {isRefreshing ? (
+            <span className='notifications-page__refreshing'>Actualizando…</span>
+          ) : null}
+          {hasLoadedUnreadActive ? (
+            <Button isLoading={isMarkingAll} onClick={markAllActiveAsRead} size='compact'>
+              Marcar activas como leídas
+            </Button>
+          ) : null}
+        </div>
       </div>
       {readError ? (
         <p className='notifications-page__feedback' role='alert'>
@@ -269,24 +270,26 @@ export function NotificationsPage() {
       ) : error === 'initial' ? (
         <ErrorState message='No pudimos cargar las notificaciones.' onRetry={refresh} />
       ) : items.length === 0 ? (
-        <EmptyState
-          description={
-            view === 'unread'
-              ? 'No hay notificaciones sin leer.'
-              : view === 'active'
-                ? 'No hay seguimientos activos.'
-                : 'Todavía no hay historial de notificaciones.'
-          }
-          title={
-            view === 'unread'
-              ? 'Sin notificaciones sin leer'
-              : view === 'active'
-                ? 'Sin seguimientos activos'
-                : 'Sin historial de notificaciones'
-          }
-          icon='bell'
-          size='workspace'
-        />
+        <section className='workspace-empty-card notifications-empty-card'>
+          <EmptyState
+            description={
+              view === 'unread'
+                ? 'No hay notificaciones sin leer.'
+                : view === 'active'
+                  ? 'No hay seguimientos activos.'
+                  : 'Las novedades comerciales aparecerán acá.'
+            }
+            title={
+              view === 'unread'
+                ? 'Sin notificaciones sin leer'
+                : view === 'active'
+                  ? 'Sin seguimientos activos'
+                  : 'No tenés notificaciones por ahora'
+            }
+            icon='bell'
+            size='small'
+          />
+        </section>
       ) : (
         <ol aria-label='Historial cronológico de notificaciones' className='notifications-list'>
           {items.map((notification) => (

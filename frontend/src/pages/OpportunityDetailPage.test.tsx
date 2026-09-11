@@ -118,7 +118,7 @@ describe('OpportunityDetailPage', () => {
     expect(
       within(dialog).queryByRole('heading', { name: 'Detalle de oportunidad' }),
     ).not.toBeInTheDocument()
-    expect(screen.getByText('Contacto: Constructora del Sur')).toBeInTheDocument()
+    expect(screen.getByText('Constructora del Sur')).toBeInTheDocument()
     expect(screen.getByText('ventas@delsur.test')).toBeInTheDocument()
     expect(screen.getByText('+54 11 4444-5555')).toBeInTheDocument()
     expect(screen.getByText('Buenos Aires')).toBeInTheDocument()
@@ -203,7 +203,7 @@ describe('OpportunityDetailPage', () => {
 
     expect(await screen.findByText('Motivo de pérdida')).toBeInTheDocument()
     expect(screen.getAllByText('Precio')[0]).toBeInTheDocument()
-    expect(screen.getByText('Perdida')).toBeInTheDocument()
+    expect(screen.getByText('Pérdida')).toBeInTheDocument()
   })
 
   it('renders a specific 404 state with a path back to the pipeline', async () => {
@@ -215,7 +215,7 @@ describe('OpportunityDetailPage', () => {
       await screen.findByRole('heading', { name: 'Oportunidad no encontrada' }),
     ).toBeInTheDocument()
     expect(screen.getByText(/La oportunidad no está disponible/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver al Pipeline' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Volver a oportunidades' })).toHaveAttribute(
       'href',
       '/pipeline',
     )
@@ -246,7 +246,7 @@ describe('OpportunityDetailPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())))
     render(<OpportunityDetailPage opportunityId={42} />)
     const backLink = await screen.findByRole('link', {
-      name: 'Volver al Pipeline',
+      name: 'Volver a oportunidades',
     })
 
     backLink.focus()
@@ -261,7 +261,7 @@ describe('OpportunityDetailPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())))
     render(<OpportunityDetailPage opportunityId={42} surface='won' />)
 
-    const backLink = await screen.findByRole('link', { name: 'Volver a Ganadas' })
+    const backLink = await screen.findByRole('link', { name: 'Volver a oportunidades' })
     expect(backLink).toHaveAttribute('href', '/won')
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }))
     expect(`${window.location.pathname}${window.location.search}`).toBe(
@@ -388,10 +388,10 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
     expect(screen.getByRole('button', { name: 'Cotizar' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Marcar perdida' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Marcar pérdida' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cotizar' })).toHaveClass('h-11')
     expect(screen.getByRole('button', { name: 'Abrir WhatsApp' })).toHaveClass('h-11')
-    expect(screen.getByRole('button', { name: 'Marcar perdida' })).toHaveClass('h-11')
+    expect(screen.getByRole('button', { name: 'Marcar pérdida' })).toHaveClass('h-11')
     fireEvent.click(screen.getByRole('button', { name: 'Cotizar' }))
     const product = await screen.findByRole('radio', { name: 'SuperPhalt' })
     fireEvent.click(product)

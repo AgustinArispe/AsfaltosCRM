@@ -109,6 +109,25 @@ export type TimelineDayOpportunities = {
   items: TimelineDayOpportunity[]
 }
 
+export type MetricOpportunityKind = 'created' | 'won' | 'lost' | 'active'
+export type MetricOpportunity = {
+  opportunity_id: number
+  loss_event_id: number | null
+  customer_name: string
+  customer_company: string | null
+  current_status: OpportunityStatus
+  source: LeadSource
+  relevant_at: string
+  quantity_kg: string
+  loss_reason: string | null
+}
+export type MetricOpportunities = {
+  page: number
+  page_size: number
+  total: number
+  items: MetricOpportunity[]
+}
+
 export type PipelineStatusMetric = {
   status: OpportunityStatus
   count: number

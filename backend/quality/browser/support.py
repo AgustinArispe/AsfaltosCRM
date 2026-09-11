@@ -162,7 +162,7 @@ def login_as(qa_page: QaPage, role: Role) -> None:
     page.get_by_label("Contraseña").fill(password)
     page.get_by_role("button", name="Ingresar").click()
     page.wait_for_url("**/pipeline")
-    page.get_by_role("heading", name="Pipeline", exact=True).wait_for()
+    page.get_by_role("heading", name="Oportunidades", exact=True).wait_for()
 
 
 def select_theme(page: Page, theme: Theme) -> None:

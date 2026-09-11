@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import { FilterControl, SearchField, Toolbar } from '../shared/Workspace'
 import { activeFilterCount, type PipelineFilters, type PipelineSort } from './board-state'
 import { SOURCE_OPTIONS } from './config'
@@ -33,12 +34,14 @@ export function PipelineControls({
   return (
     <Toolbar aria-label='Filtros del pipeline' className='pipeline-controls'>
       <SearchField
+        className='pipeline-controls__search'
         label='Buscar oportunidades'
         onChange={(event) => onFiltersChange({ ...filters, search: event.target.value })}
         placeholder='Buscar oportunidades…'
         value={filters.search}
       />
       <FilterControl
+        className='pipeline-controls__select'
         label='Orden'
         onChange={(event) =>
           onFiltersChange({ ...filters, sort: event.target.value as PipelineSort })
@@ -52,6 +55,7 @@ export function PipelineControls({
         ))}
       </FilterControl>
       <FilterControl
+        className='pipeline-controls__select'
         label='Origen'
         onChange={(event) =>
           onFiltersChange({ ...filters, source: event.target.value as PipelineFilters['source'] })
@@ -66,7 +70,10 @@ export function PipelineControls({
         ))}
       </FilterControl>
       <details className='pipeline-more-filters'>
-        <summary>Filtros{activeCount ? ` · ${activeCount}` : ''}</summary>
+        <summary>
+          <Icon name='filter' />
+          Filtros{activeCount ? ` · ${activeCount}` : ''}
+        </summary>
         <div className='pipeline-more-filters__content'>
           <label className='pipeline-control-label'>
             <span>Producto</span>
@@ -95,7 +102,13 @@ export function PipelineControls({
       </details>
       {action ? <div className='pipeline-controls__refresh'>{action}</div> : null}
       {activeCount ? (
-        <Button onClick={onReset} size='compact' type='button' variant='ghost'>
+        <Button
+          className='pipeline-control-button'
+          onClick={onReset}
+          size='compact'
+          type='button'
+          variant='ghost'
+        >
           Limpiar
         </Button>
       ) : null}

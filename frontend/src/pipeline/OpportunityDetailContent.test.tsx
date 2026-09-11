@@ -77,7 +77,7 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
     expect(screen.getByText('Total cotizado')).toBeInTheDocument()
     expect(screen.getByText('Consulta creada')).toBeInTheDocument()
-    expect(screen.getByText(/Pasó de Negociación a Perdida/)).toBeInTheDocument()
+    expect(screen.getByText(/Pasó de Negociación a Pérdida/)).toBeInTheDocument()
 
     const summary = document.querySelector('.opportunity-detail__summary--page')
     expect(summary).not.toBeNull()
@@ -155,7 +155,7 @@ describe('OpportunityDetailContent', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Consulta del cliente' })).toBeInTheDocument()
-    expect(screen.getByText('No hay un mensaje del formulario web disponible.')).toBeInTheDocument()
+    expect(screen.getByText('No hay una consulta web disponible.')).toBeInTheDocument()
   })
 
   it('does not render the web consultation for a WhatsApp opportunity', () => {

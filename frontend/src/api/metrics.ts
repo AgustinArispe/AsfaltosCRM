@@ -1,4 +1,6 @@
 import type {
+  MetricOpportunities,
+  MetricOpportunityKind,
   MetricsFilters,
   MetricsOverview,
   PipelineMetrics,
@@ -74,6 +76,21 @@ export function getPipelineMetrics(filters: MetricDimensions, session: ApiSessio
     endpoint('/metrics/pipeline', dimensionQuery(filters)),
     session,
   )
+}
+
+export function getMetricOpportunities(
+  filters: MetricsFilters,
+  kind: MetricOpportunityKind,
+  status: string | null,
+  page: number,
+  session: ApiSession,
+) {
+  const query = periodQuery(filters)
+  query.set('kind', kind)
+  if (status) query.set('status', status)
+  query.set('page', String(page))
+  query.set('page_size', '20')
+  return apiRequest<MetricOpportunities>(endpoint('/metrics/opportunities', query), session)
 }
 
 export function getTimelineDayOpportunities(

@@ -5,6 +5,9 @@ from fastapi import APIRouter, Query
 
 from app.api.dependencies import CurrentUser, DatabaseSession
 from app.schemas.metrics import (
+    MetricOpportunitiesQuery,
+    MetricOpportunitiesResponse,
+    MetricOpportunityItemResponse,
     MetricsOverviewResponse,
     MetricsPeriodResponse,
     MetricsQuery,
@@ -230,6 +233,46 @@ def get_timeline_day_opportunities(
                 ],
             )
             for item in opportunities
+        ],
+    )
+
+
+@router.get(
+    "/opportunities",
+    response_model=MetricOpportunitiesResponse,
+    summary="Get Opportunities composing a Dashboard metric",
+)
+def get_metric_opportunities(
+    session: DatabaseSession,
+    _current_user: CurrentUser,
+    query: Annotated[MetricOpportunitiesQuery, Query()],
+) -> MetricOpportunitiesResponse:
+    filters = _filters(query)
+    items, total = MetricsService(session).metric_opportunities(
+        kind=query.kind,
+        dimensions=filters.dimensions,
+        period=None if query.kind.value == "active" else filters.period,
+        status=query.status,
+        page=query.page,
+        page_size=query.page_size,
+    )
+    return MetricOpportunitiesResponse(
+        page=query.page,
+        page_size=query.page_size,
+        total=total,
+        items=[
+            MetricOpportunityItemResponse(
+                opportunity_id=item.opportunity.id,
+                loss_event_id=item.loss_event_id,
+                customer_name=item.opportunity.customer.name,
+                customer_company=item.opportunity.customer.company,
+                current_status=item.opportunity.status,
+                source=item.opportunity.source,
+                relevant_at=item.relevant_at or item.opportunity.created_at,
+                quantity_kg=item.quantity_kg,
+                loss_reason=item.loss_reason,
+            )
+            for item in items
         ],
     )
 

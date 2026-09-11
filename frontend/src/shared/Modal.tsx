@@ -17,6 +17,8 @@ export function Modal({
   onClose,
   closeDisabled = false,
   size = 'default',
+  contentClassName,
+  initialFocusClose = false,
   returnFocusTo,
   children,
 }: {
@@ -27,7 +29,9 @@ export function Modal({
   closeLabel?: string
   onClose: () => void
   closeDisabled?: boolean
-  size?: 'default' | 'large' | 'opportunity'
+  size?: 'default' | 'large' | 'opportunity' | 'dashboard'
+  contentClassName?: string
+  initialFocusClose?: boolean
   returnFocusTo?: HTMLElement | null
   children: ReactNode
 }) {
@@ -36,11 +40,13 @@ export function Modal({
   const titleId = useId()
   const descriptionId = useId()
   const widthClass =
-    size === 'large'
-      ? 'w-[min(72rem,calc(100%-2rem))]'
-      : size === 'opportunity'
-        ? 'w-[min(70rem,calc(100%-2rem))]'
-        : 'w-[min(34rem,calc(100%-2rem))]'
+    size === 'dashboard'
+      ? 'w-[min(56rem,calc(100%-2rem))]'
+      : size === 'large'
+        ? 'w-[min(72rem,calc(100%-2rem))]'
+        : size === 'opportunity'
+          ? 'w-[min(70rem,calc(100%-2rem))]'
+          : 'w-[min(34rem,calc(100%-2rem))]'
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -109,14 +115,16 @@ export function Modal({
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className={`m-auto max-h-[calc(100dvh-2rem)] ${widthClass} border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55`}
+      className={`crm-modal m-auto max-h-[calc(100dvh-2rem)] ${widthClass} border-0 bg-transparent p-0 text-[var(--text-primary)] backdrop:bg-black/55`}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <div className='max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-overlay)] border border-[var(--subtle-border)] bg-[var(--surface-overlay)] shadow-[var(--shadow-overlay)]'>
-        <header className='flex items-start justify-between gap-4 border-b border-[var(--divider)] px-5 py-4 sm:px-6'>
+      <div
+        className={`crm-modal__surface max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-overlay)] border border-[var(--subtle-border)] bg-[var(--surface-overlay)] shadow-[var(--shadow-overlay)] ${contentClassName ?? ''}`}
+      >
+        <header className='crm-modal__header flex items-start justify-between gap-4 border-b border-[var(--divider)] px-5 py-4 sm:px-6'>
           <div className='min-w-0 flex-1'>
             {renderHeader ? (
               renderHeader({ titleId, descriptionId })
@@ -141,8 +149,9 @@ export function Modal({
           </div>
           <button
             aria-label={closeLabel ?? `Cerrar ${title.toLowerCase()}`}
-            className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--hover)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-40'
+            className='crm-modal__close ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--hover)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-40'
             disabled={closeDisabled}
+            data-modal-initial-focus={initialFocusClose ? '' : undefined}
             onClick={onClose}
             type='button'
           >

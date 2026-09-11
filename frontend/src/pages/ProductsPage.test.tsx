@@ -95,7 +95,7 @@ function mockProductApi({
 }
 
 function rowFor(productName: string): HTMLElement {
-  return screen.getByRole('row', { name: new RegExp(productName) })
+  return screen.getByRole('listitem', { name: `Producto ${productName}` })
 }
 
 describe('ProductsPage', () => {
@@ -113,7 +113,10 @@ describe('ProductsPage', () => {
     expect(screen.getByText('Producto antiguo')).toBeInTheDocument()
     expect(within(rowFor('SuperPhalt')).getByText('Activo')).toBeInTheDocument()
     expect(within(rowFor('Producto antiguo')).getByText('Inactivo')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('3 productos · 2 activos · 1 inactivo')
+    const summary = screen.getByRole('status', { name: 'Resumen de productos' })
+    expect(summary).toHaveTextContent('Productos3')
+    expect(summary).toHaveTextContent('Activos2')
+    expect(summary).toHaveTextContent('Inactivos1')
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/products?include_inactive=true')
     expect(screen.getByRole('button', { name: 'Editar SuperPhalt' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Desactivar SuperPhalt' })).toBeInTheDocument()
@@ -128,13 +131,16 @@ describe('ProductsPage', () => {
     expect(await screen.findByText('SuperPhalt')).toBeInTheDocument()
     expect(screen.queryByText('Producto antiguo')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: 'Acciones' })).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: /Editar|Desactivar|Reactivar/ }),
     ).not.toBeInTheDocument()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/products')
-    expect(screen.getByRole('status')).toHaveTextContent('2 productos')
-    expect(screen.getByRole('status')).not.toHaveTextContent('inactivos')
+    expect(screen.getByRole('status', { name: 'Resumen de productos' })).toHaveTextContent(
+      'Productos2Activos2',
+    )
+    expect(screen.getByRole('status', { name: 'Resumen de productos' })).not.toHaveTextContent(
+      'Inactivos',
+    )
   })
 
   it('renders an empty state and supports retry after a load failure', async () => {
@@ -142,7 +148,7 @@ describe('ProductsPage', () => {
     mockProductApi({ products: [], failList: () => shouldFail })
     const { unmount } = render(<ProductsPage />)
     expect(
-      await screen.findByRole('heading', { name: 'Todavía no hay productos' }),
+      await screen.findByRole('heading', { name: 'No hay productos cargados' }),
     ).toBeInTheDocument()
     unmount()
 

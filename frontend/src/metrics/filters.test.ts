@@ -54,13 +54,13 @@ describe('Dashboard filters', () => {
     expect(restored.province).toBe('Salta')
   })
 
-  it('chooses the approved adaptive granularity and exposes compact filter evidence', () => {
+  it('uses daily Dashboard evolution through a full selected year', () => {
     const filters = defaultDashboardFilters(now)
-    expect(timelineGranularity(filters)).toBe('week')
+    expect(timelineGranularity(filters)).toBe('day')
     expect(timelineGranularity(filtersForCustomRange(filters, '2026-08-01', '2026-08-10'))).toBe(
       'day',
     )
-    expect(timelineGranularity(filtersForPreset('year', filters, now))).toBe('month')
+    expect(timelineGranularity(filtersForPreset('year', filters, now))).toBe('day')
     expect(timelineGranularity(filtersForCustomRange(filters, '2024-01-01', '2026-08-14'))).toBe(
       'month',
     )

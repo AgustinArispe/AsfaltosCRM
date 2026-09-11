@@ -8,6 +8,7 @@ import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { Input, Select } from '../shared/FormControls'
+import { Icon } from '../shared/Icon'
 import { Modal } from '../shared/Modal'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 
@@ -133,14 +134,22 @@ export function UsersPage() {
       })
     }
   }
+  const activeUsers = users.filter((item) => item.is_active).length
+  const supervisors = users.filter((item) => item.role === 'SUPERVISOR').length
+  const sellers = users.filter((item) => item.role === 'VENDEDOR').length
 
   return (
-    <section aria-label='Administración de usuarios' className='mx-auto max-w-5xl'>
+    <section
+      aria-label='Administración de usuarios'
+      className='records-workspace mx-auto max-w-6xl'
+    >
       <p aria-live='polite' className='sr-only'>
         {announcement}
       </p>
-      <div className='flex justify-end'>
+      <div className='workspace-action-bar'>
+        <span className='workspace-action-bar__context'>Gestión de accesos del equipo</span>
         <Button onClick={openCreate} variant='primary'>
+          <Icon name='plus' />
           Nuevo usuario
         </Button>
       </div>
@@ -149,7 +158,7 @@ export function UsersPage() {
           <InlineFeedback message={operationError} onDismiss={() => setOperationError(null)} />
         </div>
       ) : null}
-      <div className='mt-4'>
+      <div>
         {isLoading ? (
           <WorkspaceSkeleton label='Cargando usuarios…' />
         ) : loadError ? (
@@ -160,74 +169,91 @@ export function UsersPage() {
             </Button>
           </div>
         ) : users.length === 0 ? (
-          <EmptyState
-            description='Creá el primer acceso para el equipo comercial.'
-            icon='users'
-            size='workspace'
-            title='Todavía no hay usuarios'
-          />
+          <section className='workspace-empty-card'>
+            <EmptyState
+              description='Creá el primer acceso para el equipo comercial.'
+              icon='users'
+              size='small'
+              title='No hay usuarios para mostrar'
+            />
+          </section>
         ) : (
-          <section aria-label='Usuarios de FAA' className='ui-panel overflow-x-auto'>
-            <table className='w-full min-w-[42rem] border-collapse text-left text-sm'>
-              <thead>
-                <tr className='border-b border-[var(--divider)] text-xs text-[var(--text-secondary)]'>
-                  <th className='px-4 py-3'>Usuario</th>
-                  <th className='px-4 py-3'>Rol</th>
-                  <th className='px-4 py-3'>Estado</th>
-                  <th className='px-4 py-3 text-right'>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
+          <>
+            <section aria-label='Resumen de usuarios' className='workspace-summary-grid'>
+              <div className='workspace-summary-card workspace-summary-card--success'>
+                <span>
+                  <Icon name='check-circle' />
+                </span>
+                <small>Usuarios activos</small>
+                <strong>{activeUsers}</strong>
+              </div>
+              <div className='workspace-summary-card'>
+                <span>
+                  <Icon name='users' />
+                </span>
+                <small>Supervisores</small>
+                <strong>{supervisors}</strong>
+              </div>
+              <div className='workspace-summary-card'>
+                <span>
+                  <Icon name='profile' />
+                </span>
+                <small>Vendedores</small>
+                <strong>{sellers}</strong>
+              </div>
+            </section>
+            <section aria-label='Usuarios de FAA'>
+              <ul className='workspace-record-list user-record-list'>
                 {users.map((item) => (
-                  <tr
-                    className='border-b border-[var(--divider)] last:border-0 hover:bg-[var(--surface-hover)]'
+                  <li
+                    aria-label={`Usuario ${item.full_name}`}
+                    className='workspace-record-card user-record'
                     key={item.id}
                   >
-                    <th className='px-4 py-3 font-semibold'>
-                      <span>{item.full_name}</span>
-                      <span className='mt-0.5 block font-normal text-[var(--text-secondary)]'>
-                        {item.email}
-                      </span>
-                    </th>
-                    <td className='px-4 py-3'>
+                    <span className='workspace-record-icon'>
+                      <Icon name='profile' />
+                    </span>
+                    <span className='workspace-record-identity'>
+                      <strong>{item.full_name}</strong>
+                      <span>{item.email}</span>
+                    </span>
+                    <Badge tone='neutral'>
                       {item.role === 'SUPERVISOR' ? 'Supervisor' : 'Vendedor'}
-                    </td>
-                    <td className='px-4 py-3'>
-                      <Badge tone={item.is_active ? 'active' : 'neutral'}>
-                        {item.is_active ? 'Activo' : 'Inactivo'}
-                      </Badge>
-                    </td>
-                    <td className='px-4 py-3'>
-                      <div className='flex justify-end gap-1'>
-                        <Button onClick={() => openEdit(item)} size='compact' variant='ghost'>
-                          Editar
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setPasswordTarget(item)
-                            setPassword('')
-                            setOperationError(null)
-                          }}
-                          size='compact'
-                          variant='ghost'
-                        >
-                          Contraseña
-                        </Button>
-                        <Button
-                          disabled={busyIds.has(item.id)}
-                          onClick={() => setStatusTarget(item)}
-                          size='compact'
-                          variant='ghost'
-                        >
-                          {item.is_active ? 'Desactivar' : 'Activar'}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+                    </Badge>
+                    <Badge tone={item.is_active ? 'active' : 'neutral'}>
+                      <Icon name={item.is_active ? 'check-circle' : 'pause-circle'} />
+                      {item.is_active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                    <div className='workspace-record-actions'>
+                      <Button onClick={() => openEdit(item)} size='compact' variant='ghost'>
+                        <Icon name='pencil' />
+                        Editar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setPasswordTarget(item)
+                          setPassword('')
+                          setOperationError(null)
+                        }}
+                        size='compact'
+                        variant='ghost'
+                      >
+                        Contraseña
+                      </Button>
+                      <Button
+                        disabled={busyIds.has(item.id)}
+                        onClick={() => setStatusTarget(item)}
+                        size='compact'
+                        variant='ghost'
+                      >
+                        {item.is_active ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </section>
+              </ul>
+            </section>
+          </>
         )}
       </div>
       <Modal

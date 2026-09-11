@@ -12,13 +12,13 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
   {
     path: '/pipeline',
     group: 'work',
-    label: 'Pipeline',
+    label: 'Oportunidades',
     description: 'El pipeline comercial se implementará en el siguiente módulo.',
   },
   {
     path: '/dashboard',
     group: 'work',
-    label: 'Dashboard',
+    label: 'Resumen comercial',
     description: 'Indicadores comerciales y operativos.',
   },
   {
