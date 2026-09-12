@@ -9,7 +9,17 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.intake_security import build_web_intake_signature
-from app.models import Notification, NotificationRecipient, NotificationType, User
+from app.models import (
+    Customer,
+    LeadIntake,
+    LeadSource,
+    Notification,
+    NotificationRecipient,
+    NotificationType,
+    Opportunity,
+    OpportunityStatus,
+    User,
+)
 from app.schemas import WebLeadIntakeResponse
 
 
@@ -109,6 +119,61 @@ def test_valid_hmac_creates_without_crm_jwt_and_replay_returns_200(
         )
         == 1
     )
+
+
+def test_signed_web_intake_persists_accented_province_and_replays_unchanged(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    authorization = api_client.headers["Authorization"]
+    del api_client.headers["Authorization"]
+    payload = make_payload("api-accented-province")
+    payload["province"] = "  Ciudad Autónoma de Buenos Aires  "
+
+    first_response = signed_post(api_client, payload)
+    replay_response = signed_post(api_client, payload)
+    first = WebLeadIntakeResponse.model_validate(first_response.json())
+    replay = WebLeadIntakeResponse.model_validate(replay_response.json())
+    api_client.headers["Authorization"] = authorization
+    detail = api_client.get(f"/api/opportunities/{first.opportunity_id}")
+    customer = db_session.get(Customer, first.customer_id)
+    opportunity = db_session.get(Opportunity, first.opportunity_id)
+    intake = db_session.get(LeadIntake, first.intake_id)
+
+    assert first_response.status_code == 201
+    assert replay_response.status_code == 200
+    assert replay.created is False
+    assert replay.customer_id == first.customer_id
+    assert replay.opportunity_id == first.opportunity_id
+    assert customer is not None
+    assert customer.province == "Ciudad Autónoma de Buenos Aires"
+    assert opportunity is not None
+    assert opportunity.source is LeadSource.WEB
+    assert opportunity.status is OpportunityStatus.NUEVA
+    assert intake is not None
+    assert intake.submitted_province == "Ciudad Autónoma de Buenos Aires"
+    assert detail.status_code == 200
+    assert detail.json()["customer"]["province"] == "Ciudad Autónoma de Buenos Aires"
+
+
+def test_signed_web_intake_accepts_omitted_province(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    del api_client.headers["Authorization"]
+    payload = make_payload("api-omitted-province")
+    del payload["province"]
+
+    response = signed_post(api_client, payload)
+    result = WebLeadIntakeResponse.model_validate(response.json())
+    customer = db_session.get(Customer, result.customer_id)
+    intake = db_session.get(LeadIntake, result.intake_id)
+
+    assert response.status_code == 201
+    assert customer is not None
+    assert customer.province is None
+    assert intake is not None
+    assert intake.submitted_province is None
 
 
 def test_created_web_lead_exposes_only_message_in_authenticated_detail(
@@ -239,6 +304,16 @@ def test_request_forbids_source_and_unknown_fields(
             "external_submission_id": "valid-id",
             "name": "Cliente",
             "message": "x" * 10_001,
+        },
+        {
+            "external_submission_id": "valid-id",
+            "name": "Cliente",
+            "province": "   ",
+        },
+        {
+            "external_submission_id": "valid-id",
+            "name": "Cliente",
+            "province": "x" * 101,
         },
     ],
 )
