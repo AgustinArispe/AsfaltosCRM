@@ -24,6 +24,10 @@ import {
 import { PipelineBoard } from '../pipeline/PipelineBoard'
 import { PipelineControls } from '../pipeline/PipelineControls'
 import { QuoteModal } from '../pipeline/QuoteModal'
+import {
+  type PendingStageTransition,
+  StageTransitionConfirmationModal,
+} from '../pipeline/StageTransitionConfirmationModal'
 import type { OpportunitySummary, PipelineStatus, QuoteProductInput } from '../pipeline/types'
 import { useActiveProductCatalog } from '../pipeline/useActiveProductCatalog'
 import { navigateRoute } from '../routing/router'
@@ -70,6 +74,9 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const [showStageAge, setShowStageAge] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const [isManualCreationOpen, setIsManualCreationOpen] = useState(false)
+  const [pendingStageTransition, setPendingStageTransition] =
+    useState<PendingStageTransition | null>(null)
+  const [isConfirmingStageTransition, setIsConfirmingStageTransition] = useState(false)
   const [hiddenCreatedOpportunity, setHiddenCreatedOpportunity] =
     useState<OpportunitySummary | null>(null)
   const hasLoadedRef = useRef(false)
@@ -78,6 +85,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const wonReconciliationControllerRef = useRef<AbortController | null>(null)
   const mutationGenerationRef = useRef<Record<number, number>>({})
   const manualCreationTriggerRef = useRef<HTMLButtonElement>(null)
+  const isConfirmingStageTransitionRef = useRef(false)
 
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -283,6 +291,54 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     }
   }
 
+  const requestStageTransition = (opportunityId: number, targetStatus: PipelineStatus) => {
+    const opportunity = findOpportunity(opportunityId)
+    if (
+      !opportunity ||
+      !canMoveTo(opportunity.status as PipelineStatus, targetStatus) ||
+      busyOpportunityIds.has(opportunityId)
+    ) {
+      return
+    }
+    setOperationError(null)
+    setPendingStageTransition({
+      opportunityId,
+      fromStatus: opportunity.status as PipelineStatus,
+      targetStatus,
+    })
+  }
+
+  const cancelStageTransition = () => {
+    if (isConfirmingStageTransitionRef.current) return
+    setPendingStageTransition(null)
+  }
+
+  const confirmStageTransition = async () => {
+    const transition = pendingStageTransition
+    if (!transition || isConfirmingStageTransitionRef.current) return
+    const opportunity = findOpportunity(transition.opportunityId)
+    if (
+      !opportunity ||
+      opportunity.status !== transition.fromStatus ||
+      !canMoveTo(transition.fromStatus, transition.targetStatus) ||
+      busyOpportunityIds.has(transition.opportunityId)
+    ) {
+      setPendingStageTransition(null)
+      setOperationError('La oportunidad cambió antes de confirmar. Actualizá el pipeline.')
+      return
+    }
+
+    isConfirmingStageTransitionRef.current = true
+    setIsConfirmingStageTransition(true)
+    try {
+      await handleMove(transition.opportunityId, transition.targetStatus)
+    } finally {
+      isConfirmingStageTransitionRef.current = false
+      setIsConfirmingStageTransition(false)
+      setPendingStageTransition(null)
+    }
+  }
+
   const handleQuote = async (quoteProducts: QuoteProductInput[]) => {
     const opportunity = quoteOpportunityId ? findOpportunity(quoteOpportunityId) : null
     if (!opportunity) throw new Error('La oportunidad ya no está disponible.')
@@ -456,7 +512,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
       ) : (
         <PipelineBoard
           busyOpportunityIds={busyOpportunityIds}
-          onMove={(opportunityId, targetStatus) => void handleMove(opportunityId, targetStatus)}
+          onMove={requestStageTransition}
           onOpenDetail={(opportunityId) =>
             navigateRoute(
               { kind: 'opportunity', opportunityId, surface: 'pipeline' },
@@ -479,6 +535,12 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         opportunity={quotedOpportunity}
         products={catalog.products}
         productsError={catalog.error}
+      />
+      <StageTransitionConfirmationModal
+        isPending={isConfirmingStageTransition}
+        onCancel={cancelStageTransition}
+        onConfirm={() => void confirmStageTransition()}
+        transition={pendingStageTransition}
       />
       {user ? (
         <ManualOpportunityModal

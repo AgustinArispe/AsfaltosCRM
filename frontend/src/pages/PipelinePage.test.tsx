@@ -94,7 +94,10 @@ function response(status: number, body: unknown): Response {
   })
 }
 
-function mockApi(items: OpportunitySummary[], transition?: (url: URL) => Response | undefined) {
+function mockApi(
+  items: OpportunitySummary[],
+  transition?: (url: URL) => Response | Promise<Response | undefined> | undefined,
+) {
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
@@ -107,7 +110,7 @@ function mockApi(items: OpportunitySummary[], transition?: (url: URL) => Respons
         return response(200, { items: filtered, page: 1, page_size: 100, total: filtered.length })
       }
       if (url.pathname === '/api/products') return response(200, products)
-      const custom = transition?.(url)
+      const custom = await transition?.(url)
       if (custom) return custom
       throw new Error(`Unexpected request: ${url.pathname}`)
     },
@@ -333,25 +336,67 @@ describe('PipelinePage', () => {
     drop(quoted, 'GANADA')
     expect(fetchMock).toHaveBeenCalledTimes(callsBeforeSameColumn)
     drop(quoted, 'NEGOCIACION')
+    const dialog = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
+    expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith('/move-to-negotiation')),
+    ).toBe(false)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Avanzar a Negociación' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('se mantuvo sin cambios')
     expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
   })
 
-  it('optimistically moves a valid DnD transition and reconciles the authoritative response', async () => {
+  it('keeps the original stage until confirmation, then mutates once and reconciles the response', async () => {
     const quoted = opportunity('COTIZADA', 2)
     const moved = { ...quoted, status: 'NEGOCIACION' as const }
-    const fetchMock = mockApi([quoted], (url) =>
-      url.pathname.endsWith('/move-to-negotiation') ? response(200, moved) : undefined,
-    )
+    let resolveMove!: (value: Response) => void
+    const moveResponse = new Promise<Response>((resolve) => {
+      resolveMove = resolve
+    })
+    const fetchMock = mockApi([quoted], (url) => {
+      if (!url.pathname.endsWith('/move-to-negotiation')) return undefined
+      return moveResponse
+    })
     const { container } = render(<PipelinePage />)
     await ready()
     drop(quoted, 'NEGOCIACION')
+    const dialog = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
+    expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
+    expect(within(stage(container, 'NEGOCIACION')).queryByText('Empresa 2')).not.toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith('/move-to-negotiation')),
+    ).toBe(false)
+
+    const confirm = within(dialog).getByRole('button', { name: 'Avanzar a Negociación' })
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/move-to-negotiation')),
+    ).toHaveLength(1)
+    resolveMove(response(200, moved))
+
     await waitFor(() =>
       expect(within(stage(container, 'NEGOCIACION')).getByText('Empresa 2')).toBeInTheDocument(),
     )
+  })
+
+  it('cancels a pending Pipeline transition without mutating the original stage', async () => {
+    const quoted = opportunity('COTIZADA', 2)
+    const fetchMock = mockApi([quoted])
+    const { container } = render(<PipelinePage />)
+    await ready()
+
+    drop(quoted, 'NEGOCIACION')
+    const dialog = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+
+    expect(
+      screen.queryByRole('dialog', { name: 'Confirmar cambio de etapa' }),
+    ).not.toBeInTheDocument()
+    expect(within(stage(container, 'COTIZADA')).getByText('Empresa 2')).toBeInTheDocument()
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/move-to-negotiation')),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('uses the shared quote flow for NUEVA to COTIZADA and reconciles cancellation or rejection', async () => {
@@ -364,12 +409,25 @@ describe('PipelinePage', () => {
     const { container } = render(<PipelinePage />)
     await ready()
     drop(item, 'COTIZADA')
-    const dialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
+    const confirmation = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
     expect(within(stage(container, 'NUEVA')).getByText('Empresa 1')).toBeInTheDocument()
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog', { name: 'Cotizar oportunidad' })).not.toBeInTheDocument()
+
+    drop(item, 'COTIZADA')
+    const secondConfirmation = await screen.findByRole('dialog', {
+      name: 'Confirmar cambio de etapa',
+    })
+    fireEvent.click(within(secondConfirmation).getByRole('button', { name: 'Avanzar a Cotizada' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
     expect(screen.queryByRole('dialog', { name: 'Cotizar oportunidad' })).not.toBeInTheDocument()
 
     drop(item, 'COTIZADA')
+    const thirdConfirmation = await screen.findByRole('dialog', {
+      name: 'Confirmar cambio de etapa',
+    })
+    fireEvent.click(within(thirdConfirmation).getByRole('button', { name: 'Avanzar a Cotizada' }))
     const secondDialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
     fireEvent.click(await within(secondDialog).findByRole('radio', { name: 'SuperPhalt' }))
     fireEvent.click(within(secondDialog).getByRole('button', { name: 'Continuar con cantidad' }))
@@ -396,6 +454,8 @@ describe('PipelinePage', () => {
     const { container } = render(<PipelinePage />)
     await ready()
     drop(item, 'COTIZADA')
+    const confirmation = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Avanzar a Cotizada' }))
     const dialog = await screen.findByRole('dialog', { name: 'Cotizar oportunidad' })
     fireEvent.click(await within(dialog).findByRole('radio', { name: 'SuperPhalt' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Continuar con cantidad' }))
