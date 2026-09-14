@@ -348,6 +348,20 @@ function dayNumber(bucket: string): number {
   return Number(bucket.slice(8, 10))
 }
 
+const MAX_DAILY_X_AXIS_LABELS = 31
+const DAILY_X_AXIS_LABEL_INTERVALS = [
+  { maximumDays: 31, interval: 1 },
+  { maximumDays: 60, interval: 2 },
+  { maximumDays: 100, interval: 3 },
+] as const
+
+export function timelineDayLabelInterval(dayCount: number): number {
+  const configuredInterval = DAILY_X_AXIS_LABEL_INTERVALS.find(
+    ({ maximumDays }) => dayCount <= maximumDays,
+  )
+  return configuredInterval?.interval ?? Math.ceil(dayCount / MAX_DAILY_X_AXIS_LABELS)
+}
+
 export function TimelineChart({
   timeline,
   error,
@@ -374,6 +388,8 @@ export function TimelineChart({
   const plotTop = 24
   const plotBottom = 264
   const chartItems = timeline?.items ?? []
+  const xAxisLabelInterval =
+    timeline?.granularity === 'day' ? timelineDayLabelInterval(chartItems.length) : 1
   const hasActivity = maximum > 0
   const slotWidth = chartItems.length ? (plotRight - plotLeft) / chartItems.length : 0
   const groupWidth = Math.min(21, slotWidth * 0.76)
@@ -485,17 +501,20 @@ export function TimelineChart({
                   />
                 )
               })}
-              {timeline.items.map((item, index) => (
-                <text
-                  className={`dashboard-daily-chart__label ${hoveredBucket === index ? 'is-highlighted' : ''}`}
-                  key={item.bucket}
-                  textAnchor='middle'
-                  x={bucketCenter(index)}
-                  y='291'
-                >
-                  {dayNumber(item.bucket)}
-                </text>
-              ))}
+              {timeline.items.map((item, index) =>
+                index % xAxisLabelInterval === 0 ? (
+                  <text
+                    className={`dashboard-daily-chart__label ${hoveredBucket === index ? 'is-highlighted' : ''}`}
+                    data-axis-bucket={item.bucket}
+                    key={item.bucket}
+                    textAnchor='middle'
+                    x={bucketCenter(index)}
+                    y='291'
+                  >
+                    {dayNumber(item.bucket)}
+                  </text>
+                ) : null,
+              )}
             </svg>
             {hoveredBucket !== null && timeline.items[hoveredBucket] ? (
               <div
