@@ -1,9 +1,9 @@
 # CRM-044 — Opportunity Stage Regression & Visible History
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-14
-Implementation commit: N/A
+Implementation commit: `68dd5fc`
 
 ## Goal
 

@@ -102,8 +102,6 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
-- [`CRM-044`](044-opportunity-stage-regression-and-history.md) — Approved — confirmed
-  one-stage Opportunity regression and complete dated status history in detail.
 - [`CRM-043`](043-manual-opportunity-creation.md) — Approved — atomic manual Opportunity
   creation from Pipeline with Customer selection/creation, audited `NUEVA` entry, and
   referral-source integration.
@@ -117,6 +115,8 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-044`](044-opportunity-stage-regression-and-history.md) — Implemented — confirmed
+  one-stage Opportunity regression and complete dated status history in detail.
 - [`CRM-040`](040-pipeline-opportunity-workspace-hierarchy.md) — Implemented — stronger
   Pipeline card interaction states and a medium/large Opportunity commercial workspace
   hierarchy without changing CRM-038/039 behavior.
