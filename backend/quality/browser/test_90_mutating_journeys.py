@@ -24,6 +24,9 @@ def test_pipeline_keyboard_drag_persists_after_reload(
     page.keyboard.press("Space")
     page.keyboard.press("ArrowRight")
     page.keyboard.press("Space")
+    confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
+    expect(confirmation).to_be_visible()
+    confirmation.get_by_role("button", name="Avanzar a Negociación").click()
     target = page.get_by_role("region", name="Negociación")
     expect(
         target.get_by_role("button", name=re.compile("Rutas del Centro"))
@@ -59,6 +62,9 @@ def test_pipeline_drag_persists_after_reload(qa_pages: QaPageFactory) -> None:
         steps=12,
     )
     page.mouse.up()
+    confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
+    expect(confirmation).to_be_visible()
+    confirmation.get_by_role("button", name="Avanzar a Negociación").click()
     expect(
         target.get_by_role("button", name=re.compile("Vial Patagonia"))
     ).to_be_visible()
