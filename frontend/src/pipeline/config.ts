@@ -8,6 +8,7 @@ export type PipelineStage = {
   singularLabel: string
   icon: IconName
   nextStatus: PipelineStatus | null
+  previousStatus: PipelineStatus | null
   tone: 'neutral' | 'success'
 }
 
@@ -18,6 +19,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     singularLabel: 'Nueva',
     icon: 'document',
     nextStatus: 'COTIZADA',
+    previousStatus: null,
     tone: 'neutral',
   },
   {
@@ -26,6 +28,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     singularLabel: 'Cotizada',
     icon: 'coins',
     nextStatus: 'NEGOCIACION',
+    previousStatus: null,
     tone: 'neutral',
   },
   {
@@ -34,6 +37,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     singularLabel: 'Negociación',
     icon: 'handshake',
     nextStatus: 'GANADA',
+    previousStatus: 'COTIZADA',
     tone: 'neutral',
   },
   {
@@ -42,6 +46,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     singularLabel: 'Ganada',
     icon: 'trophy',
     nextStatus: null,
+    previousStatus: 'NEGOCIACION',
     tone: 'success',
   },
 ] as const
@@ -117,5 +122,10 @@ export function isPipelineStatus(value: string): value is PipelineStatus {
 }
 
 export function canMoveTo(from: PipelineStatus, to: PipelineStatus): boolean {
-  return STAGE_BY_STATUS.get(from)?.nextStatus === to
+  const stage = STAGE_BY_STATUS.get(from)
+  return stage?.nextStatus === to || stage?.previousStatus === to
+}
+
+export function isBackwardMove(from: PipelineStatus, to: PipelineStatus): boolean {
+  return STAGE_BY_STATUS.get(from)?.previousStatus === to
 }

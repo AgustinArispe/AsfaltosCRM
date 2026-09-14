@@ -79,6 +79,11 @@ class StatusChangeRequest(StrictRequestModel):
     pass
 
 
+class OpportunityStageRegressionRequest(StrictRequestModel):
+    expected_status: OpportunityStatus
+    target_status: OpportunityStatus
+
+
 class LoseOpportunityRequest(StatusChangeRequest):
     loss_reason: LossReason
 

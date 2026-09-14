@@ -36,7 +36,10 @@ vi.mock('@dnd-kit/react', () => ({
   },
   DragOverlay: () => null,
   useDraggable: () => ({ ref: vi.fn(), isDragging: false }),
-  useDroppable: () => ({ ref: vi.fn(), isDropTarget: false }),
+  useDroppable: (input: { accept?: (source: { data: unknown }) => boolean }) => {
+    input.accept?.({ data: { fromStatus: 'NEGOCIACION' } })
+    return { ref: vi.fn(), isDropTarget: false }
+  },
 }))
 
 vi.mock('../auth/AuthContext', () => ({
@@ -203,7 +206,7 @@ describe('PipelinePage', () => {
     expect(stage(container, 'GANADA').querySelector('[data-icon="trophy"]')).toBeInTheDocument()
   })
 
-  it('preserves keyboard drag controls and keeps Ganada clickable without a drag cursor', async () => {
+  it('preserves keyboard drag controls and allows Ganada to move back', async () => {
     const won = opportunity('GANADA', 4, { current_status_entered_at: new Date().toISOString() })
     mockApi([won])
     const { container } = render(<PipelinePage />)
@@ -221,9 +224,8 @@ describe('PipelinePage', () => {
     const wonCard = within(stage(container, 'GANADA')).getByRole('button', {
       name: /Abrir oportunidad/,
     })
-    expect(wonCard).toHaveClass('cursor-pointer')
-    expect(wonCard).not.toHaveClass('cursor-grab')
-    expect(wonCard.closest('.pipeline-card')).toHaveClass('pipeline-card--terminal')
+    expect(wonCard).toHaveClass('cursor-grab')
+    expect(wonCard.closest('.pipeline-card')).not.toHaveClass('pipeline-card--terminal')
     fireEvent.click(wonCard)
     expect(window.location.pathname).toBe('/pipeline/opportunities/4')
   })
@@ -378,6 +380,33 @@ describe('PipelinePage', () => {
     await waitFor(() =>
       expect(within(stage(container, 'NEGOCIACION')).getByText('Empresa 2')).toBeInTheDocument(),
     )
+  })
+
+  it('moves Ganada back to Negociación only after confirmation', async () => {
+    const won = opportunity('GANADA', 4, { current_status_entered_at: new Date().toISOString() })
+    const regressed = { ...won, status: 'NEGOCIACION' as const }
+    const fetchMock = mockApi([won], (url) =>
+      url.pathname.endsWith('/regress') ? response(200, regressed) : undefined,
+    )
+    const { container } = render(<PipelinePage />)
+    await ready()
+
+    drop(won, 'NEGOCIACION')
+    const dialog = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
+    expect(within(dialog).getByText('¿Querés volver esta oportunidad a Negociación?')).toBeVisible()
+    expect(within(stage(container, 'GANADA')).getByText('Cliente 4')).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Negociación' }))
+
+    await waitFor(() =>
+      expect(within(stage(container, 'NEGOCIACION')).getByText('Cliente 4')).toBeInTheDocument(),
+    )
+    const regressionCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith('/api/opportunities/4/regress'),
+    )
+    expect(JSON.parse(String(regressionCall?.[1]?.body))).toEqual({
+      expected_status: 'GANADA',
+      target_status: 'NEGOCIACION',
+    })
   })
 
   it('cancels a pending Pipeline transition without mutating the original stage', async () => {

@@ -21,6 +21,7 @@ from app.models import (
     OpportunityLossEvent,
     OpportunityNoteRevision,
     OpportunityStatus,
+    OpportunityStatusHistory,
     OpportunityTransitionKind,
     Product,
     User,
@@ -230,6 +231,50 @@ def test_notes_work_in_terminal_states_and_reject_deleted_opportunity(
             body="No debe agregarse",
             is_pinned=False,
             actor_user_id=actor.id,
+        )
+
+
+def test_stage_regression_preserves_quote_updates_timestamps_and_history(
+    db_session: Session,
+) -> None:
+    suffix = uuid4().hex
+    actor = _actor(db_session, suffix)
+    customer = _customer(db_session, suffix)
+    opportunity, product = _quoted_negotiation(db_session, customer, actor, suffix)
+    service = OpportunityService(db_session)
+    service.mark_as_won(opportunity.id, changed_by_user_id=actor.id)
+    won_at = opportunity.current_status_entered_at
+    regression_at = won_at + timedelta(seconds=1)
+
+    service.regress_stage(
+        opportunity.id,
+        expected_status=OpportunityStatus.GANADA,
+        target_status=OpportunityStatus.NEGOCIACION,
+        changed_by_user_id=actor.id,
+        occurred_at=regression_at,
+    )
+
+    assert opportunity.status is OpportunityStatus.NEGOCIACION
+    assert opportunity.current_status_entered_at == regression_at
+    assert opportunity.updated_at == regression_at
+    assert opportunity.opportunity_products[0].product_id == product.id
+    history = db_session.scalars(
+        select(OpportunityStatusHistory)
+        .where(OpportunityStatusHistory.opportunity_id == opportunity.id)
+        .order_by(OpportunityStatusHistory.id)
+    ).all()
+    assert history[-1].from_status is OpportunityStatus.GANADA
+    assert history[-1].to_status is OpportunityStatus.NEGOCIACION
+    assert history[-1].changed_at == regression_at
+    assert history[-1].changed_by_user_id == actor.id
+
+    db_session.commit()
+    with pytest.raises(InvalidStateTransitionError):
+        service.regress_stage(
+            opportunity.id,
+            expected_status=OpportunityStatus.NEGOCIACION,
+            target_status=OpportunityStatus.NUEVA,
+            changed_by_user_id=actor.id,
         )
 
 

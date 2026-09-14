@@ -22,6 +22,7 @@ from app.schemas import (
     OpportunityNoteCreate,
     OpportunityNoteResponse,
     OpportunityNoteRevisionCreate,
+    OpportunityStageRegressionRequest,
     OpportunitySummary,
     PaginatedResponse,
     QuoteProductsUpdate,
@@ -222,6 +223,26 @@ def mark_as_won(
 ) -> OpportunityDetail:
     OpportunityService(session).mark_as_won(
         opportunity_id,
+        changed_by_user_id=current_user.id,
+    )
+    return _detail(session, opportunity_id)
+
+
+@router.post(
+    "/{opportunity_id}/regress",
+    response_model=OpportunityDetail,
+    summary="Move an opportunity back one permitted pipeline stage",
+)
+def regress_opportunity(
+    opportunity_id: int,
+    payload: OpportunityStageRegressionRequest,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> OpportunityDetail:
+    OpportunityService(session).regress_stage(
+        opportunity_id,
+        expected_status=payload.expected_status,
+        target_status=payload.target_status,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)

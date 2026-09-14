@@ -60,8 +60,7 @@ export function PipelineBoard({
     if (
       !dragData ||
       !isPipelineStatus(targetStatus) ||
-      !canMoveTo(dragData.fromStatus, targetStatus) ||
-      dragData.toStatus !== targetStatus
+      !canMoveTo(dragData.fromStatus, targetStatus)
     ) {
       return
     }

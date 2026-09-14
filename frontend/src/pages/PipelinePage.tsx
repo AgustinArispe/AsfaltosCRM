@@ -5,6 +5,7 @@ import {
   listOpportunityStage,
   moveOpportunityToNegotiation,
   quoteOpportunity,
+  regressOpportunityStage,
   winOpportunity,
 } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
@@ -13,7 +14,7 @@ import {
   type PipelineFilters,
   projectPipeline,
 } from '../pipeline/board-state'
-import { canMoveTo, PIPELINE_STAGES, STAGE_BY_STATUS } from '../pipeline/config'
+import { canMoveTo, isBackwardMove, PIPELINE_STAGES, STAGE_BY_STATUS } from '../pipeline/config'
 import { pipelineErrorMessage } from '../pipeline/errors'
 import { ManualOpportunityModal } from '../pipeline/ManualOpportunityModal'
 import {
@@ -260,6 +261,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
 
     setOperationError(null)
     setOpportunityBusy(opportunityId, true)
+    const fromStatus = opportunity.status as PipelineStatus
     const optimisticOpportunity: OpportunitySummary = {
       ...opportunity,
       status: targetStatus,
@@ -270,8 +272,9 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     dispatch({ type: 'start-mutation', opportunityId })
     dispatch({ type: 'upsert', opportunity: optimisticOpportunity })
     try {
-      const updatedOpportunity =
-        targetStatus === 'NEGOCIACION'
+      const updatedOpportunity = isBackwardMove(fromStatus, targetStatus)
+        ? await regressOpportunityStage(opportunityId, fromStatus, targetStatus, apiSession)
+        : targetStatus === 'NEGOCIACION'
           ? await moveOpportunityToNegotiation(opportunityId, apiSession)
           : await winOpportunity(opportunityId, apiSession)
       if (mutationGenerationRef.current[opportunityId] === generation)

@@ -12,7 +12,6 @@ export type PipelineDragData = {
   supportingName: string | null
   isLegendary: boolean
   fromStatus: PipelineStatus
-  toStatus: PipelineStatus
   statusLabel: string
 }
 
@@ -29,21 +28,21 @@ export function OpportunityCard({
   showStageAge: boolean
   isSelected?: boolean
 }) {
-  const nextStatus = STAGE_BY_STATUS.get(opportunity.status)?.nextStatus ?? null
-  const isDraggable = Boolean(nextStatus) && !isBusy
+  const stage = STAGE_BY_STATUS.get(opportunity.status)
+  const canChangeStage = Boolean(stage?.nextStatus || stage?.previousStatus)
+  const isDraggable = canChangeStage && !isBusy
   const identity = customerIdentity(opportunity.customer)
   const { ref, isDragging } = useDraggable<PipelineDragData>({
     id: opportunity.id,
-    type: nextStatus ?? 'CLOSED',
+    type: 'OPPORTUNITY',
     disabled: !isDraggable,
-    data: nextStatus
+    data: canChangeStage
       ? {
           opportunityId: opportunity.id,
           customerName: identity.primary,
           supportingName: identity.supporting,
           isLegendary: Boolean(opportunity.customer.is_legendary),
           fromStatus: opportunity.status,
-          toStatus: nextStatus,
           statusLabel: STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status,
         }
       : undefined,
@@ -58,14 +57,14 @@ export function OpportunityCard({
         isSelected ? 'pipeline-card--selected' : '',
         isDragging ? 'pipeline-card--dragging' : '',
         isBusy ? 'pipeline-card--busy' : '',
-        !nextStatus ? 'pipeline-card--terminal' : '',
+        !canChangeStage ? 'pipeline-card--terminal' : '',
       ].join(' ')}
       data-opportunity-id={opportunity.id}
     >
       <button
         aria-current={isSelected ? 'true' : undefined}
         aria-describedby={isBusy ? `pipeline-card-pending-${opportunity.id}` : undefined}
-        aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}, estado ${STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}${isDraggable ? '. Se puede arrastrar a la siguiente etapa.' : '. Etapa terminal, no se puede arrastrar.'}`}
+        aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}, estado ${STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}${isDraggable ? '. Se puede arrastrar a una etapa permitida.' : '. No tiene movimientos disponibles.'}`}
         className={[
           'pipeline-card__button',
           isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',

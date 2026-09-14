@@ -37,6 +37,10 @@ from app.services.legendary_service import LegendaryService
 from app.services.notification_service import NotificationService
 
 TERMINAL_STATUSES = frozenset({OpportunityStatus.GANADA, OpportunityStatus.PERDIDA})
+ALLOWED_STAGE_REGRESSIONS = {
+    OpportunityStatus.GANADA: OpportunityStatus.NEGOCIACION,
+    OpportunityStatus.NEGOCIACION: OpportunityStatus.COTIZADA,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,6 +221,44 @@ class OpportunityService:
                 to_status=OpportunityStatus.GANADA,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
+            )
+            self._session.flush()
+
+        return opportunity
+
+    def regress_stage(
+        self,
+        opportunity_id: int,
+        *,
+        expected_status: OpportunityStatus,
+        target_status: OpportunityStatus,
+        changed_by_user_id: int,
+        occurred_at: datetime | None = None,
+    ) -> Opportunity:
+        with self._session.begin():
+            opportunity = self._get_opportunity_for_update(opportunity_id)
+            allowed_target = ALLOWED_STAGE_REGRESSIONS.get(opportunity.status)
+            if (
+                opportunity.status is not expected_status
+                or target_status is not allowed_target
+            ):
+                raise InvalidStateTransitionError(
+                    opportunity.id,
+                    opportunity.status,
+                    target_status,
+                )
+            self._validate_history_user(changed_by_user_id)
+            self._require_quoted_products(opportunity.id)
+            transition_at = occurred_at or datetime.now(UTC)
+            self._transition(
+                opportunity,
+                to_status=target_status,
+                changed_by_user_id=changed_by_user_id,
+                changed_at=transition_at,
+            )
+            LegendaryService(self._session).recompute_customer_in_transaction(
+                opportunity.customer_id,
+                evaluated_at=transition_at,
             )
             self._session.flush()
 

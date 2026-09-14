@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/react'
 import { Icon } from '../shared/Icon'
-import { opportunityStatusColorClass, type PipelineStage } from './config'
-import { OpportunityCard } from './OpportunityCard'
+import { canMoveTo, opportunityStatusColorClass, type PipelineStage } from './config'
+import { OpportunityCard, type PipelineDragData } from './OpportunityCard'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
 export function PipelineColumn({
@@ -21,7 +21,10 @@ export function PipelineColumn({
 }) {
   const { ref, isDropTarget } = useDroppable({
     id: stage.status,
-    accept: stage.status,
+    accept: (source) => {
+      const data = source.data as PipelineDragData | undefined
+      return Boolean(data && canMoveTo(data.fromStatus, stage.status))
+    },
   })
   const headingId = `pipeline-stage-${stage.status.toLowerCase()}`
 

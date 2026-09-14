@@ -50,10 +50,14 @@ por conveniencia técnica.
 - Una `Opportunity` pertenece a un `Customer`.
 - El pipeline principal es `NUEVA` → `COTIZADA` → `NEGOCIACION` → `GANADA`.
 - `PERDIDA` es un estado terminal, pero no una columna principal del Kanban.
-- Para la operación normal, `GANADA` y `PERDIDA` son estados terminales.
+- `PERDIDA` es terminal salvo por su flujo explícito de reapertura. Una oportunidad
+  `GANADA` puede volver a `NEGOCIACION` con confirmación.
 - Las transiciones ordinarias respetan el orden del pipeline; los estados no pueden
   saltarse arbitrariamente. Cualquier estado abierto puede pasar a `PERDIDA` según las
   reglas de pérdidas.
+- Los retrocesos permitidos son `GANADA` → `NEGOCIACION` y `NEGOCIACION` →
+  `COTIZADA`, siempre de a una etapa y con confirmación. `COTIZADA` nunca puede volver
+  a `NUEVA`.
 - La creación y cada cambio de estado se registran en el historial.
 - `current_status_entered_at` indica cuándo la oportunidad ingresó en su estado actual.
 

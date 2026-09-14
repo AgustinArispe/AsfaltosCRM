@@ -7,6 +7,7 @@ import {
   loseOpportunity,
   moveOpportunityToNegotiation,
   quoteOpportunity,
+  regressOpportunityStage,
   reopenOpportunity,
   updateOpportunityQuoteProducts,
   winOpportunity,
@@ -14,6 +15,7 @@ import {
 import { listActiveProducts } from '../api/products'
 import { listWhatsAppConversations } from '../api/whatsapp'
 import { useAuth } from '../auth/AuthContext'
+import { OPPORTUNITY_STATUS_LABELS, STAGE_BY_STATUS } from '../pipeline/config'
 import { LossModal } from '../pipeline/LossModal'
 import { OpportunityContextPanel } from '../pipeline/OpportunityContextPanel'
 import {
@@ -21,7 +23,13 @@ import {
   OpportunityDetailModalHeader,
 } from '../pipeline/OpportunityDetailContent'
 import { QuoteModal } from '../pipeline/QuoteModal'
-import type { LossReason, OpportunityDetail, Product, QuoteProductInput } from '../pipeline/types'
+import type {
+  LossReason,
+  OpportunityDetail,
+  PipelineStatus,
+  Product,
+  QuoteProductInput,
+} from '../pipeline/types'
 import type { ActiveProductCatalog } from '../pipeline/useActiveProductCatalog'
 import { AppLink, navigate, navigateRoute, navigateToHistoryOrigin } from '../routing/router'
 import { Button } from '../shared/Button'
@@ -78,6 +86,10 @@ export function OpportunityDetailPage({
   const [lossOpportunity, setLossOpportunity] = useState<OpportunityDetail | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState(false)
+  const [pendingRegression, setPendingRegression] = useState<{
+    fromStatus: PipelineStatus
+    targetStatus: PipelineStatus
+  } | null>(null)
   const requestGenerationRef = useRef(0)
   const opportunityRef = useRef(opportunity)
   const cachedOpportunityRef = useRef(cachedOpportunity)
@@ -259,6 +271,35 @@ export function OpportunityDetailPage({
     }
   }
 
+  const confirmRegression = async () => {
+    if (!opportunity || !pendingRegression || isMutating) return
+    setActionError(null)
+    setIsMutating(true)
+    try {
+      const updated = await regressOpportunityStage(
+        opportunity.id,
+        pendingRegression.fromStatus,
+        pendingRegression.targetStatus,
+        session,
+      )
+      setOpportunity(updated)
+      onOpportunityUpdated?.(updated)
+      setPendingRegression(null)
+      if (surface === 'won') {
+        navigateRoute(
+          { kind: 'opportunity', opportunityId: opportunity.id, surface: 'pipeline' },
+          { replace: true },
+        )
+      }
+    } catch {
+      setActionError('No pudimos atrasar la oportunidad. Su etapa puede haber cambiado.')
+      setPendingRegression(null)
+      setKey((current) => current + 1)
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
   const handleLoss = async (reason: LossReason) => {
     if (!lossOpportunity) return
     requestGenerationRef.current += 1
@@ -295,6 +336,25 @@ export function OpportunityDetailPage({
             : opportunity.status === 'COTIZADA'
               ? 'Pasar a negociación'
               : 'Marcar ganada'}
+        </Button>
+      ) : null}
+      {opportunity.status === 'NEGOCIACION' || opportunity.status === 'GANADA' ? (
+        <Button
+          className='opportunity-detail__action'
+          disabled={isMutating}
+          onClick={() => {
+            const fromStatus = opportunity.status as PipelineStatus
+            const targetStatus = STAGE_BY_STATUS.get(fromStatus)?.previousStatus
+            if (targetStatus) setPendingRegression({ fromStatus, targetStatus })
+          }}
+        >
+          <Icon name='chevron-left' />
+          Volver a{' '}
+          {
+            OPPORTUNITY_STATUS_LABELS[
+              STAGE_BY_STATUS.get(opportunity.status as PipelineStatus)?.previousStatus ?? 'NUEVA'
+            ]
+          }
         </Button>
       ) : null}
       {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
@@ -437,6 +497,30 @@ export function OpportunityDetailPage({
           />
         </div>
       )}
+      <ConfirmationDialog
+        confirmLabel={
+          pendingRegression
+            ? `Volver a ${OPPORTUNITY_STATUS_LABELS[pendingRegression.targetStatus]}`
+            : 'Confirmar retroceso'
+        }
+        description={
+          pendingRegression
+            ? `La oportunidad pasará de ${OPPORTUNITY_STATUS_LABELS[pendingRegression.fromStatus]} a ${OPPORTUNITY_STATUS_LABELS[pendingRegression.targetStatus]}.`
+            : undefined
+        }
+        isOpen={pendingRegression !== null}
+        isPending={isMutating}
+        onCancel={() => {
+          if (!isMutating) setPendingRegression(null)
+        }}
+        onConfirm={() => void confirmRegression()}
+        pendingLabel='Actualizando…'
+        title='Confirmar retroceso de etapa'
+      >
+        <p className='text-sm text-[var(--text-secondary)]'>
+          El cambio quedará registrado con su fecha en el historial de la oportunidad.
+        </p>
+      </ConfirmationDialog>
       <ConfirmationDialog
         confirmLabel='Reabrir en negociación'
         description='La oportunidad volverá a Negociación y conservará su historial de pérdida.'

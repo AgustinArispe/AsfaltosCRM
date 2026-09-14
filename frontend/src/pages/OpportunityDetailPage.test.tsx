@@ -465,6 +465,41 @@ describe('OpportunityDetailPage', () => {
     )
   })
 
+  it('confirms a backward transition and shows it in the dated activity history', async () => {
+    const won = makeDetail({ status: 'GANADA' })
+    const regressed = makeDetail({
+      status: 'NEGOCIACION',
+      history: [
+        ...won.history,
+        {
+          id: 5,
+          from_status: 'GANADA',
+          to_status: 'NEGOCIACION',
+          changed_at: '2026-09-14T15:30:00Z',
+          changed_by_user_id: 8,
+        },
+      ],
+    })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, won))
+      .mockResolvedValueOnce(jsonResponse(200, regressed))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a Negociación' }))
+    const dialog = screen.getByRole('dialog', { name: 'Confirmar retroceso de etapa' })
+    expect(within(dialog).getByText('La oportunidad pasará de Ganada a Negociación.')).toBeVisible()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Negociación' }))
+
+    await waitFor(() => expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/regress'))
+    expect(await screen.findByText('Pasó de Ganada a Negociación')).toBeInTheDocument()
+    expect(document.querySelector('time[datetime="2026-09-14T15:30:00Z"]')).toHaveTextContent(
+      '14 sept 2026, 12:30',
+    )
+  })
+
   it('does not let an older background detail response overwrite a successful mutation', async () => {
     const cached = makeDetail({ status: 'COTIZADA' })
     const updated = makeDetail({

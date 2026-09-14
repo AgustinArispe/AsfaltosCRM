@@ -166,6 +166,19 @@ export function winOpportunity(opportunityId: number, session: ApiSession) {
   })
 }
 
+export function regressOpportunityStage(
+  opportunityId: number,
+  expectedStatus: PipelineStatus,
+  targetStatus: PipelineStatus,
+  session: ApiSession,
+) {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/regress`, {
+    ...session,
+    method: 'POST',
+    body: { expected_status: expectedStatus, target_status: targetStatus },
+  })
+}
+
 export function loseOpportunity(
   opportunityId: number,
   lossReason: LossReason,

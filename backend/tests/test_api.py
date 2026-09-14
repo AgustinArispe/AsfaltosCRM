@@ -343,6 +343,49 @@ def test_complete_won_flow_and_detail_history(
     )
 
 
+def test_opportunity_regression_is_confirmable_by_expected_state_and_audited(
+    api_client: TestClient,
+    supervisor_user: User,
+) -> None:
+    customer = create_customer(api_client, "Cliente con retrocesos")
+    product = create_product(api_client, "Producto con retrocesos")
+    opportunity = create_opportunity(api_client, customer.id)
+    quote_opportunity(api_client, opportunity.id, product.id)
+    api_client.post(f"/api/opportunities/{opportunity.id}/move-to-negotiation", json={})
+    api_client.post(f"/api/opportunities/{opportunity.id}/win", json={})
+
+    negotiation = api_client.post(
+        f"/api/opportunities/{opportunity.id}/regress",
+        json={"expected_status": "GANADA", "target_status": "NEGOCIACION"},
+    )
+    quoted = api_client.post(
+        f"/api/opportunities/{opportunity.id}/regress",
+        json={"expected_status": "NEGOCIACION", "target_status": "COTIZADA"},
+    )
+    forbidden = api_client.post(
+        f"/api/opportunities/{opportunity.id}/regress",
+        json={"expected_status": "COTIZADA", "target_status": "NUEVA"},
+    )
+
+    assert negotiation.status_code == quoted.status_code == 200
+    assert negotiation.json()["status"] == "NEGOCIACION"
+    assert quoted.json()["status"] == "COTIZADA"
+    assert forbidden.status_code == 409
+    history = quoted.json()["history"]
+    assert [(entry["from_status"], entry["to_status"]) for entry in history[-2:]] == [
+        ("GANADA", "NEGOCIACION"),
+        ("NEGOCIACION", "COTIZADA"),
+    ]
+    assert all(entry["changed_at"] for entry in history)
+    assert all(
+        entry["changed_by_user_id"] == supervisor_user.id for entry in history[-2:]
+    )
+    assert quoted.json()["products"] == negotiation.json()["products"]
+    persisted = api_client.get(f"/api/opportunities/{opportunity.id}").json()
+    assert persisted["status"] == "COTIZADA"
+    assert len(persisted["history"]) == len(history)
+
+
 def test_lost_opportunity_flow(api_client: TestClient) -> None:
     customer = create_customer(api_client, "Cliente perdido")
     opportunity = create_opportunity(api_client, customer.id)
@@ -489,3 +532,4 @@ def test_openapi_exposes_crm_routes(api_client: TestClient) -> None:
     assert "/api/products" in paths
     assert "/api/opportunities/{opportunity_id}/quote" in paths
     assert "/api/opportunities/{opportunity_id}/win" in paths
+    assert "/api/opportunities/{opportunity_id}/regress" in paths
