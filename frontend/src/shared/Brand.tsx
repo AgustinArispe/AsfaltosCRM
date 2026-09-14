@@ -7,14 +7,13 @@ export function Brand({
 }) {
   return (
     <div className='flex items-center gap-2.5'>
-      <span
-        aria-hidden='true'
-        className={[
-          'grid size-9 place-items-center rounded-[var(--radius-control)] border border-[var(--brand-accent)] bg-[var(--brand-accent)] text-xs font-bold tracking-[0.04em] text-[var(--on-accent)] shadow-[var(--shadow-subtle)]',
-        ].join(' ')}
-      >
-        FAA
-      </span>
+      <img
+        alt=''
+        className='size-9 shrink-0 rounded-[var(--radius-control)] shadow-[var(--shadow-subtle)]'
+        height={36}
+        src='/faa-logo-256.png'
+        width={36}
+      />
       <span className={collapsed ? 'sr-only' : 'leading-tight'}>
         <span
           className={`block text-sm font-semibold ${inverse ? 'text-[var(--on-brand)]' : 'text-[var(--text-primary)]'}`}
