@@ -243,7 +243,11 @@ def run_axe(page: Page) -> None:
 
 def stable_screenshot(page: Page, name: str) -> None:
     page.evaluate("document.fonts.ready")
-    page.screenshot(path=ARTIFACTS_DIR / f"actual-{name}.png", full_page=True)
+    page.screenshot(
+        path=ARTIFACTS_DIR / f"actual-{name}.png",
+        full_page=True,
+        animations="disabled",
+    )
 
 
 def assert_visual_baseline(page: Page, name: str) -> None:
@@ -251,7 +255,7 @@ def assert_visual_baseline(page: Page, name: str) -> None:
     actual_path = ARTIFACTS_DIR / f"actual-{name}.png"
     expected_path = BASELINES_DIR / f"{name}.png"
     page.evaluate("document.fonts.ready")
-    page.screenshot(path=actual_path, full_page=True)
+    page.screenshot(path=actual_path, full_page=True, animations="disabled")
     if not expected_path.exists() or _update_visual_baselines():
         expected_path.parent.mkdir(parents=True, exist_ok=True)
         expected_path.write_bytes(actual_path.read_bytes())
@@ -266,7 +270,10 @@ def assert_visual_baseline(page: Page, name: str) -> None:
         difference = ImageChops.difference(expected, actual)
         statistics = ImageStat.Stat(difference)
         grayscale_histogram = difference.convert("L").histogram()
-        changed = actual.width * actual.height - grayscale_histogram[0]
+        # Chromium rasterizes SVG curves with tiny ARM/x86 antialiasing differences.
+        # Ignore deltas that are visually indistinguishable while preserving the
+        # existing changed-area and mean-delta regression thresholds.
+        changed = actual.width * actual.height - sum(grayscale_histogram[:3])
         changed_ratio = changed / (actual.width * actual.height)
         mean_delta = sum(statistics.mean) / 3
         if changed_ratio > 0.01 or mean_delta > 0.75:
