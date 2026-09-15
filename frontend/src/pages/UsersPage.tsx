@@ -158,7 +158,7 @@ export function UsersPage() {
           <InlineFeedback message={operationError} onDismiss={() => setOperationError(null)} />
         </div>
       ) : null}
-      <div>
+      <div className='grid gap-4'>
         {isLoading ? (
           <WorkspaceSkeleton label='Cargando usuarios…' />
         ) : loadError ? (
