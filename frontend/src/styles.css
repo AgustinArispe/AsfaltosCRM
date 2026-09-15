@@ -1733,6 +1733,7 @@
   --success-subtle: #e9f6ee;
   --success-border: #9acaaa;
   --success-text: #1c653d;
+  --success-surface: var(--success-subtle);
   --informational-new: var(--brand-navy);
   --informational-new-muted: #e8eff6;
   --quoted-pending: #9a6c08;
@@ -1748,6 +1749,9 @@
   --destructive-border: #e4a2a8;
   --destructive-solid: #b52f3b;
   --destructive-text: #8c202b;
+  --destructive: var(--destructive-text);
+  --danger-surface: var(--destructive-subtle);
+  --danger-text: var(--destructive-text);
   --on-destructive: #ffffff;
   --legendary-surface: var(--surface-interactive);
   --legendary-border: #c5a85c;
@@ -1756,6 +1760,8 @@
   --communication: #25714d;
   --communication-muted: #e9f6ef;
   --communication-border: #9bcbb2;
+  --brand-soft: var(--action-secondary-subtle);
+  --stage-negotiation: var(--negotiation);
   --hover: var(--surface-hover);
   --pressed: #e5e8eb;
   --selected: var(--surface-selected);
@@ -1784,6 +1790,7 @@
   --scrim: rgb(12 24 36 / 52%);
   --radius-control: 0.5rem;
   --radius-surface: 0.75rem;
+  --radius-card: var(--radius-surface);
   --radius-overlay: 0.875rem;
   --shadow-raised: 0 8px 24px rgb(24 28 32 / 8%);
   --shadow-subtle: 0 1px 3px rgb(24 28 32 / 8%);
@@ -1802,32 +1809,33 @@
 }
 
 :root[data-theme="dark"] {
-  --canvas: #151719;
-  --canvas-subtle: #1a1d20;
-  --surface-primary: #202326;
-  --surface-secondary: #292d31;
-  --surface-raised: #2c3034;
-  --surface-interactive: #25292d;
-  --surface-hover: #32373c;
-  --surface-selected: #25384a;
-  --surface-overlay: #2d3135;
+  color-scheme: dark;
+  --canvas: #0b121b;
+  --canvas-subtle: #101923;
+  --surface-primary: #151f2a;
+  --surface-secondary: #1b2733;
+  --surface-raised: #22303d;
+  --surface-interactive: #1d2a36;
+  --surface-hover: #283746;
+  --surface-selected: #193a55;
+  --surface-overlay: #1d2935;
   --surface: var(--surface-primary);
   --surface-subtle: var(--surface-secondary);
-  --text-primary: #f2f4f5;
-  --text-secondary: #c4c9ce;
-  --text-tertiary: #99a1a8;
-  --text-inverse: #191c1f;
+  --text-primary: #f3f6f8;
+  --text-secondary: #c2cdd6;
+  --text-tertiary: #98a8b7;
+  --text-inverse: #0b121b;
   --brand-accent: var(--brand-yellow);
-  --brand-deep: #9dbbd7;
-  --on-brand: #f2f4f5;
-  --text-disabled: #737b82;
-  --divider: #383d42;
-  --subtle-border: #495057;
-  --strong-border: #78828a;
+  --brand-deep: #a8c7e1;
+  --on-brand: #f3f6f8;
+  --text-disabled: #768797;
+  --divider: #2b3a48;
+  --subtle-border: #3b4d5d;
+  --strong-border: #667b8d;
   --border-subtle: var(--divider);
   --border-default: var(--subtle-border);
   --border-strong: var(--strong-border);
-  --border-interactive: #89939b;
+  --border-interactive: #7890a3;
   --accent: var(--brand-accent);
   --accent-hover: #ffcc33;
   --accent-pressed: #d9a300;
@@ -1838,68 +1846,69 @@
   --action-primary-hover: #ffcc33;
   --action-primary-pressed: #d9a300;
   --on-action-primary: #221d08;
-  --action-secondary: #9dbbd7;
-  --action-secondary-hover: #bdd3e7;
-  --action-secondary-subtle: #25384a;
-  --on-action-secondary: #132336;
-  --selection-surface: #25384a;
-  --selection-text: #dceaf6;
+  --action-secondary: #a8c7e1;
+  --action-secondary-hover: #c4daec;
+  --action-secondary-subtle: #19344b;
+  --on-action-secondary: #102131;
+  --selection-surface: #193a55;
+  --selection-text: #e4f0f8;
   --selection-marker: var(--brand-yellow);
-  --success-subtle: #183b29;
-  --success-border: #39744e;
-  --success-text: #9addae;
-  --informational-new: #9dbbd7;
-  --informational-new-muted: #25384a;
-  --quoted-pending: #f0d276;
+  --success-subtle: #163326;
+  --success-border: #3d7152;
+  --success-text: #9edbb2;
+  --informational-new: #a8c7e1;
+  --informational-new-muted: #19344b;
+  --quoted-pending: #efd078;
   --quoted-pending-surface: var(--surface-interactive);
-  --negotiation: #c8adeb;
-  --negotiation-muted: #393048;
+  --negotiation: #c7afe8;
+  --negotiation-muted: #332d43;
   --warning-surface: var(--surface-interactive);
-  --warning-border: #8d691a;
-  --warning-text: #f4cf70;
-  --uncertain: #d1c4e5;
-  --uncertain-muted: #383244;
-  --destructive-subtle: #482226;
-  --destructive-border: #8e3d46;
-  --destructive-solid: #dc5c68;
-  --destructive-text: #ffb7bd;
-  --on-destructive: #2a0c0f;
+  --warning-border: #806522;
+  --warning-text: #ecd27c;
+  --uncertain: #cfc4df;
+  --uncertain-muted: #322e3d;
+  --destructive-subtle: #3a2028;
+  --destructive-border: #81434e;
+  --destructive-solid: #d85e69;
+  --destructive-text: #f5adb5;
+  --on-destructive: #250b10;
   --legendary-surface: var(--surface-interactive);
-  --legendary-border: #a58b3f;
-  --legendary-text: #f0d98f;
-  --text-link: #a9c8e2;
-  --communication: #8bd3ad;
-  --communication-muted: #213b2e;
-  --communication-border: #3d7657;
+  --legendary-border: #927b3d;
+  --legendary-text: #ebd58e;
+  --text-link: #afd0ea;
+  --communication: #8fd2ad;
+  --communication-muted: #193528;
+  --communication-border: #3f7357;
   --hover: var(--surface-hover);
-  --pressed: #3a4045;
+  --pressed: #304151;
   --selected: var(--surface-selected);
-  --focus-ring: #a9c8e2;
+  --focus-ring: #afd0ea;
   --focus-ring-offset: var(--canvas);
   --chart-grid: var(--divider);
   --chart-axis: var(--text-tertiary);
-  --chart-primary: #9dbbd7;
+  --chart-primary: #a8c7e1;
   --chart-highlight: var(--brand-yellow);
-  --chart-neutral: #b5bdc4;
-  --chart-success: #9addae;
-  --chart-destructive: #ffb7bd;
+  --chart-neutral: #b7c2cc;
+  --chart-success: #9edbb2;
+  --chart-destructive: #f5adb5;
   --chart-new: var(--informational-new);
   --chart-quoted: var(--quoted-pending);
   --chart-negotiation: var(--negotiation);
-  --chart-series-1: #9dbbd7;
-  --chart-series-2: #f0d276;
-  --chart-series-3: #c8adeb;
-  --chart-series-4: #9addae;
-  --chart-series-5: #aeb7bf;
-  --chart-tooltip: var(--surface-secondary);
+  --chart-series-1: #a8c7e1;
+  --chart-series-2: #efd078;
+  --chart-series-3: #c7afe8;
+  --chart-series-4: #9edbb2;
+  --chart-series-5: #b7c2cc;
+  --chart-tooltip: var(--surface-overlay);
   --dashboard-kpi-accent: var(--brand-accent);
   --disabled-surface: var(--surface-secondary);
   --disabled-text: var(--text-disabled);
   --disabled-border: var(--border-subtle);
-  --scrim: rgb(0 0 0 / 62%);
-  --shadow-raised: 0 10px 28px rgb(0 0 0 / 22%);
-  --shadow-subtle: 0 1px 3px rgb(0 0 0 / 28%);
-  --shadow-overlay: 0 22px 60px rgb(0 0 0 / 48%);
+  --scrim: rgb(3 8 14 / 72%);
+  --shadow-raised: 0 10px 28px rgb(2 8 15 / 32%);
+  --shadow-subtle: 0 1px 3px rgb(2 8 15 / 34%);
+  --shadow-floating: 0 14px 34px rgb(2 8 15 / 40%);
+  --shadow-overlay: 0 24px 64px rgb(2 8 15 / 58%);
 }
 
 * {
@@ -7499,4 +7508,31 @@ button.dashboard-comparison-bar:focus-visible {
   .crm-modal[open] .crm-modal__surface {
     transform: none;
   }
+}
+
+/* Dark theme containment stays shared so workspaces keep the same hierarchy. */
+:root[data-theme="dark"] .ui-panel,
+:root[data-theme="dark"] .ui-surface-secondary {
+  outline: 1px solid var(--border-subtle);
+  outline-offset: -1px;
+}
+
+:root[data-theme="dark"] .ui-tooltip::after {
+  border: 1px solid var(--border-default);
+}
+
+:root[data-theme="dark"] .crm-modal__surface {
+  border-color: var(--border-default);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-overlay);
+}
+
+:root[data-theme="dark"] .crm-modal__header {
+  border-bottom-color: var(--divider);
+  background: color-mix(in srgb, var(--brand-deep) 5%, var(--surface-overlay));
+}
+
+:root[data-theme="dark"] .dashboard-conversion--volume dt > svg,
+:root[data-theme="dark"] .dashboard-conversion--volume dd strong {
+  color: var(--negotiation);
 }
