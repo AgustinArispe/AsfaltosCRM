@@ -7,12 +7,37 @@ import pytest
 from playwright.sync_api import expect
 
 from quality.browser.support import (
+    FRONTEND_URL,
     QaPageFactory,
     Theme,
     assert_no_horizontal_overflow,
     run_axe,
     wait_for_workspace,
 )
+
+
+@pytest.mark.matrix
+@pytest.mark.parametrize(
+    ("theme", "viewport"),
+    [
+        ("light", (1440, 900)),
+        ("dark", (1440, 900)),
+        ("light", (390, 844)),
+        ("dark", (390, 844)),
+    ],
+)
+def test_login_theme_and_responsive_accessibility(
+    qa_pages: QaPageFactory,
+    theme: Theme,
+    viewport: tuple[int, int],
+) -> None:
+    qa_page = qa_pages.create(theme=theme, viewport=viewport)
+    page = qa_page.page
+    page.goto(f"{FRONTEND_URL}/login", wait_until="networkidle")
+    expect(page.locator("html")).to_have_attribute("data-theme", theme)
+    expect(page.get_by_role("heading", name="Ingresar al sistema")).to_be_visible()
+    run_axe(page)
+    assert_no_horizontal_overflow(page)
 
 
 @pytest.mark.matrix

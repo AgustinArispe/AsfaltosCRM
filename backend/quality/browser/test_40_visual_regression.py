@@ -6,14 +6,23 @@ import pytest
 from playwright.sync_api import expect
 
 from quality.browser.support import (
+    FRONTEND_URL,
     QaPage,
     QaPageFactory,
+    Theme,
     assert_visual_baseline,
     wait_for_workspace,
 )
 
 QA_WHATSAPP_VISUAL_CONVERSATION_ID = 2
 QA_WHATSAPP_VISUAL_READ_SEQUENCE = (5, 6, 4, 3, QA_WHATSAPP_VISUAL_CONVERSATION_ID)
+
+
+def _open_login(qa_page: QaPage, theme: Theme) -> None:
+    page = qa_page.page
+    page.goto(f"{FRONTEND_URL}/login", wait_until="networkidle")
+    expect(page.locator("html")).to_have_attribute("data-theme", theme)
+    expect(page.get_by_role("heading", name="Ingresar al sistema")).to_be_visible()
 
 
 def _open_canonical_whatsapp_conversation(qa_page: QaPage) -> None:
@@ -26,6 +35,21 @@ def _open_canonical_whatsapp_conversation(qa_page: QaPage) -> None:
     expect(
         page.get_by_role("heading", name="Paula Benítez", exact=True)
     ).to_be_visible()
+
+
+@pytest.mark.visual
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_login_desktop_baseline(qa_pages: QaPageFactory, theme: Theme) -> None:
+    qa_page = qa_pages.create(viewport=(1440, 900), theme=theme)
+    _open_login(qa_page, theme)
+    assert_visual_baseline(qa_page.page, f"login-{theme}")
+
+
+@pytest.mark.visual
+def test_login_mobile_baseline(qa_pages: QaPageFactory) -> None:
+    qa_page = qa_pages.create(viewport=(390, 844))
+    _open_login(qa_page, "light")
+    assert_visual_baseline(qa_page.page, "login-mobile")
 
 
 @pytest.mark.visual
@@ -109,6 +133,7 @@ def test_dashboard_dark_baseline(qa_pages: QaPageFactory) -> None:
 @pytest.mark.visual
 def test_pipeline_effective_150_percent_baseline(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR", viewport=(1280, 720))
+    qa_page.page.mouse.move(0, 0)
     expect(
         qa_page.page.get_by_role(
             "button", name=re.compile("Abrir oportunidad de Constructora del Sur")

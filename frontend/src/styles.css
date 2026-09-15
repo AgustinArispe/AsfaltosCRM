@@ -3042,6 +3042,125 @@ a {
   color: var(--destructive-text);
 }
 
+.login-page {
+  display: grid;
+  min-height: 100dvh;
+  background: var(--canvas);
+  color: var(--text-primary);
+}
+
+.login-brand-panel {
+  display: none;
+  border-inline-end: 1px solid var(--border-default);
+  background: var(--action-secondary-subtle);
+  padding: 2.5rem;
+}
+
+.login-brand-panel__copy {
+  display: grid;
+  max-width: 24rem;
+  gap: 1rem;
+}
+
+.login-brand-panel__copy p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.login-brand-panel__copy p:first-child {
+  font-size: var(--text-body-size);
+  line-height: 1.625rem;
+}
+
+.login-brand-panel__copy p:last-child {
+  color: var(--brand-navy);
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-line);
+}
+
+.login-form-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 25rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-surface);
+  background: var(--surface-primary);
+  padding: 1.5rem 1.25rem;
+  box-shadow: var(--shadow-raised);
+}
+
+.login-page .ui-field[aria-invalid="true"] {
+  border-color: var(--destructive-border);
+}
+
+.login-page .ui-field[aria-invalid="true"]:focus {
+  border-color: var(--destructive-text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive-text) 20%, transparent);
+}
+
+.login-page .ui-field:autofill,
+.login-page .ui-field:-webkit-autofill {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  caret-color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-raised) inset;
+}
+
+.login-page .ui-field:autofill:focus,
+.login-page .ui-field:-webkit-autofill:focus {
+  border-color: var(--focus-ring);
+  -webkit-box-shadow:
+    0 0 0 1000px var(--surface-raised) inset,
+    0 0 0 3px color-mix(in srgb, var(--focus-ring) 24%, transparent);
+}
+
+.login-page .ui-field[aria-invalid="true"]:autofill:focus,
+.login-page .ui-field[aria-invalid="true"]:-webkit-autofill:focus {
+  border-color: var(--destructive-text);
+  -webkit-box-shadow:
+    0 0 0 1000px var(--surface-raised) inset,
+    0 0 0 3px color-mix(in srgb, var(--destructive-text) 20%, transparent);
+}
+
+:root[data-theme="dark"] .login-brand-panel {
+  border-color: var(--border-default);
+  background: var(--canvas-subtle);
+}
+
+:root[data-theme="dark"] .login-brand-panel__copy p:last-child {
+  color: var(--text-primary);
+}
+
+@media (min-width: 640px) {
+  .login-form-area {
+    padding-inline: 2rem;
+  }
+
+  .login-card {
+    padding: 1.75rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .login-page {
+    grid-template-columns: minmax(22rem, 0.8fr) minmax(28rem, 1.2fr);
+  }
+
+  .login-brand-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+}
+
 .ui-segmented-control {
   display: inline-flex;
   gap: 0.2rem;

@@ -43,23 +43,17 @@ export function LoginPage() {
   const errorMessage = error ? ERROR_MESSAGES[error] : null
 
   return (
-    <main className='grid min-h-dvh bg-[var(--surface-secondary)] text-[var(--text-primary)] lg:grid-cols-[18rem_minmax(28rem,1fr)]'>
-      <section
-        className='hidden border-e border-[var(--strong-border)] bg-[var(--brand-deep)] px-7 py-7 text-[var(--on-brand)] lg:flex lg:flex-col lg:justify-between'
-        aria-label='Identidad FAA'
-      >
-        <Brand inverse />
-        <p className='max-w-md text-sm leading-6 text-[var(--text-tertiary)]'>
-          Acceso interno al sistema de gestión comercial.
-        </p>
-        <p className='text-xs text-[var(--text-tertiary)]'>Fábrica Argentina de Asfaltos</p>
+    <main className='login-page'>
+      <section className='login-brand-panel' aria-label='Identidad FAA'>
+        <Brand />
+        <div className='login-brand-panel__copy'>
+          <p>Acceso interno al sistema de gestión comercial.</p>
+          <p>Fábrica Argentina de Asfaltos</p>
+        </div>
       </section>
 
-      <section
-        className='flex items-center justify-center px-5 py-10 sm:px-8'
-        aria-labelledby='login-title'
-      >
-        <div className='ui-panel w-full max-w-sm px-5 py-6 sm:px-6'>
+      <section className='login-form-area' aria-labelledby='login-title'>
+        <div className='login-card'>
           <div className='mb-10 lg:hidden'>
             <Brand />
           </div>
