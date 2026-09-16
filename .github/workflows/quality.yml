@@ -25,7 +25,7 @@ jobs:
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
       ALLOWED_HOSTS: localhost,testserver
       WEB_INTAKE_SIGNING_SECRET: ci-only-intake-secret-with-thirty-two-characters
-      STALE_OPPORTUNITY_DAYS: "14"
+      STALE_OPPORTUNITY_DAYS: "7"
       WHATSAPP_PROVIDER: fake
       WHATSAPP_DEV_ROUTES_ENABLED: "false"
       WHATSAPP_MEDIA_STORAGE: fake

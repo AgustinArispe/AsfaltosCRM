@@ -82,6 +82,7 @@ def test_pipeline_controls_search_detail_and_opportunity_evidence(
     ).to_be_visible()
     for stage in ("Nueva", "Cotizada", "Negociación", "Ganada"):
         expect(page.get_by_role("heading", name=stage, exact=True)).to_be_visible()
+    expect(page.get_by_text("¡Atrasado!", exact=True).first).to_be_visible()
 
     controls = page.get_by_role("form", name="Filtros del pipeline")
     expect(
@@ -165,6 +166,9 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     expect(result.get_by_role("button", name=re.compile("Ganadas"))).to_be_visible()
     expect(result.get_by_role("button", name=re.compile("Pérdidas"))).to_be_visible()
     expect(page.get_by_role("region", name="Oportunidades activas")).to_be_visible()
+    overdue_link = page.get_by_role("link", name=re.compile("¡Atrasado!"))
+    expect(overdue_link).to_be_visible()
+    expect(overdue_link).to_have_attribute("href", "/notifications?view=active")
     expect(page.get_by_role("heading", name="Evolución comercial")).to_be_visible()
     series = page.get_by_role("list", name="Series de evolución")
     for label in ("Creadas", "Ganadas", "Pérdidas"):

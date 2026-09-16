@@ -2,8 +2,10 @@ import { useDraggable } from '@dnd-kit/react'
 
 import { LegendaryBadge } from '../customers/LegendaryBadge'
 import { Icon } from '../shared/Icon'
+import { OverdueBadge } from '../shared/OverdueBadge'
 import { customerIdentity } from './board-state'
 import { opportunityStatusColorClass, SOURCE_LABELS, STAGE_BY_STATUS } from './config'
+import { isOpportunityOverdue, OVERDUE_LABEL } from './overdue'
 import type { OpportunitySummary, PipelineStatus } from './types'
 
 export type PipelineDragData = {
@@ -32,6 +34,7 @@ export function OpportunityCard({
   const canChangeStage = Boolean(stage?.nextStatus || stage?.previousStatus)
   const isDraggable = canChangeStage && !isBusy
   const identity = customerIdentity(opportunity.customer)
+  const isOverdue = isOpportunityOverdue(opportunity.status, opportunity.current_status_entered_at)
   const { ref, isDragging } = useDraggable<PipelineDragData>({
     id: opportunity.id,
     type: 'OPPORTUNITY',
@@ -57,6 +60,7 @@ export function OpportunityCard({
         isSelected ? 'pipeline-card--selected' : '',
         isDragging ? 'pipeline-card--dragging' : '',
         isBusy ? 'pipeline-card--busy' : '',
+        isOverdue ? 'pipeline-card--overdue' : '',
         !canChangeStage ? 'pipeline-card--terminal' : '',
       ].join(' ')}
       data-opportunity-id={opportunity.id}
@@ -64,7 +68,7 @@ export function OpportunityCard({
       <button
         aria-current={isSelected ? 'true' : undefined}
         aria-describedby={isBusy ? `pipeline-card-pending-${opportunity.id}` : undefined}
-        aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}, estado ${STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}${isDraggable ? '. Se puede arrastrar a una etapa permitida.' : '. No tiene movimientos disponibles.'}`}
+        aria-label={`Abrir oportunidad de ${identity.primary}, origen ${SOURCE_LABELS[opportunity.source]}, estado ${STAGE_BY_STATUS.get(opportunity.status)?.label ?? opportunity.status}${isOverdue ? `, ${OVERDUE_LABEL}` : ''}${isDraggable ? '. Se puede arrastrar a una etapa permitida.' : '. No tiene movimientos disponibles.'}`}
         className={[
           'pipeline-card__button',
           isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
@@ -91,6 +95,7 @@ export function OpportunityCard({
         </span>
         <span className='pipeline-card__meta'>
           <span className='pipeline-card__source'>{SOURCE_LABELS[opportunity.source]}</span>
+          {isOverdue ? <OverdueBadge /> : null}
           {showStageAge ? (
             <span className='pipeline-card__stage-age'>
               En etapa: {formatStageAge(opportunity.current_status_entered_at)}

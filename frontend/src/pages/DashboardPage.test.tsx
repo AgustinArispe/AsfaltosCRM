@@ -17,6 +17,8 @@ type MockOptions = {
   zeroTimeline?: boolean
   timelineFailure?: boolean
   twoStagePipeline?: boolean
+  staleTotal?: number
+  staleFailure?: boolean
 }
 
 function response(body: unknown, status = 200): Response {
@@ -237,11 +239,12 @@ function mockDashboardApi(options: MockOptions = {}) {
       })
     }
     if (url.pathname === '/api/notifications') {
+      if (options.staleFailure) return response({ detail: 'stale failed' }, 500)
       return response({
         items: [],
         page: 1,
         page_size: 1,
-        total: url.searchParams.get('unread_only') === 'true' ? 1 : 2,
+        total: url.searchParams.get('unread_only') === 'true' ? 1 : (options.staleTotal ?? 2),
       })
     }
     if (url.pathname === '/api/whatsapp/conversations/attention-summary') {
@@ -290,6 +293,8 @@ describe('DashboardPage', () => {
     expect(within(activeSection).getByText('Nueva')).toBeInTheDocument()
     expect(within(activeSection).getByText('Cotizada')).toBeInTheDocument()
     expect(within(activeSection).getByText('Negociación')).toBeInTheDocument()
+    const overdueLink = within(activeSection).getByRole('link', { name: /¡Atrasado!2/ })
+    expect(overdueLink).toHaveAttribute('href', '/notifications?view=active')
     expect(within(activeSection).queryByText(/Snapshot/i)).not.toBeInTheDocument()
     expect(activeSection.querySelector('.dashboard-pipeline-bar')).not.toBeInTheDocument()
     expect(
@@ -342,6 +347,19 @@ describe('DashboardPage', () => {
     fireEvent.click(opportunityCard)
     expect(window.location.pathname).toBe('/pipeline/opportunities/41')
   })
+
+  it.each([{ staleTotal: 0 }, { staleFailure: true }])(
+    'keeps the active section calm without an authoritative overdue total',
+    async (options) => {
+      await renderLoaded(options)
+      const activeSection = screen
+        .getByRole('heading', { name: 'Oportunidades activas' })
+        .closest('section')
+      if (!activeSection) throw new Error('Active Opportunities section is missing')
+      expect(within(activeSection).queryByText('¡Atrasado!')).not.toBeInTheDocument()
+      expect(within(activeSection).getByText('Ver oportunidades')).toBeInTheDocument()
+    },
+  )
 
   it('draws all active stages proportionally and links donut and legend hover states', async () => {
     await renderLoaded()

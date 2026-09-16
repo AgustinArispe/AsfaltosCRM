@@ -2301,6 +2301,22 @@ table td {
   font-size: var(--text-small-size);
   line-height: var(--text-small-line);
 }
+.ui-overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid var(--warning-border);
+  border-radius: 999px;
+  background: var(--warning-surface);
+  padding: 0.1rem 0.4rem;
+  color: var(--warning-text);
+  font-size: 0.75rem;
+  font-weight: 750;
+  line-height: 1rem;
+}
+.pipeline-card--overdue {
+  border-color: color-mix(in srgb, var(--warning-border) 72%, var(--border-default));
+}
 .pipeline-card__source::after {
   margin-inline-start: 0.45rem;
   color: var(--border-strong);
@@ -3600,6 +3616,9 @@ a {
 .notification-row__heading > .notification-row__unread {
   color: var(--text-primary);
   font-weight: 600;
+}
+.notification-row__heading > .ui-overdue-badge {
+  color: var(--warning-text);
 }
 .notification-row__identity {
   overflow-wrap: anywhere;
@@ -5525,6 +5544,32 @@ dialog:not(.drawer-dialog) > div > header h2,
   color: var(--text-secondary);
   font-size: 0.875rem;
 }
+.dashboard-active__heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.875rem;
+}
+.dashboard-active .dashboard-active__overdue {
+  min-height: 2rem;
+  margin-top: 0;
+  gap: 0.4rem;
+  border: 1px solid var(--warning-border);
+  border-radius: 999px;
+  background: var(--warning-surface);
+  padding: 0.25rem 0.55rem 0.25rem 0.7rem;
+  color: var(--warning-text);
+  text-decoration: none;
+}
+.dashboard-active__overdue strong {
+  min-width: 1.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning-text) 13%, transparent);
+  padding-inline: 0.35rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .dashboard-eyebrow {
   margin: 0 0 0.25rem;
   color: var(--text-tertiary);
@@ -5884,6 +5929,10 @@ button.dashboard-comparison-bar:focus-visible {
   .dashboard-chart-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .dashboard-active__heading-actions {
+    width: 100%;
+    justify-content: space-between;
   }
   .dashboard-active__summary small {
     width: 100%;

@@ -163,7 +163,7 @@ def test_notifications_read_action_and_badge_synchronize(
     wait_for_workspace(page, "notifications")
     page.get_by_role(
         "button",
-        name=re.compile(r"Seguimiento pendiente:.*sin leer, activa", re.IGNORECASE),
+        name=re.compile(r"¡Atrasado!:.*sin leer, activa", re.IGNORECASE),
     ).first.click()
     detail = page.get_by_role("dialog", name=re.compile(".+"))
     expect(detail).to_be_visible()

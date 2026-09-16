@@ -57,10 +57,11 @@ export function navigateToHistoryOrigin(fallback: CrmRoute) {
 type AppLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   to: string | CrmRoute
   origin?: RouteOrigin
+  search?: string
 }
 
-export function AppLink({ to, origin, onClick, ...props }: AppLinkProps) {
-  const target = typeof to === 'string' ? normalizePath(to) : pathForRoute(to)
+export function AppLink({ to, origin, search = '', onClick, ...props }: AppLinkProps) {
+  const target = `${typeof to === 'string' ? normalizePath(to) : pathForRoute(to)}${search}`
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event)
     if (
@@ -75,7 +76,7 @@ export function AppLink({ to, origin, onClick, ...props }: AppLinkProps) {
     }
     event.preventDefault()
     if (typeof to === 'string') navigate(target)
-    else navigateRoute(to, { origin })
+    else navigateRoute(to, { origin, search })
   }
 
   return <a {...props} href={target} onClick={handleClick} />

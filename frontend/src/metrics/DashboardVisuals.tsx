@@ -167,6 +167,7 @@ function donutArcPath(startFraction: number, endFraction: number): string {
 
 export function ResultsCluster({
   pipeline,
+  overdueTotal,
   error,
   onRetry,
   hasDimensionFilters,
@@ -174,6 +175,7 @@ export function ResultsCluster({
 }: {
   overview?: MetricsOverview
   pipeline?: PipelineMetrics
+  overdueTotal: number | null
   error: ChartError
   onRetry: () => void
   hasDimensionFilters: boolean
@@ -203,7 +205,19 @@ export function ResultsCluster({
           <h2 id='active-opportunities-title'>Oportunidades activas</h2>
           <p>Distribución por etapa</p>
         </div>
-        <AppLink to={{ kind: 'workspace', workspace: 'pipeline' }}>Ver oportunidades</AppLink>
+        <div className='dashboard-active__heading-actions'>
+          {overdueTotal !== null && overdueTotal > 0 ? (
+            <AppLink
+              className='dashboard-active__overdue'
+              search='?view=active'
+              to={{ kind: 'workspace', workspace: 'notifications' }}
+            >
+              <span>¡Atrasado!</span>
+              <strong>{formatCount(overdueTotal)}</strong>
+            </AppLink>
+          ) : null}
+          <AppLink to={{ kind: 'workspace', workspace: 'pipeline' }}>Ver oportunidades</AppLink>
+        </div>
       </div>
       <SurfaceState error={error} hasData={Boolean(pipeline)} onRetry={onRetry} />
       {!pipeline && !error ? <Skeleton className='dashboard-mini-skeleton' /> : null}

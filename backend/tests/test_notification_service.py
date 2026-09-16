@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
-from app.core.config import get_stale_opportunity_days
+from app.core.config import DEFAULT_STALE_OPPORTUNITY_DAYS, get_stale_opportunity_days
 from app.db.session import SessionLocal
 from app.models import (
     Customer,
@@ -60,7 +60,7 @@ def make_opportunity(
 def generate(db_session: Session, *, now: datetime = NOW) -> int:
     return NotificationService(db_session).generate_stale_opportunity_notifications(
         now=now,
-        threshold_days=14,
+        threshold_days=DEFAULT_STALE_OPPORTUNITY_DAYS,
     )
 
 
@@ -80,13 +80,13 @@ def notifications_for(
 @pytest.mark.parametrize(
     ("status", "age_days", "deleted", "expected_count"),
     [
-        (OpportunityStatus.NUEVA, 13, False, 0),
-        (OpportunityStatus.NUEVA, 14, False, 1),
-        (OpportunityStatus.COTIZADA, 15, False, 1),
-        (OpportunityStatus.NEGOCIACION, 20, False, 1),
-        (OpportunityStatus.GANADA, 20, False, 0),
-        (OpportunityStatus.PERDIDA, 20, False, 0),
-        (OpportunityStatus.NUEVA, 20, True, 0),
+        (OpportunityStatus.NUEVA, 6, False, 0),
+        (OpportunityStatus.NUEVA, 7, False, 1),
+        (OpportunityStatus.COTIZADA, 8, False, 1),
+        (OpportunityStatus.NEGOCIACION, 12, False, 1),
+        (OpportunityStatus.GANADA, 12, False, 0),
+        (OpportunityStatus.PERDIDA, 12, False, 0),
+        (OpportunityStatus.NUEVA, 12, True, 0),
     ],
 )
 def test_generation_eligibility_rules(
@@ -361,7 +361,7 @@ def test_notification_service_rejects_naive_time_and_invalid_threshold(
     with pytest.raises(ValueError, match="timezone-aware"):
         service.generate_stale_opportunity_notifications(
             now=datetime(2026, 8, 5),
-            threshold_days=14,
+            threshold_days=DEFAULT_STALE_OPPORTUNITY_DAYS,
         )
     with pytest.raises(ValueError, match="greater than zero"):
         service.generate_stale_opportunity_notifications(
@@ -380,6 +380,17 @@ def test_stale_days_configuration_rejects_invalid_values(
     try:
         with pytest.raises(RuntimeError):
             get_stale_opportunity_days()
+    finally:
+        get_stale_opportunity_days.cache_clear()
+
+
+def test_stale_days_configuration_defaults_to_one_week(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    get_stale_opportunity_days.cache_clear()
+    monkeypatch.delenv("STALE_OPPORTUNITY_DAYS", raising=False)
+    try:
+        assert get_stale_opportunity_days() == 7
     finally:
         get_stale_opportunity_days.cache_clear()
 

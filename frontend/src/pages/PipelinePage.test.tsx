@@ -153,6 +153,7 @@ async function ready() {
 
 describe('PipelinePage', () => {
   beforeEach(() => {
+    vi.setSystemTime(new Date('2026-08-15T12:00:00Z'))
     dndState.onDragEnd = null
     logout.mockReset()
     window.history.replaceState(null, '', '/pipeline')
@@ -191,6 +192,8 @@ describe('PipelinePage', () => {
     expect(card).toHaveTextContent('Empresa 2')
     expect(card).toHaveTextContent('WhatsApp')
     expect(card).toHaveAccessibleName(/estado Cotizada/)
+    expect(card).toHaveAccessibleName(/¡Atrasado!/)
+    expect(card).toHaveTextContent('¡Atrasado!')
     expect(card.querySelector('.pipeline-card__commercial-status')).not.toBeInTheDocument()
     expect(card).not.toHaveTextContent('Vendedor no visible')
     expect(card).not.toHaveTextContent('2500')

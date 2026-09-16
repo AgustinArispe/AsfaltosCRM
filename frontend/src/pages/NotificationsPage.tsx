@@ -18,6 +18,7 @@ import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatTimeInStage } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
+import { OverdueBadge } from '../shared/OverdueBadge'
 import { SegmentedControl } from '../shared/SegmentedControl'
 import { EmptyState, ErrorState, Skeleton } from '../shared/StatusStates'
 
@@ -46,8 +47,7 @@ function identityFor(notification: OperationalNotification): string {
 }
 
 function rowName(notification: OperationalNotification): string {
-  const concept =
-    notification.type === 'NEW_LEAD' ? 'Nueva oportunidad recibida' : 'Seguimiento pendiente'
+  const concept = notification.type === 'NEW_LEAD' ? 'Nueva oportunidad recibida' : '¡Atrasado!'
   const evidence = [
     notification.read_at ? 'leída' : 'sin leer',
     notification.resolved_at ? 'resuelta' : 'activa',
@@ -96,7 +96,7 @@ function NotificationRow({
           <Icon className='size-4' name={isNewLead ? 'bell' : 'clock'} />
         </span>
         <span className='notification-row__heading'>
-          <strong>{isNewLead ? 'Nueva oportunidad recibida' : 'Seguimiento'}</strong>
+          {isNewLead ? <strong>Nueva oportunidad recibida</strong> : <OverdueBadge />}
           {isUnread ? (
             <span className='notification-row__unread'>Sin leer</span>
           ) : (

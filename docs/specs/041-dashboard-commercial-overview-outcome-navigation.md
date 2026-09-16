@@ -208,7 +208,8 @@ Render a compact section headed `Necesita atención` above the result section. I
 neutral, low-height list/strip, never a navy hero and never a three-card KPI grid.
 
 1. `X oportunidades sin seguimiento` uses the exact unresolved stale-notification
-   total. Supporting text states `14 días o más sin cambio de etapa`. Its explicit
+   total. CRM-045 supersedes the original threshold; supporting text states
+   `7 días o más sin cambio de etapa`. Its explicit
    `Ver seguimientos` link opens `/notifications?view=active`.
 2. `X conversaciones pendientes de respuesta` uses the authoritative WhatsApp
    aggregate defined below. If nonzero and an oldest timestamp exists, supporting text

@@ -114,7 +114,7 @@ describe('NotificationsPage', () => {
   it('renders newest-first history and switches to unread history', async () => {
     vi.stubGlobal('fetch', mockApi())
     render(<NotificationsPage />)
-    const rows = await screen.findAllByRole('button', { name: /Seguimiento pendiente/ })
+    const rows = await screen.findAllByRole('button', { name: /¡Atrasado!/ })
     expect(rows[0]).toHaveAccessibleName(/Obra nueva/)
     expect(screen.getByText('Resuelta')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Sin leer' }))

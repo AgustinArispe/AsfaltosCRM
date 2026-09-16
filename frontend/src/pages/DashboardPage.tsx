@@ -55,7 +55,7 @@ export function DashboardPage() {
     )
   }, [filters])
   const notificationAttention = useNotificationAttentionContext()
-  const { data, errors, hasLoaded, isRefreshing, products, retry } = useDashboardMetrics(
+  const { attention, data, errors, hasLoaded, isRefreshing, products, retry } = useDashboardMetrics(
     filters,
     session,
     notificationAttention?.count ?? null,
@@ -102,6 +102,7 @@ export function DashboardPage() {
             error={errors.pipeline}
             hasDimensionFilters={hasDimensionFilters}
             onRetry={retry}
+            overdueTotal={errors.attention ? null : attention.staleTotal}
             overview={data.overview}
             pipeline={data.pipeline}
             onDrilldown={setDrilldown}

@@ -12,6 +12,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.core.config import (
+    DEFAULT_STALE_OPPORTUNITY_DAYS,
     RuntimeEnvironment,
     get_app_environment,
     get_database_url,
@@ -823,7 +824,10 @@ def _seed_notifications(
     anchor: datetime,
 ) -> None:
     service = NotificationService(session)
-    service.generate_stale_opportunity_notifications(now=anchor, threshold_days=14)
+    service.generate_stale_opportunity_notifications(
+        now=anchor,
+        threshold_days=DEFAULT_STALE_OPPORTUNITY_DAYS,
+    )
     unread_ids = list(
         session.scalars(
             select(Notification.id)

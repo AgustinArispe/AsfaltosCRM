@@ -21,6 +21,7 @@ DEFAULT_WHATSAPP_BROADCAST_BATCH_SIZE: Final = 10
 MAX_WHATSAPP_BROADCAST_BATCH_SIZE: Final = 10
 DEFAULT_WHATSAPP_BROADCAST_CLAIM_TIMEOUT_SECONDS: Final = 300
 MAX_JWT_ACCESS_TOKEN_EXPIRE_MINUTES: Final = 60
+DEFAULT_STALE_OPPORTUNITY_DAYS: Final = 7
 WEB_INTAKE_BODY_MAX_BYTES: Final = 32 * 1024
 META_WEBHOOK_BODY_MAX_BYTES: Final = 2 * 1024 * 1024
 WHATSAPP_MEDIA_REQUEST_MAX_BYTES: Final = 17 * 1024 * 1024
@@ -144,7 +145,7 @@ def get_access_token_expire_minutes() -> int:
 
 @lru_cache
 def get_stale_opportunity_days() -> int:
-    raw_value = getenv("STALE_OPPORTUNITY_DAYS", "14")
+    raw_value = getenv("STALE_OPPORTUNITY_DAYS", str(DEFAULT_STALE_OPPORTUNITY_DAYS))
     try:
         days = int(raw_value)
     except ValueError as error:

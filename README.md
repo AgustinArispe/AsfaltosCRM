@@ -61,7 +61,7 @@ Copiar `.env.example` como `.env` y ajustar sus valores si hace falta. El archiv
 | `ALLOWED_HOSTS` | Hosts HTTP aceptados por FastAPI, separados por comas y sin comodines | `localhost,127.0.0.1,backend,testserver` |
 | `CORS_ALLOWED_ORIGINS` | Orígenes CORS exactos separados por comas; dejar vacío para el proxy local `/api` | vacío |
 | `WEB_INTAKE_SIGNING_SECRET` | Secreto HMAC exclusivo del servidor que envía leads Web; mínimo 32 caracteres | reemplazar el ejemplo |
-| `STALE_OPPORTUNITY_DAYS` | Días sin cambio de etapa antes de crear una notificación interna | `14` |
+| `STALE_OPPORTUNITY_DAYS` | Días sin cambio de etapa antes de crear una notificación interna | `7` |
 | `BACKEND_PORT` | Puerto de FastAPI publicado en el host | `8000` |
 | `FRONTEND_PORT` | Puerto de Vite publicado en el host | `5173` |
 | `VITE_API_BASE_URL` | Base pública usada por el cliente HTTP del frontend | `/api` |
