@@ -1,9 +1,9 @@
 # CRM-045 — Overdue Opportunity Attention
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-16
-Implementation commit: N/A
+Implementation commit: `b538e49`
 
 ## Goal
 
