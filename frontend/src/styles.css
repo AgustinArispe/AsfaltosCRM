@@ -3063,6 +3063,37 @@ a {
   gap: 2rem;
 }
 
+.login-brand-panel__institution {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.login-brand-panel__institution > span {
+  width: 0.2rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: var(--brand-yellow);
+}
+
+.login-brand-panel__institution p {
+  margin: 0;
+}
+
+.login-brand-panel__institution p:first-child {
+  color: var(--brand-navy);
+  font-size: var(--text-small-size);
+  font-weight: 650;
+  line-height: var(--text-small-line);
+}
+
+.login-brand-panel__institution p:last-child {
+  margin-top: 0.15rem;
+  color: var(--text-secondary);
+  font-size: var(--text-micro-size);
+  line-height: var(--text-micro-line);
+}
+
 .login-brand-panel__ornament {
   display: grid;
   grid-template-columns: repeat(3, 0.4rem);
@@ -3186,6 +3217,10 @@ a {
 }
 
 :root[data-theme="dark"] .login-brand-panel__copy p:last-child {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .login-brand-panel__institution p:first-child {
   color: var(--text-primary);
 }
 

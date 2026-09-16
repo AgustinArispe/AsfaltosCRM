@@ -43,6 +43,9 @@ def test_login_desktop_baseline(qa_pages: QaPageFactory, theme: Theme) -> None:
     qa_page = qa_pages.create(viewport=(1440, 900), theme=theme)
     _open_login(qa_page, theme)
     expect(qa_page.page.get_by_role("img", name="FAA CRM")).to_be_visible()
+    logo = qa_page.page.locator(".login-brand-panel__anchor img")
+    expect(logo).to_be_visible()
+    logo.evaluate("(image) => image.decode()")
     assert_visual_baseline(qa_page.page, f"login-{theme}", animations="allow")
 
 

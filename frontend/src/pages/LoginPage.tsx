@@ -46,7 +46,13 @@ export function LoginPage() {
     <main className='login-page'>
       <section className='login-brand-panel' aria-label='Identidad FAA'>
         <div className='login-brand-panel__top'>
-          <Brand />
+          <div className='login-brand-panel__institution'>
+            <span aria-hidden='true' />
+            <div>
+              <p>Fábrica Argentina de Asfaltos</p>
+              <p>Sistema interno</p>
+            </div>
+          </div>
           <div className='login-brand-panel__ornament' aria-hidden='true'>
             <span />
             <span />
