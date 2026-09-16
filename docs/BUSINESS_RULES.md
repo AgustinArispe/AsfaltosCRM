@@ -96,8 +96,11 @@ por conveniencia técnica.
 
 ## Notificaciones
 
-- Una oportunidad en `NUEVA`, `COTIZADA` o `NEGOCIACION` que permanece catorce días
-  o más sin cambiar de estado genera una notificación interna.
+- Una oportunidad en `NUEVA`, `COTIZADA` o `NEGOCIACION` que permanece siete días o
+  más sin cambiar de estado se considera `¡Atrasada!` y genera una notificación
+  interna.
+- La condición `¡Atrasada!` se muestra en el Pipeline, en Notificaciones y como total
+  operativo dentro de la sección existente de oportunidades activas del Dashboard.
 - No se envían notificaciones por email.
 - Cada oportunidad nueva genera una notificación interna visible para todos los
   usuarios activos al momento de su creación.

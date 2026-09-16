@@ -102,6 +102,9 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
+- [`CRM-045`](045-overdue-opportunity-attention.md) — Approved — seven-day overdue
+  Opportunity attention across Pipeline, Notifications, and the existing Dashboard
+  active-opportunity surface.
 - [`CRM-043`](043-manual-opportunity-creation.md) — Approved — atomic manual Opportunity
   creation from Pipeline with Customer selection/creation, audited `NUEVA` entry, and
   referral-source integration.
