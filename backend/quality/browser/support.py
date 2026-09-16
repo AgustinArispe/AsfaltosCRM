@@ -250,12 +250,17 @@ def stable_screenshot(page: Page, name: str) -> None:
     )
 
 
-def assert_visual_baseline(page: Page, name: str) -> None:
+def assert_visual_baseline(
+    page: Page,
+    name: str,
+    *,
+    animations: Literal["allow", "disabled"] = "disabled",
+) -> None:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     actual_path = ARTIFACTS_DIR / f"actual-{name}.png"
     expected_path = BASELINES_DIR / f"{name}.png"
     page.evaluate("document.fonts.ready")
-    page.screenshot(path=actual_path, full_page=True, animations="disabled")
+    page.screenshot(path=actual_path, full_page=True, animations=animations)
     if not expected_path.exists() or _update_visual_baselines():
         expected_path.parent.mkdir(parents=True, exist_ok=True)
         expected_path.write_bytes(actual_path.read_bytes())

@@ -42,14 +42,16 @@ def _open_canonical_whatsapp_conversation(qa_page: QaPage) -> None:
 def test_login_desktop_baseline(qa_pages: QaPageFactory, theme: Theme) -> None:
     qa_page = qa_pages.create(viewport=(1440, 900), theme=theme)
     _open_login(qa_page, theme)
-    assert_visual_baseline(qa_page.page, f"login-{theme}")
+    expect(qa_page.page.get_by_role("img", name="FAA CRM")).to_be_visible()
+    assert_visual_baseline(qa_page.page, f"login-{theme}", animations="allow")
 
 
 @pytest.mark.visual
 def test_login_mobile_baseline(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(viewport=(390, 844))
     _open_login(qa_page, "light")
-    assert_visual_baseline(qa_page.page, "login-mobile")
+    expect(qa_page.page.get_by_role("img", name="FAA CRM")).to_have_count(0)
+    assert_visual_baseline(qa_page.page, "login-mobile", animations="allow")
 
 
 @pytest.mark.visual

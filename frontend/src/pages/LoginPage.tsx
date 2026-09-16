@@ -45,7 +45,26 @@ export function LoginPage() {
   return (
     <main className='login-page'>
       <section className='login-brand-panel' aria-label='Identidad FAA'>
-        <Brand />
+        <div className='login-brand-panel__top'>
+          <Brand />
+          <div className='login-brand-panel__ornament' aria-hidden='true'>
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+
+        <div className='login-brand-panel__anchor' aria-label='FAA CRM' role='img'>
+          <img alt='' height={112} src='/faa-logo-256.png' width={112} />
+          <span>CRM</span>
+        </div>
+
         <div className='login-brand-panel__copy'>
           <p>Acceso interno al sistema de gestión comercial.</p>
           <p>Fábrica Argentina de Asfaltos</p>
