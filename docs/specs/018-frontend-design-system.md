@@ -2,8 +2,8 @@
 
 Status: Implemented
 Owner: Frontend / Product Design
-Last updated: 2026-08-28
-Implementation commit: 3fb7a8552d6f7602f13ae73a1eb7882b26da65f1
+Last updated: 2026-09-17
+Implementation commits: `3fb7a8552d6f7602f13ae73a1eb7882b26da65f1`, pending brand-color amendment
 
 ## Goal
 
@@ -51,7 +51,7 @@ frontend, incluyendo los baselines visuales disponibles. Los hallazgos principal
   superficies;
 - la fuente actual, IBM Plex Sans, es legible y sólida, pero comunica una identidad más
   técnica y neutral que la buscada para esta etapa;
-- el amarillo institucional existe como `#F1B809`; el navy institucional todavía no
+- el verde institucional del logo original existe como `#01923B`; el navy institucional todavía no
   forma parte del sistema.
 
 ## Dependencies and affected specifications
@@ -159,11 +159,12 @@ apariencia, salvo los dos tokens institucionales de origen.
 
 | Token | Value | Purpose |
 | --- | --- | --- |
-| `--brand-yellow` | `#F1B809` | identidad FAA y origen de acciones primarias |
+| `--brand-green` | `#01923B` | identidad FAA tomada de `Logo-original-Faa.jpeg` y origen de acciones primarias |
 | `--brand-navy` | `#1B3B5F` | segundo color institucional y origen de énfasis secundario |
 
-Se definirán variantes derivadas para hover, pressed y fondos sutiles. El amarillo no
-se usará como texto sobre fondos claros. Sus fondos usarán foreground oscuro. El navy
+Se definirán variantes derivadas para hover, pressed y fondos sutiles. El verde de
+marca no se usará como texto cuando no alcance contraste AA. Sus fondos usarán el
+foreground accesible definido por tema. El navy
 podrá usarse como texto, link, icono, selección o fondo con foreground que alcance el
 contraste requerido.
 
@@ -186,13 +187,14 @@ contraste requerido.
 
 Semantic mapping:
 
-- primary action maps to FAA yellow with dark foreground;
+- primary action maps to FAA green with an accessible foreground;
 - secondary action, links, navigation hierarchy and selected-state text map to navy;
-- selection combines a navy-derived surface/text treatment with a compact yellow marker;
-- charts use navy as the principal series/data accent and yellow only for a selected,
+- selection combines a navy-derived surface/text treatment with a compact green marker;
+- charts use navy as the principal series/data accent and green only for a selected,
   highlighted or identity-bearing datum;
 - red is exclusive to loss, destructive action and error;
-- green is exclusive to success/won/active where that meaning is real;
+- success/won/active keep their own semantic green tokens and never rely on color alone;
+  the institutional green may represent FAA identity and primary action without implying success;
 - pipeline stages keep distinct semantic tokens, but use low-chroma surfaces and do not
   turn whole columns into saturated color fields;
 - neutral surfaces occupy most of the interface.
@@ -333,9 +335,9 @@ actions remain feature-owned.
   Legendary as compact metadata, with stage conveyed primarily by its column;
 - do not repeat the stage as a large badge on every card when the column already supplies
   that context;
-- Legendary remains recognizable but subtle: a compact yellow identity treatment, not
+- Legendary remains recognizable but subtle: a compact green identity treatment, not
   a large filled badge;
-- use navy for board headings, selected/filter state and secondary actions; use yellow
+- use navy for board headings, selected/filter state and secondary actions; use green
   for primary action and active FAA identity;
 - stage colors remain semantic accents on headers, markers or status badges, not large
   tinted column backgrounds;
@@ -371,7 +373,7 @@ actions remain feature-owned.
   at a time, using the existing accessible dimension control;
 - use direct labels on bars/series when practical and remove legends that only repeat
   visible labels;
-- use navy for the principal series/data accent, yellow for the active selection or one
+- use navy for the principal series/data accent, green for the active selection or one
   deliberate highlight, and semantic colors only for true status meaning;
 - avoid pie/donut as the only representation when exact comparison matters;
 - retain accessible exact tables and null/empty/error semantics through progressive
@@ -455,7 +457,7 @@ The primary flow is: **select conversation → understand context → respond**.
 - strengthen the identity column: customer/company first, one best contact second;
 - align province, Legendary state and actions predictably;
 - use row density and whitespace instead of extra cards;
-- Legendary remains special but subtle and is never a broad yellow row background;
+- Legendary remains special but subtle and is never a broad green row background;
 - search, pagination, import, create, edit, stale-write recovery, delete permissions and
   customer detail navigation remain unchanged;
 - seller and supervisor visibility remains exactly as defined by existing rules.
@@ -491,11 +493,11 @@ The primary flow is: **select conversation → understand context → respond**.
 ### 9. Sidebar / AppShell
 
 - keep the desktop-first collapsible sidebar and existing typed routes;
-- preserve FAA yellow as the primary identity and use navy visibly in navigation labels,
+- preserve FAA green as the primary identity and use navy visibly in navigation labels,
   icons, group hierarchy and supporting chrome;
 - selected navigation combines navy text/weight or icon treatment, a navy-derived subtle
-  surface and a compact yellow marker; it is recognizable without color alone and does
-  not rely only on a pale yellow rectangle;
+  surface and a compact green marker; it is recognizable without color alone and does
+  not rely only on a pale green rectangle;
 - remove decorative gradients;
 - reduce group separators and labels where spacing provides enough hierarchy;
 - unread count remains visible and semantically announced in expanded and collapsed
@@ -505,7 +507,7 @@ The primary flow is: **select conversation → understand context → respond**.
 - preserve the sidebar toggle, keyboard order, responsive reachability and active-route
   ownership for detail pages;
 - navy must be clearly visible but the sidebar should not become a large saturated navy
-  block that compite con FAA yellow or neutral content surfaces.
+  block that compite con FAA green or neutral content surfaces.
 
 ## Accessibility requirements
 
@@ -567,9 +569,9 @@ The primary flow is: **select conversation → understand context → respond**.
 - **AC-02:** the frontend uses semantic tokens for institutional, surface, text, border,
   action, selection, focus, feedback and chart roles; affected components contain no new
   scattered hex values.
-- **AC-03:** `#F1B809` remains FAA yellow and `#1B3B5F` is visibly used as the secondary
+- **AC-03:** `#01923B` remains FAA green and `#1B3B5F` is visibly used as the secondary
   institutional color without either color dominating neutral surfaces.
-- **AC-04:** yellow is used for primary actions/key FAA highlights and navy for secondary
+- **AC-04:** green is used for primary actions/key FAA highlights and navy for secondary
   emphasis/navigation/selection/links/data accents according to this spec.
 - **AC-05:** Manrope is self-hosted with documented license/provenance,
   `font-display: swap`, system fallback and no external runtime request or npm font
@@ -580,7 +582,7 @@ The primary flow is: **select conversation → understand context → respond**.
   loading/empty/error states follow one documented primitive contract in both themes.
 - **AC-08:** duplicate loading, feedback and status variants identified in this spec are
   consolidated or explicitly justified during implementation review.
-- **AC-09:** AppShell selection is recognizable through more than a pale yellow fill;
+- **AC-09:** AppShell selection is recognizable through more than a pale green fill;
   navigation, unread count, collapse and responsive keyboard behavior regressions pass.
 - **AC-10:** account identity, theme and logout are reachable through one compact,
   accessible disclosure and preserve their current behavior.
@@ -595,7 +597,7 @@ The primary flow is: **select conversation → understand context → respond**.
 - **AC-15:** Dashboard presents an immediately scannable summary, compact actionable
   attention area and one dominant chart/analysis hierarchy without removing exact
   business information.
-- **AC-16:** Dashboard charts use navy as principal data accent, yellow selectively, direct
+- **AC-16:** Dashboard charts use navy as principal data accent, green selectively, direct
   labels where practical and an accessible exact-data representation.
 - **AC-17:** Dashboard filters, null states, independent errors, backend-authoritative
   values and dimension switching retain their current semantics.

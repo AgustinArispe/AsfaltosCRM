@@ -2,8 +2,8 @@
 
 Status: Implemented
 Owner: Frontend / Product Design
-Last updated: 2026-08-31
-Implementation commits: `309d06e`, `99929a6`, `db8cd9b`, `ed70d9a`, `2d6994f`, `279061b`
+Last updated: 2026-09-17
+Implementation commits: `309d06e`, `99929a6`, `db8cd9b`, `ed70d9a`, `2d6994f`, `279061b`, pending brand-color amendment
 
 ## Goal
 
@@ -42,8 +42,8 @@ aprueba este alcance; `Open decisions` es `None` antes de modificar código.
 
 - Auditar y corregir tokens y primitives compartidos antes de intervenir workspaces.
 - Eliminar usos decorativos de reglas izquierdas y superiores en la UI de producto.
-- Eliminar superficies crema o amarillo lavado de los workspaces principales.
-- Conservar `#F1B809` y `#1B3B5F` como colores institucionales sólidos, deliberados y
+- Eliminar superficies crema o verde lavado de los workspaces principales.
+- Conservar `#01923B` y `#1B3B5F` como colores institucionales sólidos, deliberados y
   accesibles.
 - Normalizar geometría, tipografía y estados de componentes visuales equivalentes.
 - Refinar sin cambiar workflow: AppShell/sidebar, Pipeline, Dashboard, Notifications,
@@ -72,15 +72,15 @@ aprueba este alcance; `Open decisions` es `None` antes de modificar código.
 
 | Source token | Exact value | Contract |
 | --- | --- | --- |
-| `--brand-yellow` | `#F1B809` | CTA primaria, indicador compacto, badge/count, icono o highlight puntual |
+| `--brand-green` | `#01923B` | CTA primaria, indicador compacto, badge/count, icono o highlight puntual |
 | `--brand-navy` | `#1B3B5F` | estructura, selección, tabs, heading/panel sólido y charts |
 
 Neutral domina canvas, filas, cards y paneles. No existen tokens de surface crema o
-amarillo lavado. En Light y Dark, selected/unread usan una surface neutral derivada de
-navy, peso tipográfico y, si hace falta, un dot/badge amarillo sólido. Warning usa
+verde lavado. En Light y Dark, selected/unread usan una surface neutral derivada de
+navy, peso tipográfico y, si hace falta, un dot/badge verde sólido. Warning usa
 surface neutral, icono/texto semántico y contención compacta; nunca un panel crema.
 
-Yellow no aparece detrás de párrafos, filas, columnas ni banners grandes. Navy puede
+Green no aparece detrás de párrafos, filas, columnas ni banners grandes. Navy puede
 formar uno o dos bloques estructurales sólidos por workspace. Red permanece reservado a
 loss/error/destructive y no cubre regiones extensas.
 
@@ -142,13 +142,13 @@ hardcode widths by state.
 
 ### Shared primitives and AppShell
 
-- Eliminar surface tokens amarillos lavados y mapear status a neutral/semantic compact.
+- Eliminar surface tokens verdes lavados y mapear status a neutral/semantic compact.
 - Convertir Badge/StatusBadge en la única geometría de pill; Legendary reutiliza el
   mismo wrapper y sólo cambia icono/tone.
 - Normalizar Button, IconButton, fields, search/filter, segmented controls, headers,
   rows y typography mediante tokens/clases compartidas.
 - Sidebar selected usa surface navy/neutral, texto/icono fuerte y un pequeño dot o
-  badge amarillo opcional; no usa regla izquierda/superior. Collapsed y expanded
+  badge verde opcional; no usa regla izquierda/superior. Collapsed y expanded
   comparten exactamente ese estado.
 
 ### Pipeline
@@ -164,20 +164,20 @@ hardcode widths by state.
 - Mantener IA, filtros, métricas, charts y drill-down actuales.
 - Quitar acentos top/left y alinear todos los KPI del grupo en altura, padding y
   baseline.
-- Usar una summary/analysis surface navy sólida y como máximo un KPI amarillo sólido
+- Usar una summary/analysis surface navy sólida y como máximo un KPI verde sólido
   cuando la lectura actual justifique el primary highlight; el resto permanece neutral.
 - No crear un conjunto de cards coloreadas ni rediseñar progressive disclosure.
 
 ### Notifications
 
-- Unread usa selection surface navy/neutral, peso fuerte y dot amarillo sólido.
-- Eliminar wash amarillo y regla izquierda; todos los rows conservan `64px` mínimo y
+- Unread usa selection surface navy/neutral, peso fuerte y dot verde sólido.
+- Eliminar wash verde y regla izquierda; todos los rows conservan `64px` mínimo y
   exactamente la misma grid/padding.
 - Warning de actualización queda compacto, neutral y semántico.
 
 ### WhatsApp
 
-- Conversation selected usa selection surface, texto fuerte y dot amarillo, sin regla
+- Conversation selected usa selection surface, texto fuerte y dot verde, sin regla
   lateral/superior.
 - Restricción de ventana vive junto al composer como estado compacto con icono, copy y
   acción existentes, sobre surface neutral.
@@ -214,9 +214,9 @@ hardcode widths by state.
 
 - Decorative left/top rules and equivalent inset stripes.
 - `accent-muted`, `accent-subtle`, `accent-surface`, `warning-subtle`,
-  `quoted-pending-muted` and `legendary-subtle` as yellow/cream surface roles.
-- Full-row unread/selected yellow backgrounds.
-- Large warning-yellow banners in WhatsApp, Notifications or Broadcasts.
+  `quoted-pending-muted` and `legendary-subtle` as green/cream surface roles.
+- Full-row unread/selected green backgrounds.
+- Large warning-green banners in WhatsApp, Notifications or Broadcasts.
 - Feature-local pill padding/radius/font overrides.
 - One-off tiny text for body, identity, actions or ordinary metadata.
 - Arbitrary per-state badge widths and geometry.
@@ -248,8 +248,8 @@ keyboard interaction and contrast. Baselines are regenerated only after review.
   rule; source audit identifies and documents any structural exception.
 - **AC-02:** Product UI has zero decorative `border-top` or equivalent block-start rule;
   source audit identifies and documents any structural exception.
-- **AC-03:** Core workspaces contain no pale/cream yellow surface, in Light or Dark.
-- **AC-04:** `#F1B809` remains visibly present only in deliberate compact/primary uses;
+- **AC-03:** Core workspaces contain no pale/cream green surface, in Light or Dark.
+- **AC-04:** `#01923B` remains visibly present only in deliberate compact/primary uses;
   `#1B3B5F` has clear structural presence.
 - **AC-05:** One semantic component type has one shared geometry contract globally.
 - **AC-06:** Every status pill is 24px high with shared padding, radius, typography,
@@ -279,7 +279,7 @@ None.
   650 weight, 6 px icon gap, pill radius and a 1 px full boundary.
 - Source audit found no decorative left or top border. The remaining top-border uses
   are structural separators or the functional circular loading spinner.
-- The pale-yellow surface tokens were removed. Solid yellow remains on primary actions,
+- The pale-green surface tokens were removed. Solid green remains on primary actions,
   compact counts/markers, identity elements and the primary Dashboard KPI; navy remains
   structural in navigation, headers, selected controls, summary areas and charts.
 - Visual review covered 1024, 1280 and 1440 px, including equal 24 px Broadcast status

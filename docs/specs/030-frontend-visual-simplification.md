@@ -2,7 +2,7 @@
 
 Status: Draft
 Owner: Frontend / Product Design
-Last updated: 2026-08-30
+Last updated: 2026-09-17
 Implementation commit: N/A
 
 ## Goal
@@ -14,9 +14,9 @@ diario de oficina.
 
 El principio rector es: **menos es más**.
 
-CRM-030 reduce decisiones simultáneas, elimina superficies amarillas lavadas, aumenta
+CRM-030 reduce decisiones simultáneas, elimina superficies verdes lavadas, aumenta
 la escala tipográfica y prioriza contenido cómodo antes que la posibilidad de mostrar
-todo al mismo tiempo. FAA yellow y FAA navy construyen identidad mediante dosis sólidas
+todo al mismo tiempo. FAA green y FAA navy construyen identidad mediante dosis sólidas
 e intencionales sobre una base predominantemente neutral.
 
 ## Context and authority
@@ -31,7 +31,7 @@ La revisión posterior a la implementación detectó estos problemas principales
 - la interfaz se percibe pequeña y comprimida a 1440 px;
 - Pipeline prioriza mostrar cuatro columnas angostas en vez de tarjetas cómodas;
 - Dashboard todavía muestra demasiadas lecturas independientes al mismo tiempo;
-- unread, warning, waiting y selected continúan usando superficies crema o amarillas
+- unread, warning, waiting y selected continúan usando superficies crema o verdes
   lavadas en áreas demasiado grandes;
 - Notifications y WhatsApp dependen de ese tratamiento para comunicar estado;
 - Broadcasts conserva demasiada complejidad dentro de una única superficie aunque su
@@ -67,7 +67,7 @@ después de aprobar e implementar CRM-030.
 - Ajustar tokens y usos semánticos de color sin crear un segundo sistema visual.
 - Mantener Manrope y reemplazar la escala tipográfica por la definida en esta spec.
 - Refinar AppShell, navegación y jerarquía compartida sólo en lo necesario para aplicar
-  la nueva escala y el balance FAA yellow/navy.
+  la nueva escala y el balance FAA green/navy.
 - Refinar Pipeline, Dashboard, Notifications, WhatsApp Inbox, Envíos masivos y Lost.
 - Aplicar progressive disclosure a análisis de Dashboard, creación de Broadcasts,
   filtros avanzados de Lost y contexto CRM secundario ya existente.
@@ -111,7 +111,7 @@ Pipeline es una herramienta deliberada y no un defecto de responsive.
 ### Neutral foundation, solid punctuation
 
 Canvas y superficies neutrales dominan. FAA navy puede estructurar una zona importante.
-FAA yellow aparece sólido en dosis pequeñas: acción primaria, marker, indicador activo,
+FAA green aparece sólido en dosis pequeñas: acción primaria, marker, indicador activo,
 foco de identidad o acento clave. No se diluye en grandes fondos crema.
 
 ### One decision at a time
@@ -131,26 +131,26 @@ donuts no sustituyen labels visibles.
 
 | Token | Exact source value | Role |
 | --- | --- | --- |
-| `--brand-yellow` | `#F1B809` | acción primaria, marker compacto, active indicator e identidad FAA |
+| `--brand-green` | `#01923B` | acción primaria, marker compacto, active indicator e identidad FAA |
 | `--brand-navy` | `#1B3B5F` | estructura, heading sólido, navegación activa, charts y texto importante |
 
 Los componentes consumen tokens semánticos; no dispersan estos hexadecimales ni crean
-amarillos feature-locales. Los estados hover, pressed, disabled, Light y Dark usan
+verdes feature-locales. Los estados hover, pressed, disabled, Light y Dark usan
 derivaciones semánticas accesibles.
 
-### Exact rules replacing pale-yellow surfaces
+### Exact rules replacing pale-green surfaces
 
 1. `--accent-muted`, `--accent-subtle`, `--accent-surface`, `--warning-subtle` y
-   cualquier mezcla crema/amarilla quedan prohibidos como background de una fila,
+   cualquier mezcla crema/verde quedan prohibidos como background de una fila,
    card, banner, columna, panel, chart, párrafo o sección completa.
 2. Una superficie selected o unread usa `--selection-surface`, neutral y derivada de
-   navy para cada tema, más peso tipográfico y `--selection-marker` en FAA yellow
+   navy para cada tema, más peso tipográfico y `--selection-marker` en FAA green
    sólido. El marker es un dot de 6–8 px, una marca de hasta 4 px de espesor o un icono
    compacto; no cubre el fondo del contenido.
 3. Un warning usa superficie neutral, texto e icono `warning`, y borde/divider warning
    sólo si hace falta contención. El mensaje se ubica junto a la acción afectada y no
-   convierte el área circundante en un bloque amarillo.
-4. FAA yellow sólido puede ocupar botones primarios de altura máxima standard de 44 px,
+   convierte el área circundante en un bloque verde.
+4. FAA green sólido puede ocupar botones primarios de altura máxima standard de 44 px,
    badges/counts compactos, markers, focus/active evidence o un pequeño acento de
    identidad. No aparece detrás de párrafos ni filas completas.
 5. FAA navy sólido puede formar, como máximo, uno o dos bloques estructurales fuertes
@@ -158,7 +158,7 @@ derivaciones semánticas accesibles.
    compite con un segundo mosaico de cards coloreadas.
 6. Estados success, danger, warning e informational conservan color semántico sólo en
    texto, icono, badge, marker, barra o borde local. Ninguno colorea una región grande.
-7. Dark no simula amarillo lavado mediante marrones u oliva extensos. Selected usa un
+7. Dark no simula verde lavado mediante marrones u oliva extensos. Selected usa un
    paso navy/neutral reconocible y warnings conservan contención local.
 8. Texto y foreground normales alcanzan contraste WCAG 2.2 AA de 4.5:1; texto grande y
    límites/estados de controles alcanzan al menos 3:1. Color nunca es la única evidencia.
@@ -170,7 +170,7 @@ derivaciones semánticas accesibles.
 - Lost usa un panel analítico navy sólido para la magnitud principal y su contexto; las
   causas se conectan visualmente mediante barras directas sobre una superficie neutral
   o dentro de una zona navy accesible si los labels conservan contraste.
-- No se incorpora un gran bloque amarillo. FAA yellow puntúa CTA, selección, markers y
+- No se incorpora un gran bloque verde. FAA green puntúa CTA, selección, markers y
   el dato destacado que lo necesite.
 
 ## Exact revised typography scale
@@ -211,7 +211,7 @@ Reglas complementarias:
 - Aumentar navegación a `Navigation` y el título de ruta a `Workspace title`.
 - Mantener una sola identidad/título por ruta y eliminar descripciones redundantes.
 - Conservar sidebar, grupos, badges, cuenta, tema y logout actuales.
-- Usar navy en navegación activa e información importante; FAA yellow queda como icono,
+- Usar navy en navegación activa e información importante; FAA green queda como icono,
   marker o badge compacto, nunca como fondo extendido del item.
 - Mantener acciones compactas en 36 px y acciones/formularios standard en 44 px; el
   aumento tipográfico no crea controles desproporcionados.
@@ -275,7 +275,7 @@ Reglas de visualización:
   puede etiquetarse en contexto;
 - no depender de hover para conocer un valor;
 - conservar tabla/lista accesible exacta donde ya existe;
-- usar navy como serie/estructura principal y FAA yellow como highlight seleccionado o
+- usar navy como serie/estructura principal y FAA green como highlight seleccionado o
   peak compacto, no como fill de todas las barras; y
 - mantener filtros actuales, llevando filtros avanzados al disclosure ya existente.
 
@@ -284,11 +284,11 @@ Reglas de visualización:
 - Mantener exactamente la información, filtros, mark-read, paginación/polling, stale
   evidence y navegación existentes.
 - Una fila unread usa fondo neutral/navy-derived, identidad en peso 650 y marker FAA
-  yellow sólido de 6–8 px. Se elimina el full-row cream wash.
+  green sólido de 6–8 px. Se elimina el full-row cream wash.
 - Una fila read vuelve a superficie neutral ordinaria; resolved/read continúan con
   evidencia textual, no sólo color.
 - Stale y nuevos items usan mensajes compactos neutrales con icono/texto semántico; no
-  usan un banner amarillo ancho.
+  usan un banner verde ancho.
 - Aumentar heading a `Section title`, Customer/company a `Important identity`, contenido
   a `Body` y metadata a 13 px.
 - Aumentar el ritmo vertical de la fila a un mínimo cómodo de 68 px sin reducir la
@@ -300,7 +300,8 @@ Reglas de visualización:
   CRM secundario existente se abre mediante su disclosure/drawer actual y no se muestra
   como una tercera tarea simultánea permanente.
 - La conversación seleccionada usa `--selection-surface` neutral/navy-derived, peso
-  tipográfico y un marker FAA yellow compacto. No usa pale yellow ni WhatsApp green.
+  tipográfico y un marker FAA green compacto. No usa una superficie verde pálida ni
+  un verde feature-local de WhatsApp.
 - Un waiting row usa superficie neutral con icono/label warning; no usa fondo crema.
 - Template-required, restricción de ventana, disabled reason y espera se presentan como
   status compacto inmediatamente encima o dentro del límite visual del composer.
@@ -327,7 +328,7 @@ una decisión principal por vez:
    outcomes, recipient evidence, retry permitido y audit disclosure.
 
 El stepper comunica actual/completado/pendiente mediante número, label, peso y estado;
-FAA yellow puede marcar el paso actual sin pintar el cuerpo del wizard. Cada paso tiene
+FAA green puede marcar el paso actual sin pintar el cuerpo del wizard. Cada paso tiene
 Back y Continue/Confirm previsibles. Draft, versión, validation token, dirty-state,
 errores y pending se conservan al avanzar o retroceder según CRM-025. Cerrar no descarta
 trabajo silenciosamente.
@@ -422,7 +423,7 @@ independiente se trate en otra tarea/spec.
 
 ## Elements to remove
 
-- Pale/cream/yellow full-row, card, banner, composer, selected y section backgrounds.
+- Pale/cream/green full-row, card, banner, composer, selected y section backgrounds.
 - Uso estructural de `accent-muted`, `accent-subtle`, `accent-surface` o
   `warning-subtle` como wash grande.
 - Donut charts de Dashboard.
@@ -432,7 +433,7 @@ independiente se trate en otra tarea/spec.
 - Tint de etapa extendido a toda la columna de Pipeline.
 - Warning background extendido a waiting rows o a toda la zona del composer de
   WhatsApp.
-- Full-row yellow unread treatment de Notifications.
+- Full-row green unread treatment de Notifications.
 - Presentación simultánea de contenido, Customers, elegibilidad y confirmación en
   Broadcast creation.
 - Superficies red/pink grandes en Lost.
@@ -450,7 +451,7 @@ además sus checks de zoom 125/150/200.
 | --- | --- |
 | `1024 × 768` | Texto conserva la escala; no hay overflow horizontal de página; Pipeline usa scroll horizontal local con cards de 304 px; Dashboard apila atención/KPIs/análisis; WhatsApp y wizard conservan acción primaria accesible. |
 | `1280 × 800` | Pipeline no comprime columnas; Dashboard muestra una sola lectura analítica; Notifications mantiene ritmo/identidad sin truncar información esencial; Lost separa análisis/lista. |
-| `1440 × 900` | Revisión principal: columnas de 320–336 px y cards cómodas; títulos/KPIs se sienten materialmente mayores; no queda wash amarillo; balance navy/yellow es intencional; Dashboard se lee como overview ejecutivo. |
+| `1440 × 900` | Revisión principal: columnas de 320–336 px y cards cómodas; títulos/KPIs se sienten materialmente mayores; no queda wash verde; balance navy/green es intencional; Dashboard se lee como overview ejecutivo. |
 | `1600 × 900` | Confirmar que el espacio adicional mejora respiración sin estirar cards o crear mosaicos; cuatro columnas pueden entrar si el AppShell lo permite, pero nunca bajan de 320 px ni superan innecesariamente el ancho preferido. |
 
 En cada viewport se revisan Light y Dark para las superficies afectadas. Los targets
@@ -458,9 +459,9 @@ visuales obligatorios son:
 
 - ancho de columnas y comodidad de cards de Pipeline;
 - carga cognitiva y una sola vista analítica de Dashboard;
-- eliminación completa de yellow/cream washes;
+- eliminación completa de green/cream washes;
 - escala de títulos, identidades, navegación, body y métricas;
-- balance entre neutral dominante, navy estructural y FAA yellow sólido;
+- balance entre neutral dominante, navy estructural y FAA green sólido;
 - unread de Notifications;
 - selected, waiting y restriction status de WhatsApp;
 - pasos, preservación de Draft y foco de Broadcast creation; y
@@ -492,12 +493,12 @@ visuales obligatorios son:
   escala semántica de CRM-030; body es 15 px y contenido esencial nunca baja de 13 px.
 - AC-03: Workspace titles son 32/40, section titles 20/28, important identities 16/22,
   navigation 15/20 y primary metrics 40/44 a zoom 100 %.
-- AC-04: `#F1B809` y `#1B3B5F` permanecen como fuentes institucionales; ningún
-  componente introduce un amarillo alternativo o un hex feature-local.
+- AC-04: `#01923B` y `#1B3B5F` permanecen como fuentes institucionales; ningún
+  componente introduce un verde de marca alternativo o un hex feature-local.
 - AC-05: Ninguna fila, card, banner, panel, columna, composer, párrafo o sección usa un
-  background pale/cream/yellow derivado de accent o warning.
+  background pale/cream/green derivado de accent o warning.
 - AC-06: Selected y unread combinan superficie neutral/navy-derived, peso/forma/texto y
-  marker FAA yellow sólido compacto; el estado se comprende sin color.
+  marker FAA green sólido compacto; el estado se comprende sin color.
 - AC-07: Warnings usan superficie neutral y evidencia local de icono/texto/borde junto a
   la acción afectada; Light y Dark alcanzan contraste WCAG 2.2 AA.
 - AC-08: Dashboard y Lost son las únicas pantallas que incorporan los bloques navy
@@ -524,11 +525,11 @@ visuales obligatorios son:
 - AC-17: Datos exactos, null/zero/error/loading, timeline day detail y filtros existentes
   permanecen accesibles dentro de la vista activa sin nuevas métricas o requests.
 - AC-18: Notifications mantiene la misma información y comportamiento; unread no usa
-  cream wash, usa marker amarillo de 6–8 px, peso fuerte y superficie navy/neutral.
+  cream wash, usa marker verde de 6–8 px, peso fuerte y superficie navy/neutral.
 - AC-19: Notification rows tienen altura mínima cómoda de 68 px, identidad de 16/22 y
   metadata de 13/18, con reflow sin pérdida a 1024 px.
 - AC-20: WhatsApp mantiene dos zonas, contratos y comportamiento; selected y waiting
-  rows no usan pale yellow y el contexto CRM secundario conserva disclosure existente.
+  rows no usan pale green y el contexto CRM secundario conserva disclosure existente.
 - AC-21: Restricción/template-required/waiting se comunica junto al composer mediante
   status compacto neutral; no existe background warning sobre todo el composer.
 - AC-22: Conversation pane gana espacio y ritmo sin nueva información, y send,
@@ -552,7 +553,7 @@ visuales obligatorios son:
 - AC-30: Light, Dark y System conservan la misma jerarquía, focus visible, targets,
   teclado, screen-reader labels, reduced motion y contraste AA.
 - AC-31: La revisión visual explícita confirma Pipeline comfort, Dashboard cognitive
-  load, ausencia de washed yellow, nueva escala, balance solid yellow/navy,
+  load, ausencia de washed green, nueva escala, balance solid green/navy,
   Notifications unread, WhatsApp selected/warning, Broadcast steps y Lost hierarchy.
 - AC-32: No se agrega ninguna dependencia, UI framework, chart library, global state,
   información o funcionalidad para completar espacio.
