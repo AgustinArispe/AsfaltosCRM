@@ -124,6 +124,8 @@ por conveniencia técnica.
 - También se utilizan kilogramos cotizados, ganados, perdidos y abiertos; productos
   más consultados y vendidos; conversión por producto; leads por origen; distribución
   por provincia; timeline; y snapshot del pipeline.
+- Los orígenes comerciales reconocidos en reportes incluyen `WEB`, `WHATSAPP`,
+  `REFERIDO` e `INSTAGRAM`.
 - Las métricas se calculan en el backend. El frontend sólo las visualiza.
 
 ## Lead Intake Web
