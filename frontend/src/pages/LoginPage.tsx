@@ -67,7 +67,7 @@ export function LoginPage() {
         </div>
 
         <div className='login-brand-panel__anchor' aria-label='FAA CRM' role='img'>
-          <img alt='' height={112} src='/faa-logo-256.png' width={112} />
+          <img alt='' height={112} src='/Logo-original-Faa.jpeg' width={112} />
           <span>CRM</span>
         </div>
 

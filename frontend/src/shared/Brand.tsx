@@ -11,7 +11,7 @@ export function Brand({
         alt=''
         className='size-9 shrink-0 rounded-[var(--radius-control)] shadow-[var(--shadow-subtle)]'
         height={36}
-        src='/faa-logo-256.png'
+        src='/Logo-original-Faa.jpeg'
         width={36}
       />
       <span className={collapsed ? 'sr-only' : 'leading-tight'}>
