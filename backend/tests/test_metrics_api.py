@@ -176,6 +176,38 @@ def test_metric_filters_are_applied_through_api(
     assert excluded.json()["opportunities"]["created"] == 0
 
 
+def test_instagram_source_is_filterable_and_aggregated(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    customer = Customer(name=f"Cliente Instagram {uuid4().hex}")
+    opportunity = Opportunity(
+        customer=customer,
+        source=LeadSource.INSTAGRAM,
+        status=OpportunityStatus.NUEVA,
+        created_at=FROM + timedelta(days=1),
+        updated_at=FROM + timedelta(days=1),
+        current_status_entered_at=FROM + timedelta(days=1),
+    )
+    persist(db_session, opportunity)
+
+    overview_response = api_client.get(
+        "/api/metrics/overview",
+        params={**period_params(), "source": "INSTAGRAM"},
+    )
+    sources_response = api_client.get("/api/metrics/sources", params=period_params())
+
+    assert overview_response.status_code == 200
+    assert overview_response.json()["opportunities"]["created"] == 1
+    assert sources_response.status_code == 200
+    instagram = next(
+        item
+        for item in sources_response.json()["items"]
+        if item["source"] == "INSTAGRAM"
+    )
+    assert instagram["created"] == 1
+
+
 def test_timeline_day_opportunities_returns_narrow_typed_projection(
     api_client: TestClient,
     db_session: Session,

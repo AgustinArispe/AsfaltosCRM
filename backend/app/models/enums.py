@@ -12,6 +12,7 @@ class LeadSource(StrEnum):
     WEB = "WEB"
     WHATSAPP = "WHATSAPP"
     REFERIDO = "REFERIDO"
+    INSTAGRAM = "INSTAGRAM"
 
 
 class OpportunityStatus(StrEnum):

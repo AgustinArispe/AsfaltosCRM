@@ -111,6 +111,7 @@ export const SOURCE_LABELS: Record<LeadSource, string> = {
   WEB: 'Web',
   WHATSAPP: 'WhatsApp',
   REFERIDO: 'Manual',
+  INSTAGRAM: 'Instagram',
 }
 
 export const SOURCE_OPTIONS: readonly { value: LeadSource; label: string }[] = (

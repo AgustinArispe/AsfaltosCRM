@@ -1,7 +1,7 @@
 import type { CustomerSummary } from '../customers/types'
 import type { Product as ProductModel } from '../products/types'
 
-export const LEAD_SOURCES = ['WEB', 'WHATSAPP', 'REFERIDO'] as const
+export const LEAD_SOURCES = ['WEB', 'WHATSAPP', 'REFERIDO', 'INSTAGRAM'] as const
 export type LeadSource = (typeof LEAD_SOURCES)[number]
 
 export function isLeadSource(value: string | null): value is LeadSource {

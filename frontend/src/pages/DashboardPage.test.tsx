@@ -433,15 +433,17 @@ describe('DashboardPage', () => {
 
   it('applies compact filters, keeps Pipeline date-unfiltered, and resets them', async () => {
     const fetchMock = await renderLoaded()
-    fireEvent.change(screen.getByLabelText('Origen', { selector: 'select' }), {
-      target: { value: 'WHATSAPP' },
+    const sourceSelect = screen.getByLabelText('Origen', { selector: 'select' })
+    expect(within(sourceSelect).getByRole('option', { name: 'Instagram' })).toHaveValue('INSTAGRAM')
+    fireEvent.change(sourceSelect, {
+      target: { value: 'INSTAGRAM' },
     })
     await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(10))
     const latestPipeline = [...fetchMock.mock.calls]
       .map(([input]) => new URL(String(input), 'http://localhost'))
       .reverse()
       .find((url) => url.pathname === '/api/metrics/pipeline')
-    expect(latestPipeline?.searchParams.get('source')).toBe('WHATSAPP')
+    expect(latestPipeline?.searchParams.get('source')).toBe('INSTAGRAM')
     expect(latestPipeline?.searchParams.has('from')).toBe(false)
 
     fireEvent.click(screen.getByText(/Filtros/))

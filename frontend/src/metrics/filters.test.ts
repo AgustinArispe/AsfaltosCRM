@@ -70,6 +70,7 @@ describe('Dashboard filters', () => {
     expect(sourceLabel('WEB')).toBe('Web')
     expect(sourceLabel('WHATSAPP')).toBe('WhatsApp')
     expect(sourceLabel('REFERIDO')).toBe('Manual')
+    expect(sourceLabel('INSTAGRAM')).toBe('Instagram')
   })
 
   it('restores the REFERIDO origin from Dashboard URLs', () => {
@@ -79,5 +80,14 @@ describe('Dashboard filters', () => {
     )
 
     expect(restored.source).toBe('REFERIDO')
+  })
+
+  it('restores the INSTAGRAM origin from Dashboard URLs', () => {
+    const restored = dashboardFiltersFromQuery(
+      '?period=month&from=2026-09-01&to=2026-09-30&source=INSTAGRAM',
+      new Date('2026-09-10T12:00:00-03:00'),
+    )
+
+    expect(restored.source).toBe('INSTAGRAM')
   })
 })
