@@ -1,9 +1,9 @@
 # CRM-047 — Instagram Reporting Source
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-17
-Implementation commit: Pending
+Implementation commit: `ae34a18`
 
 ## Goal
 
