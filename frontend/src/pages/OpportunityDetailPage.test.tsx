@@ -354,7 +354,9 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Reabrir oportunidad' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir en negociación' }))
     await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/42'))
-    expect(screen.queryByRole('dialog', { name: 'Reabrir oportunidad' })).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Reabrir oportunidad' })).not.toBeInTheDocument(),
+    )
     expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/reopen')
   })
 
