@@ -438,7 +438,15 @@ describe('DashboardPage', () => {
     fireEvent.change(sourceSelect, {
       target: { value: 'INSTAGRAM' },
     })
-    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(10))
+    await waitFor(() => {
+      const instagramRequests = fetchMock.mock.calls.filter(([input]) => {
+        const url = new URL(String(input), 'http://localhost')
+        return (
+          url.pathname.startsWith('/api/metrics/') && url.searchParams.get('source') === 'INSTAGRAM'
+        )
+      })
+      expect(instagramRequests).toHaveLength(6)
+    })
     const latestPipeline = [...fetchMock.mock.calls]
       .map(([input]) => new URL(String(input), 'http://localhost'))
       .reverse()
