@@ -437,7 +437,9 @@ describe('authenticated frontend', () => {
 
     const trigger = screen.getByRole('button', { name: 'Abrir navegación' })
     fireEvent.click(trigger)
-    expect(screen.getByRole('complementary', { name: 'Navegación móvil' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('complementary', { name: 'Navegación móvil' }),
+    ).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() =>
       expect(
