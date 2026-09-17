@@ -262,6 +262,7 @@ def mark_as_lost(
     OpportunityService(session).mark_as_lost(
         opportunity_id,
         payload.loss_reason,
+        payload.loss_reason_detail,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)

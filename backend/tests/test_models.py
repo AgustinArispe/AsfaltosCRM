@@ -53,12 +53,14 @@ def create_opportunity(
     status: OpportunityStatus = OpportunityStatus.NUEVA,
     source: LeadSource = LeadSource.WEB,
     loss_reason: LossReason | None = None,
+    loss_reason_detail: str | None = None,
 ) -> Opportunity:
     opportunity = Opportunity(
         customer_id=customer.id,
         source=source,
         status=status,
         loss_reason=loss_reason,
+        loss_reason_detail=loss_reason_detail,
     )
     db_session.add(opportunity)
     db_session.flush()
@@ -202,6 +204,42 @@ def test_lost_opportunity_requires_loss_reason(db_session: Session) -> None:
             customer_id=customer.id,
             source=LeadSource.WEB,
             status=OpportunityStatus.PERDIDA,
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+@pytest.mark.parametrize("loss_reason_detail", [None, "   ", "x" * 501])
+def test_other_loss_reason_requires_valid_detail(
+    db_session: Session,
+    loss_reason_detail: str | None,
+) -> None:
+    customer = create_customer(db_session)
+    db_session.add(
+        Opportunity(
+            customer_id=customer.id,
+            source=LeadSource.WEB,
+            status=OpportunityStatus.PERDIDA,
+            loss_reason=LossReason.OTRO,
+            loss_reason_detail=loss_reason_detail,
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+
+
+def test_non_other_loss_reason_rejects_detail(db_session: Session) -> None:
+    customer = create_customer(db_session)
+    db_session.add(
+        Opportunity(
+            customer_id=customer.id,
+            source=LeadSource.WEB,
+            status=OpportunityStatus.PERDIDA,
+            loss_reason=LossReason.PRECIO,
+            loss_reason_detail="No corresponde",
         )
     )
 

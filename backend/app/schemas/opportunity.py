@@ -1,9 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.models import (
     LeadSource,
@@ -19,6 +26,10 @@ PositiveId = Annotated[int, Field(gt=0)]
 PositiveQuantity = Annotated[
     Decimal,
     Field(gt=0, max_digits=14, decimal_places=3),
+]
+LossReasonDetail = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
 ]
 
 
@@ -86,6 +97,20 @@ class OpportunityStageRegressionRequest(StrictRequestModel):
 
 class LoseOpportunityRequest(StatusChangeRequest):
     loss_reason: LossReason
+    loss_reason_detail: LossReasonDetail | None = None
+
+    @model_validator(mode="after")
+    def validate_loss_reason_detail(self) -> Self:
+        if self.loss_reason is LossReason.OTRO and self.loss_reason_detail is None:
+            raise ValueError("loss_reason_detail is required when loss_reason is OTRO")
+        if (
+            self.loss_reason is not LossReason.OTRO
+            and self.loss_reason_detail is not None
+        ):
+            raise ValueError(
+                "loss_reason_detail is only allowed when loss_reason is OTRO"
+            )
+        return self
 
 
 class ReopenOpportunityRequest(StrictRequestModel):
@@ -124,6 +149,16 @@ class OpportunityStatusHistoryResponse(BaseModel):
     transition_kind: OpportunityTransitionKind
 
 
+class OpportunityLossEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status_history_id: int
+    reason: LossReason
+    loss_reason_detail: str | None
+    lost_at: datetime
+
+
 class OpportunityWebIntake(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -152,6 +187,8 @@ class OpportunityDetail(OpportunitySummary):
         validation_alias="status_history"
     )
     loss_reason: LossReason | None
+    loss_reason_detail: str | None
+    loss_events: list[OpportunityLossEventResponse]
     updated_at: datetime
     web_intake: OpportunityWebIntake | None = Field(validation_alias="lead_intake")
 

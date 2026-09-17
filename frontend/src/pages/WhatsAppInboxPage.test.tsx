@@ -44,6 +44,8 @@ const opportunityDetail: OpportunityDetail = {
   created_at: '2026-08-01T12:00:00Z',
   history: [],
   loss_reason: null,
+  loss_reason_detail: null,
+  loss_events: [],
   updated_at: '2026-08-09T12:00:00Z',
   web_intake: null,
 }

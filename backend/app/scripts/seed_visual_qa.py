@@ -681,6 +681,11 @@ def _seed_opportunities(
             opportunity = service.mark_as_lost(
                 opportunity.id,
                 item.loss_reason,
+                (
+                    "El cliente indicó otro motivo comercial"
+                    if item.loss_reason is LossReason.OTRO
+                    else None
+                ),
                 changed_by_user_id=actor_user_id,
                 occurred_at=next(transition_times),
             )
@@ -715,6 +720,11 @@ def _seed_opportunities(
             opportunity = service.mark_as_lost(
                 opportunity.id,
                 item.loss_reason,
+                (
+                    "El cliente indicó otro motivo comercial"
+                    if item.loss_reason is LossReason.OTRO
+                    else None
+                ),
                 changed_by_user_id=actor_user_id,
                 occurred_at=next(transition_times),
             )

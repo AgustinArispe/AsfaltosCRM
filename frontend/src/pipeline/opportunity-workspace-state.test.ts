@@ -33,6 +33,8 @@ function detail(id: number, status: OpportunityDetail['status']): OpportunityDet
     ...summary(id, status),
     history: [],
     loss_reason: status === 'PERDIDA' ? 'OTRO' : null,
+    loss_reason_detail: status === 'PERDIDA' ? 'Detalle de prueba' : null,
+    loss_events: [],
     updated_at: '2026-09-07T12:00:00Z',
     web_intake: null,
   }

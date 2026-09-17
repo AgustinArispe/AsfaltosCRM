@@ -398,7 +398,40 @@ def test_lost_opportunity_flow(api_client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "PERDIDA"
     assert response.json()["loss_reason"] == "PRECIO"
+    assert response.json()["loss_reason_detail"] is None
     assert response.json()["history"][-1]["to_status"] == "PERDIDA"
+
+
+def test_other_loss_reason_requires_and_returns_detail(api_client: TestClient) -> None:
+    customer = create_customer(api_client, "Cliente otro motivo")
+    opportunity = create_opportunity(api_client, customer.id)
+
+    missing_detail = api_client.post(
+        f"/api/opportunities/{opportunity.id}/lose",
+        json={"loss_reason": "OTRO"},
+    )
+    unexpected_detail = api_client.post(
+        f"/api/opportunities/{opportunity.id}/lose",
+        json={"loss_reason": "PRECIO", "loss_reason_detail": "No corresponde"},
+    )
+    response = api_client.post(
+        f"/api/opportunities/{opportunity.id}/lose",
+        json={
+            "loss_reason": "OTRO",
+            "loss_reason_detail": "  El cliente postergó la compra  ",
+        },
+    )
+
+    assert missing_detail.status_code == 422
+    assert unexpected_detail.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["loss_reason"] == "OTRO"
+    assert response.json()["loss_reason_detail"] == "El cliente postergó la compra"
+    assert response.json()["loss_events"][-1]["reason"] == "OTRO"
+    assert (
+        response.json()["loss_events"][-1]["loss_reason_detail"]
+        == "El cliente postergó la compra"
+    )
 
 
 def test_update_quote_products_and_unassign_user(

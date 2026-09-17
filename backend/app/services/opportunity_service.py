@@ -268,6 +268,7 @@ class OpportunityService:
         self,
         opportunity_id: int,
         loss_reason: LossReason | None,
+        loss_reason_detail: str | None = None,
         *,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
@@ -279,16 +280,26 @@ class OpportunityService:
                 raise InvalidLossReasonError(
                     "A valid loss reason is required to mark an opportunity lost"
                 )
+            normalized_loss_reason_detail = self._normalize_loss_reason_detail(
+                loss_reason,
+                loss_reason_detail,
+            )
             self._validate_history_user(changed_by_user_id)
             history = self._transition(
                 opportunity,
                 to_status=OpportunityStatus.PERDIDA,
                 changed_by_user_id=changed_by_user_id,
                 loss_reason=loss_reason,
+                loss_reason_detail=normalized_loss_reason_detail,
                 transition_kind=OpportunityTransitionKind.LOST,
                 changed_at=occurred_at,
             )
-            self._record_loss_event(opportunity, history, loss_reason)
+            self._record_loss_event(
+                opportunity,
+                history,
+                loss_reason,
+                normalized_loss_reason_detail,
+            )
             self._session.flush()
 
         return opportunity
@@ -620,6 +631,26 @@ class OpportunityService:
                 "Quote products can only be edited in COTIZADA or NEGOCIACION"
             )
 
+    @staticmethod
+    def _normalize_loss_reason_detail(
+        loss_reason: LossReason,
+        loss_reason_detail: str | None,
+    ) -> str | None:
+        if loss_reason is not LossReason.OTRO:
+            if loss_reason_detail is not None:
+                raise InvalidLossReasonError(
+                    "Loss reason detail is only allowed for OTRO"
+                )
+            return None
+        if loss_reason_detail is None:
+            raise InvalidLossReasonError("Loss reason detail is required for OTRO")
+        normalized = loss_reason_detail.strip()
+        if not normalized or len(normalized) > 500:
+            raise InvalidLossReasonError(
+                "Loss reason detail must contain between 1 and 500 characters"
+            )
+        return normalized
+
     def _require_quoted_products(self, opportunity_id: int) -> None:
         product_id = self._session.scalar(
             select(OpportunityProduct.product_id)
@@ -638,6 +669,7 @@ class OpportunityService:
         to_status: OpportunityStatus,
         changed_by_user_id: int | None,
         loss_reason: LossReason | None = None,
+        loss_reason_detail: str | None = None,
         transition_kind: OpportunityTransitionKind = OpportunityTransitionKind.STATUS_CHANGED,
         changed_at: datetime | None = None,
     ) -> OpportunityStatusHistory:
@@ -645,6 +677,7 @@ class OpportunityService:
         transition_at = changed_at or datetime.now(UTC)
         opportunity.status = to_status
         opportunity.loss_reason = loss_reason
+        opportunity.loss_reason_detail = loss_reason_detail
         opportunity.current_status_entered_at = transition_at
         opportunity.updated_at = transition_at
         NotificationService(self._session).resolve_stale_for_opportunity_in_transaction(
@@ -687,6 +720,7 @@ class OpportunityService:
         opportunity: Opportunity,
         history: OpportunityStatusHistory,
         loss_reason: LossReason,
+        loss_reason_detail: str | None,
     ) -> None:
         customer = self._session.get(Customer, opportunity.customer_id)
         if customer is None:
@@ -709,6 +743,7 @@ class OpportunityService:
             status_history_id=history.id,
             from_status=history.from_status,
             reason=loss_reason,
+            loss_reason_detail=loss_reason_detail,
             source=opportunity.source,
             customer_display_name=(
                 customer.name

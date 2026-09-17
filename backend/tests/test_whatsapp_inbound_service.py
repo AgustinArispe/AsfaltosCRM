@@ -307,6 +307,7 @@ def test_link_history_preserves_terminal_opportunities(
     OpportunityService(db_session).mark_as_lost(
         first.id,
         LossReason.OTRO,
+        "Motivo de prueba",
         changed_by_user_id=None,
     )
     assert first.status is OpportunityStatus.PERDIDA

@@ -42,7 +42,17 @@ const opportunity: OpportunityDetail = {
       changed_by_user_id: 2,
     },
   ],
-  loss_reason: 'PRECIO',
+  loss_reason: 'OTRO',
+  loss_reason_detail: 'El cliente cambió el alcance del proyecto.',
+  loss_events: [
+    {
+      id: 3,
+      status_history_id: 2,
+      reason: 'OTRO',
+      loss_reason_detail: 'El cliente cambió el alcance del proyecto.',
+      lost_at: '2026-08-01T12:00:00Z',
+    },
+  ],
   updated_at: '2026-08-01T12:00:00Z',
   web_intake: null,
 }
@@ -65,6 +75,7 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getByRole('heading', { name: 'FAA Construcciones' })).toBeInTheDocument()
     expect(screen.getByText('Legendario')).toBeInTheDocument()
     expect(screen.getByText('Motivo de pérdida')).toBeInTheDocument()
+    expect(screen.getAllByText('El cliente cambió el alcance del proyecto.')).toHaveLength(2)
     expect(screen.getByRole('link', { name: 'carla@faa.test' })).toHaveAttribute(
       'href',
       'mailto:carla@faa.test',
@@ -107,6 +118,7 @@ describe('OpportunityDetailContent', () => {
           ...opportunity,
           status: 'NUEVA',
           loss_reason: null,
+          loss_reason_detail: null,
           products: [],
           customer: {
             ...opportunity.customer,

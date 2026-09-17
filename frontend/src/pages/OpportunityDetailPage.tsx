@@ -300,10 +300,10 @@ export function OpportunityDetailPage({
     }
   }
 
-  const handleLoss = async (reason: LossReason) => {
+  const handleLoss = async (reason: LossReason, reasonDetail: string | null) => {
     if (!lossOpportunity) return
     requestGenerationRef.current += 1
-    const updated = await loseOpportunity(lossOpportunity.id, reason, session)
+    const updated = await loseOpportunity(lossOpportunity.id, reason, reasonDetail, session)
     setOpportunity(updated)
     onOpportunityUpdated?.(updated)
     setLossOpportunity(null)

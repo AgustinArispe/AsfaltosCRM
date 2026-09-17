@@ -141,7 +141,16 @@ class CustomerLegendaryEvent(Base):
 
 class OpportunityLossEvent(Base):
     __tablename__ = "opportunity_loss_events"
-    __table_args__ = (Index("ix_loss_events_workspace", "lost_at", "id"),)
+    __table_args__ = (
+        CheckConstraint(
+            "(reason = 'OTRO' AND loss_reason_detail IS NOT NULL "
+            "AND btrim(loss_reason_detail) <> '' "
+            "AND char_length(loss_reason_detail) <= 500) OR "
+            "(reason <> 'OTRO' AND loss_reason_detail IS NULL)",
+            name="ck_loss_events_other_loss_detail",
+        ),
+        Index("ix_loss_events_workspace", "lost_at", "id"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     opportunity_id: Mapped[int] = mapped_column(
@@ -160,6 +169,7 @@ class OpportunityLossEvent(Base):
         OPPORTUNITY_STATUS_DB_ENUM, nullable=False
     )
     reason: Mapped[LossReason] = mapped_column(LOSS_REASON_DB_ENUM, nullable=False)
+    loss_reason_detail: Mapped[str | None] = mapped_column(Text)
     source: Mapped[LeadSource] = mapped_column(LEAD_SOURCE_DB_ENUM, nullable=False)
     customer_display_name: Mapped[str] = mapped_column(Text, nullable=False)
     customer_province: Mapped[str | None] = mapped_column(Text)

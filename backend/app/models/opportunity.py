@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
+    Text,
     func,
     select,
     text,
@@ -51,6 +52,13 @@ class Opportunity(TimestampMixin, Base):
             "(status = 'PERDIDA' AND loss_reason IS NOT NULL) OR "
             "(status <> 'PERDIDA' AND loss_reason IS NULL)",
             name="ck_opportunities_loss_reason_matches_status",
+        ),
+        CheckConstraint(
+            "(loss_reason = 'OTRO' AND loss_reason_detail IS NOT NULL "
+            "AND btrim(loss_reason_detail) <> '' "
+            "AND char_length(loss_reason_detail) <= 500) OR "
+            "(loss_reason IS DISTINCT FROM 'OTRO' AND loss_reason_detail IS NULL)",
+            name="ck_opportunities_other_loss_detail",
         ),
         CheckConstraint(
             "current_status_entered_at >= created_at",
@@ -123,6 +131,7 @@ class Opportunity(TimestampMixin, Base):
         server_default=OpportunityStatus.NUEVA.value,
     )
     loss_reason: Mapped[LossReason | None] = mapped_column(LOSS_REASON_DB_ENUM)
+    loss_reason_detail: Mapped[str | None] = mapped_column(Text)
     current_status_entered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

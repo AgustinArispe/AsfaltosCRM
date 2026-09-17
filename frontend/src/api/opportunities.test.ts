@@ -46,7 +46,7 @@ describe('Opportunity API client', () => {
     )
     await moveOpportunityToNegotiation(9, session)
     await winOpportunity(9, session)
-    await loseOpportunity(9, 'OTRO', session)
+    await loseOpportunity(9, 'OTRO', 'El cliente eligió otra alternativa.', session)
     await reopenOpportunity(9, session)
     await listOpportunityNotes(9, session)
     await createOpportunityNote(9, 'Seguimiento', session, '00000000-0000-4000-8000-000000000001')

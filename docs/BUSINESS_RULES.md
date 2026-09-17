@@ -85,6 +85,10 @@ por conveniencia técnica.
 - `NUEVA` → `PERDIDA` es válida sin productos cotizados.
 - Los motivos actuales son `PRECIO`, `SIN_RESPUESTA`, `COMPETENCIA`,
   `PROYECTO_CANCELADO` y `OTRO`.
+- Cuando el motivo es `OTRO`, se debe registrar un detalle de texto libre no vacío.
+  Ese detalle se conserva en el episodio histórico de pérdida y se muestra junto al
+  motivo en el detalle y el historial de la oportunidad. Los demás motivos no aceptan
+  un detalle libre.
 - Las oportunidades perdidas no aparecen en el Kanban principal, pero permanecen
   disponibles para búsqueda, historial y métricas.
 - Si existía una cotización, se conserva al marcar la oportunidad como perdida.

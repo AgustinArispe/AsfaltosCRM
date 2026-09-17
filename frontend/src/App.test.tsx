@@ -64,6 +64,8 @@ const opportunityDetail: OpportunityDetail = {
     },
   ],
   loss_reason: null,
+  loss_reason_detail: null,
+  loss_events: [],
   updated_at: '2026-08-04T12:00:00Z',
   web_intake: null,
 }

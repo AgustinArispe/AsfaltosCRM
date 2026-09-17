@@ -11,6 +11,7 @@ from app.models import (
     LeadSource,
     LossReason,
     Opportunity,
+    OpportunityLossEvent,
     OpportunityProduct,
     OpportunityStatus,
     OpportunityStatusHistory,
@@ -144,6 +145,19 @@ def get_quote_lines(
             select(OpportunityProduct)
             .where(OpportunityProduct.opportunity_id == opportunity_id)
             .order_by(OpportunityProduct.product_id)
+        )
+    )
+
+
+def get_loss_events(
+    db_session: Session,
+    opportunity_id: int,
+) -> list[OpportunityLossEvent]:
+    return list(
+        db_session.scalars(
+            select(OpportunityLossEvent)
+            .where(OpportunityLossEvent.opportunity_id == opportunity_id)
+            .order_by(OpportunityLossEvent.id)
         )
     )
 
@@ -520,6 +534,46 @@ def test_mark_as_lost_requires_loss_reason(db_session: Session) -> None:
     assert opportunity.loss_reason is None
 
 
+def test_mark_as_lost_with_other_reason_persists_normalized_detail(
+    db_session: Session,
+) -> None:
+    service, opportunity = create_new_opportunity(db_session)
+
+    service.mark_as_lost(
+        opportunity.id,
+        LossReason.OTRO,
+        "  El cliente decidió esperar  ",
+    )
+
+    loss_events = get_loss_events(db_session, opportunity.id)
+    assert opportunity.loss_reason is LossReason.OTRO
+    assert opportunity.loss_reason_detail == "El cliente decidió esperar"
+    assert loss_events[-1].reason is LossReason.OTRO
+    assert loss_events[-1].loss_reason_detail == "El cliente decidió esperar"
+
+
+@pytest.mark.parametrize(
+    ("reason", "detail"),
+    [
+        (LossReason.OTRO, None),
+        (LossReason.OTRO, "   "),
+        (LossReason.PRECIO, "No corresponde"),
+    ],
+)
+def test_mark_as_lost_rejects_invalid_reason_detail_combinations(
+    db_session: Session,
+    reason: LossReason,
+    detail: str | None,
+) -> None:
+    service, opportunity = create_new_opportunity(db_session)
+
+    with pytest.raises(InvalidLossReasonError):
+        service.mark_as_lost(opportunity.id, reason, detail)
+
+    assert opportunity.status is OpportunityStatus.NUEVA
+    assert opportunity.loss_reason_detail is None
+
+
 @pytest.mark.parametrize(
     "terminal_status",
     [OpportunityStatus.GANADA, OpportunityStatus.PERDIDA],
@@ -533,11 +587,15 @@ def test_terminal_opportunity_rejects_further_transitions_and_quote_edits(
         service.mark_as_won(opportunity.id)
     else:
         service, opportunity = create_new_opportunity(db_session)
-        service.mark_as_lost(opportunity.id, LossReason.OTRO)
+        service.mark_as_lost(opportunity.id, LossReason.OTRO, "Motivo de prueba")
     opportunity_id = opportunity.id
 
     with pytest.raises(ClosedOpportunityError):
-        service.mark_as_lost(opportunity_id, LossReason.OTRO)
+        service.mark_as_lost(
+            opportunity_id,
+            LossReason.OTRO,
+            "Segundo intento de prueba",
+        )
     with pytest.raises(ClosedOpportunityError):
         service.update_quote_products(
             opportunity_id,

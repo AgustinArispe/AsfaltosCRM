@@ -32,7 +32,25 @@ describe('LossModal', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('Seleccioná un motivo')
     fireEvent.change(within(dialog).getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pérdida' }))
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('PRECIO'))
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('PRECIO', null))
+  })
+
+  it('requires and submits a written detail for the OTRO reason', async () => {
+    const onConfirm = vi.fn(async () => undefined)
+    render(<LossModal onClose={vi.fn()} onConfirm={onConfirm} opportunity={opportunity} />)
+
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'OTRO' } })
+    const detail = screen.getByLabelText('Detalle del motivo')
+    expect(detail).toBeRequired()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Escribí el motivo')
+    expect(detail).toHaveFocus()
+
+    fireEvent.change(detail, { target: { value: '  El proyecto cambió de alcance.  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith('OTRO', 'El proyecto cambió de alcance.'),
+    )
   })
 
   it('keeps the dialog open with a useful command error', async () => {
@@ -45,7 +63,7 @@ describe('LossModal', () => {
         opportunity={opportunity}
       />,
     )
-    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'OTRO' } })
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No disponible')
   })
@@ -58,7 +76,7 @@ describe('LossModal', () => {
         opportunity={opportunity}
       />,
     )
-    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'OTRO' } })
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No pudimos marcar la oportunidad como perdida.',

@@ -76,6 +76,7 @@ class OpportunityQueryService:
                 *self._summary_load_options(),
                 joinedload(Opportunity.lead_intake),
                 selectinload(Opportunity.status_history),
+                selectinload(Opportunity.loss_events),
             )
             .execution_options(populate_existing=True)
         )

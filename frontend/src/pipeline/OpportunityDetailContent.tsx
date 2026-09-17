@@ -123,6 +123,11 @@ function LossReason({ opportunity }: { opportunity: OpportunityDetail }) {
       <span className='text-sm font-semibold text-[var(--destructive-text)]'>
         {LOSS_REASON_LABELS[opportunity.loss_reason]}
       </span>
+      {opportunity.loss_reason_detail ? (
+        <p className='whitespace-pre-wrap break-words text-sm text-[var(--text-primary)] [overflow-wrap:anywhere]'>
+          {opportunity.loss_reason_detail}
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -378,32 +383,49 @@ function History({ opportunity }: { opportunity: OpportunityDetail }) {
         Historial
       </h3>
       <ol className='mt-3'>
-        {opportunity.history.map((entry, index) => (
-          <li
-            className='relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-4 last:pb-0'
-            key={entry.id}
-          >
-            <div aria-hidden='true' className='relative flex justify-center'>
-              <span className='mt-1.5 size-2 rounded-full bg-[var(--text-tertiary)] ring-2 ring-[var(--surface-primary)]' />
-              {index < opportunity.history.length - 1 ? (
-                <span className='absolute bottom-0 top-4 w-px bg-[var(--divider)]' />
-              ) : null}
-            </div>
-            <div>
-              <time className='text-xs text-[var(--text-tertiary)]' dateTime={entry.changed_at}>
-                {formatDateTime(entry.changed_at)}
-              </time>
-              <p className='mt-0.5 text-sm font-medium leading-5 text-[var(--text-primary)]'>
-                {historyDescription(entry)}
-              </p>
-              {entry.from_status === null ? (
-                <p className='mt-0.5 text-xs text-[var(--text-tertiary)]'>
-                  Estado inicial: {OPPORTUNITY_STATUS_LABELS[entry.to_status]}
+        {opportunity.history.map((entry, index) => {
+          const lossEvent = opportunity.loss_events?.find(
+            (event) => event.status_history_id === entry.id,
+          )
+          return (
+            <li
+              className='relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-4 last:pb-0'
+              key={entry.id}
+            >
+              <div aria-hidden='true' className='relative flex justify-center'>
+                <span className='mt-1.5 size-2 rounded-full bg-[var(--text-tertiary)] ring-2 ring-[var(--surface-primary)]' />
+                {index < opportunity.history.length - 1 ? (
+                  <span className='absolute bottom-0 top-4 w-px bg-[var(--divider)]' />
+                ) : null}
+              </div>
+              <div>
+                <time className='text-xs text-[var(--text-tertiary)]' dateTime={entry.changed_at}>
+                  {formatDateTime(entry.changed_at)}
+                </time>
+                <p className='mt-0.5 text-sm font-medium leading-5 text-[var(--text-primary)]'>
+                  {historyDescription(entry)}
                 </p>
-              ) : null}
-            </div>
-          </li>
-        ))}
+                {entry.from_status === null ? (
+                  <p className='mt-0.5 text-xs text-[var(--text-tertiary)]'>
+                    Estado inicial: {OPPORTUNITY_STATUS_LABELS[entry.to_status]}
+                  </p>
+                ) : null}
+                {lossEvent ? (
+                  <div className='mt-1 text-xs leading-5 text-[var(--text-secondary)]'>
+                    <span className='font-semibold text-[var(--destructive-text)]'>
+                      {LOSS_REASON_LABELS[lossEvent.reason]}
+                    </span>
+                    {lossEvent.loss_reason_detail ? (
+                      <p className='whitespace-pre-wrap break-words [overflow-wrap:anywhere]'>
+                        {lossEvent.loss_reason_detail}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </li>
+          )
+        })}
       </ol>
     </section>
   )

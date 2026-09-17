@@ -48,6 +48,11 @@ def make_opportunity(
         source=LeadSource.WEB,
         status=status,
         loss_reason=(LossReason.OTRO if status is OpportunityStatus.PERDIDA else None),
+        loss_reason_detail=(
+            "Motivo histórico de prueba"
+            if status is OpportunityStatus.PERDIDA
+            else None
+        ),
         current_status_entered_at=entered_at,
         created_at=entered_at - timedelta(days=1),
         updated_at=entered_at,
@@ -337,6 +342,7 @@ def test_mark_all_reads_only_active_unread_notifications(
     OpportunityService(db_session).mark_as_lost(
         resolved_opportunity.id,
         LossReason.OTRO,
+        "Motivo de prueba",
     )
 
     updated_count = NotificationService(db_session).mark_all_active_as_read(

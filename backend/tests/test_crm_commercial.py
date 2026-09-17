@@ -705,6 +705,7 @@ def test_crm_commercial_api_contracts(
     OpportunityService(db_session).mark_as_lost(
         opportunity.id,
         LossReason.OTRO,
+        "El proyecto quedó en revisión interna",
         changed_by_user_id=supervisor_user.id,
     )
 
@@ -750,6 +751,10 @@ def test_crm_commercial_api_contracts(
     )
     assert lost.status_code == 200
     assert lost.json()["items"][0]["opportunity"]["id"] == opportunity.id
+    assert (
+        lost.json()["items"][0]["loss_reason_detail"]
+        == "El proyecto quedó en revisión interna"
+    )
     statistics = api_client.get(
         "/api/lost-opportunities/statistics",
         params={"customer_id": customer.id},
@@ -766,6 +771,12 @@ def test_crm_commercial_api_contracts(
     assert reopened.status_code == 200
     assert reopened.json()["status"] == "NEGOCIACION"
     assert reopened.json()["is_reopened"] is True
+    assert reopened.json()["loss_reason"] is None
+    assert reopened.json()["loss_reason_detail"] is None
+    assert (
+        reopened.json()["loss_events"][-1]["loss_reason_detail"]
+        == "El proyecto quedó en revisión interna"
+    )
 
     import_id = uuid4()
     csv_content = (

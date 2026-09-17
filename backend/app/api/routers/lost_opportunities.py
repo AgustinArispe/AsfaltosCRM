@@ -74,6 +74,7 @@ def list_lost_opportunities(
                 opportunity=OpportunitySummary.model_validate(item.opportunity),
                 loss_event_id=item.loss_event_id,
                 loss_reason=item.loss_reason,
+                loss_reason_detail=item.loss_reason_detail,
                 lost_at=item.lost_at,
                 quoted_total_kg=item.quoted_total_kg,
                 loss_products=[

@@ -182,12 +182,13 @@ export function regressOpportunityStage(
 export function loseOpportunity(
   opportunityId: number,
   lossReason: LossReason,
+  lossReasonDetail: string | null,
   session: ApiSession,
 ) {
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/lose`, {
     ...session,
     method: 'POST',
-    body: { loss_reason: lossReason },
+    body: { loss_reason: lossReason, loss_reason_detail: lossReasonDetail },
   })
 }
 

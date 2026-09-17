@@ -41,6 +41,7 @@ class LostProjection:
     opportunity: Opportunity
     loss_event_id: int
     loss_reason: LossReason
+    loss_reason_detail: str | None
     lost_at: datetime
     quoted_total_kg: Decimal
     loss_products: tuple[OpportunityLossProductSnapshot, ...]
@@ -134,6 +135,7 @@ class LostOpportunityService:
                 opportunity=query_service.get_detail(event.opportunity_id),
                 loss_event_id=event.id,
                 loss_reason=event.reason,
+                loss_reason_detail=event.loss_reason_detail,
                 lost_at=event.lost_at,
                 quoted_total_kg=event.quoted_total_kg,
                 loss_products=tuple(event.product_snapshots),

@@ -93,6 +93,11 @@ def make_opportunity(
         source=source,
         status=status,
         loss_reason=(LossReason.OTRO if status is OpportunityStatus.PERDIDA else None),
+        loss_reason_detail=(
+            "Motivo histórico de prueba"
+            if status is OpportunityStatus.PERDIDA
+            else None
+        ),
         created_at=created_at,
         updated_at=status_entered_at,
         current_status_entered_at=status_entered_at,
@@ -119,6 +124,7 @@ def make_opportunity(
             status_history_id=history.id,
             from_status=OpportunityStatus.NUEVA,
             reason=LossReason.OTRO,
+            loss_reason_detail="Motivo histórico de prueba",
             source=source,
             customer_display_name=customer.name,
             customer_province=customer.province,

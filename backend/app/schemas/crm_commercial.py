@@ -76,6 +76,7 @@ class LostOpportunityResponse(BaseModel):
     opportunity: OpportunitySummary
     loss_event_id: int
     loss_reason: LossReason
+    loss_reason_detail: str | None
     lost_at: datetime
     quoted_total_kg: Decimal
     loss_products: list[LossProductSnapshotResponse]

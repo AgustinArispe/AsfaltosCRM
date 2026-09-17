@@ -53,6 +53,14 @@ export type OpportunityStatusHistory = {
 export type OpportunityDetail = OpportunitySummary & {
   history: OpportunityStatusHistory[]
   loss_reason: LossReason | null
+  loss_reason_detail: string | null
+  loss_events: Array<{
+    id: number
+    status_history_id: number
+    reason: LossReason
+    loss_reason_detail: string | null
+    lost_at: string
+  }>
   updated_at: string
   web_intake: { message: string | null } | null
 }
