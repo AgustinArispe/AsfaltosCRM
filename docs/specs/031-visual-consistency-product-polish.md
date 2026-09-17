@@ -3,7 +3,7 @@
 Status: Implemented
 Owner: Frontend / Product Design
 Last updated: 2026-09-17
-Implementation commits: `309d06e`, `99929a6`, `db8cd9b`, `ed70d9a`, `2d6994f`, `279061b`, pending brand-color amendment
+Implementation commits: `309d06e`, `99929a6`, `db8cd9b`, `ed70d9a`, `2d6994f`, `279061b`, `b81688818439498a43420753e3c220596476cf28`
 
 ## Goal
 
