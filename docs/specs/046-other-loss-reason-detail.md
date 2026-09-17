@@ -1,9 +1,9 @@
 # CRM-046 — Other Loss Reason Detail
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-17
-Implementation commit: N/A
+Implementation commit: `845a387ebe6ede4d10b9de7c1e0fcc0942e606c8`
 
 ## Goal
 
