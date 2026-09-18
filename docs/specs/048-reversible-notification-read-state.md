@@ -1,9 +1,9 @@
 # CRM-048 — Reversible Notification Read State
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-18
-Implementation commit: N/A
+Implementation commit: `cb1ef6c20bfccbff2f09188e857cb955c96ac3a7`
 
 ## Goal
 
