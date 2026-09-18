@@ -7221,6 +7221,9 @@ button.dashboard-comparison-bar:focus-visible {
 .notification-row-wrapper:not(:last-child) {
   border-bottom: 0;
 }
+.notification-row-wrapper {
+  position: relative;
+}
 .notification-row {
   position: relative;
   display: grid;
@@ -7294,8 +7297,42 @@ button.dashboard-comparison-bar:focus-visible {
 .notification-row__chevron {
   width: 1.15rem;
   height: 1.15rem;
+  margin-right: 3.1rem;
   color: var(--text-tertiary);
   transition: transform 160ms var(--ease-ui);
+}
+.notification-row__read-action {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  display: inline-grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+  transition:
+    background-color 160ms var(--ease-ui),
+    border-color 160ms var(--ease-ui),
+    color 160ms var(--ease-ui);
+}
+.notification-row__read-action:hover:not(:disabled) {
+  border-color: var(--action-secondary);
+  background: var(--action-secondary-subtle);
+  color: var(--action-secondary);
+}
+.notification-row__read-action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus-ring) 42%, transparent);
+  outline-offset: 2px;
+}
+.notification-row__read-action:disabled {
+  cursor: wait;
+  border-color: var(--disabled-border);
+  background: var(--disabled-surface);
+  color: var(--disabled-text);
 }
 .notification-row:hover .notification-row__chevron {
   transform: translateX(2px);
@@ -7414,7 +7451,8 @@ button.dashboard-comparison-bar:focus-visible {
   .workspace-record-card,
   .workspace-record-chevron,
   .notification-row,
-  .notification-row__chevron {
+  .notification-row__chevron,
+  .notification-row__read-action {
     transition: none;
   }
   .workspace-record-card:hover,

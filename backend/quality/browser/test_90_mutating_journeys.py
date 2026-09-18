@@ -160,7 +160,39 @@ def test_notifications_read_action_and_badge_synchronize(
     expect(
         navigation.get_by_role("link", name=re.compile("Notificaciones"))
     ).to_contain_text(re.compile(r"[1-9]"))
+    badge = navigation.locator(".ui-notification-badge")
+    initial_unread_count = int(badge.inner_text())
     wait_for_workspace(page, "notifications")
+    initial_path = page.url
+    mark_read = page.get_by_role("button", name=re.compile("Marcar como leída:")).first
+    target_name = mark_read.get_attribute("aria-label")
+    assert target_name is not None
+    target_identity = target_name.removeprefix("Marcar como leída: ")
+    selected_row = mark_read.locator("xpath=preceding-sibling::button[1]")
+    details_id = selected_row.get_attribute("aria-describedby")
+    assert details_id is not None
+    row = page.locator(f'[aria-describedby="{details_id}"]')
+    with page.expect_response(re.compile(r"/api/notifications/\d+/read-state$")):
+        mark_read.click()
+    expect(row).not_to_have_class(re.compile(r"notification-row--unread"))
+    mark_unread = page.get_by_role(
+        "button", name=f"Marcar como no leída: {target_identity}"
+    )
+    expect(mark_unread).to_be_visible()
+    expect(page).to_have_url(initial_path)
+    if initial_unread_count == 1:
+        expect(badge).to_have_count(0)
+    else:
+        expect(badge).to_have_text(str(initial_unread_count - 1))
+
+    with page.expect_response(re.compile(r"/api/notifications/\d+/read-state$")):
+        mark_unread.click()
+    expect(row).to_have_class(re.compile(r"notification-row--unread"))
+    expect(row.locator("xpath=following-sibling::button[1]")).to_have_attribute(
+        "aria-label", f"Marcar como leída: {target_identity}"
+    )
+    expect(badge).to_have_text(str(initial_unread_count))
+
     page.get_by_role(
         "button",
         name=re.compile(r"¡Atrasado!:.*sin leer, activa", re.IGNORECASE),

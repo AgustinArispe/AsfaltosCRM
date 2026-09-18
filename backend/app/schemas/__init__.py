@@ -32,6 +32,7 @@ from app.schemas.metrics import (
 from app.schemas.notification import (
     NotificationActionRequest,
     NotificationReadAllResponse,
+    NotificationReadStateRequest,
     NotificationResponse,
 )
 from app.schemas.opportunity import (
@@ -136,6 +137,7 @@ __all__ = [
     "NoteRevisionResponse",
     "NotificationActionRequest",
     "NotificationReadAllResponse",
+    "NotificationReadStateRequest",
     "NotificationResponse",
     "OpportunityCreate",
     "OpportunityDetail",

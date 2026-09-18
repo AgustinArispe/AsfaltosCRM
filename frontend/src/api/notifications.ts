@@ -62,6 +62,18 @@ export function markNotificationAsRead(
   })
 }
 
+export function setNotificationReadState(
+  notificationId: number,
+  isRead: boolean,
+  session: ApiSession,
+): Promise<OperationalNotification> {
+  return apiRequest<OperationalNotification>(`/notifications/${notificationId}/read-state`, {
+    ...session,
+    method: 'PUT',
+    body: { is_read: isRead },
+  })
+}
+
 export function markAllActiveNotificationsAsRead(
   session: ApiSession,
 ): Promise<NotificationReadAllResponse> {

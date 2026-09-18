@@ -169,6 +169,55 @@ def test_mark_read_is_idempotent_and_rejects_internal_fields(
     assert api_client.post("/api/notifications/999999999/read").status_code == 404
 
 
+def test_read_state_is_reversible_idempotent_and_does_not_create_records(
+    api_client: TestClient,
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    notification = make_notification(
+        db_session,
+        created_at=datetime.now(UTC) - timedelta(minutes=5),
+        user_id=supervisor_user.id,
+    )
+    notification_id = notification.id
+    notification_count = db_session.query(Notification).count()
+    recipient_count = db_session.query(NotificationRecipient).count()
+    db_session.rollback()
+
+    first_read = api_client.put(
+        f"/api/notifications/{notification_id}/read-state", json={"is_read": True}
+    )
+    repeated_read = api_client.put(
+        f"/api/notifications/{notification_id}/read-state", json={"is_read": True}
+    )
+    first_unread = api_client.put(
+        f"/api/notifications/{notification_id}/read-state", json={"is_read": False}
+    )
+    repeated_unread = api_client.put(
+        f"/api/notifications/{notification_id}/read-state", json={"is_read": False}
+    )
+    missing = api_client.put(
+        "/api/notifications/999999999/read-state", json={"is_read": False}
+    )
+    forbidden = api_client.put(
+        f"/api/notifications/{notification_id}/read-state",
+        json={"is_read": False, "read_at": None},
+    )
+
+    assert first_read.status_code == 200
+    assert first_read.json()["read_at"] is not None
+    assert repeated_read.status_code == 200
+    assert repeated_read.json()["read_at"] == first_read.json()["read_at"]
+    assert first_unread.status_code == 200
+    assert first_unread.json()["read_at"] is None
+    assert repeated_unread.status_code == 200
+    assert repeated_unread.json()["read_at"] is None
+    assert missing.status_code == 404
+    assert forbidden.status_code == 422
+    assert db_session.query(Notification).count() == notification_count
+    assert db_session.query(NotificationRecipient).count() == recipient_count
+
+
 def test_read_all_marks_only_active_notifications(
     api_client: TestClient,
     db_session: Session,

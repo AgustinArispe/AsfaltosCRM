@@ -20,7 +20,7 @@ type NotificationListState = {
   removeActiveUnread: (updatedCount: number) => void
   total: number
   applyPendingFirstPage: () => void
-  replaceNotification: (notification: OperationalNotification) => void
+  reconcileNotification: (notification: OperationalNotification) => void
 }
 
 function isAbortError(error: unknown): boolean {
@@ -158,9 +158,20 @@ export function useNotifications(
     setPendingFirstPage(null)
   }, [pendingFirstPage])
 
-  const replaceNotification = useCallback((notification: OperationalNotification) => {
-    setItems((current) => mergeNotifications(current, [notification]))
-  }, [])
+  const reconcileNotification = useCallback(
+    (notification: OperationalNotification) => {
+      setItems((current) => {
+        if (view === 'unread' && notification.read_at !== null) {
+          return current.filter((item) => item.id !== notification.id)
+        }
+        return mergeNotifications(current, [notification])
+      })
+      if (view === 'unread' && notification.read_at !== null) {
+        setTotal((current) => Math.max(0, current - 1))
+      }
+    },
+    [view],
+  )
 
   const removeActiveUnread = useCallback((updatedCount: number) => {
     setItems((current) =>
@@ -182,7 +193,7 @@ export function useNotifications(
     pendingFirstPage,
     refresh: () => loadFirstPage(),
     removeActiveUnread,
-    replaceNotification,
+    reconcileNotification,
     total,
   }
 }

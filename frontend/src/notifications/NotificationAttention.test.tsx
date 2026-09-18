@@ -53,5 +53,10 @@ describe('notification attention polling', () => {
     activeUnreadTotal = 3
     window.dispatchEvent(new Event('faa-notification-attention-refresh'))
     await waitFor(() => expect(result.current.count).toBe(3))
+
+    act(() => result.current.adjustCount(-1))
+    expect(result.current.count).toBe(2)
+    act(() => result.current.adjustCount(-99))
+    expect(result.current.count).toBe(0)
   })
 })

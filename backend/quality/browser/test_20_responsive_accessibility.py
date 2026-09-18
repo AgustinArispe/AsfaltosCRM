@@ -200,7 +200,19 @@ def test_light_dark_accessibility_and_reduced_motion(
         bool, page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     )
     assert reduced
-    for path in ("pipeline", "dashboard", "whatsapp", "won"):
+    for path in ("pipeline", "dashboard", "notifications", "whatsapp", "won"):
         wait_for_workspace(page, path)
         run_axe(page)
         assert_no_horizontal_overflow(page)
+        if path == "notifications":
+            unread_row = page.locator(".notification-row--unread").first
+            read_row = page.locator(
+                ".notification-row:not(.notification-row--unread)"
+            ).first
+            expect(unread_row).to_be_visible()
+            expect(read_row).to_be_visible()
+            expect(
+                page.get_by_role(
+                    "button", name=re.compile("Marcar como (?:no )?leída")
+                ).first
+            ).to_be_visible()

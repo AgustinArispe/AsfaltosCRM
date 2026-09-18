@@ -10,6 +10,10 @@ class NotificationActionRequest(StrictRequestModel):
     pass
 
 
+class NotificationReadStateRequest(StrictRequestModel):
+    is_read: bool
+
+
 class NotificationCustomerResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

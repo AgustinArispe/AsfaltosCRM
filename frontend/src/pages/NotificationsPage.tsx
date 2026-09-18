@@ -5,13 +5,11 @@ import {
   markNotificationAsRead,
   type NotificationView,
   type OperationalNotification,
+  setNotificationReadState,
 } from '../api/notifications'
 import type { ApiSession } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
-import {
-  refreshNotificationAttention,
-  useNotificationAttentionContext,
-} from '../notifications/NotificationAttention'
+import { useNotificationAttentionContext } from '../notifications/NotificationAttention'
 import { useNotifications } from '../notifications/useNotifications'
 import type { OpportunityStatus } from '../pipeline/types'
 import { navigateRoute } from '../routing/router'
@@ -73,15 +71,18 @@ function NotificationRow({
   isPending,
   notification,
   onOpen,
+  onToggleReadState,
 }: {
   isPending: boolean
   notification: OperationalNotification
   onOpen: (notification: OperationalNotification) => void
+  onToggleReadState: (notification: OperationalNotification) => void
 }) {
   const isUnread = notification.read_at === null
   const isResolved = notification.resolved_at !== null
   const statusLabel = STATUS_LABELS[notification.opportunity.status]
   const isNewLead = notification.type === 'NEW_LEAD'
+  const toggleLabel = isUnread ? 'Marcar como leída' : 'Marcar como no leída'
   return (
     <li className='notification-row-wrapper'>
       <button
@@ -117,6 +118,16 @@ function NotificationRow({
         </span>
         <Icon className='notification-row__chevron' name='chevron-right' />
       </button>
+      <button
+        aria-label={`${toggleLabel}: ${identityFor(notification)}`}
+        className='notification-row__read-action'
+        disabled={isPending}
+        onClick={() => onToggleReadState(notification)}
+        title={toggleLabel}
+        type='button'
+      >
+        <Icon className='size-4' name={isUnread ? 'check' : 'inbox'} />
+      </button>
     </li>
   )
 }
@@ -151,7 +162,7 @@ export function NotificationsPage() {
     pendingFirstPage,
     refresh,
     removeActiveUnread,
-    replaceNotification,
+    reconcileNotification,
     total,
   } = useNotifications(view, session)
   const hasLoadedUnreadActive = items.some(
@@ -174,8 +185,9 @@ export function NotificationsPage() {
       setPending(notification.id, true)
       void markNotificationAsRead(notification.id, session)
         .then((updated) => {
-          replaceNotification(updated)
-          refreshNotificationAttention()
+          reconcileNotification(updated)
+          if (notification.resolved_at === null) attention?.adjustCount(-1)
+          attention?.refresh()
           setAnnouncement('Notificación marcada como leída.')
         })
         .catch(() => {
@@ -194,6 +206,30 @@ export function NotificationsPage() {
       },
       { origin: { kind: 'workspace', workspace: 'notifications' } },
     )
+  }
+
+  const toggleReadState = (notification: OperationalNotification) => {
+    if (pendingIds.has(notification.id)) return
+    const isRead = notification.read_at === null
+    setPending(notification.id, true)
+    setReadError(null)
+    void setNotificationReadState(notification.id, isRead, session)
+      .then((updated) => {
+        reconcileNotification(updated)
+        if (notification.resolved_at === null) attention?.adjustCount(isRead ? -1 : 1)
+        attention?.refresh()
+        setAnnouncement(
+          isRead ? 'Notificación marcada como leída.' : 'Notificación marcada como no leída.',
+        )
+      })
+      .catch(() =>
+        setReadError(
+          isRead
+            ? 'No pudimos marcar la notificación como leída.'
+            : 'No pudimos marcar la notificación como no leída.',
+        ),
+      )
+      .finally(() => setPending(notification.id, false))
   }
 
   const markAllActiveAsRead = () => {
@@ -301,6 +337,7 @@ export function NotificationsPage() {
                 lastActivatedRow.current = document.activeElement as HTMLButtonElement | null
                 openNotification(current)
               }}
+              onToggleReadState={toggleReadState}
             />
           ))}
         </ol>

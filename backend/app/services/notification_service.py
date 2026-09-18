@@ -173,7 +173,22 @@ class NotificationService:
         current_user_id: int,
         now: datetime,
     ) -> UserNotification:
-        read_at = self._aware_utc(now)
+        return self.set_read_state(
+            notification_id,
+            current_user_id=current_user_id,
+            is_read=True,
+            now=now,
+        )
+
+    def set_read_state(
+        self,
+        notification_id: int,
+        *,
+        current_user_id: int,
+        is_read: bool,
+        now: datetime,
+    ) -> UserNotification:
+        read_at = self._aware_utc(now) if is_read else None
         with self._session.begin():
             recipient = self._session.scalar(
                 select(NotificationRecipient)
@@ -190,8 +205,11 @@ class NotificationService:
             )
             if recipient is None:
                 raise EntityNotFoundError("Notification", notification_id)
-            if recipient.read_at is None:
+            if is_read and recipient.read_at is None:
                 recipient.read_at = read_at
+                self._session.flush()
+            elif not is_read and recipient.read_at is not None:
+                recipient.read_at = None
                 self._session.flush()
             return self._delivery(recipient.notification, recipient.read_at)
 

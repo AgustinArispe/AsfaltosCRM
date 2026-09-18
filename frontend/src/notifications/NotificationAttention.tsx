@@ -14,6 +14,7 @@ import type { ApiSession } from '../api/opportunities'
 export const NOTIFICATION_REFRESH_INTERVAL_MS = 60_000
 
 type AttentionState = {
+  adjustCount: (delta: number) => void
   count: number
   refresh: () => void
 }
@@ -27,6 +28,9 @@ function canRefreshNotifications(): boolean {
 export function useNotificationAttention(session: ApiSession): AttentionState {
   const [count, setCount] = useState(0)
   const requestRef = useRef<AbortController | null>(null)
+  const adjustCount = useCallback((delta: number) => {
+    setCount((current) => Math.max(0, current + delta))
+  }, [])
   const refresh = useCallback(() => {
     if (!canRefreshNotifications() || requestRef.current) return
     const controller = new AbortController()
@@ -62,7 +66,7 @@ export function useNotificationAttention(session: ApiSession): AttentionState {
     }
   }, [refresh])
 
-  return { count, refresh }
+  return { adjustCount, count, refresh }
 }
 
 export function NotificationAttentionProvider({
@@ -92,8 +96,4 @@ export function NotificationAttentionBoundary({
 
 export function useNotificationAttentionContext(): AttentionState | null {
   return useContext(NotificationAttentionContext)
-}
-
-export function refreshNotificationAttention(): void {
-  window.dispatchEvent(new Event('faa-notification-attention-refresh'))
 }

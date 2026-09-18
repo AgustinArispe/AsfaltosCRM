@@ -324,6 +324,47 @@ def test_mark_read_is_user_specific_idempotent_and_does_not_resolve(
     assert second_read.resolved_at is None
 
 
+def test_read_state_can_be_reversed_and_repeated_safely(
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    opportunity = make_opportunity(
+        db_session,
+        status=OpportunityStatus.NUEVA,
+        age_days=15,
+    )
+    assert generate(db_session) == 1
+    notification = notifications_for(db_session, opportunity.id)[0]
+    notification_id = notification.id
+    current_user_id = supervisor_user.id
+    db_session.rollback()
+    service = NotificationService(db_session)
+
+    read = service.set_read_state(
+        notification_id,
+        current_user_id=current_user_id,
+        is_read=True,
+        now=NOW + timedelta(minutes=1),
+    )
+    unread = service.set_read_state(
+        notification_id,
+        current_user_id=current_user_id,
+        is_read=False,
+        now=NOW + timedelta(minutes=2),
+    )
+    repeated_unread = service.set_read_state(
+        notification_id,
+        current_user_id=current_user_id,
+        is_read=False,
+        now=NOW + timedelta(minutes=3),
+    )
+
+    assert read.read_at == NOW + timedelta(minutes=1)
+    assert unread.read_at is None
+    assert repeated_unread.read_at is None
+    assert repeated_unread.resolved_at is None
+
+
 def test_mark_all_reads_only_active_unread_notifications(
     db_session: Session,
     supervisor_user: User,

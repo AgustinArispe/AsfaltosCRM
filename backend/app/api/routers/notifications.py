@@ -8,6 +8,7 @@ from app.models import NotificationType
 from app.schemas import (
     NotificationActionRequest,
     NotificationReadAllResponse,
+    NotificationReadStateRequest,
     NotificationResponse,
     PaginatedResponse,
 )
@@ -62,6 +63,26 @@ def mark_all_notifications_as_read(
         current_user_id=current_user.id, now=datetime.now(UTC)
     )
     return NotificationReadAllResponse(updated_count=updated_count)
+
+
+@router.put(
+    "/{notification_id}/read-state",
+    response_model=NotificationResponse,
+    summary="Set one notification recipient's read state",
+)
+def set_notification_read_state(
+    notification_id: int,
+    payload: NotificationReadStateRequest,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> NotificationResponse:
+    notification = NotificationService(session).set_read_state(
+        notification_id,
+        current_user_id=current_user.id,
+        is_read=payload.is_read,
+        now=datetime.now(UTC),
+    )
+    return NotificationResponse.model_validate(notification)
 
 
 @router.post(
