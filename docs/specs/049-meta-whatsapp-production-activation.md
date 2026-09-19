@@ -1,9 +1,9 @@
 # CRM-049 — Meta WhatsApp Production Activation
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-19
-Implementation commit: N/A
+Implementation commit: e8af3fdcc431e913e3434a6bdded52e76f6b0095
 
 ## Goal
 
