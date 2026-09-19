@@ -102,6 +102,9 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
+- [`CRM-049`](049-meta-whatsapp-production-activation.md) — Approved — explicit
+  Railway activation and production verification of the implemented Meta WhatsApp
+  integration.
 - [`CRM-043`](043-manual-opportunity-creation.md) — Approved — atomic manual Opportunity
   creation from Pipeline with Customer selection/creation, audited `NUEVA` entry, and
   referral-source integration.

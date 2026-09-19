@@ -1,5 +1,6 @@
 from dataclasses import replace
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from fastapi import FastAPI
@@ -12,7 +13,14 @@ from app.core.config import (
     get_runtime_security_settings,
 )
 from app.main import create_app
-from app.whatsapp import DisabledWhatsAppProvider, FilesystemMediaStorage, MetaConfig
+from app.models import WhatsAppMessageType
+from app.whatsapp import (
+    DisabledWhatsAppProvider,
+    FilesystemMediaStorage,
+    MediaPutRequest,
+    MetaCloudApiProvider,
+    MetaConfig,
+)
 from app.whatsapp.runtime import (
     build_configured_whatsapp_runtime,
     build_fake_whatsapp_runtime,
@@ -146,6 +154,44 @@ def test_production_meta_provider_still_requires_meta_configuration(
         get_runtime_security_settings()
 
     clear_runtime_settings_caches()
+
+
+def test_production_meta_runtime_uses_configured_persistent_media_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """CRM-049 AC-01/AC-08: Meta mode assembles safely around its media volume."""
+    _configure_production_environment(monkeypatch)
+    media_root = tmp_path / "whatsapp-media"
+    monkeypatch.setenv("WHATSAPP_MEDIA_STORAGE_ROOT", str(media_root))
+    clear_runtime_settings_caches()
+
+    try:
+        settings = get_runtime_security_settings()
+        runtime = build_configured_whatsapp_runtime()
+        application = create_app(runtime, security_settings=settings)
+        stored = runtime.storage.put(
+            MediaPutRequest(
+                media_ref=UUID("f0d9c87a-f0a1-4fcd-a33d-9bb72b7531e8"),
+                content=b"%PDF-1.7 production-volume-smoke",
+                media_type=WhatsAppMessageType.DOCUMENT,
+                mime_type="application/pdf",
+                filename="smoke.pdf",
+            )
+        )
+
+        restarted_runtime = build_configured_whatsapp_runtime()
+        restored = restarted_runtime.storage.get(stored.storage_key)
+        paths = application.openapi()["paths"]
+
+        assert isinstance(runtime.provider, MetaCloudApiProvider)
+        assert isinstance(runtime.storage, FilesystemMediaStorage)
+        assert runtime.webhook is not None
+        assert restored.content == b"%PDF-1.7 production-volume-smoke"
+        assert "/api/whatsapp/provider/webhook" in paths
+        assert "/api/whatsapp/dev/inbound" not in paths
+    finally:
+        clear_runtime_settings_caches()
 
 
 def test_whatsapp_development_routes_require_explicit_development_double_opt_in() -> (
