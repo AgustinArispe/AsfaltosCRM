@@ -16,6 +16,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 LEGACY_OTHER_DETAIL = "Detalle no registrado (pérdida anterior)"
+_LOSS_EVENT_APPEND_ONLY_TRIGGER = "trg_opportunity_loss_events_append_only"
 
 
 def upgrade() -> None:
@@ -33,12 +34,7 @@ def upgrade() -> None:
             "WHERE loss_reason = 'OTRO'"
         ).bindparams(detail=LEGACY_OTHER_DETAIL)
     )
-    op.execute(
-        sa.text(
-            "UPDATE opportunity_loss_events SET loss_reason_detail = :detail "
-            "WHERE reason = 'OTRO'"
-        ).bindparams(detail=LEGACY_OTHER_DETAIL)
-    )
+    _backfill_append_only_loss_events()
     op.create_check_constraint(
         "ck_opportunities_other_loss_detail",
         "opportunities",
@@ -70,3 +66,26 @@ def downgrade() -> None:
     )
     op.drop_column("opportunity_loss_events", "loss_reason_detail")
     op.drop_column("opportunities", "loss_reason_detail")
+
+
+def _backfill_append_only_loss_events() -> None:
+    """Backfill legacy evidence without weakening its persistent audit protection."""
+    op.execute(
+        f"ALTER TABLE opportunity_loss_events DISABLE TRIGGER "
+        f"{_LOSS_EVENT_APPEND_ONLY_TRIGGER}"
+    )
+    try:
+        op.execute(
+            sa.text(
+                "UPDATE opportunity_loss_events SET loss_reason_detail = :detail "
+                "WHERE reason = 'OTRO'"
+            ).bindparams(detail=LEGACY_OTHER_DETAIL)
+        )
+    finally:
+        # PostgreSQL DDL is transactional. If either statement fails, the enclosing
+        # Alembic transaction rolls back; on success, protection is restored before
+        # this migration can commit.
+        op.execute(
+            f"ALTER TABLE opportunity_loss_events ENABLE TRIGGER "
+            f"{_LOSS_EVENT_APPEND_ONLY_TRIGGER}"
+        )

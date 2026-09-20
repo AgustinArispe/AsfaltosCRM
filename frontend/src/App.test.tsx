@@ -179,7 +179,7 @@ describe('authenticated frontend', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'El email o la contraseña no son correctos.',
     )
-    expect(screen.getByLabelText('Email')).toHaveFocus()
+    await waitFor(() => expect(screen.getByLabelText('Email')).toHaveFocus())
     expect(window.sessionStorage.getItem(SESSION_TOKEN_KEY)).toBeNull()
   })
 
@@ -457,7 +457,10 @@ describe('authenticated frontend', () => {
         const url = new URL(String(input), 'http://localhost')
         if (url.pathname === '/api/auth/me') return jsonResponse(200, supervisor)
         if (url.pathname === '/api/customers/70') return jsonResponse(200, customerDetail)
-        if (url.pathname === '/api/opportunities') return jsonResponse(200, emptyOpportunityPage)
+        if (url.pathname === '/api/opportunities') {
+          expect(url.searchParams.get('customer_id')).toBe('70')
+          return jsonResponse(200, emptyOpportunityPage)
+        }
         throw new Error(`Unexpected request: ${url.pathname}`)
       }),
     )
