@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.schemas.customer import CustomerSummary
 from app.services import (
+    ActiveOpportunityExistsError,
     AuthenticationError,
     ClosedOpportunityError,
     CustomerIdentityConflictError,
@@ -45,6 +46,7 @@ DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
     (PermissionDeniedError, status.HTTP_403_FORBIDDEN),
     (EntityNotFoundError, status.HTTP_404_NOT_FOUND),
     (DeletedCustomerError, status.HTTP_409_CONFLICT),
+    (ActiveOpportunityExistsError, status.HTTP_409_CONFLICT),
     (DuplicateEntityError, status.HTTP_409_CONFLICT),
     (CustomerIdentityConflictError, status.HTTP_409_CONFLICT),
     (ManualCustomerMatchExistsError, status.HTTP_409_CONFLICT),

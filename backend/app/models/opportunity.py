@@ -80,6 +80,14 @@ class Opportunity(TimestampMixin, Base):
             postgresql_where=text("deleted_at IS NULL"),
         ),
         Index(
+            "uq_opportunities_one_active_per_customer",
+            "customer_id",
+            unique=True,
+            postgresql_where=text(
+                "deleted_at IS NULL AND status IN ('NUEVA', 'COTIZADA', 'NEGOCIACION')"
+            ),
+        ),
+        Index(
             "ix_opportunities_status_entered_at",
             "status",
             "current_status_entered_at",

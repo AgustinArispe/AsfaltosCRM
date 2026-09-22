@@ -22,6 +22,7 @@ from app.models import (
     User,
 )
 from app.services.errors import (
+    ActiveOpportunityExistsError,
     ClosedOpportunityError,
     DeletedCustomerError,
     EntityNotFoundError,
@@ -37,6 +38,13 @@ from app.services.legendary_service import LegendaryService
 from app.services.notification_service import NotificationService
 
 TERMINAL_STATUSES = frozenset({OpportunityStatus.GANADA, OpportunityStatus.PERDIDA})
+ACTIVE_OPPORTUNITY_STATUSES = frozenset(
+    {
+        OpportunityStatus.NUEVA,
+        OpportunityStatus.COTIZADA,
+        OpportunityStatus.NEGOCIACION,
+    }
+)
 ALLOWED_STAGE_REGRESSIONS = {
     OpportunityStatus.GANADA: OpportunityStatus.NEGOCIACION,
     OpportunityStatus.NEGOCIACION: OpportunityStatus.COTIZADA,
@@ -95,6 +103,9 @@ class OpportunityService:
         opportunity creation with other writes atomically.
         """
         self._get_available_customer(customer_id)
+        active = self.active_opportunity_for_customer_in_transaction(customer_id)
+        if active is not None:
+            raise ActiveOpportunityExistsError(customer_id, active.id)
         self._validate_assigned_user(assigned_user_id)
         self._validate_history_user(changed_by_user_id)
 
@@ -236,6 +247,7 @@ class OpportunityService:
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
+            self._lock_customer_for_opportunity(opportunity_id)
             opportunity = self._get_opportunity_for_update(opportunity_id)
             allowed_target = ALLOWED_STAGE_REGRESSIONS.get(opportunity.status)
             if (
@@ -247,6 +259,12 @@ class OpportunityService:
                     opportunity.status,
                     target_status,
                 )
+            active = self.active_opportunity_for_customer_in_transaction(
+                opportunity.customer_id,
+                exclude_opportunity_id=opportunity.id,
+            )
+            if active is not None:
+                raise ActiveOpportunityExistsError(opportunity.customer_id, active.id)
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
             transition_at = occurred_at or datetime.now(UTC)
@@ -404,6 +422,7 @@ class OpportunityService:
                         "Reopen command ID was already used for another opportunity"
                     )
                 return self._get_opportunity_for_update(opportunity_id)
+            self._lock_customer_for_opportunity(opportunity_id)
             opportunity = self._get_opportunity_for_update(opportunity_id)
             if (
                 expected_status is not OpportunityStatus.PERDIDA
@@ -416,6 +435,12 @@ class OpportunityService:
                 )
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
+            active = self.active_opportunity_for_customer_in_transaction(
+                opportunity.customer_id,
+                exclude_opportunity_id=opportunity.id,
+            )
+            if active is not None:
+                raise ActiveOpportunityExistsError(opportunity.customer_id, active.id)
             loss_event = self._session.scalar(
                 select(OpportunityLossEvent)
                 .where(OpportunityLossEvent.opportunity_id == opportunity.id)
@@ -459,6 +484,29 @@ class OpportunityService:
         if customer.deleted_at is not None:
             raise DeletedCustomerError(customer_id)
         return customer
+
+    def active_opportunity_for_customer_in_transaction(
+        self,
+        customer_id: int,
+        *,
+        exclude_opportunity_id: int | None = None,
+    ) -> Opportunity | None:
+        statement = select(Opportunity).where(
+            Opportunity.customer_id == customer_id,
+            Opportunity.status.in_(ACTIVE_OPPORTUNITY_STATUSES),
+            Opportunity.deleted_at.is_(None),
+        )
+        if exclude_opportunity_id is not None:
+            statement = statement.where(Opportunity.id != exclude_opportunity_id)
+        return self._session.scalar(statement.order_by(Opportunity.id).limit(1))
+
+    def _lock_customer_for_opportunity(self, opportunity_id: int) -> Customer:
+        customer_id = self._session.scalar(
+            select(Opportunity.customer_id).where(Opportunity.id == opportunity_id)
+        )
+        if customer_id is None:
+            raise EntityNotFoundError("Opportunity", opportunity_id)
+        return self._get_available_customer(customer_id)
 
     def _require_fresh_update(
         self,

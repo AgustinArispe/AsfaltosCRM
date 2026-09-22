@@ -13,16 +13,20 @@ const STATUS_TONE_CLASSES = {
 
 function AttachmentContent({ message }: { message: WhatsAppMessage }) {
   const attachment = message.attachment
-  const { objectUrl, isLoading, error } = useAuthenticatedMedia(
-    attachment?.is_available ? attachment.content_url : null,
-  )
+  const { objectUrl, isLoading, error } = useAuthenticatedMedia(attachment?.content_url ?? null)
   if (!attachment) return null
   const size = formatFileSize(attachment.size_bytes)
 
-  if (!attachment.is_available) {
+  if (
+    attachment.storage_status === 'FAILED' ||
+    (!attachment.content_url && !attachment.is_available)
+  ) {
     return (
-      <p className='mt-2 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-primary)] px-3 py-2 text-xs text-[var(--text-secondary)]'>
-        Archivo todavía no disponible
+      <p
+        className='mt-2 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-primary)] px-3 py-2 text-xs text-[var(--text-secondary)]'
+        role='status'
+      >
+        Archivo no disponible
       </p>
     )
   }

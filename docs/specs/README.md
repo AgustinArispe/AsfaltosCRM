@@ -102,6 +102,8 @@ Retrospective specifications may be created when an explicit task requests them.
 must describe implemented behavior only.
 
 ## Draft specifications
+- [`CRM-051`](051-whatsapp-production-media-and-opportunity-lifecycle.md) — Approved —
+  production media delivery correction plus one-active-Opportunity WhatsApp lifecycle.
 - [`CRM-043`](043-manual-opportunity-creation.md) — Approved — atomic manual Opportunity
   creation from Pipeline with Customer selection/creation, audited `NUEVA` entry, and
   referral-source integration.

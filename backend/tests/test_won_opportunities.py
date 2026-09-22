@@ -152,8 +152,13 @@ def test_won_api_validation_and_history_visibility(
 
 
 def test_active_board_does_not_change_non_won_stages(db_session: Session) -> None:
-    customer = Customer(name="Cliente etapas")
-    db_session.add(customer)
+    stages = (
+        OpportunityStatus.NUEVA,
+        OpportunityStatus.COTIZADA,
+        OpportunityStatus.NEGOCIACION,
+    )
+    customers = [Customer(name=f"Cliente etapa {stage.value}") for stage in stages]
+    db_session.add_all(customers)
     db_session.flush()
     opportunities = [
         Opportunity(
@@ -163,11 +168,7 @@ def test_active_board_does_not_change_non_won_stages(db_session: Session) -> Non
             current_status_entered_at=AS_OF - timedelta(days=90),
             created_at=AS_OF - timedelta(days=100),
         )
-        for stage in (
-            OpportunityStatus.NUEVA,
-            OpportunityStatus.COTIZADA,
-            OpportunityStatus.NEGOCIACION,
-        )
+        for customer, stage in zip(customers, stages, strict=True)
     ]
     db_session.add_all(opportunities)
     db_session.commit()

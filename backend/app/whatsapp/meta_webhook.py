@@ -71,6 +71,7 @@ class _MetaAudio(BaseModel):
 
     id: str | None = None
     mime_type: str | None = None
+    voice: bool | None = None
 
 
 class _MetaInboundMessage(BaseModel):

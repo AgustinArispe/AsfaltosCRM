@@ -99,7 +99,7 @@ def seeded_inbox(db_session: Session, supervisor_user: User) -> SeededInbox:
     )
     other_open_opportunity = _opportunity(
         primary_customer.id,
-        OpportunityStatus.NUEVA,
+        OpportunityStatus.GANADA,
         _BASE_TIME + timedelta(minutes=2),
     )
     terminal_opportunity = _opportunity(
@@ -350,7 +350,6 @@ def test_conversation_detail_has_links_suggestions_and_no_messages(
     assert detail.summary.active_opportunity.id == seeded_inbox.active_opportunity.id
     assert {item.id for item in detail.summary.opportunity_suggestions} == {
         seeded_inbox.active_opportunity.id,
-        seeded_inbox.other_open_opportunity.id,
     }
     assert [link.opportunity.id for link in detail.opportunity_links] == [
         seeded_inbox.terminal_opportunity.id,
@@ -446,7 +445,8 @@ def test_message_history_pages_chronologically_with_safe_attachments(
     assert retry.retry_of_message_id == seeded_inbox.outbound_message.id
     assert retry.status.dispatch_state is WhatsAppDispatchState.UNKNOWN
     assert retry.attachment is not None
-    assert retry.attachment.content_reference is None
+    assert retry.attachment.storage_status is WhatsAppStorageStatus.PENDING
+    assert retry.attachment.content_reference is not None
 
 
 def test_message_history_equal_timestamp_uses_id_tie_breaker(

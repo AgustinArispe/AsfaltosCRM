@@ -48,6 +48,9 @@ por conveniencia técnica.
 ## Opportunities
 
 - Una `Opportunity` pertenece a un `Customer`.
+- Un `Customer` puede conservar múltiples oportunidades históricas, pero puede tener
+  como máximo una oportunidad activa al mismo tiempo. Son activas `NUEVA`,
+  `COTIZADA` y `NEGOCIACION`; `GANADA` y `PERDIDA` son cerradas para esta regla.
 - El pipeline principal es `NUEVA` → `COTIZADA` → `NEGOCIACION` → `GANADA`.
 - `PERDIDA` es un estado terminal, pero no una columna principal del Kanban.
 - `PERDIDA` es terminal salvo por su flujo explícito de reapertura. Una oportunidad
@@ -150,7 +153,7 @@ WhatsApp pasa a ser un módulo principal del CRM. Debe permitir:
 - asociar conversaciones a un `Customer` y relacionarlas con una `Opportunity` cuando
   corresponda;
 - priorizar conversaciones que esperan respuesta;
-- soportar mensajes de texto, imágenes y PDFs u otros documentos.
+- soportar mensajes de texto, imágenes, audio y PDFs u otros documentos.
 
 El frontend nunca se comunica directamente con Meta. Toda comunicación pasa por
 FastAPI.
@@ -159,17 +162,22 @@ FastAPI.
 
 - Cuando escribe por primera vez un número desconocido, se resuelve el `Customer` de
   forma conservadora por teléfono y se crea si no existe.
-- También se crea una conversación y, cuando se trata de un nuevo contacto comercial,
-  una `Opportunity` en `NUEVA` con `source=WHATSAPP`.
-- Los mensajes posteriores de la misma conversación no crean oportunidades nuevas
-  automáticamente. No se crea una oportunidad por cada mensaje.
+- Para un cliente resuelto de forma única, cada mensaje inbound válido reutiliza su
+  oportunidad activa si existe. Si no existe una activa, ese mensaje crea una nueva
+  `Opportunity` en `NUEVA` con `source=WHATSAPP` y queda referenciado como su consulta
+  inicial inmutable.
+- Los mensajes posteriores no crean oportunidades mientras continúe activa la actual.
+  Después de que quede `GANADA` o `PERDIDA`, el siguiente inbound válido puede crear
+  una nueva oportunidad histórica para el mismo cliente.
+- Matching ambiguo o coincidencias con clientes eliminados conservan la resolución
+  manual y nunca disparan una oportunidad automática.
 
 ## WhatsApp — mensajería
 
 - Se deben soportar las direcciones `INBOUND` y `OUTBOUND`.
-- Los tipos iniciales son `TEXT`, `IMAGE` y `DOCUMENT`.
-- Inicialmente no se implementan audio, stickers, ubicación, contactos ni video. El
-  video requiere una decisión posterior.
+- Los tipos soportados son `TEXT`, `IMAGE`, `DOCUMENT` y `AUDIO`.
+- No se implementan stickers, ubicación, contactos ni video. El video requiere una
+  decisión posterior.
 - Cada mensaje conserva su ID externo, dirección, estado, timestamps de envío,
   entrega, lectura y fallo, y metadata del attachment cuando corresponda.
 

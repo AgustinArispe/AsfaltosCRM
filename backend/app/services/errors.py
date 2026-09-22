@@ -138,6 +138,15 @@ class DeletedCustomerError(DomainError):
         super().__init__(f"Customer with id {customer_id} is deleted")
 
 
+class ActiveOpportunityExistsError(DomainError):
+    def __init__(self, customer_id: int, opportunity_id: int) -> None:
+        self.customer_id = customer_id
+        self.opportunity_id = opportunity_id
+        super().__init__(
+            f"Customer {customer_id} already has active Opportunity {opportunity_id}"
+        )
+
+
 class InactiveUserError(DomainError):
     def __init__(self, user_id: int) -> None:
         self.user_id = user_id

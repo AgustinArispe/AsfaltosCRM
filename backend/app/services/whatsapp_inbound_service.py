@@ -123,21 +123,68 @@ class WhatsAppInboundService:
             if existing is not None:
                 return self._replay_result(existing, normalized)
 
-            conversation = self._session.scalar(
-                select(WhatsAppConversation)
-                .where(
+            discovered_conversation = self._session.scalar(
+                select(WhatsAppConversation).where(
                     WhatsAppConversation.phone_match_key == normalized.phone_match_key
                 )
-                .with_for_update()
             )
-            opportunity: Opportunity | None = None
-            if conversation is None:
-                conversation, opportunity = self._create_conversation(
+            customer: Customer | None = None
+            if discovered_conversation is None:
+                conversation, customer = self._create_conversation(
                     normalized,
-                    created_at=received_at,
                 )
             else:
+                if discovered_conversation.customer_id is not None:
+                    customer = self._session.scalar(
+                        select(Customer)
+                        .where(Customer.id == discovered_conversation.customer_id)
+                        .with_for_update()
+                    )
+                locked_conversation = self._session.scalar(
+                    select(WhatsAppConversation)
+                    .where(
+                        WhatsAppConversation.id == discovered_conversation.id,
+                        WhatsAppConversation.phone_match_key
+                        == normalized.phone_match_key,
+                    )
+                    .with_for_update()
+                )
+                if locked_conversation is None:
+                    raise RuntimeError("WhatsApp conversation changed during inbound")
+                conversation = locked_conversation
                 self._refresh_existing_conversation(conversation, normalized)
+
+            opportunity: Opportunity | None = None
+            created_opportunity = False
+            if (
+                customer is not None
+                and customer.deleted_at is None
+                and conversation.resolution_status
+                is WhatsAppConversationResolution.RESOLVED
+            ):
+                opportunity_service = OpportunityService(self._session)
+                opportunity = (
+                    opportunity_service.active_opportunity_for_customer_in_transaction(
+                        customer.id
+                    )
+                )
+                if opportunity is None:
+                    opportunity = opportunity_service.create_opportunity_in_transaction(
+                        customer_id=customer.id,
+                        source=LeadSource.WHATSAPP,
+                        assigned_user_id=None,
+                        changed_by_user_id=None,
+                    )
+                    created_opportunity = True
+                WhatsAppConversationService(
+                    self._session
+                ).link_opportunity_in_transaction(
+                    conversation=conversation,
+                    opportunity_id=opportunity.id,
+                    link_source=WhatsAppOpportunityLinkSource.AUTO_NEW_CONTACT,
+                    linked_by_user_id=None,
+                    linked_at=received_at,
+                )
 
             message = WhatsAppMessage(
                 conversation_id=conversation.id,
@@ -153,7 +200,7 @@ class WhatsAppInboundService:
             )
             self._session.add(message)
             self._session.flush()
-            if opportunity is not None:
+            if created_opportunity and opportunity is not None:
                 opportunity.initial_whatsapp_message_id = message.id
             if normalized.attachment is not None:
                 self._session.add(
@@ -205,16 +252,13 @@ class WhatsAppInboundService:
     def _create_conversation(
         self,
         inbound: _NormalizedInbound,
-        *,
-        created_at: datetime,
-    ) -> tuple[WhatsAppConversation, Opportunity | None]:
+    ) -> tuple[WhatsAppConversation, Customer | None]:
         resolution = CustomerIdentityResolver(self._session).resolve(
             normalized_email=None,
             phone_match_key=inbound.phone_match_key,
             lock_rows=True,
         )
         customer: Customer | None = None
-        opportunity: Opportunity | None = None
         needs_review = resolution.is_ambiguous or resolution.has_deleted_matches
         if not needs_review:
             customer = resolution.customer
@@ -226,14 +270,6 @@ class WhatsAppInboundService:
             )
             self._session.add(customer)
             self._session.flush()
-            opportunity = OpportunityService(
-                self._session
-            ).create_opportunity_in_transaction(
-                customer_id=customer.id,
-                source=LeadSource.WHATSAPP,
-                assigned_user_id=None,
-                changed_by_user_id=None,
-            )
 
         conversation = WhatsAppConversation(
             customer_id=customer.id if customer is not None else None,
@@ -249,15 +285,7 @@ class WhatsAppInboundService:
         )
         self._session.add(conversation)
         self._session.flush()
-        if opportunity is not None:
-            WhatsAppConversationService(self._session).link_opportunity_in_transaction(
-                conversation=conversation,
-                opportunity_id=opportunity.id,
-                link_source=WhatsAppOpportunityLinkSource.AUTO_NEW_CONTACT,
-                linked_by_user_id=None,
-                linked_at=created_at,
-            )
-        return conversation, opportunity
+        return conversation, customer
 
     def _refresh_existing_conversation(
         self,

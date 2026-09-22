@@ -173,6 +173,7 @@ function outboundMessage(id: number, type: WhatsAppMessageType = 'TEXT'): WhatsA
             mime_type: type === 'IMAGE' ? 'image/png' : 'application/pdf',
             filename: type === 'IMAGE' ? 'muestra.png' : 'ficha.pdf',
             size_bytes: 2400,
+            storage_status: 'AVAILABLE',
             is_available: true,
             content_url: `/api/whatsapp/attachments/${90 + id}/content`,
           },

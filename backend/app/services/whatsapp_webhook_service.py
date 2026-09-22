@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.services.whatsapp_inbound_service import (
@@ -28,7 +30,11 @@ class WhatsAppWebhookService:
     def process(self, events: tuple[ProviderWebhookEvent, ...]) -> None:
         for event in events:
             if isinstance(event, ProviderInboundEvent):
-                WhatsAppInboundService(self._session, self._provider).receive(
+                logging.getLogger(__name__).info(
+                    "whatsapp_webhook_inbound_received",
+                    extra={"whatsapp_message_type": event.message_type.value},
+                )
+                result = WhatsAppInboundService(self._session, self._provider).receive(
                     InboundMessageInput(
                         external_message_id=event.external_message_id,
                         external_phone=event.external_phone,
@@ -49,6 +55,15 @@ class WhatsAppWebhookService:
                         ),
                     )
                 )
+                logging.getLogger(__name__).info(
+                    "whatsapp_webhook_inbound_processed",
+                    extra={
+                        "whatsapp_message_type": event.message_type.value,
+                        "whatsapp_message_id": result.message_id,
+                        "whatsapp_conversation_id": result.conversation_id,
+                        "whatsapp_created": result.created,
+                    },
+                )
             elif isinstance(event, ProviderStatusEvent):
                 WhatsAppStatusService(self._session).record(
                     ProviderStatusInput(
@@ -60,4 +75,8 @@ class WhatsAppWebhookService:
                     )
                 )
             elif isinstance(event, ProviderIgnoredEvent):
+                logging.getLogger(__name__).info(
+                    "whatsapp_webhook_event_ignored",
+                    extra={"whatsapp_ignored_category": event.category},
+                )
                 continue

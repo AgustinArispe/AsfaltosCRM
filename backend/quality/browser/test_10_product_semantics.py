@@ -220,7 +220,7 @@ def test_whatsapp_three_panel_semantics_and_states(qa_pages: QaPageFactory) -> N
         ).first
     ).to_be_visible()
     expect(page.get_by_role("textbox", name="Mensaje")).to_be_visible()
-    expect(page.get_by_text("Adjuntar imagen o PDF")).to_be_visible()
+    expect(page.get_by_text("Adjuntar imagen, PDF o audio")).to_be_visible()
     expect(page.get_by_role("button", name="Usar plantilla")).to_be_visible()
     page.get_by_role("button", name="Contexto CRM", exact=True).click()
     context = page.get_by_role("dialog", name="Contexto CRM")

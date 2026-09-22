@@ -15,6 +15,7 @@ from app.models import (
     WhatsAppMessageType,
     WhatsAppOpportunityLinkSource,
     WhatsAppProviderState,
+    WhatsAppStorageStatus,
 )
 
 
@@ -97,6 +98,7 @@ class AttachmentProjection:
     mime_type: str | None
     filename: str | None
     size_bytes: int | None
+    storage_status: WhatsAppStorageStatus
     is_available: bool
     content_reference: AttachmentContentReference | None
 

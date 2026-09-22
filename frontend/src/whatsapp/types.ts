@@ -95,6 +95,7 @@ export type WhatsAppAttachment = {
   mime_type: string | null
   filename: string | null
   size_bytes: number | null
+  storage_status: 'PENDING' | 'AVAILABLE' | 'FAILED'
   is_available: boolean
   content_url: string | null
 }

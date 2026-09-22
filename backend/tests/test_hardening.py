@@ -240,9 +240,13 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
     )
     assert changed_quantity.status_code == 200
 
+    second_customer = api_client.post(
+        "/api/customers",
+        json={"name": unique_label("Segundo cliente producto histórico")},
+    ).json()
     new_opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "REFERIDO"},
+        json={"customer_id": second_customer["id"], "source": "REFERIDO"},
     ).json()
     assert (
         api_client.post(
@@ -279,9 +283,13 @@ def test_inactive_assignee_remains_visible_but_cannot_be_assigned_again(
         },
     ).json()
     api_client.headers["Authorization"] = f"Bearer {create_access_token(user['id'])}"
+    actor_customer = api_client.post(
+        "/api/customers",
+        json={"name": unique_label("Cliente actor histórico")},
+    ).json()
     actor_opportunity = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "REFERIDO"},
+        json={"customer_id": actor_customer["id"], "source": "REFERIDO"},
     ).json()
     api_client.headers["Authorization"] = (
         f"Bearer {create_access_token(supervisor_user.id)}"
@@ -302,9 +310,13 @@ def test_inactive_assignee_remains_visible_but_cannot_be_assigned_again(
     ).json()
     assert actor_detail["history"][0]["changed_by_user_id"] == user["id"]
 
+    unassigned_customer = api_client.post(
+        "/api/customers",
+        json={"name": unique_label("Cliente reasignación histórica")},
+    ).json()
     unassigned = api_client.post(
         "/api/opportunities",
-        json={"customer_id": customer["id"], "source": "REFERIDO"},
+        json={"customer_id": unassigned_customer["id"], "source": "REFERIDO"},
     ).json()
     unassigned_detail = api_client.get(f"/api/opportunities/{unassigned['id']}").json()
     assert (
@@ -460,12 +472,12 @@ def test_default_orders_are_deterministic(db_session: Session) -> None:
         Opportunity(
             customer_id=first_alpha.id,
             source=LeadSource.WEB,
-            status=OpportunityStatus.NUEVA,
+            status=status,
             current_status_entered_at=common_time,
             created_at=common_time,
             updated_at=common_time,
         )
-        for _ in range(2)
+        for status in (OpportunityStatus.NUEVA, OpportunityStatus.GANADA)
     ]
     db_session.add_all(opportunities)
     db_session.commit()
@@ -548,13 +560,19 @@ def test_pipeline_query_eager_loads_summary_relations_without_n_plus_one(
     product = Product(name=f"Producto eager {suffix}")
     db_session.add_all([customer, user, product])
     db_session.commit()
+    opportunity_statuses = (
+        OpportunityStatus.GANADA,
+        OpportunityStatus.GANADA,
+        OpportunityStatus.NUEVA,
+    )
     opportunities = [
         Opportunity(
             customer_id=customer.id,
             assigned_user_id=user.id,
             source=LeadSource.WEB,
+            status=status,
         )
-        for _ in range(3)
+        for status in opportunity_statuses
     ]
     db_session.add_all(opportunities)
     db_session.commit()

@@ -1,4 +1,5 @@
 from app.services.errors import (
+    ActiveOpportunityExistsError,
     AuthenticationError,
     ClosedOpportunityError,
     CustomerIdentityConflictError,
@@ -120,6 +121,7 @@ from app.services.whatsapp_status_service import (
 )
 
 __all__ = [
+    "ActiveOpportunityExistsError",
     "AttachmentContentReference",
     "AttachmentProjection",
     "AuthenticationError",

@@ -283,7 +283,7 @@ OPPORTUNITIES = (
         (("Emulsión catiónica CRR-1", "24000"),),
     ),
     OpportunitySeed(
-        0,
+        11,
         LeadSource.WHATSAPP,
         OpportunityStatus.NEGOCIACION,
         10,
@@ -307,7 +307,7 @@ OPPORTUNITIES = (
         (("Mezcla asfáltica en frío", "7000"),),
     ),
     OpportunitySeed(
-        10,
+        12,
         LeadSource.WEB,
         OpportunityStatus.NEGOCIACION,
         96,
@@ -645,8 +645,26 @@ def _seed_opportunities(
     anchor: datetime,
 ) -> list[Opportunity]:
     service = OpportunityService(session)
-    created: list[Opportunity] = []
-    for index, item in enumerate(OPPORTUNITIES):
+    created: dict[int, Opportunity] = {}
+    ordered_definitions = sorted(
+        enumerate(OPPORTUNITIES),
+        key=lambda indexed: (
+            0
+            if indexed[0] == 0
+            else (
+                2
+                if indexed[1].status
+                in {
+                    OpportunityStatus.NUEVA,
+                    OpportunityStatus.COTIZADA,
+                    OpportunityStatus.NEGOCIACION,
+                }
+                else 1
+            ),
+            indexed[0],
+        ),
+    )
+    for index, item in ordered_definitions:
         created_at = anchor - timedelta(days=item.age_days)
         entered_at = anchor - timedelta(days=item.stage_age_days)
         transition_count = _transition_count(index, item)
@@ -728,8 +746,8 @@ def _seed_opportunities(
                 changed_by_user_id=actor_user_id,
                 occurred_at=next(transition_times),
             )
-        created.append(opportunity)
-    return created
+        created[index] = opportunity
+    return [created[index] for index in range(len(OPPORTUNITIES))]
 
 
 def _transition_count(index: int, item: OpportunitySeed) -> int:
@@ -904,7 +922,7 @@ def _seed_whatsapp(
     conversation_ids.append(first.conversation_id)
     WhatsAppConversationService(session).link_opportunity(
         first.conversation_id,
-        opportunities[8].id,
+        opportunities[0].id,
         linked_by_user_id=actor_user_id,
         now=anchor - timedelta(hours=2, minutes=50),
     )

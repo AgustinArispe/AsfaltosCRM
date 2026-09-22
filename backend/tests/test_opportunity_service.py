@@ -20,6 +20,7 @@ from app.models import (
     UserRole,
 )
 from app.services import (
+    ActiveOpportunityExistsError,
     ClosedOpportunityError,
     DeletedCustomerError,
     EntityNotFoundError,
@@ -93,6 +94,24 @@ def create_new_opportunity(
         changed_by_user_id=changed_by_user_id,
     )
     return service, opportunity
+
+
+def test_customer_cannot_have_two_active_opportunities(db_session: Session) -> None:
+    customer = make_customer("Cliente con oportunidad activa")
+    persist(db_session, customer)
+    service = OpportunityService(db_session)
+    first = service.create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WEB,
+    )
+
+    with pytest.raises(ActiveOpportunityExistsError) as caught:
+        service.create_opportunity(
+            customer_id=customer.id,
+            source=LeadSource.REFERIDO,
+        )
+
+    assert caught.value.opportunity_id == first.id
 
 
 def create_quoted_opportunity(

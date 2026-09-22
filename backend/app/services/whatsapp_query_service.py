@@ -1215,9 +1215,13 @@ def _attachment_projection(
         mime_type=attachment.mime_type,
         filename=_sanitized_filename(attachment.filename),
         size_bytes=attachment.size_bytes,
+        storage_status=attachment.storage_status,
         is_available=available,
         content_reference=(
-            AttachmentContentReference(attachment.id) if available else None
+            AttachmentContentReference(attachment.id)
+            if attachment.storage_status
+            in {WhatsAppStorageStatus.PENDING, WhatsAppStorageStatus.AVAILABLE}
+            else None
         ),
     )
 

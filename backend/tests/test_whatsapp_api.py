@@ -25,6 +25,7 @@ from app.models import (
     WhatsAppConversationOpportunity,
     WhatsAppConversationResolution,
     WhatsAppHumanTemplateParameter,
+    WhatsAppStorageStatus,
 )
 from app.schemas.whatsapp import (
     ConversationAttentionSummaryResponse,
@@ -681,6 +682,12 @@ def test_fake_provider_failure_and_timeout_modes(
     [
         ("IMAGE", "../foto.jpg", "image/jpeg", b"\xff\xd8\xfffake-image"),
         ("DOCUMENT", "../ficha.pdf", "application/pdf", b"%PDF-fake"),
+        (
+            "AUDIO",
+            "../nota.ogg",
+            "audio/ogg; codecs=opus",
+            b"OggS" + (b"\x00" * 22) + b"\x01\x08OpusHead",
+        ),
     ],
 )
 def test_authenticated_media_upload_preview_and_outbound_send(
@@ -712,19 +719,21 @@ def test_authenticated_media_upload_preview_and_outbound_send(
     assert preview.content == content
     assert preview.headers["cache-control"] == "private, no-store"
     assert preview.headers["x-content-type-options"] == "nosniff"
-    if media_type == "IMAGE":
+    if media_type in {"IMAGE", "AUDIO"}:
         assert preview.headers["content-disposition"].startswith("inline;")
     else:
         assert preview.headers["content-disposition"].startswith("attachment;")
 
+    send_payload: dict[str, str] = {
+        "message_type": media_type,
+        "client_generated_id": str(uuid4()),
+        "media_ref": str(uploaded.media_ref),
+    }
+    if media_type != "AUDIO":
+        send_payload["caption"] = "Archivo solicitado"
     sent_response = whatsapp_api.client.post(
         f"/api/whatsapp/conversations/{inbound.message.conversation_id}/messages",
-        json={
-            "message_type": media_type,
-            "client_generated_id": str(uuid4()),
-            "media_ref": str(uploaded.media_ref),
-            "caption": "Archivo solicitado",
-        },
+        json=send_payload,
     )
     sent = OutboundMessageResponse.model_validate(sent_response.json())
     assert sent_response.status_code == 201
@@ -938,6 +947,10 @@ def test_fake_inbound_media_downloads_through_attachment_endpoint(
     assert injected_response.status_code == 201
     assert injected.message.attachment is not None
     assert injected.message.attachment.is_available is False
+    assert injected.message.attachment.storage_status is WhatsAppStorageStatus.PENDING
+    assert injected.message.attachment.content_url == (
+        f"/api/whatsapp/attachments/{injected.message.attachment.id}/content"
+    )
 
     content_response = whatsapp_api.client.get(
         f"/api/whatsapp/attachments/{injected.message.attachment.id}/content"
@@ -975,7 +988,7 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     other_customer = Customer(name="Otro cliente", phone="+54 11 6999-9999")
     db_session.add_all((customer, other_customer))
     db_session.flush()
-    first_opportunity = _opportunity(customer.id, OpportunityStatus.NUEVA)
+    first_opportunity = _opportunity(customer.id, OpportunityStatus.GANADA)
     second_opportunity = _opportunity(customer.id, OpportunityStatus.NEGOCIACION)
     wrong_opportunity = _opportunity(other_customer.id, OpportunityStatus.NUEVA)
     db_session.add_all((first_opportunity, second_opportunity, wrong_opportunity))
@@ -996,11 +1009,11 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     initial = ConversationDetailResponse.model_validate(
         whatsapp_api.client.get(detail_url).json()
     )
-    assert initial.active_opportunity is None
-    assert {item.id for item in initial.opportunity_suggestions} == {
-        first_opportunity_id,
-        second_opportunity_id,
-    }
+    assert initial.active_opportunity is not None
+    assert initial.active_opportunity.id == second_opportunity_id
+    assert [item.id for item in initial.opportunity_suggestions] == [
+        second_opportunity_id
+    ]
     after_inbound_count = db_session.scalar(
         select(func.count()).select_from(Opportunity)
     )
@@ -1023,9 +1036,6 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     assert linked.status_code == repeated.status_code == 200
     assert wrong.status_code == 409
 
-    first_opportunity.status = OpportunityStatus.GANADA
-    first_opportunity.updated_at = datetime.now(UTC)
-    db_session.commit()
     replaced_response = whatsapp_api.client.put(
         link_url,
         json={"opportunity_id": second_opportunity_id},
@@ -1033,7 +1043,7 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     replaced = ConversationDetailResponse.model_validate(replaced_response.json())
     assert replaced.active_opportunity is not None
     assert replaced.active_opportunity.id == second_opportunity_id
-    assert len(replaced.opportunity_links) == 2
+    assert len(replaced.opportunity_links) == 3
     assert any(
         link.opportunity.id == first_opportunity_id and not link.is_active
         for link in replaced.opportunity_links
@@ -1044,13 +1054,13 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     )
     repeated_unlink = whatsapp_api.client.delete(link_url)
     assert unlinked.active_opportunity is None
-    assert len(unlinked.opportunity_links) == 2
+    assert len(unlinked.opportunity_links) == 3
     assert repeated_unlink.status_code == 200
     assert (
         db_session.scalar(
             select(func.count()).select_from(WhatsAppConversationOpportunity)
         )
-        == 2
+        == 3
     )
     assert supervisor_user.id > 0
 
@@ -1076,10 +1086,14 @@ def test_whatsapp_conversation_creation_keeps_source_server_controlled(
         f"/api/whatsapp/conversations/{inbound.message.conversation_id}/opportunity"
     )
 
-    assert response.status_code == 201
-    assert response.json()["customer"]["id"] == customer.id
-    assert response.json()["source"] == "WHATSAPP"
-    assert response.json()["status"] == "NUEVA"
+    assert response.status_code == 409
+    opportunity = db_session.scalar(
+        select(Opportunity).where(Opportunity.customer_id == customer.id)
+    )
+    assert opportunity is not None
+    assert opportunity.source is LeadSource.WHATSAPP
+    assert opportunity.status is OpportunityStatus.NUEVA
+    assert opportunity.initial_whatsapp_message_id == inbound.message.id
 
 
 def test_closed_window_and_identity_review_return_conflicts(

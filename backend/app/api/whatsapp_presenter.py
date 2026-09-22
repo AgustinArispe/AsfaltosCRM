@@ -256,10 +256,11 @@ def _attachment(
         mime_type=projection.mime_type,
         filename=projection.filename,
         size_bytes=projection.size_bytes,
+        storage_status=projection.storage_status,
         is_available=projection.is_available,
         content_url=(
             f"/api/whatsapp/attachments/{projection.id}/content"
-            if projection.is_available
+            if projection.content_reference is not None
             else None
         ),
     )

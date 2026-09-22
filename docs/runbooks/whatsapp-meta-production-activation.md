@@ -22,7 +22,7 @@ segura de Railway.
 | Grupo | Variables |
 | --- | --- |
 | Runtime | `APP_ENVIRONMENT`, `DATABASE_URL`, `JWT_SECRET`, `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `WEB_INTAKE_SIGNING_SECRET`, `STALE_OPPORTUNITY_DAYS` |
-| WhatsApp | `WHATSAPP_PROVIDER`, `WHATSAPP_DEV_ROUTES_ENABLED`, `WHATSAPP_MEDIA_STORAGE`, `WHATSAPP_MEDIA_STORAGE_ROOT`, `WHATSAPP_IMAGE_MAX_BYTES`, `WHATSAPP_DOCUMENT_MAX_BYTES`, `WHATSAPP_IMAGE_MIME_TYPES`, `WHATSAPP_DOCUMENT_MIME_TYPES`, `WHATSAPP_BROADCAST_BATCH_SIZE`, `WHATSAPP_BROADCAST_CLAIM_TIMEOUT_SECONDS` |
+| WhatsApp | `WHATSAPP_PROVIDER`, `WHATSAPP_DEV_ROUTES_ENABLED`, `WHATSAPP_MEDIA_STORAGE`, `WHATSAPP_MEDIA_STORAGE_ROOT`, `WHATSAPP_IMAGE_MAX_BYTES`, `WHATSAPP_DOCUMENT_MAX_BYTES`, `WHATSAPP_AUDIO_MAX_BYTES`, `WHATSAPP_IMAGE_MIME_TYPES`, `WHATSAPP_DOCUMENT_MIME_TYPES`, `WHATSAPP_AUDIO_MIME_TYPES`, `WHATSAPP_BROADCAST_BATCH_SIZE`, `WHATSAPP_BROADCAST_CLAIM_TIMEOUT_SECONDS` |
 | Meta | `META_GRAPH_API_VERSION`, `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`, `META_WEBHOOK_VERIFY_TOKEN`, `META_APP_SECRET`, `META_REQUEST_TIMEOUT_SECONDS`, `META_RETRY_MAX_ATTEMPTS`, `META_RETRY_BASE_SECONDS`, `META_RETRY_MAX_SECONDS` |
 
 Set `WHATSAPP_PROVIDER` to `meta`, `WHATSAPP_MEDIA_STORAGE` to `filesystem`, and
@@ -83,6 +83,46 @@ Perform these steps in order, waiting for the listed evidence before continuing:
 
 Stop after the controlled checks. Broadcast execution remains its existing explicit,
 consent-gated workflow and is not part of activation smoke testing.
+
+## CRM-051 post-deploy production smoke test
+
+Automated tests do not prove the live Meta/Railway path. After deploying CRM-051, an
+authorized operator must run this sequence with a controlled FAA test contact and
+record only deployment ID, UTC timestamps, internal record IDs and pass/fail outcomes:
+
+1. Before migration, query for Customers with more than one non-deleted Opportunity
+   in `NUEVA`, `COTIZADA` or `NEGOCIACION`. Stop the deployment if any exist; the
+   migration intentionally does not rewrite them. After deployment, confirm Alembic is
+   at `0015_one_active_opportunity` and the backend health check passes.
+2. In Railway, compare the backend Volume mount path with
+   `WHATSAPP_MEDIA_STORAGE_ROOT` character-for-character and verify the application
+   identity can write it. Do not print directory contents, stored keys or variables in
+   logs/evidence.
+3. With the controlled Customer having no active Opportunity, send one text. Confirm
+   exactly one `NUEVA`/`WHATSAPP` Opportunity appears and Opportunity Detail shows that
+   exact persisted text as its WhatsApp consultation. Send a second text and confirm
+   the active Opportunity count remains one and the inquiry is unchanged.
+4. Mark that controlled Opportunity `GANADA` or `PERDIDA`, then send a new text.
+   Confirm a second historical Opportunity is created as `NUEVA`, the closed row is
+   unchanged and the new text is the new inquiry. If Meta's tooling supports safe
+   redelivery of the same wamid, replay it and confirm all counts remain unchanged.
+5. Send a JPEG/PNG from the controlled number. Confirm the message first appears,
+   opening the conversation triggers only an authenticated CRM attachment request,
+   the preview renders with the correct image `Content-Type`, and attachment state
+   becomes `AVAILABLE`. Browser Network/DOM must contain neither a Meta URL nor a
+   filesystem path.
+6. Send a real WhatsApp voice note (not a renamed uploaded file). Confirm one `AUDIO`
+   message appears, the attachment becomes `AVAILABLE`, the response Content-Type is
+   `audio/ogg` for the normal Opus voice-note case, and keyboard users can focus and
+   play the non-autoplaying inline control.
+7. Redeploy/restart only the backend without replacing the Railway Volume. Reopen both
+   controlled attachments and confirm the same image and voice note still render/play
+   without a new Meta download. This is the required persistence proof.
+8. Review bounded diagnostics for mapped inbound types and internal attachment status.
+   Confirm there are no raw webhook bodies, message bodies, phone numbers, wamids,
+   provider media IDs/URLs, access tokens, signatures, storage keys or filesystem
+   paths. If either media item fails, record only the safe category and stop claiming
+   the production issue is resolved until the Railway/Meta cause is corrected.
 
 ## Rollback
 

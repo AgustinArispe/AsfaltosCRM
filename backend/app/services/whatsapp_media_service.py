@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -115,6 +116,14 @@ class WhatsAppMediaService:
                 requested_at,
             )
             self._session.flush()
+            logging.getLogger(__name__).info(
+                "whatsapp_media_stored",
+                extra={
+                    "whatsapp_attachment_id": attachment.id,
+                    "whatsapp_storage_status": attachment.storage_status.value,
+                    "whatsapp_media_type": attachment.media_type.value,
+                },
+            )
             return self._result(attachment)
 
     def mark_storage_failed(
@@ -137,6 +146,14 @@ class WhatsAppMediaService:
                 failed_at,
             )
             self._session.flush()
+            logging.getLogger(__name__).warning(
+                "whatsapp_media_failed",
+                extra={
+                    "whatsapp_attachment_id": attachment.id,
+                    "whatsapp_storage_status": attachment.storage_status.value,
+                    "whatsapp_media_type": attachment.media_type.value,
+                },
+            )
             return self._result(attachment)
 
     def _mark_failed(
@@ -157,6 +174,14 @@ class WhatsAppMediaService:
                 failed_at,
             )
             self._session.flush()
+            logging.getLogger(__name__).warning(
+                "whatsapp_media_failed",
+                extra={
+                    "whatsapp_attachment_id": attachment.id,
+                    "whatsapp_storage_status": attachment.storage_status.value,
+                    "whatsapp_media_type": attachment.media_type.value,
+                },
+            )
             return self._result(attachment)
 
     def _attachment_for_update(self, attachment_id: int) -> WhatsAppAttachment:

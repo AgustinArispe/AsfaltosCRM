@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Query, Request, Response, status
@@ -55,6 +56,7 @@ def create_whatsapp_provider_webhook_router(
         try:
             events = webhook.map_events(raw_body)
         except ProviderWebhookMappingError:
+            logging.getLogger(__name__).warning("whatsapp_webhook_mapping_failed")
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
         WhatsAppWebhookService(session, runtime.provider).process(events)
         return Response(status_code=status.HTTP_200_OK)

@@ -69,6 +69,10 @@ temporary URLs.
 
 ## Business rules
 
+- CRM-051 supersedes the new-contact-only lifecycle clauses below: after CRM-051, any
+  uniquely resolved Customer with no active Opportunity receives a new WhatsApp
+  Opportunity from the next valid inbound message, including an existing Customer or
+  conversation. CRM-050 remains authoritative for inquiry/media representation.
 - The initial WhatsApp inquiry belongs only to an Opportunity atomically created for
   a new commercial contact. An existing customer/conversation or later inbound
   message does not set or replace it.

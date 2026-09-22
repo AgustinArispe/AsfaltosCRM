@@ -88,7 +88,7 @@ def test_new_contact_is_atomic_and_conversation_is_reused(
     assert first.suggested_opportunity_ids == ()
     assert second.conversation_id == first.conversation_id
     assert second.customer_id == first.customer_id
-    assert second.opportunity_id is None
+    assert second.opportunity_id == first.opportunity_id
     assert (
         db_session.scalar(
             select(func.count(Customer.id)).where(Customer.id == first.customer_id)
@@ -113,6 +113,7 @@ def test_new_contact_is_atomic_and_conversation_is_reused(
     assert opportunity.source is LeadSource.WHATSAPP
     assert opportunity.status is OpportunityStatus.NUEVA
     assert opportunity.assigned_user_id is None
+    assert opportunity.initial_whatsapp_message_id == first.message_id
     assert conversation is not None
     assert conversation.unread_count == 2
     assert conversation.waiting_for_response is True
@@ -164,7 +165,7 @@ def test_inbound_replay_deduplicates_and_rejects_changed_payload(
         )
 
 
-def test_existing_customer_is_matched_and_open_opportunity_only_suggested(
+def test_existing_customer_is_matched_and_active_opportunity_is_reused(
     db_session: Session,
 ) -> None:
     customer = Customer(name="Existente", phone="11 4444-9999")
@@ -184,8 +185,8 @@ def test_existing_customer_is_matched_and_open_opportunity_only_suggested(
     )
 
     assert result.customer_id == customer.id
-    assert result.opportunity_id is None
-    assert result.suggested_opportunity_ids == (opportunity.id,)
+    assert result.opportunity_id == opportunity.id
+    assert result.suggested_opportunity_ids == ()
     assert (
         db_session.scalar(
             select(func.count(Opportunity.id)).where(
@@ -195,8 +196,66 @@ def test_existing_customer_is_matched_and_open_opportunity_only_suggested(
         == 1
     )
     assert (
-        db_session.scalar(select(func.count(WhatsAppConversationOpportunity.id))) == 0
+        db_session.scalar(select(func.count(WhatsAppConversationOpportunity.id))) == 1
     )
+
+
+def test_existing_customer_without_active_opportunity_gets_new_whatsapp_opportunity(
+    db_session: Session,
+) -> None:
+    customer = Customer(name="Cliente histórico", phone="11 4333 2222")
+    db_session.add(customer)
+    db_session.commit()
+
+    result = WhatsAppInboundService(db_session, provider()).receive(
+        inbound("wamid-existing-closed", phone="1143332222"),
+        now=NOW,
+    )
+
+    opportunity = db_session.get(Opportunity, result.opportunity_id)
+    assert opportunity is not None
+    assert opportunity.customer_id == customer.id
+    assert opportunity.source is LeadSource.WHATSAPP
+    assert opportunity.status is OpportunityStatus.NUEVA
+    assert opportunity.initial_whatsapp_message_id == result.message_id
+
+
+@pytest.mark.parametrize(
+    "closed_status",
+    [OpportunityStatus.GANADA, OpportunityStatus.PERDIDA],
+)
+def test_inbound_after_closed_opportunity_creates_new_history(
+    db_session: Session,
+    closed_status: OpportunityStatus,
+) -> None:
+    service = WhatsAppInboundService(db_session, provider())
+    first = service.receive(inbound(f"wamid-before-{closed_status.value}"), now=NOW)
+    original = db_session.get(Opportunity, first.opportunity_id)
+    assert original is not None
+    original.status = closed_status
+    original.loss_reason = (
+        LossReason.OTRO if closed_status is OpportunityStatus.PERDIDA else None
+    )
+    original.loss_reason_detail = (
+        "Cierre de prueba" if closed_status is OpportunityStatus.PERDIDA else None
+    )
+    db_session.commit()
+
+    second = service.receive(
+        inbound(
+            f"wamid-after-{closed_status.value}",
+            occurred_at=NOW + timedelta(days=1),
+        ),
+        now=NOW + timedelta(days=1),
+    )
+
+    created = db_session.get(Opportunity, second.opportunity_id)
+    db_session.refresh(original)
+    assert created is not None
+    assert created.id != original.id
+    assert created.status is OpportunityStatus.NUEVA
+    assert created.initial_whatsapp_message_id == second.message_id
+    assert original.status is closed_status
 
 
 @pytest.mark.parametrize("deleted", [False, True])
@@ -289,12 +348,6 @@ def test_link_history_preserves_terminal_opportunities(
         assigned_user_id=None,
         changed_by_user_id=None,
     )
-    second = OpportunityService(db_session).create_opportunity_in_transaction(
-        customer_id=customer.id,
-        source=LeadSource.WEB,
-        assigned_user_id=None,
-        changed_by_user_id=None,
-    )
     conversation = WhatsAppConversation(
         customer_id=customer.id,
         external_phone="1111111111",
@@ -311,6 +364,13 @@ def test_link_history_preserves_terminal_opportunities(
         changed_by_user_id=None,
     )
     assert first.status is OpportunityStatus.PERDIDA
+
+    second = OpportunityService(db_session).create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WEB,
+        assigned_user_id=None,
+        changed_by_user_id=None,
+    )
 
     service = WhatsAppConversationService(db_session)
     first_link = service.link_opportunity(
@@ -548,3 +608,108 @@ def test_concurrent_duplicate_inbound_creates_one_message_and_conversation() -> 
                 )
                 if customer_id is not None:
                     cleanup.execute(delete(Customer).where(Customer.id == customer_id))
+
+
+def test_concurrent_distinct_inbound_creates_at_most_one_active_opportunity() -> None:
+    phone = "+54 11 7999 0002"
+    fake = provider()
+    with SessionLocal.begin() as setup:
+        setup.add(Customer(name="Cliente concurrente", phone=phone))
+
+    def receive_once(index: int) -> tuple[int, int]:
+        with SessionLocal() as session:
+            result = WhatsAppInboundService(session, fake).receive(
+                inbound(f"wamid-concurrent-active-{index}", phone=phone),
+                now=NOW + timedelta(seconds=index),
+            )
+            assert result.opportunity_id is not None
+            return result.message_id, result.opportunity_id
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = tuple(executor.map(receive_once, range(2)))
+
+        assert results[0][1] == results[1][1]
+        with SessionLocal() as verification:
+            customer_id = verification.scalar(
+                select(Customer.id).where(Customer.phone == phone)
+            )
+            assert customer_id is not None
+            assert (
+                verification.scalar(
+                    select(func.count(Opportunity.id)).where(
+                        Opportunity.customer_id == customer_id,
+                        Opportunity.status.in_(
+                            {
+                                OpportunityStatus.NUEVA,
+                                OpportunityStatus.COTIZADA,
+                                OpportunityStatus.NEGOCIACION,
+                            }
+                        ),
+                        Opportunity.deleted_at.is_(None),
+                    )
+                )
+                == 1
+            )
+            assert (
+                verification.scalar(
+                    select(func.count(WhatsAppMessage.id)).where(
+                        WhatsAppMessage.external_message_id.in_(
+                            {"wamid-concurrent-active-0", "wamid-concurrent-active-1"}
+                        )
+                    )
+                )
+                == 2
+            )
+    finally:
+        with SessionLocal.begin() as cleanup:
+            cleanup.execute(text("SET LOCAL asfaltos.test_cleanup = 'on'"))
+            customer_id = cleanup.scalar(
+                select(Customer.id).where(Customer.phone == phone)
+            )
+            if customer_id is not None:
+                conversation_ids = select(WhatsAppConversation.id).where(
+                    WhatsAppConversation.customer_id == customer_id
+                )
+                message_ids = select(WhatsAppMessage.id).where(
+                    WhatsAppMessage.conversation_id.in_(conversation_ids)
+                )
+                opportunity_ids = select(Opportunity.id).where(
+                    Opportunity.customer_id == customer_id
+                )
+                cleanup.execute(
+                    delete(WhatsAppAttachment).where(
+                        WhatsAppAttachment.message_id.in_(message_ids)
+                    )
+                )
+                cleanup.execute(
+                    delete(WhatsAppConversationOpportunity).where(
+                        WhatsAppConversationOpportunity.conversation_id.in_(
+                            conversation_ids
+                        )
+                    )
+                )
+                cleanup.execute(
+                    delete(WhatsAppMessage).where(
+                        WhatsAppMessage.conversation_id.in_(conversation_ids)
+                    )
+                )
+                cleanup.execute(
+                    delete(WhatsAppConversation).where(
+                        WhatsAppConversation.id.in_(conversation_ids)
+                    )
+                )
+                cleanup.execute(
+                    delete(OpportunityStatusHistory).where(
+                        OpportunityStatusHistory.opportunity_id.in_(opportunity_ids)
+                    )
+                )
+                cleanup.execute(
+                    delete(Notification).where(
+                        Notification.opportunity_id.in_(opportunity_ids)
+                    )
+                )
+                cleanup.execute(
+                    delete(Opportunity).where(Opportunity.id.in_(opportunity_ids))
+                )
+                cleanup.execute(delete(Customer).where(Customer.id == customer_id))

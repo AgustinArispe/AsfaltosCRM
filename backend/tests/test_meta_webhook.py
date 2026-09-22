@@ -225,6 +225,33 @@ def test_mapper_maps_text_image_document_and_statuses_in_order() -> None:
     assert metrics.mapping_failures == []
 
 
+def test_mapper_accepts_real_meta_voice_note_shape() -> None:
+    metrics = _WebhookMetrics()
+    events = _mapper(metrics).map_events(
+        _envelope(
+            """{"messaging_product":"whatsapp",
+            "metadata":{"phone_number_id":"106540352242922"},
+            "contacts":[{"wa_id":"541155551234","profile":{"name":"Obras Sur"}}],
+            "messages":[{"from":"541155551234","id":"wamid.voice-note",
+            "timestamp":"1786374000","type":"audio","audio":{
+            "id":"media-voice-note","mime_type":"audio/ogg; codecs=opus",
+            "voice":true}}]}"""
+        )
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, ProviderInboundEvent)
+    assert event.message_type.value == "AUDIO"
+    assert event.body is None
+    assert event.attachment is not None
+    assert event.attachment.provider_media_id == "media-voice-note"
+    assert event.attachment.mime_type == "audio/ogg; codecs=opus"
+    assert metrics.events == [
+        (MetaWebhookEventKind.INBOUND_AUDIO, MetaWebhookOutcome.MAPPED)
+    ]
+
+
 def test_mapper_ignores_unknown_events_and_rejects_malformed_recognized_data() -> None:
     metrics = _WebhookMetrics()
     ignored = _mapper(metrics).map_events(
