@@ -115,6 +115,9 @@ must describe implemented behavior only.
 
 These specifications capture behavior already implemented and tested:
 
+- [`CRM-050`](050-whatsapp-inquiries-audio-and-inline-media.md) — Implemented —
+  preserve the initial WhatsApp inquiry on its new Opportunity and add secure audio
+  plus inline image/audio rendering to the existing Meta integration.
 - [`CRM-049`](049-meta-whatsapp-production-activation.md) — Implemented — explicit
   Railway activation and production verification of the existing Meta WhatsApp
   integration.

@@ -1,9 +1,9 @@
 # CRM-050 — WhatsApp Inquiries, Audio & Inline Media
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-22
-Implementation commit: N/A
+Implementation commit: 0039035
 
 ## Goal
 
