@@ -1,9 +1,10 @@
 # CRM-051 — WhatsApp Production Media & Opportunity Lifecycle
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-22
-Implementation commit: Pending (scope correction; original implementation `017dd80`)
+Implementation commit: `15ca886` (WhatsApp-only scope correction; original media and
+lifecycle implementation `017dd80`)
 
 ## Goal
 
