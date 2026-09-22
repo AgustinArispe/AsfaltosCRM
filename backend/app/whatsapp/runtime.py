@@ -7,6 +7,8 @@ from app.core.config import (
     RuntimeEnvironment,
     get_app_environment,
     get_jwt_secret,
+    get_whatsapp_audio_max_bytes,
+    get_whatsapp_audio_mime_types,
     get_whatsapp_broadcast_batch_size,
     get_whatsapp_broadcast_claim_timeout_seconds,
     get_whatsapp_document_max_bytes,
@@ -176,6 +178,7 @@ def build_meta_whatsapp_runtime(
         meta_metrics,
         image_max_bytes=get_whatsapp_image_max_bytes(),
         document_max_bytes=get_whatsapp_document_max_bytes(),
+        audio_max_bytes=get_whatsapp_audio_max_bytes(),
     )
     webhook = MetaWebhookIntegration(
         MetaWebhookVerifier(
@@ -209,4 +212,6 @@ def _configured_media_policy() -> WhatsAppMediaPolicy:
         document_max_bytes=get_whatsapp_document_max_bytes(),
         image_mime_types=get_whatsapp_image_mime_types(),
         document_mime_types=get_whatsapp_document_mime_types(),
+        audio_max_bytes=get_whatsapp_audio_max_bytes(),
+        audio_mime_types=get_whatsapp_audio_mime_types(),
     )

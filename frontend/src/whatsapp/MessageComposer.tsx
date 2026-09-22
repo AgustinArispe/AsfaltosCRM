@@ -8,6 +8,7 @@ import type { StagedWhatsAppAttachment, WhatsAppConversationDetail } from './typ
 import type { NewMessageInput } from './useWhatsAppInbox'
 
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const AUDIO_MIME_TYPES = new Set(['audio/aac', 'audio/amr', 'audio/mpeg', 'audio/ogg'])
 
 function stagedAttachment(file: File): StagedWhatsAppAttachment | null {
   if (file.size === 0) return null
@@ -20,6 +21,9 @@ function stagedAttachment(file: File): StagedWhatsAppAttachment | null {
   }
   if (file.type === 'application/pdf') {
     return { file, messageType: 'DOCUMENT', previewUrl: null }
+  }
+  if (AUDIO_MIME_TYPES.has(file.type)) {
+    return { file, messageType: 'AUDIO', previewUrl: null }
   }
   return null
 }
@@ -107,7 +111,7 @@ export function MessageComposer({
     if (!file) return
     const next = stagedAttachment(file)
     if (!next) {
-      setFileError('Seleccioná una imagen JPG, PNG o WebP, o un documento PDF válido.')
+      setFileError('Seleccioná una imagen, un PDF o un audio WhatsApp compatible.')
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
@@ -270,9 +274,9 @@ export function MessageComposer({
                 strokeWidth='1.5'
               />
             </svg>
-            Adjuntar imagen o PDF
+            Adjuntar imagen, PDF o audio
             <input
-              accept='image/jpeg,image/png,image/webp,application/pdf'
+              accept='image/jpeg,image/png,image/webp,application/pdf,audio/aac,audio/amr,audio/mpeg,audio/ogg'
               className='sr-only'
               disabled={Boolean(disabledReason) || Boolean(attachment)}
               onChange={(event) => handleFile(event.target.files?.[0])}

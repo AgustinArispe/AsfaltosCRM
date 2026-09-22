@@ -46,6 +46,7 @@ from app.whatsapp import (
     ProviderMediaReference,
     ProviderSendResult,
     ProviderTemplateSnapshot,
+    SendAudioRequest,
     SendDocumentRequest,
     SendImageRequest,
     SendTemplateRequest,
@@ -1183,6 +1184,9 @@ class DelegatingWhatsAppProvider:
 
     def send_document(self, request: SendDocumentRequest) -> ProviderSendResult:
         return self._delegate.send_document(request)
+
+    def send_audio(self, request: SendAudioRequest) -> ProviderSendResult:
+        return self._delegate.send_audio(request)
 
     def send_template(self, request: SendTemplateRequest) -> ProviderSendResult:
         return self._delegate.send_template(request)

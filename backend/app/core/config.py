@@ -16,6 +16,12 @@ DEFAULT_WHATSAPP_IMAGE_MIME_TYPES: Final = (
     "image/webp",
 )
 DEFAULT_WHATSAPP_DOCUMENT_MIME_TYPES: Final = ("application/pdf",)
+DEFAULT_WHATSAPP_AUDIO_MIME_TYPES: Final = (
+    "audio/aac",
+    "audio/amr",
+    "audio/mpeg",
+    "audio/ogg",
+)
 DEFAULT_WHATSAPP_MEDIA_MAX_BYTES: Final = 16_777_216
 DEFAULT_WHATSAPP_BROADCAST_BATCH_SIZE: Final = 10
 MAX_WHATSAPP_BROADCAST_BATCH_SIZE: Final = 10
@@ -59,6 +65,7 @@ class RuntimeSecuritySettings:
     whatsapp_dev_routes_enabled: bool = False
     whatsapp_image_max_bytes: int = DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
     whatsapp_document_max_bytes: int = DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
+    whatsapp_audio_max_bytes: int = DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
     request_body_limits: RequestBodyLimits = RequestBodyLimits()
 
     @property
@@ -217,6 +224,14 @@ def get_whatsapp_document_max_bytes() -> int:
 
 
 @lru_cache
+def get_whatsapp_audio_max_bytes() -> int:
+    return _positive_int_setting(
+        "WHATSAPP_AUDIO_MAX_BYTES",
+        getenv("WHATSAPP_MEDIA_MAX_BYTES", str(DEFAULT_WHATSAPP_MEDIA_MAX_BYTES)),
+    )
+
+
+@lru_cache
 def get_whatsapp_broadcast_batch_size() -> int:
     batch_size = _positive_int_setting(
         "WHATSAPP_BROADCAST_BATCH_SIZE",
@@ -272,6 +287,7 @@ def get_runtime_security_settings() -> RuntimeSecuritySettings:
         whatsapp_dev_routes_enabled=get_whatsapp_dev_routes_enabled(),
         whatsapp_image_max_bytes=get_whatsapp_image_max_bytes(),
         whatsapp_document_max_bytes=get_whatsapp_document_max_bytes(),
+        whatsapp_audio_max_bytes=get_whatsapp_audio_max_bytes(),
     )
     validate_runtime_security_settings(settings)
     return settings
@@ -289,6 +305,10 @@ def clear_runtime_settings_caches() -> None:
     get_whatsapp_dev_routes_enabled.cache_clear()
     get_whatsapp_image_max_bytes.cache_clear()
     get_whatsapp_document_max_bytes.cache_clear()
+    get_whatsapp_audio_max_bytes.cache_clear()
+    get_whatsapp_image_mime_types.cache_clear()
+    get_whatsapp_document_mime_types.cache_clear()
+    get_whatsapp_audio_mime_types.cache_clear()
     get_whatsapp_media_storage_name.cache_clear()
     get_runtime_security_settings.cache_clear()
 
@@ -319,6 +339,7 @@ def validate_runtime_security_settings(settings: RuntimeSecuritySettings) -> Non
     if (
         settings.whatsapp_image_max_bytes > DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
         or settings.whatsapp_document_max_bytes > DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
+        or settings.whatsapp_audio_max_bytes > DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
     ):
         raise RuntimeError("WhatsApp media limits cannot exceed 16 MiB in production")
     if settings.whatsapp_provider_name == "meta":
@@ -451,6 +472,14 @@ def get_whatsapp_document_mime_types() -> frozenset[str]:
     return _mime_type_setting(
         "WHATSAPP_DOCUMENT_MIME_TYPES",
         DEFAULT_WHATSAPP_DOCUMENT_MIME_TYPES,
+    )
+
+
+@lru_cache
+def get_whatsapp_audio_mime_types() -> frozenset[str]:
+    return _mime_type_setting(
+        "WHATSAPP_AUDIO_MIME_TYPES",
+        DEFAULT_WHATSAPP_AUDIO_MIME_TYPES,
     )
 
 

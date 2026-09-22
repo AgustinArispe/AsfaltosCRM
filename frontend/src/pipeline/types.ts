@@ -63,6 +63,12 @@ export type OpportunityDetail = OpportunitySummary & {
   }>
   updated_at: string
   web_intake: { message: string | null } | null
+  initial_whatsapp_inquiry?: {
+    id: number
+    message_type: 'TEXT' | 'IMAGE' | 'DOCUMENT' | 'AUDIO'
+    body: string | null
+    message_at: string
+  } | null
 }
 
 export type ManualOpportunityCustomerInput =

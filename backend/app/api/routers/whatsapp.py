@@ -24,6 +24,7 @@ from app.api.whatsapp_presenter import WhatsAppApiPresenter
 from app.models import WhatsAppDispatchState, WhatsAppMessageType
 from app.schemas.opportunity import OpportunityDetail
 from app.schemas.whatsapp import (
+    AudioOutboundRequest,
     ConversationAttentionSummaryResponse,
     ConversationChangePageResponse,
     ConversationDetailResponse,
@@ -486,6 +487,8 @@ def _outbound_input(
         message_type = WhatsAppMessageType.IMAGE
     elif isinstance(payload, DocumentOutboundRequest):
         message_type = WhatsAppMessageType.DOCUMENT
+    elif isinstance(payload, AudioOutboundRequest):
+        message_type = WhatsAppMessageType.AUDIO
     else:
         raise TypeError("Unsupported outbound request")
     return OutboundMessageInput(
@@ -493,7 +496,9 @@ def _outbound_input(
         client_generated_id=payload.client_generated_id,
         sent_by_user_id=user_id,
         message_type=message_type,
-        body=payload.caption,
+        body=(
+            payload.caption if not isinstance(payload, AudioOutboundRequest) else None
+        ),
         attachment=media.outbound_attachment(
             payload.media_ref,
             expected_type=message_type,
@@ -538,7 +543,9 @@ def _media_response(content: MediaContentResult) -> StreamingResponse:
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
     }
-    disposition = "inline" if content.mime_type.startswith("image/") else "attachment"
+    disposition = (
+        "inline" if content.mime_type.startswith(("image/", "audio/")) else "attachment"
+    )
     headers["Content-Disposition"] = f"{disposition}; filename*=UTF-8''" + quote(
         _download_filename(content), safe=""
     )
@@ -564,4 +571,6 @@ def _download_filename(content: MediaContentResult) -> str:
         return "attachment.png"
     if content.mime_type == "image/webp":
         return "attachment.webp"
+    if content.mime_type == "audio/ogg":
+        return "attachment.ogg"
     return "attachment"

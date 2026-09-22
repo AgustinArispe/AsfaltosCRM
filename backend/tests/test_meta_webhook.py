@@ -231,7 +231,7 @@ def test_mapper_ignores_unknown_events_and_rejects_malformed_recognized_data() -
         _envelope(
             """{"messaging_product":"whatsapp",
             "metadata":{"phone_number_id":"106540352242922"},
-            "messages":[{"type":"audio","id":"wamid.audio"}],
+            "messages":[{"type":"video","id":"wamid.video"}],
             "statuses":[{"id":"wamid.voice","status":"played","timestamp":"1786374000"}]}"""
         )
     )

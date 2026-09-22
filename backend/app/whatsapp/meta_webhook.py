@@ -66,6 +66,13 @@ class _MetaDocument(BaseModel):
     caption: str | None = None
 
 
+class _MetaAudio(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str | None = None
+    mime_type: str | None = None
+
+
 class _MetaInboundMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -76,6 +83,7 @@ class _MetaInboundMessage(BaseModel):
     text: _MetaText | None = None
     image: _MetaImage | None = None
     document: _MetaDocument | None = None
+    audio: _MetaAudio | None = None
 
 
 class _MetaStatusErrorData(BaseModel):
@@ -217,7 +225,7 @@ class MetaWebhookMapper:
         contacts: tuple[_MetaContact, ...],
     ) -> ProviderWebhookEvent:
         message_type = (message.type or "").lower()
-        if message_type not in {"text", "image", "document"}:
+        if message_type not in {"text", "image", "document", "audio"}:
             return self._ignored("message_type")
         external_id = self._required(message.id, "message ID")
         sender = self._required(message.from_phone, "message sender")
@@ -248,7 +256,7 @@ class MetaWebhookMapper:
             )
             domain_type = WhatsAppMessageType.IMAGE
             event_kind = MetaWebhookEventKind.INBOUND_IMAGE
-        else:
+        elif message_type == "document":
             if message.document is None:
                 self._mapping_failure("inbound_document")
             body = message.document.caption
@@ -263,6 +271,18 @@ class MetaWebhookMapper:
             )
             domain_type = WhatsAppMessageType.DOCUMENT
             event_kind = MetaWebhookEventKind.INBOUND_DOCUMENT
+        else:
+            if message.audio is None:
+                self._mapping_failure("inbound_audio")
+            body = None
+            attachment = ProviderInboundAttachment(
+                provider_media_id=self._required(message.audio.id, "audio media ID"),
+                mime_type=_optional_text(message.audio.mime_type),
+                filename=None,
+                size_bytes=None,
+            )
+            domain_type = WhatsAppMessageType.AUDIO
+            event_kind = MetaWebhookEventKind.INBOUND_AUDIO
         self._metrics.increment_webhook_event(
             event_kind,
             MetaWebhookOutcome.MAPPED,

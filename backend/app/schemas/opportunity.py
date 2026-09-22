@@ -17,6 +17,7 @@ from app.models import (
     LossReason,
     OpportunityStatus,
     OpportunityTransitionKind,
+    WhatsAppMessageType,
 )
 from app.schemas.common import EmailInput, StrictRequestModel
 from app.schemas.customer import CustomerSummary, NonBlankString, OptionalNonBlankString
@@ -165,6 +166,15 @@ class OpportunityWebIntake(BaseModel):
     message: str | None
 
 
+class OpportunityWhatsAppInitialInquiry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    message_type: WhatsAppMessageType
+    body: str | None
+    message_at: datetime = Field(validation_alias="provider_message_at")
+
+
 class OpportunitySummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -191,6 +201,9 @@ class OpportunityDetail(OpportunitySummary):
     loss_events: list[OpportunityLossEventResponse]
     updated_at: datetime
     web_intake: OpportunityWebIntake | None = Field(validation_alias="lead_intake")
+    initial_whatsapp_inquiry: OpportunityWhatsAppInitialInquiry | None = Field(
+        validation_alias="initial_whatsapp_message"
+    )
 
 
 class ManualOpportunityCreateResponse(BaseModel):

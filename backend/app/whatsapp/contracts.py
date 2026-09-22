@@ -64,6 +64,13 @@ class SendDocumentRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class SendAudioRequest:
+    recipient: ProviderRecipient
+    client_generated_id: UUID
+    media: ProviderMediaReference
+
+
+@dataclass(frozen=True, slots=True)
 class TemplateParameter:
     name: str
     value: str
@@ -140,6 +147,8 @@ class WhatsAppProvider(Protocol):
 
     def send_document(self, request: SendDocumentRequest) -> ProviderSendResult: ...
 
+    def send_audio(self, request: SendAudioRequest) -> ProviderSendResult: ...
+
     def send_template(self, request: SendTemplateRequest) -> ProviderSendResult: ...
 
     def download_media(
@@ -156,7 +165,11 @@ class WhatsAppProvider(Protocol):
 
 
 RecordedProviderRequest = (
-    SendTextRequest | SendImageRequest | SendDocumentRequest | SendTemplateRequest
+    SendTextRequest
+    | SendImageRequest
+    | SendDocumentRequest
+    | SendAudioRequest
+    | SendTemplateRequest
 )
 
 

@@ -3,7 +3,7 @@ import type { LeadSource, OpportunityStatus } from '../pipeline/types'
 
 export type WhatsAppResolutionStatus = 'RESOLVED' | 'NEEDS_REVIEW'
 export type WhatsAppDirection = 'INBOUND' | 'OUTBOUND'
-export type WhatsAppMessageType = 'TEXT' | 'IMAGE' | 'DOCUMENT'
+export type WhatsAppMessageType = 'TEXT' | 'IMAGE' | 'DOCUMENT' | 'AUDIO'
 export type WhatsAppDispatchState =
   | 'PENDING'
   | 'IN_PROGRESS'
@@ -170,7 +170,7 @@ export type WhatsAppOutboundResponse = {
 
 export type WhatsAppMediaUpload = {
   media_ref: string
-  media_type: 'IMAGE' | 'DOCUMENT'
+  media_type: 'IMAGE' | 'DOCUMENT' | 'AUDIO'
   mime_type: string
   filename: string | null
   size_bytes: number
@@ -193,7 +193,7 @@ export type WhatsAppSendIntent = {
 
 export type StagedWhatsAppAttachment = {
   file: File
-  messageType: 'IMAGE' | 'DOCUMENT'
+  messageType: 'IMAGE' | 'DOCUMENT' | 'AUDIO'
   previewUrl: string | null
 }
 

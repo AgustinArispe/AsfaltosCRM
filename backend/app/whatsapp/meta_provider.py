@@ -19,6 +19,7 @@ from app.whatsapp.contracts import (
     ProviderMediaReference,
     ProviderSendResult,
     ProviderTemplateSnapshot,
+    SendAudioRequest,
     SendDocumentRequest,
     SendImageRequest,
     SendTemplateRequest,
@@ -178,6 +179,14 @@ class _MetaDocumentMessageRequest(BaseModel):
     document: _MetaMediaContent
 
 
+class _MetaAudioMessageRequest(BaseModel):
+    messaging_product: str = "whatsapp"
+    recipient_type: str = "individual"
+    to: str
+    type: str = "audio"
+    audio: _MetaMediaContent
+
+
 class _MetaTemplateMessageRequest(BaseModel):
     messaging_product: str = "whatsapp"
     recipient_type: str = "individual"
@@ -225,6 +234,7 @@ class MetaCloudApiProvider:
         *,
         image_max_bytes: int,
         document_max_bytes: int,
+        audio_max_bytes: int = 16_777_216,
         now: Callable[[], datetime] | None = None,
         template_cache: MetaTemplateSnapshotCache | None = None,
     ) -> None:
@@ -234,6 +244,7 @@ class MetaCloudApiProvider:
         self._metrics = metrics
         self._image_max_bytes = image_max_bytes
         self._document_max_bytes = document_max_bytes
+        self._audio_max_bytes = audio_max_bytes
         self._now = now or (lambda: datetime.now(UTC))
         self._templates = template_cache or MetaTemplateSnapshotCache()
 
@@ -277,6 +288,20 @@ class MetaCloudApiProvider:
         return self._send(
             payload.model_dump_json(exclude_none=True).encode(),
             MetaOperation.SEND_DOCUMENT,
+        )
+
+    def send_audio(self, request: SendAudioRequest) -> ProviderSendResult:
+        media_id = self._resolve_outbound_media_id(
+            request.media,
+            operation=MetaOperation.MEDIA_UPLOAD,
+        )
+        payload = _MetaAudioMessageRequest(
+            to=_normalized_recipient(request.recipient.phone),
+            audio=_MetaMediaContent(id=media_id),
+        )
+        return self._send(
+            payload.model_dump_json(exclude_none=True).encode(),
+            MetaOperation.SEND_AUDIO,
         )
 
     def send_template(self, request: SendTemplateRequest) -> ProviderSendResult:
@@ -365,12 +390,7 @@ class MetaCloudApiProvider:
         reference: ProviderMediaReference,
     ) -> ProviderMediaPayload:
         media_id = _required_text(reference.provider_media_id, "provider media ID")
-        maximum = (
-            self._image_max_bytes
-            if reference.mime_type is not None
-            and reference.mime_type.startswith("image/")
-            else self._document_max_bytes
-        )
+        maximum = self._maximum_media_bytes(reference.mime_type)
         for resolution_attempt in range(2):
             resolved = self._resolve_media(media_id)
             if resolved.file_size is not None and resolved.file_size > maximum:
@@ -398,7 +418,7 @@ class MetaCloudApiProvider:
                 if content_type is not None
                 else resolved.mime_type.strip().lower()
             )
-            if response_mime != resolved.mime_type.strip().lower():
+            if response_mime != _normalized_mime_type(resolved.mime_type):
                 raise _provider_error(
                     ProviderErrorKind.PERMANENT_FAILURE,
                     "META_MEDIA_MIME_MISMATCH",
@@ -420,6 +440,14 @@ class MetaCloudApiProvider:
                 filename=reference.filename,
             )
         raise RuntimeError("Meta media resolution completed without a result")
+
+    def _maximum_media_bytes(self, mime_type: str | None) -> int:
+        normalized = mime_type.partition(";")[0].strip().lower() if mime_type else ""
+        if normalized.startswith("image/"):
+            return self._image_max_bytes
+        if normalized.startswith("audio/"):
+            return self._audio_max_bytes
+        return self._document_max_bytes
 
     def list_templates(self) -> tuple[ProviderTemplateSnapshot, ...]:
         try:
@@ -755,6 +783,10 @@ def _optional_text(value: str | None) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _normalized_mime_type(value: str) -> str:
+    return value.partition(";")[0].strip().lower()
 
 
 def _normalized_recipient(phone: str) -> str:

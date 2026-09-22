@@ -87,6 +87,7 @@ class WhatsAppMessageType(StrEnum):
     TEXT = "TEXT"
     IMAGE = "IMAGE"
     DOCUMENT = "DOCUMENT"
+    AUDIO = "AUDIO"
 
 
 class WhatsAppProviderState(StrEnum):

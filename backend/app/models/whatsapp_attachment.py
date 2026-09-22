@@ -28,7 +28,7 @@ class WhatsAppAttachment(TimestampMixin, Base):
     __tablename__ = "whatsapp_attachments"
     __table_args__ = (
         CheckConstraint(
-            "media_type IN ('IMAGE', 'DOCUMENT')",
+            "media_type IN ('IMAGE', 'DOCUMENT', 'AUDIO')",
             name="ck_whatsapp_attachments_supported_type",
         ),
         CheckConstraint(

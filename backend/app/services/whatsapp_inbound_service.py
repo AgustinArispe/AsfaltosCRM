@@ -153,6 +153,8 @@ class WhatsAppInboundService:
             )
             self._session.add(message)
             self._session.flush()
+            if opportunity is not None:
+                opportunity.initial_whatsapp_message_id = message.id
             if normalized.attachment is not None:
                 self._session.add(
                     WhatsAppAttachment(

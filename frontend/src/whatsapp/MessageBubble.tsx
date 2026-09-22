@@ -56,6 +56,28 @@ function AttachmentContent({ message }: { message: WhatsAppMessage }) {
       </a>
     )
   }
+  if (message.message_type === 'AUDIO') {
+    return (
+      <div className='mt-2 space-y-2'>
+        <audio
+          aria-label={attachment.filename ? `Audio ${attachment.filename}` : 'Audio adjunto'}
+          className='w-full max-w-sm'
+          controls
+          preload='metadata'
+          src={objectUrl}
+        >
+          <track kind='captions' label='Sin transcripción disponible' srcLang='es' />
+        </audio>
+        <a
+          className='inline-flex min-h-11 items-center rounded-[var(--radius-control)] px-2 text-xs font-medium text-[var(--text-secondary)] underline outline-none hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+          download={attachment.filename ?? 'audio.ogg'}
+          href={objectUrl}
+        >
+          Descargar audio
+        </a>
+      </div>
+    )
+  }
   return (
     <a
       className='mt-2 flex min-h-11 items-center gap-3 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-primary)] px-3 py-2 text-left outline-none hover:border-[var(--strong-border)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'

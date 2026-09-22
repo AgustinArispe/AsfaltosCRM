@@ -8,6 +8,7 @@ class MetaOperation(StrEnum):
     SEND_TEXT = "send_text"
     SEND_IMAGE = "send_image"
     SEND_DOCUMENT = "send_document"
+    SEND_AUDIO = "send_audio"
     SEND_TEMPLATE = "send_template"
     MEDIA_UPLOAD = "media_upload"
     MEDIA_RESOLVE = "media_resolve"
@@ -26,6 +27,7 @@ class MetaWebhookEventKind(StrEnum):
     INBOUND_TEXT = "inbound_text"
     INBOUND_IMAGE = "inbound_image"
     INBOUND_DOCUMENT = "inbound_document"
+    INBOUND_AUDIO = "inbound_audio"
     STATUS = "status"
     UNKNOWN = "unknown"
 

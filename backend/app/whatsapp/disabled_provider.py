@@ -7,6 +7,7 @@ from app.whatsapp.contracts import (
     ProviderMediaReference,
     ProviderSendResult,
     ProviderTemplateSnapshot,
+    SendAudioRequest,
     SendDocumentRequest,
     SendImageRequest,
     SendTemplateRequest,
@@ -29,6 +30,10 @@ class DisabledWhatsAppProvider:
         raise _disabled_error()
 
     def send_document(self, request: SendDocumentRequest) -> ProviderSendResult:
+        del request
+        raise _disabled_error()
+
+    def send_audio(self, request: SendAudioRequest) -> ProviderSendResult:
         del request
         raise _disabled_error()
 

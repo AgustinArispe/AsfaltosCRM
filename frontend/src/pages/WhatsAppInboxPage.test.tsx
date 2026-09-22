@@ -578,6 +578,7 @@ describe('WhatsAppInboxPage', () => {
   it.each([
     ['application/pdf', 'ficha.pdf', 'DOCUMENT'],
     ['image/png', 'muestra.png', 'IMAGE'],
+    ['audio/ogg', 'nota.ogg', 'AUDIO'],
   ] as const)(
     'uploads and sends %s without base64 or provider URLs',
     async (mime, filename, expectedType) => {
@@ -586,7 +587,7 @@ describe('WhatsAppInboxPage', () => {
       await openConversation()
 
       const file = new File(['content'], filename, { type: mime })
-      fireEvent.change(screen.getByLabelText('Adjuntar imagen o PDF'), {
+      fireEvent.change(screen.getByLabelText('Adjuntar imagen, PDF o audio'), {
         target: { files: [file] },
       })
       fireEvent.change(screen.getByLabelText('Mensaje'), {
@@ -622,8 +623,9 @@ describe('WhatsAppInboxPage', () => {
       expect(payload).toMatchObject({
         message_type: expectedType,
         media_ref: '22222222-2222-4222-8222-222222222222',
-        caption: 'Adjunto documentación',
+        ...(expectedType === 'AUDIO' ? {} : { caption: 'Adjunto documentación' }),
       })
+      if (expectedType === 'AUDIO') expect(payload).not.toHaveProperty('caption')
       expect(String(sendCall?.[1]?.body)).not.toContain('content')
       expect(String(sendCall?.[1]?.body)).not.toContain('graph.facebook')
     },

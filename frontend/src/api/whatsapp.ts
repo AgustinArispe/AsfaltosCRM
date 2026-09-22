@@ -128,7 +128,7 @@ function outboundBody(intent: WhatsAppSendIntent): object {
     message_type: intent.messageType,
     client_generated_id: intent.clientGeneratedId,
     media_ref: intent.mediaRef,
-    ...(intent.body ? { caption: intent.body } : {}),
+    ...(intent.messageType !== 'AUDIO' && intent.body ? { caption: intent.body } : {}),
     ...retry,
   }
 }
@@ -171,7 +171,7 @@ export function unlinkWhatsAppOpportunity(conversationId: number, session: ApiSe
 
 export function uploadWhatsAppMedia(
   file: File,
-  messageType: Extract<WhatsAppMessageType, 'IMAGE' | 'DOCUMENT'>,
+  messageType: Extract<WhatsAppMessageType, 'IMAGE' | 'DOCUMENT' | 'AUDIO'>,
   session: ApiSession,
 ) {
   const formData = new FormData()

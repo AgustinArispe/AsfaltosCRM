@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from app.models.whatsapp_conversation_opportunity import (
         WhatsAppConversationOpportunity,
     )
+    from app.models.whatsapp_message import WhatsAppMessage
 
 
 class Opportunity(TimestampMixin, Base):
@@ -124,6 +125,15 @@ class Opportunity(TimestampMixin, Base):
             ondelete="RESTRICT",
         ),
     )
+    initial_whatsapp_message_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "whatsapp_messages.id",
+            name="fk_opportunities_initial_whatsapp_message_id_messages",
+            ondelete="SET NULL",
+        ),
+        unique=True,
+    )
     source: Mapped[LeadSource] = mapped_column(LEAD_SOURCE_DB_ENUM, nullable=False)
     status: Mapped[OpportunityStatus] = mapped_column(
         OPPORTUNITY_STATUS_DB_ENUM,
@@ -163,6 +173,10 @@ class Opportunity(TimestampMixin, Base):
         back_populates="opportunity",
         passive_deletes=True,
         uselist=False,
+    )
+    initial_whatsapp_message: Mapped[WhatsAppMessage | None] = relationship(
+        foreign_keys=[initial_whatsapp_message_id],
+        passive_deletes=True,
     )
     notifications: Mapped[list[Notification]] = relationship(
         back_populates="opportunity",

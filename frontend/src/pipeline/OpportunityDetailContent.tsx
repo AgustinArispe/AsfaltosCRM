@@ -258,7 +258,17 @@ function CustomerInformation({ opportunity }: { opportunity: OpportunityDetail }
 }
 
 function Consultation({ opportunity }: { opportunity: OpportunityDetail }) {
-  if (opportunity.source !== 'WEB') return null
+  const whatsappInquiry = opportunity.initial_whatsapp_inquiry ?? null
+  if (opportunity.source !== 'WEB' && !whatsappInquiry) return null
+  const isWhatsApp = whatsappInquiry !== null
+  const mediaInquiryLabel = whatsappInquiry
+    ? {
+        IMAGE: 'Imagen adjunta recibida por WhatsApp.',
+        DOCUMENT: 'Documento adjunto recibido por WhatsApp.',
+        AUDIO: 'Audio recibido por WhatsApp.',
+        TEXT: null,
+      }[whatsappInquiry.message_type]
+    : null
 
   return (
     <section
@@ -272,9 +282,15 @@ function Consultation({ opportunity }: { opportunity: OpportunityDetail }) {
         <span className='opportunity-detail__section-icon' aria-hidden='true'>
           <Icon name='inbox' />
         </span>
-        Consulta del cliente
+        Consulta del cliente{isWhatsApp ? ' · WhatsApp' : ''}
       </h3>
-      {opportunity.web_intake?.message ? (
+      {isWhatsApp && whatsappInquiry.body ? (
+        <p className='opportunity-detail__consultation mt-3 whitespace-pre-wrap break-words text-[var(--text-primary)] [overflow-wrap:anywhere]'>
+          {whatsappInquiry.body}
+        </p>
+      ) : isWhatsApp && mediaInquiryLabel ? (
+        <p className='mt-2 text-sm text-[var(--text-secondary)]'>{mediaInquiryLabel}</p>
+      ) : opportunity.web_intake?.message ? (
         <p className='opportunity-detail__consultation mt-3 whitespace-pre-wrap break-words text-[var(--text-primary)] [overflow-wrap:anywhere]'>
           {opportunity.web_intake.message}
         </p>

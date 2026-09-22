@@ -227,8 +227,18 @@ class DocumentOutboundRequest(StrictRequestModel):
     retry_of_message_id: PositiveId | None = None
 
 
+class AudioOutboundRequest(StrictRequestModel):
+    message_type: Literal[WhatsAppMessageType.AUDIO]
+    client_generated_id: UUID
+    media_ref: UUID
+    retry_of_message_id: PositiveId | None = None
+
+
 OutboundMessageRequest = Annotated[
-    TextOutboundRequest | ImageOutboundRequest | DocumentOutboundRequest,
+    TextOutboundRequest
+    | ImageOutboundRequest
+    | DocumentOutboundRequest
+    | AudioOutboundRequest,
     Field(discriminator="message_type"),
 ]
 
@@ -241,6 +251,7 @@ class MediaUploadMetadata(StrictRequestModel):
     media_type: Literal[
         WhatsAppMessageType.IMAGE,
         WhatsAppMessageType.DOCUMENT,
+        WhatsAppMessageType.AUDIO,
     ]
 
 

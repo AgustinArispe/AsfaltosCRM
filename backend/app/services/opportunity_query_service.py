@@ -10,6 +10,7 @@ from app.models import (
     Opportunity,
     OpportunityProduct,
     OpportunityStatus,
+    WhatsAppMessage,
 )
 from app.services.errors import EntityNotFoundError
 
@@ -75,6 +76,9 @@ class OpportunityQueryService:
             .options(
                 *self._summary_load_options(),
                 joinedload(Opportunity.lead_intake),
+                joinedload(Opportunity.initial_whatsapp_message).selectinload(
+                    WhatsAppMessage.attachment
+                ),
                 selectinload(Opportunity.status_history),
                 selectinload(Opportunity.loss_events),
             )

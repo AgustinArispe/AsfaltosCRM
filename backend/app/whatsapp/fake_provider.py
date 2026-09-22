@@ -13,6 +13,7 @@ from app.whatsapp.contracts import (
     ProviderSendResult,
     ProviderTemplateSnapshot,
     RecordedProviderRequest,
+    SendAudioRequest,
     SendDocumentRequest,
     SendImageRequest,
     SendTemplateRequest,
@@ -83,6 +84,9 @@ class FakeWhatsAppProvider:
         return self._send(request)
 
     def send_document(self, request: SendDocumentRequest) -> ProviderSendResult:
+        return self._send(request)
+
+    def send_audio(self, request: SendAudioRequest) -> ProviderSendResult:
         return self._send(request)
 
     def send_template(self, request: SendTemplateRequest) -> ProviderSendResult:

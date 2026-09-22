@@ -59,6 +59,7 @@ from app.whatsapp import (
     ProviderRecipient,
     ProviderSendResult,
     RecordedProviderRequest,
+    SendAudioRequest,
     SendDocumentRequest,
     SendImageRequest,
     SendTemplateRequest,
@@ -564,6 +565,12 @@ class WhatsAppMessageService:
                 media=media,
                 caption=message.body,
             )
+        if message.message_type is WhatsAppMessageType.AUDIO:
+            return SendAudioRequest(
+                recipient=recipient,
+                client_generated_id=message.client_generated_id,
+                media=media,
+            )
         return SendDocumentRequest(
             recipient=recipient,
             client_generated_id=message.client_generated_id,
@@ -578,6 +585,8 @@ class WhatsAppMessageService:
             return self._provider.send_image(request)
         if isinstance(request, SendDocumentRequest):
             return self._provider.send_document(request)
+        if isinstance(request, SendAudioRequest):
+            return self._provider.send_audio(request)
         return self._provider.send_template(request)
 
     def _reconcile_success(
