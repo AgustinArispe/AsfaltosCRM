@@ -165,15 +165,22 @@ def test_inbound_replay_deduplicates_and_rejects_changed_payload(
         )
 
 
-def test_existing_customer_is_matched_and_active_opportunity_is_reused(
+@pytest.mark.parametrize(
+    "existing_source",
+    [LeadSource.WEB, LeadSource.INSTAGRAM, LeadSource.REFERIDO],
+)
+def test_existing_customer_with_active_non_whatsapp_gets_new_whatsapp_opportunity(
     db_session: Session,
+    existing_source: LeadSource,
 ) -> None:
     customer = Customer(name="Existente", phone="11 4444-9999")
     db_session.add(customer)
     db_session.flush()
-    opportunity = OpportunityService(db_session).create_opportunity_in_transaction(
+    existing_opportunity = OpportunityService(
+        db_session
+    ).create_opportunity_in_transaction(
         customer_id=customer.id,
-        source=LeadSource.WEB,
+        source=existing_source,
         assigned_user_id=None,
         changed_by_user_id=None,
     )
@@ -185,8 +192,45 @@ def test_existing_customer_is_matched_and_active_opportunity_is_reused(
     )
 
     assert result.customer_id == customer.id
-    assert result.opportunity_id == opportunity.id
+    assert result.opportunity_id != existing_opportunity.id
     assert result.suggested_opportunity_ids == ()
+    assert (
+        db_session.scalar(
+            select(func.count(Opportunity.id)).where(
+                Opportunity.customer_id == customer.id
+            )
+        )
+        == 2
+    )
+    assert (
+        db_session.scalar(select(func.count(WhatsAppConversationOpportunity.id))) == 1
+    )
+    whatsapp_opportunity = db_session.get(Opportunity, result.opportunity_id)
+    assert whatsapp_opportunity is not None
+    assert whatsapp_opportunity.source is LeadSource.WHATSAPP
+    assert whatsapp_opportunity.initial_whatsapp_message_id == result.message_id
+
+
+def test_existing_customer_with_active_whatsapp_reuses_it(
+    db_session: Session,
+) -> None:
+    customer = Customer(name="Existente WhatsApp", phone="11 4555-9999")
+    db_session.add(customer)
+    db_session.flush()
+    opportunity = OpportunityService(db_session).create_opportunity_in_transaction(
+        customer_id=customer.id,
+        source=LeadSource.WHATSAPP,
+        assigned_user_id=None,
+        changed_by_user_id=None,
+    )
+    db_session.commit()
+
+    result = WhatsAppInboundService(db_session, provider()).receive(
+        inbound("wamid-existing-whatsapp", phone="(11) 4555-9999"),
+        now=NOW,
+    )
+
+    assert result.opportunity_id == opportunity.id
     assert (
         db_session.scalar(
             select(func.count(Opportunity.id)).where(
@@ -195,9 +239,8 @@ def test_existing_customer_is_matched_and_active_opportunity_is_reused(
         )
         == 1
     )
-    assert (
-        db_session.scalar(select(func.count(WhatsAppConversationOpportunity.id))) == 1
-    )
+    db_session.refresh(opportunity)
+    assert opportunity.initial_whatsapp_message_id is None
 
 
 def test_existing_customer_without_active_opportunity_gets_new_whatsapp_opportunity(

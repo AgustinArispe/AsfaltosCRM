@@ -20,7 +20,6 @@ from app.models import (
     OpportunityStatusHistory,
 )
 from app.services import (
-    ActiveOpportunityExistsError,
     CustomerIdentityConflictError,
     LeadIntakeIdempotencyConflictError,
     LeadIntakeInput,
@@ -299,16 +298,16 @@ def test_snapshot_and_message_are_normalized_without_raw_payload(
     assert intake.message == "Primera línea\nSegunda línea"
 
 
-def test_distinct_external_id_is_rejected_while_customer_has_active_opportunity(
+def test_distinct_external_ids_always_create_distinct_opportunities(
     db_session: Session,
 ) -> None:
     service = LeadIntakeService(db_session)
     first = service.intake(make_intake(external_submission_id="submission-1"))
-    with pytest.raises(ActiveOpportunityExistsError):
-        service.intake(make_intake(external_submission_id="submission-2"))
-    assert db_session.scalar(select(func.count()).select_from(Opportunity)) == 1
-    assert db_session.scalar(select(func.count()).select_from(LeadIntake)) == 1
-    assert db_session.get(Opportunity, first.opportunity_id) is not None
+    second = service.intake(make_intake(external_submission_id="submission-2"))
+
+    assert first.customer_id == second.customer_id
+    assert first.opportunity_id != second.opportunity_id
+    assert first.intake_id != second.intake_id
 
 
 def test_identical_replay_returns_original_result(db_session: Session) -> None:
@@ -447,9 +446,7 @@ def test_concurrent_identical_external_id_creates_once() -> None:
         _cleanup_concurrent_results(results)
 
 
-def test_concurrent_distinct_submissions_create_at_most_one_active_opportunity() -> (
-    None
-):
+def test_concurrent_distinct_submissions_with_same_email_share_customer() -> None:
     email = f"concurrent-email-{uuid4().hex}@ejemplo.com"
     inputs = (
         make_intake(external_submission_id=uuid4().hex, email=email, phone=None),
@@ -457,26 +454,17 @@ def test_concurrent_distinct_submissions_create_at_most_one_active_opportunity()
     )
     barrier = Barrier(2)
 
-    def submit(
-        intake: LeadIntakeInput,
-    ) -> LeadIntakeResult | ActiveOpportunityExistsError:
+    def submit(intake: LeadIntakeInput) -> LeadIntakeResult:
         barrier.wait()
         with SessionLocal() as session:
-            try:
-                return LeadIntakeService(session).intake(intake)
-            except ActiveOpportunityExistsError as error:
-                return error
+            return LeadIntakeService(session).intake(intake)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        outcomes = list(executor.map(submit, inputs))
-    results = [item for item in outcomes if isinstance(item, LeadIntakeResult)]
+        results = list(executor.map(submit, inputs))
     try:
-        assert len(results) == 1
-        assert results[0].created is True
-        assert (
-            sum(isinstance(item, ActiveOpportunityExistsError) for item in outcomes)
-            == 1
-        )
+        assert all(result.created for result in results)
+        assert len({result.customer_id for result in results}) == 1
+        assert len({result.opportunity_id for result in results}) == 2
     finally:
         _cleanup_concurrent_results(results)
 

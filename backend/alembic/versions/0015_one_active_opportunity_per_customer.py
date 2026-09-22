@@ -1,4 +1,4 @@
-"""Enforce one active opportunity per customer.
+"""Enforce one active WhatsApp opportunity per customer.
 
 Revision ID: 0015_one_active_opportunity
 Revises: 0014_whatsapp_audio_inquiry
@@ -18,12 +18,12 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.create_index(
-        "uq_opportunities_one_active_per_customer",
+        "uq_opportunities_one_active_whatsapp_per_customer",
         "opportunities",
         ["customer_id"],
         unique=True,
         postgresql_where=sa.text(
-            "deleted_at IS NULL AND status IN "
+            "deleted_at IS NULL AND source = 'WHATSAPP' AND status IN "
             "('NUEVA', 'COTIZADA', 'NEGOCIACION')"
         ),
     )
@@ -31,6 +31,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        "uq_opportunities_one_active_per_customer",
+        "uq_opportunities_one_active_whatsapp_per_customer",
         table_name="opportunities",
     )

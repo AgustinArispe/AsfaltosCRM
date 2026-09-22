@@ -143,7 +143,8 @@ class ActiveOpportunityExistsError(DomainError):
         self.customer_id = customer_id
         self.opportunity_id = opportunity_id
         super().__init__(
-            f"Customer {customer_id} already has active Opportunity {opportunity_id}"
+            f"Customer {customer_id} already has active WhatsApp Opportunity "
+            f"{opportunity_id}"
         )
 
 

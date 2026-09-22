@@ -103,9 +103,12 @@ class OpportunityService:
         opportunity creation with other writes atomically.
         """
         self._get_available_customer(customer_id)
-        active = self.active_opportunity_for_customer_in_transaction(customer_id)
-        if active is not None:
-            raise ActiveOpportunityExistsError(customer_id, active.id)
+        if source is LeadSource.WHATSAPP:
+            active = self.active_whatsapp_opportunity_for_customer_in_transaction(
+                customer_id
+            )
+            if active is not None:
+                raise ActiveOpportunityExistsError(customer_id, active.id)
         self._validate_assigned_user(assigned_user_id)
         self._validate_history_user(changed_by_user_id)
 
@@ -259,12 +262,15 @@ class OpportunityService:
                     opportunity.status,
                     target_status,
                 )
-            active = self.active_opportunity_for_customer_in_transaction(
-                opportunity.customer_id,
-                exclude_opportunity_id=opportunity.id,
-            )
-            if active is not None:
-                raise ActiveOpportunityExistsError(opportunity.customer_id, active.id)
+            if opportunity.source is LeadSource.WHATSAPP:
+                active = self.active_whatsapp_opportunity_for_customer_in_transaction(
+                    opportunity.customer_id,
+                    exclude_opportunity_id=opportunity.id,
+                )
+                if active is not None:
+                    raise ActiveOpportunityExistsError(
+                        opportunity.customer_id, active.id
+                    )
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
             transition_at = occurred_at or datetime.now(UTC)
@@ -435,12 +441,15 @@ class OpportunityService:
                 )
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
-            active = self.active_opportunity_for_customer_in_transaction(
-                opportunity.customer_id,
-                exclude_opportunity_id=opportunity.id,
-            )
-            if active is not None:
-                raise ActiveOpportunityExistsError(opportunity.customer_id, active.id)
+            if opportunity.source is LeadSource.WHATSAPP:
+                active = self.active_whatsapp_opportunity_for_customer_in_transaction(
+                    opportunity.customer_id,
+                    exclude_opportunity_id=opportunity.id,
+                )
+                if active is not None:
+                    raise ActiveOpportunityExistsError(
+                        opportunity.customer_id, active.id
+                    )
             loss_event = self._session.scalar(
                 select(OpportunityLossEvent)
                 .where(OpportunityLossEvent.opportunity_id == opportunity.id)
@@ -485,7 +494,7 @@ class OpportunityService:
             raise DeletedCustomerError(customer_id)
         return customer
 
-    def active_opportunity_for_customer_in_transaction(
+    def active_whatsapp_opportunity_for_customer_in_transaction(
         self,
         customer_id: int,
         *,
@@ -493,6 +502,7 @@ class OpportunityService:
     ) -> Opportunity | None:
         statement = select(Opportunity).where(
             Opportunity.customer_id == customer_id,
+            Opportunity.source == LeadSource.WHATSAPP,
             Opportunity.status.in_(ACTIVE_OPPORTUNITY_STATUSES),
             Opportunity.deleted_at.is_(None),
         )

@@ -244,21 +244,21 @@ def test_overview_calculates_closed_conversion_and_independent_volume(
     )
     make_opportunity(
         db_session,
-        make_customer(db_session),
+        customer,
         status=OpportunityStatus.COTIZADA,
         created_at=created_at,
         lines=(MetricLine(product_a, Decimal("10000")),),
     )
     make_opportunity(
         db_session,
-        make_customer(db_session),
+        customer,
         status=OpportunityStatus.NEGOCIACION,
         created_at=created_at,
         lines=(MetricLine(product_a, Decimal("10000")),),
     )
     make_opportunity(
         db_session,
-        make_customer(db_session),
+        customer,
         status=OpportunityStatus.NUEVA,
         created_at=created_at,
     )
@@ -399,13 +399,12 @@ def test_overview_dimensions_filter_source_product_and_normalized_province(
     db_session: Session,
 ) -> None:
     customer = make_customer(db_session, province=" Buenos Aires ")
-    other_customer = make_customer(db_session, province=" Buenos Aires ")
     product = make_product(db_session)
     other_product = make_product(db_session)
     created_at = PERIOD_START + timedelta(days=1)
     make_opportunity(
         db_session,
-        other_customer,
+        customer,
         status=OpportunityStatus.COTIZADA,
         created_at=created_at,
         source=LeadSource.WHATSAPP,
@@ -674,7 +673,7 @@ def test_timeline_week_buckets_are_monday_anchored_and_period_bounded(
     customer = make_customer(db_session)
     make_opportunity(
         db_session,
-        make_customer(db_session),
+        customer,
         status=OpportunityStatus.NUEVA,
         created_at=start,
     )
@@ -866,10 +865,8 @@ def test_pipeline_is_current_snapshot_with_all_statuses_and_excludes_deleted(
     db_session: Session,
 ) -> None:
     province = f"Pipeline {uuid4().hex}"
-    customers = [
-        make_customer(db_session, province=province) for _ in OpportunityStatus
-    ]
-    for customer, status in zip(customers, OpportunityStatus, strict=True):
+    customer = make_customer(db_session, province=province)
+    for status in OpportunityStatus:
         make_opportunity(
             db_session,
             customer,
@@ -878,7 +875,7 @@ def test_pipeline_is_current_snapshot_with_all_statuses_and_excludes_deleted(
         )
     make_opportunity(
         db_session,
-        customers[0],
+        customer,
         status=OpportunityStatus.NUEVA,
         created_at=PERIOD_START,
         deleted=True,

@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import event, func, inspect, select
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -96,22 +97,76 @@ def create_new_opportunity(
     return service, opportunity
 
 
-def test_customer_cannot_have_two_active_opportunities(db_session: Session) -> None:
+def test_customer_can_have_active_opportunities_from_different_sources(
+    db_session: Session,
+) -> None:
     customer = make_customer("Cliente con oportunidad activa")
+    persist(db_session, customer)
+    service = OpportunityService(db_session)
+    web = service.create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WEB,
+    )
+    referred = service.create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.REFERIDO,
+    )
+    whatsapp = service.create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WHATSAPP,
+    )
+
+    assert {web.source, referred.source, whatsapp.source} == {
+        LeadSource.WEB,
+        LeadSource.REFERIDO,
+        LeadSource.WHATSAPP,
+    }
+
+
+def test_customer_cannot_have_two_active_whatsapp_opportunities(
+    db_session: Session,
+) -> None:
+    customer = make_customer("Cliente con WhatsApp activo")
     persist(db_session, customer)
     service = OpportunityService(db_session)
     first = service.create_opportunity(
         customer_id=customer.id,
-        source=LeadSource.WEB,
+        source=LeadSource.WHATSAPP,
     )
-
     with pytest.raises(ActiveOpportunityExistsError) as caught:
         service.create_opportunity(
             customer_id=customer.id,
-            source=LeadSource.REFERIDO,
+            source=LeadSource.WHATSAPP,
         )
 
     assert caught.value.opportunity_id == first.id
+
+
+def test_database_rejects_only_second_active_whatsapp_opportunity(
+    db_session: Session,
+) -> None:
+    customer = make_customer("Cliente restricción WhatsApp")
+    persist(db_session, customer)
+    service = OpportunityService(db_session)
+    service.create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WEB,
+    )
+    service.create_opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WHATSAPP,
+    )
+
+    db_session.add(
+        Opportunity(
+            customer_id=customer.id,
+            source=LeadSource.WHATSAPP,
+            status=OpportunityStatus.NUEVA,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
 
 
 def create_quoted_opportunity(

@@ -283,7 +283,7 @@ OPPORTUNITIES = (
         (("Emulsión catiónica CRR-1", "24000"),),
     ),
     OpportunitySeed(
-        11,
+        0,
         LeadSource.WHATSAPP,
         OpportunityStatus.NEGOCIACION,
         10,
@@ -292,7 +292,7 @@ OPPORTUNITIES = (
     ),
     OpportunitySeed(
         8,
-        LeadSource.WEB,
+        LeadSource.WHATSAPP,
         OpportunityStatus.NEGOCIACION,
         24,
         16,
@@ -307,8 +307,8 @@ OPPORTUNITIES = (
         (("Mezcla asfáltica en frío", "7000"),),
     ),
     OpportunitySeed(
-        12,
-        LeadSource.WEB,
+        11,
+        LeadSource.WHATSAPP,
         OpportunityStatus.NEGOCIACION,
         96,
         36,
@@ -493,9 +493,10 @@ def _seed_dataset(
         actor_user_id=supervisor.id,
         anchor=anchor,
     )
+    opportunity_count = _count(session, Opportunity)
     print(
         f"Created visual QA dataset {_DATASET_VERSION} with "
-        f"{len(opportunities)} opportunities and {len(conversations)} conversations."
+        f"{opportunity_count} opportunities and {len(conversations)} conversations."
     )
 
 
@@ -652,14 +653,11 @@ def _seed_opportunities(
             0
             if indexed[0] == 0
             else (
-                2
-                if indexed[1].status
-                in {
-                    OpportunityStatus.NUEVA,
-                    OpportunityStatus.COTIZADA,
-                    OpportunityStatus.NEGOCIACION,
-                }
-                else 1
+                1
+                if indexed[1].source is LeadSource.WHATSAPP
+                and indexed[1].status
+                in {OpportunityStatus.GANADA, OpportunityStatus.PERDIDA}
+                else 2
             ),
             indexed[0],
         ),
@@ -922,7 +920,7 @@ def _seed_whatsapp(
     conversation_ids.append(first.conversation_id)
     WhatsAppConversationService(session).link_opportunity(
         first.conversation_id,
-        opportunities[0].id,
+        opportunities[8].id,
         linked_by_user_id=actor_user_id,
         now=anchor - timedelta(hours=2, minutes=50),
     )

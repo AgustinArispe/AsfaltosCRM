@@ -163,10 +163,8 @@ class WhatsAppInboundService:
                 is WhatsAppConversationResolution.RESOLVED
             ):
                 opportunity_service = OpportunityService(self._session)
-                opportunity = (
-                    opportunity_service.active_opportunity_for_customer_in_transaction(
-                        customer.id
-                    )
+                opportunity = opportunity_service.active_whatsapp_opportunity_for_customer_in_transaction(
+                    customer.id
                 )
                 if opportunity is None:
                     opportunity = opportunity_service.create_opportunity_in_transaction(
