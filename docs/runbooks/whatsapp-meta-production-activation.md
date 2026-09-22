@@ -90,18 +90,21 @@ Automated tests do not prove the live Meta/Railway path. After deploying CRM-051
 authorized operator must run this sequence with a controlled FAA test contact and
 record only deployment ID, UTC timestamps, internal record IDs and pass/fail outcomes:
 
-1. Before migration, query for Customers with more than one non-deleted Opportunity
-   in `NUEVA`, `COTIZADA` or `NEGOCIACION`. Stop the deployment if any exist; the
-   migration intentionally does not rewrite them. After deployment, confirm Alembic is
-   at `0015_one_active_opportunity` and the backend health check passes.
+1. Before migration, query for Customers with more than one non-deleted `WHATSAPP`
+   Opportunity in `NUEVA`, `COTIZADA` or `NEGOCIACION`. Active Opportunities from
+   other sources are valid and must not be counted. Stop the deployment if any
+   WhatsApp-only conflict exists; the migration intentionally does not rewrite it.
+   After deployment, confirm Alembic is at `0015_one_active_opportunity` and the
+   backend health check passes.
 2. In Railway, compare the backend Volume mount path with
    `WHATSAPP_MEDIA_STORAGE_ROOT` character-for-character and verify the application
    identity can write it. Do not print directory contents, stored keys or variables in
    logs/evidence.
-3. With the controlled Customer having no active Opportunity, send one text. Confirm
-   exactly one `NUEVA`/`WHATSAPP` Opportunity appears and Opportunity Detail shows that
-   exact persisted text as its WhatsApp consultation. Send a second text and confirm
-   the active Opportunity count remains one and the inquiry is unchanged.
+3. With the controlled Customer having no active WhatsApp Opportunity, send one text.
+   Confirm exactly one `NUEVA`/`WHATSAPP` Opportunity appears and Opportunity Detail
+   shows that exact persisted text as its WhatsApp consultation. Active Opportunities
+   from other sources must remain untouched. Send a second text and confirm the active
+   WhatsApp Opportunity count remains one and the inquiry is unchanged.
 4. Mark that controlled Opportunity `GANADA` or `PERDIDA`, then send a new text.
    Confirm a second historical Opportunity is created as `NUEVA`, the closed row is
    unchanged and the new text is the new inquiry. If Meta's tooling supports safe

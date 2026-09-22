@@ -48,9 +48,11 @@ por conveniencia técnica.
 ## Opportunities
 
 - Una `Opportunity` pertenece a un `Customer`.
-- Un `Customer` puede conservar múltiples oportunidades históricas, pero puede tener
-  como máximo una oportunidad activa al mismo tiempo. Son activas `NUEVA`,
-  `COTIZADA` y `NEGOCIACION`; `GANADA` y `PERDIDA` son cerradas para esta regla.
+- Un `Customer` puede tener múltiples oportunidades activas simultáneas cuando sus
+  orígenes comerciales son distintos. La restricción especial aplica sólo al origen
+  `WHATSAPP`: puede existir como máximo una oportunidad `WHATSAPP` activa por Customer.
+  Son activas `NUEVA`, `COTIZADA` y `NEGOCIACION`; `GANADA` y `PERDIDA` son cerradas
+  para esta regla.
 - El pipeline principal es `NUEVA` → `COTIZADA` → `NEGOCIACION` → `GANADA`.
 - `PERDIDA` es un estado terminal, pero no una columna principal del Kanban.
 - `PERDIDA` es terminal salvo por su flujo explícito de reapertura. Una oportunidad
@@ -163,12 +165,14 @@ FastAPI.
 - Cuando escribe por primera vez un número desconocido, se resuelve el `Customer` de
   forma conservadora por teléfono y se crea si no existe.
 - Para un cliente resuelto de forma única, cada mensaje inbound válido reutiliza su
-  oportunidad activa si existe. Si no existe una activa, ese mensaje crea una nueva
-  `Opportunity` en `NUEVA` con `source=WHATSAPP` y queda referenciado como su consulta
-  inicial inmutable.
-- Los mensajes posteriores no crean oportunidades mientras continúe activa la actual.
-  Después de que quede `GANADA` o `PERDIDA`, el siguiente inbound válido puede crear
-  una nueva oportunidad histórica para el mismo cliente.
+  oportunidad `WHATSAPP` activa si existe. Si no existe una activa de ese origen, ese
+  mensaje crea una nueva `Opportunity` en `NUEVA` con `source=WHATSAPP` y queda
+  referenciado como su consulta inicial inmutable. Las oportunidades activas `WEB`,
+  `INSTAGRAM`, `REFERIDO` u otros orígenes no intervienen en esta decisión.
+- Los mensajes posteriores no crean oportunidades mientras continúe activa la
+  oportunidad `WHATSAPP`. Después de que quede `GANADA` o `PERDIDA`, el siguiente
+  inbound válido puede crear una nueva oportunidad histórica `WHATSAPP` para el mismo
+  cliente.
 - Matching ambiguo o coincidencias con clientes eliminados conservan la resolución
   manual y nunca disparan una oportunidad automática.
 

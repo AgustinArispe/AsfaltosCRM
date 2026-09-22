@@ -1,15 +1,15 @@
 # CRM-051 — WhatsApp Production Media & Opportunity Lifecycle
 
-Status: Implemented
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-09-22
-Implementation commit: `017dd80`
+Implementation commit: Pending (scope correction; original implementation `017dd80`)
 
 ## Goal
 
 Correct the production image/audio delivery path and enforce the approved rule that a
-Customer may retain many historical Opportunities but at most one active Opportunity
-at a time, without redesigning WhatsApp.
+Customer may retain simultaneous active Opportunities from different lead sources but
+at most one active `WHATSAPP` Opportunity, without redesigning WhatsApp.
 
 ## Context
 
@@ -43,11 +43,11 @@ media, validation, rendering and security contracts remain authoritative.
 - Add safe structured diagnostics using bounded categories and internal IDs, without
   raw payloads, phone numbers, bodies, provider URLs/IDs or credentials.
 - For every valid inbound belonging to a uniquely resolved non-deleted Customer,
-  reuse/link the sole active Opportunity or create a `NUEVA`, `source=WHATSAPP`
-  Opportunity and set its immutable inquiry to that exact message.
-- Enforce at most one non-deleted active Opportunity per Customer in the service and
-  PostgreSQL. Active means `NUEVA`, `COTIZADA` or `NEGOCIACION`; closed means `GANADA`
-  or `PERDIDA`.
+  reuse/link the sole active `WHATSAPP` Opportunity or create a `NUEVA`,
+  `source=WHATSAPP` Opportunity and set its immutable inquiry to that exact message.
+- Enforce at most one non-deleted active `WHATSAPP` Opportunity per Customer in the
+  service and PostgreSQL. Active means `NUEVA`, `COTIZADA` or `NEGOCIACION`; closed
+  means `GANADA` or `PERDIDA`.
 
 ## Non-goals
 
@@ -55,28 +55,30 @@ media, validation, rendering and security contracts remain authoritative.
   adding queues, public media, CDN/object storage or Meta URLs.
 - Changing identity matching, ambiguity/deleted-customer protections, WEB inquiry
   snapshots, supported image/document validation, or historical closed rows.
+- Restricting simultaneous active Opportunities from `WEB`, `INSTAGRAM`, `REFERIDO`
+  or any other non-WhatsApp source.
 - Audio recording/transcoding, video, transcription, waveform generation, automatic
   retry workers, or full production webhook payload logging.
 - Inferring/backfilling historical initial inquiries.
 
 ## Business rules
 
-- A Customer has at most one active Opportunity across every source. Other creation
-  entry points reject a second active row rather than silently reusing it; WhatsApp
-  inbound alone uses the create-or-reuse lifecycle defined here.
-- Existing Customer/conversation status does not decide creation; active Opportunity
-  existence does.
-- With an active Opportunity, the message persists and conversation context points to
-  it; no Opportunity/inquiry is created. Without one, the exact inbound
-  text/image/document/audio creates the Opportunity and immutable inquiry.
-- After `GANADA` or `PERDIDA`, a later inbound can create a new historical Opportunity.
-  Reopening/regressing a closed row is rejected if another active row exists.
+- A Customer may have simultaneous active Opportunities from different lead sources,
+  but at most one active Opportunity with `source=WHATSAPP`.
+- Existing Customer/conversation status does not decide creation; active WhatsApp
+  Opportunity existence does. Active non-WhatsApp Opportunities are ignored.
+- With an active WhatsApp Opportunity, the message persists and conversation context
+  points to it; no Opportunity/inquiry is created. Without one, the exact inbound
+  text/image/document/audio creates the WhatsApp Opportunity and immutable inquiry.
+- After a WhatsApp Opportunity becomes `GANADA` or `PERDIDA`, a later inbound can
+  create a new historical WhatsApp Opportunity. Reopening/regressing a closed WhatsApp
+  row is rejected only if another active WhatsApp row exists.
 - Same-wamid replay never creates, switches or duplicates any record.
 
 ## Data model and migration
 
 - Add a PostgreSQL partial unique index on `opportunities(customer_id)` where
-  `deleted_at IS NULL` and status is active.
+  `deleted_at IS NULL`, `source = 'WHATSAPP'` and status is active.
 - Perform no history rewrite. Migration fails visibly on pre-existing active
   duplicates so operators inspect them instead of silently changing commercial data.
 - No new media table/inquiry column; historical nullable inquiry references remain
@@ -118,17 +120,18 @@ media, validation, rendering and security contracts remain authoritative.
   persists idempotently, downloads privately and renders an accessible inline player.
 - AC-04: MIME/signature/size/provider/storage failures remain safe and image/document
   validation is not weakened.
-- AC-05: First inbound for a uniquely resolved Customer without an active Opportunity
-  creates one `NUEVA` WhatsApp Opportunity whose inquiry points to that exact message
-  for text, image, document and audio.
+- AC-05: First inbound for a uniquely resolved Customer without an active WhatsApp
+  Opportunity creates one `NUEVA` WhatsApp Opportunity whose inquiry points to that
+  exact message for text, image, document and audio, regardless of active
+  Opportunities from other sources.
 - AC-06: Further inbound in `NUEVA`/`COTIZADA`/`NEGOCIACION` persists and reuses the
   active context without creating another Opportunity.
 - AC-07: After `GANADA` or `PERDIDA`, the next inbound creates a new `NUEVA`; history is
   unchanged.
-- AC-08: Concurrent inbound creates at most one active Opportunity; replay creates
-  nothing extra.
-- AC-09: PostgreSQL rejects a second active row and service entry points fail safely,
-  including reopen/regression when another active row exists.
+- AC-08: Concurrent inbound creates at most one active WhatsApp Opportunity; replay
+  creates nothing extra.
+- AC-09: PostgreSQL rejects a second active WhatsApp row while allowing active rows
+  from different sources; reopen/regression rejects only a conflicting WhatsApp row.
 - AC-10: Opportunity Detail renders the triggering persisted inquiry; historical null
   inquiries remain valid and WEB consultation behavior is unchanged.
 - AC-11: Focused/full tests, TypeScript, Biome, Ruff, strict mypy, Alembic, build,
@@ -147,5 +150,5 @@ recording/transcoding and video require separate specs.
 ## Implementation notes
 
 Reuse the current provider abstraction, attachment record, policy, filesystem storage,
-authenticated endpoint, polling and `useAuthenticatedMedia`. Keep the partial-index
-predicate identical in model and migration.
+authenticated endpoint, polling and `useAuthenticatedMedia`. Keep the WhatsApp-only
+partial-index predicate identical in model and migration.
