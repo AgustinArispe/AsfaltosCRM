@@ -23,6 +23,10 @@ class TemplateHeaderType(StrEnum):
     DOCUMENT = "DOCUMENT"
 
 
+class HumanTemplatePurpose(StrEnum):
+    RECONTACT = "RECONTACT"
+
+
 @dataclass(frozen=True, slots=True)
 class ProviderRecipient:
     phone: str

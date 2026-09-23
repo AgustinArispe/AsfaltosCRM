@@ -227,11 +227,13 @@ def test_whatsapp_expired_window_requires_approved_template(
     conversations.get_by_role("button", name=re.compile("Paula Benítez")).click()
     expect(composer).to_be_disabled()
     expect(
-        page.get_by_text(
-            "La ventana de respuesta está cerrada. Se requiere un template aprobado."
-        )
+        page.get_by_text("La ventana de 24 horas está cerrada.").first
     ).to_be_visible()
-    expect(page.get_by_role("button", name="Usar plantilla")).to_be_enabled()
+    expect(
+        page.get_by_role(
+            "button", name="Usar plantilla para retomar contacto", exact=True
+        )
+    ).to_be_enabled()
 
 
 @pytest.mark.mutating

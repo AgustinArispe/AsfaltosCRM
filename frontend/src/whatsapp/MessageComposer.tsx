@@ -6,6 +6,7 @@ import { Icon } from '../shared/Icon'
 import { composerDisabledReason, formatFileSize } from './presentation'
 import type { StagedWhatsAppAttachment, WhatsAppConversationDetail } from './types'
 import type { NewMessageInput } from './useWhatsAppInbox'
+import type { ConversationWindowStatus } from './WindowStatus'
 
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const AUDIO_MIME_TYPES = new Set(['audio/aac', 'audio/amr', 'audio/mpeg', 'audio/ogg'])
@@ -38,6 +39,8 @@ export function MessageComposer({
   onRetryFailed,
   onDiscardFailed,
   onOpenTemplates,
+  onOpenRecontactTemplates,
+  windowStatus,
 }: {
   conversation: WhatsAppConversationDetail
   isOnline: boolean
@@ -48,6 +51,8 @@ export function MessageComposer({
   onRetryFailed: () => Promise<boolean>
   onDiscardFailed: () => void
   onOpenTemplates: () => void
+  onOpenRecontactTemplates: () => void
+  windowStatus: ConversationWindowStatus
 }) {
   const [body, setBody] = useState('')
   const [attachment, setAttachment] = useState<StagedWhatsAppAttachment | null>(null)
@@ -56,7 +61,12 @@ export function MessageComposer({
   const helpId = useId()
   const errorId = useId()
   const attachmentId = useId()
-  const backendDisabledReason = composerDisabledReason(conversation, isOnline, isSending)
+  const backendDisabledReason = composerDisabledReason(
+    conversation,
+    isOnline,
+    isSending,
+    windowStatus,
+  )
   const disabledReason = hasFailedSend
     ? 'Hay un intento pendiente. Reintentá o descartalo antes de enviar otro mensaje.'
     : backendDisabledReason
@@ -68,6 +78,8 @@ export function MessageComposer({
     !hasFailedSend &&
     conversation.resolution_status === 'RESOLVED' &&
     Boolean(conversation.customer?.is_available)
+  const canUseRecontactTemplate =
+    isOnline && !isSending && !hasFailedSend && Boolean(conversation.customer?.is_available)
 
   useEffect(
     () => () => {
@@ -153,6 +165,26 @@ export function MessageComposer({
           </span>
         </div>
       ) : null}
+      {windowStatus.kind === 'CLOSED' ? (
+        <div
+          className='mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--warning-text)]/35 bg-[var(--warning-surface)] px-3 py-2.5'
+          id='whatsapp-window-closed-help'
+        >
+          <p className='max-w-xl text-xs leading-5 text-[var(--warning-text)]'>
+            <strong>La ventana de 24 horas está cerrada.</strong> Meta solo permite enviar una
+            plantilla aprobada hasta que el cliente vuelva a responder.
+          </p>
+          <Button
+            disabled={!canUseRecontactTemplate}
+            onClick={onOpenRecontactTemplates}
+            size='compact'
+            type='button'
+            variant='secondary'
+          >
+            Usar plantilla para retomar contacto
+          </Button>
+        </div>
+      ) : null}
       {attachment ? (
         <div
           className='mb-2 flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--subtle-border)] bg-[var(--surface-interactive)] px-3 py-2'
@@ -213,7 +245,12 @@ export function MessageComposer({
         Mensaje
       </label>
       <textarea
-        aria-describedby={describedBy}
+        aria-describedby={[
+          describedBy,
+          windowStatus.kind === 'CLOSED' ? 'whatsapp-window-closed-help' : null,
+        ]
+          .filter(Boolean)
+          .join(' ')}
         className='whatsapp-composer__field ui-field min-h-20 resize-y text-sm leading-5'
         disabled={Boolean(backendDisabledReason) || isSending}
         id='whatsapp-message-composer'
@@ -291,7 +328,7 @@ export function MessageComposer({
             type='button'
             variant='ghost'
           >
-            Usar plantilla
+            {windowStatus.kind === 'CLOSED' ? 'Ver otras plantillas' : 'Usar plantilla'}
           </Button>
         </div>
         <Button disabled={!canSend} size='compact' type='submit' variant='primary'>

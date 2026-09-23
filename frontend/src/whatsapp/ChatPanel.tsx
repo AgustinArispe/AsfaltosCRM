@@ -7,6 +7,7 @@ import { MessageComposer } from './MessageComposer'
 import { MessageLog } from './MessageLog'
 import type { WhatsAppConversationDetail, WhatsAppMessage } from './types'
 import type { NewMessageInput } from './useWhatsAppInbox'
+import { useConversationWindowStatus, WindowStatus } from './WindowStatus'
 
 export function ChatPanel({
   conversation,
@@ -26,6 +27,7 @@ export function ChatPanel({
   onOpenContext,
   onLoadOlder,
   onOpenTemplates,
+  onOpenRecontactTemplates,
   onRetryLoad,
   onSend,
   onRetryFailed,
@@ -49,6 +51,7 @@ export function ChatPanel({
   onOpenContext: () => void
   onLoadOlder: () => Promise<void>
   onOpenTemplates: () => void
+  onOpenRecontactTemplates: () => void
   onRetryLoad: () => void
   onSend: (input: NewMessageInput) => Promise<boolean>
   onRetryFailed: () => Promise<boolean>
@@ -57,6 +60,7 @@ export function ChatPanel({
 }) {
   const mobileBackRef = useRef<HTMLButtonElement>(null)
   const conversationId = conversation?.id
+  const windowStatus = useConversationWindowStatus(conversation)
 
   useEffect(() => {
     if (conversationId && window.matchMedia?.('(max-width: 767px)').matches) {
@@ -98,6 +102,8 @@ export function ChatPanel({
     )
   }
 
+  if (!windowStatus) return null
+
   const name = conversationDisplayName(conversation)
   return (
     <section
@@ -132,15 +138,18 @@ export function ChatPanel({
             </h2>
           </div>
         </div>
-        <Button
-          aria-controls='whatsapp-context-drawer'
-          aria-expanded={isContextOpen}
-          onClick={onOpenContext}
-          size='compact'
-          variant='ghost'
-        >
-          Contexto CRM
-        </Button>
+        <div className='flex min-w-0 items-center gap-2'>
+          <WindowStatus status={windowStatus} />
+          <Button
+            aria-controls='whatsapp-context-drawer'
+            aria-expanded={isContextOpen}
+            onClick={onOpenContext}
+            size='compact'
+            variant='ghost'
+          >
+            Contexto CRM
+          </Button>
+        </div>
       </header>
 
       <MessageLog
@@ -163,9 +172,11 @@ export function ChatPanel({
         isSending={isSending}
         onDiscardFailed={onDiscardFailed}
         onOpenTemplates={onOpenTemplates}
+        onOpenRecontactTemplates={onOpenRecontactTemplates}
         onRetryFailed={onRetryFailed}
         onSend={onSend}
         sendError={sendError}
+        windowStatus={windowStatus}
       />
     </section>
   )

@@ -66,6 +66,7 @@ class RuntimeSecuritySettings:
     whatsapp_image_max_bytes: int = DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
     whatsapp_document_max_bytes: int = DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
     whatsapp_audio_max_bytes: int = DEFAULT_WHATSAPP_MEDIA_MAX_BYTES
+    whatsapp_recontact_template_name: str | None = None
     request_body_limits: RequestBodyLimits = RequestBodyLimits()
 
     @property
@@ -232,6 +233,12 @@ def get_whatsapp_audio_max_bytes() -> int:
 
 
 @lru_cache
+def get_whatsapp_recontact_template_name() -> str | None:
+    value = getenv("WHATSAPP_RECONTACT_TEMPLATE_NAME", "").strip()
+    return value or None
+
+
+@lru_cache
 def get_whatsapp_broadcast_batch_size() -> int:
     batch_size = _positive_int_setting(
         "WHATSAPP_BROADCAST_BATCH_SIZE",
@@ -288,6 +295,7 @@ def get_runtime_security_settings() -> RuntimeSecuritySettings:
         whatsapp_image_max_bytes=get_whatsapp_image_max_bytes(),
         whatsapp_document_max_bytes=get_whatsapp_document_max_bytes(),
         whatsapp_audio_max_bytes=get_whatsapp_audio_max_bytes(),
+        whatsapp_recontact_template_name=get_whatsapp_recontact_template_name(),
     )
     validate_runtime_security_settings(settings)
     return settings
@@ -306,6 +314,7 @@ def clear_runtime_settings_caches() -> None:
     get_whatsapp_image_max_bytes.cache_clear()
     get_whatsapp_document_max_bytes.cache_clear()
     get_whatsapp_audio_max_bytes.cache_clear()
+    get_whatsapp_recontact_template_name.cache_clear()
     get_whatsapp_image_mime_types.cache_clear()
     get_whatsapp_document_mime_types.cache_clear()
     get_whatsapp_audio_mime_types.cache_clear()

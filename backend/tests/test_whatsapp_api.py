@@ -79,7 +79,10 @@ def whatsapp_api(
         now=_NOW + timedelta(minutes=1),
         freeform_window=timedelta(hours=24),
     )
-    runtime = build_fake_whatsapp_runtime(provider=provider)
+    runtime = build_fake_whatsapp_runtime(
+        provider=provider,
+        recontact_template_name="retomar_contacto",
+    )
     application = create_app(runtime, security_settings=development_security_settings())
 
     def override_db_session() -> Iterator[Session]:
@@ -445,6 +448,7 @@ def test_human_templates_are_safe_fresh_and_idempotent(
             "parameter_names": ["cliente"],
             "header_type": "NONE",
             "header_media_required": False,
+            "purpose": None,
             "body_preview": None,
         }
     ]
@@ -488,6 +492,99 @@ def test_human_templates_are_safe_fresh_and_idempotent(
         )
         == 1
     )
+
+
+def test_recontact_template_requires_a_current_approved_utility_catalog_match(
+    whatsapp_api: WhatsAppApiContext,
+) -> None:
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.recontact",
+        phone="+54 11 6000-0052",
+        provider_message_at=_NOW - timedelta(days=2),
+    )
+    whatsapp_api.provider.set_templates(
+        (
+            ProviderTemplateSnapshot(
+                external_id="utility-recontact-v1",
+                name="retomar_contacto",
+                language="es_AR",
+                category="UTILITY",
+                status="APPROVED",
+                header_type=TemplateHeaderType.NONE,
+                parameter_names=("nombre",),
+            ),
+            ProviderTemplateSnapshot(
+                external_id="utility-other-v1",
+                name="seguimiento_obra",
+                language="es_AR",
+                category="UTILITY",
+                status="APPROVED",
+                header_type=TemplateHeaderType.NONE,
+            ),
+        )
+    )
+    templates_url = (
+        f"/api/whatsapp/conversations/{inbound.message.conversation_id}/templates"
+    )
+
+    listed = whatsapp_api.client.get(templates_url)
+    assert listed.status_code == 200
+    assert [item["purpose"] for item in listed.json()] == ["RECONTACT", None]
+
+    sent = whatsapp_api.client.post(
+        f"{templates_url}/send",
+        json={
+            "template_name": "retomar_contacto",
+            "language": "es_AR",
+            "parameters": [{"name": "nombre", "value": "Cliente FAA"}],
+            "client_generated_id": str(uuid4()),
+        },
+    )
+    parsed = OutboundMessageResponse.model_validate(sent.json())
+    assert sent.status_code == 201
+    assert parsed.template_required is True
+    assert parsed.can_send_freeform is False
+    assert isinstance(whatsapp_api.provider.requests[-1], SendTemplateRequest)
+
+    whatsapp_api.provider.set_templates(
+        (
+            ProviderTemplateSnapshot(
+                external_id="utility-recontact-pending-v1",
+                name="retomar_contacto",
+                language="es_AR",
+                category="UTILITY",
+                status="PENDING",
+                header_type=TemplateHeaderType.NONE,
+                parameter_names=("nombre",),
+            ),
+        )
+    )
+    unavailable = whatsapp_api.client.get(templates_url)
+    assert unavailable.status_code == 200
+    assert unavailable.json() == []
+    rejected = whatsapp_api.client.post(
+        f"{templates_url}/send",
+        json={
+            "template_name": "retomar_contacto",
+            "language": "es_AR",
+            "parameters": [{"name": "nombre", "value": "Cliente FAA"}],
+            "client_generated_id": str(uuid4()),
+        },
+    )
+    assert rejected.status_code == 422
+
+    reply = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.recontact-reply",
+        phone="+54 11 6000-0052",
+        provider_message_at=_NOW,
+    )
+    reopened = whatsapp_api.client.get(
+        f"/api/whatsapp/conversations/{reply.message.conversation_id}"
+    )
+    assert reopened.status_code == 200
+    assert ConversationDetailResponse.model_validate(reopened.json()).can_send_freeform
 
 
 def test_human_template_rejects_unusable_or_invalid_parameters(

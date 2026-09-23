@@ -21,7 +21,7 @@ from app.models import (
     WhatsAppStorageStatus,
 )
 from app.schemas.common import StrictRequestModel
-from app.whatsapp import ProviderErrorKind, TemplateHeaderType
+from app.whatsapp import HumanTemplatePurpose, ProviderErrorKind, TemplateHeaderType
 
 PositiveId = Annotated[int, Field(gt=0)]
 NonBlankText = Annotated[
@@ -190,6 +190,7 @@ class HumanTemplateResponse(BaseModel):
     parameter_names: list[str]
     header_type: TemplateHeaderType
     header_media_required: bool
+    purpose: HumanTemplatePurpose | None
     body_preview: None = None
 
 

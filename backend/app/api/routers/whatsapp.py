@@ -178,6 +178,7 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         templates = WhatsAppHumanTemplateService(
             runtime.provider,
             WhatsAppApiMediaService(session, runtime),
+            runtime.recontact_template_name,
         ).list_usable()
         return [
             HumanTemplateResponse(
@@ -187,6 +188,7 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
                 parameter_names=list(item.parameter_names),
                 header_type=item.header_type,
                 header_media_required=item.header_media_required,
+                purpose=item.purpose,
             )
             for item in templates
         ]
@@ -301,6 +303,7 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         prepared = WhatsAppHumanTemplateService(
             runtime.provider,
             media,
+            runtime.recontact_template_name,
         ).prepare_send(
             template_name=payload.template_name,
             language=payload.language,

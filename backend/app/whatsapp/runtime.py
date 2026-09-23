@@ -18,6 +18,7 @@ from app.core.config import (
     get_whatsapp_media_storage_name,
     get_whatsapp_media_storage_root,
     get_whatsapp_provider_name,
+    get_whatsapp_recontact_template_name,
 )
 from app.services.whatsapp_query_observability import (
     NullWhatsAppQueryMetrics,
@@ -58,6 +59,7 @@ class WhatsAppRuntime:
     metrics: WhatsAppQueryMetrics
     broadcast_batch_size: int
     broadcast_claim_timeout: timedelta
+    recontact_template_name: str | None = None
     webhook: ProviderWebhook | None = None
 
 
@@ -100,6 +102,7 @@ def build_fake_whatsapp_runtime(
     storage: MediaStorage | None = None,
     media_policy: WhatsAppMediaPolicy | None = None,
     metrics: WhatsAppQueryMetrics | None = None,
+    recontact_template_name: str | None = None,
 ) -> WhatsAppRuntime:
     selected_metrics = metrics or NullWhatsAppQueryMetrics()
     return WhatsAppRuntime(
@@ -112,6 +115,7 @@ def build_fake_whatsapp_runtime(
         broadcast_claim_timeout=timedelta(
             seconds=get_whatsapp_broadcast_claim_timeout_seconds()
         ),
+        recontact_template_name=recontact_template_name,
         webhook=None,
     )
 
@@ -134,8 +138,15 @@ def build_configured_whatsapp_runtime() -> WhatsAppRuntime:
                 freeform_window=timedelta(hours=24),
                 templates=development_fake_templates(),
             )
-        return build_fake_whatsapp_runtime(provider=provider, storage=storage)
-    return build_meta_whatsapp_runtime(storage=storage)
+        return build_fake_whatsapp_runtime(
+            provider=provider,
+            storage=storage,
+            recontact_template_name=get_whatsapp_recontact_template_name(),
+        )
+    return build_meta_whatsapp_runtime(
+        storage=storage,
+        recontact_template_name=get_whatsapp_recontact_template_name(),
+    )
 
 
 def build_disabled_whatsapp_runtime(
@@ -154,6 +165,7 @@ def build_disabled_whatsapp_runtime(
         broadcast_claim_timeout=timedelta(
             seconds=get_whatsapp_broadcast_claim_timeout_seconds()
         ),
+        recontact_template_name=None,
         webhook=None,
     )
 
@@ -162,6 +174,7 @@ def build_meta_whatsapp_runtime(
     *,
     config: MetaConfig | None = None,
     storage: MediaStorage | None = None,
+    recontact_template_name: str | None = None,
 ) -> WhatsAppRuntime:
     selected_config = config or MetaConfig.from_environment()
     selected_storage = storage or FakeMediaStorage()
@@ -202,6 +215,7 @@ def build_meta_whatsapp_runtime(
         broadcast_claim_timeout=timedelta(
             seconds=get_whatsapp_broadcast_claim_timeout_seconds()
         ),
+        recontact_template_name=recontact_template_name,
         webhook=webhook,
     )
 

@@ -15,11 +15,13 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
     new URLSearchParams(window.location.search).get('waiting') === 'true',
   )
   const [isTemplateOpen, setIsTemplateOpen] = useState(false)
+  const [templateMode, setTemplateMode] = useState<'all' | 'recontact'>('all')
 
   useEffect(() => {
     void inbox.selectedConversationId
     setIsContextOpen(false)
     setIsTemplateOpen(false)
+    setTemplateMode('all')
   }, [inbox.selectedConversationId])
 
   useEffect(() => {
@@ -96,7 +98,14 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             onDiscardFailed={inbox.discardFailedSend}
             onLoadOlder={inbox.loadOlderMessages}
             onOpenContext={() => setIsContextOpen(true)}
-            onOpenTemplates={() => setIsTemplateOpen(true)}
+            onOpenTemplates={() => {
+              setTemplateMode('all')
+              setIsTemplateOpen(true)
+            }}
+            onOpenRecontactTemplates={() => {
+              setTemplateMode('recontact')
+              setIsTemplateOpen(true)
+            }}
             onResend={inbox.resendMessage}
             onRetryFailed={inbox.retryFailedSend}
             onRetryLoad={inbox.retrySelectedLoad}
@@ -130,6 +139,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
         error={inbox.humanTemplateError}
         isOpen={isTemplateOpen}
         isSending={inbox.isSending}
+        mode={templateMode}
         onClose={() => setIsTemplateOpen(false)}
         onReload={inbox.loadHumanTemplates}
         onSend={inbox.sendHumanTemplate}

@@ -12,6 +12,7 @@ const documentTemplate: WhatsAppHumanTemplate = {
   parameter_names: ['obra'],
   header_type: 'DOCUMENT',
   header_media_required: true,
+  purpose: null,
   body_preview: null,
 }
 

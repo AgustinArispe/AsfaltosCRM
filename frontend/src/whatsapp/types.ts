@@ -141,6 +141,7 @@ export type WhatsAppHumanTemplate = {
   parameter_names: string[]
   header_type: 'NONE' | 'TEXT' | 'IMAGE' | 'DOCUMENT'
   header_media_required: boolean
+  purpose: 'RECONTACT' | null
   body_preview: null
 }
 

@@ -1,4 +1,5 @@
 from app.whatsapp.contracts import (
+    HumanTemplatePurpose,
     ProviderDeliveryEvent,
     ProviderErrorDetails,
     ProviderErrorKind,
@@ -57,6 +58,7 @@ __all__ = [
     "FakeMediaStorage",
     "FakeWhatsAppProvider",
     "FilesystemMediaStorage",
+    "HumanTemplatePurpose",
     "MediaPutRequest",
     "MediaStorage",
     "MediaStorageConflictError",

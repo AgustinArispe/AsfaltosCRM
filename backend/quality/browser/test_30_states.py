@@ -83,7 +83,11 @@ def test_whatsapp_template_required_failed_and_unknown_evidence(
             )
         ).count():
             found_template_required = True
-            expect(page.get_by_role("button", name="Usar plantilla")).to_be_enabled()
+            expect(
+                page.get_by_role(
+                    "button", name="Usar plantilla para retomar contacto", exact=True
+                )
+            ).to_be_visible()
         if page.get_by_text("No se envió").count():
             found_failed = True
             expect(

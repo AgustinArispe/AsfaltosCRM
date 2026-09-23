@@ -1,4 +1,12 @@
-import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { Button } from '../shared/Button'
 import { Modal } from '../shared/Modal'
@@ -27,6 +35,7 @@ export function HumanTemplateSelector({
   status,
   error,
   isSending,
+  mode = 'all',
   onClose,
   onReload,
   onSend,
@@ -36,6 +45,7 @@ export function HumanTemplateSelector({
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
   isSending: boolean
+  mode?: 'all' | 'recontact'
   onClose: () => void
   onReload: () => Promise<void>
   onSend: (input: HumanTemplateSendInput) => Promise<boolean>
@@ -45,6 +55,18 @@ export function HumanTemplateSelector({
   const [headerAttachment, setHeaderAttachment] = useState<StagedWhatsAppAttachment | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const visibleTemplates = useMemo(
+    () =>
+      mode === 'recontact'
+        ? templates.filter((template) => template.purpose === 'RECONTACT')
+        : templates,
+    [mode, templates],
+  )
+
+  const selectTemplate = useCallback((template: WhatsAppHumanTemplate) => {
+    setSelected(template)
+    setValues(Object.fromEntries(template.parameter_names.map((name) => [name, ''])))
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -52,9 +74,20 @@ export function HumanTemplateSelector({
   }, [isOpen, onReload])
 
   useEffect(() => {
-    if (!selected) return
-    setValues(Object.fromEntries(selected.parameter_names.map((name) => [name, ''])))
-  }, [selected])
+    if (!isOpen || mode !== 'recontact') return
+    if (visibleTemplates.length === 1) {
+      if (
+        selected?.name === visibleTemplates[0].name &&
+        selected.language === visibleTemplates[0].language
+      ) {
+        return
+      }
+      selectTemplate(visibleTemplates[0])
+      return
+    }
+    setSelected(null)
+    setValues({})
+  }, [isOpen, mode, selectTemplate, selected, visibleTemplates])
 
   useEffect(
     () => () => {
@@ -118,22 +151,36 @@ export function HumanTemplateSelector({
 
   return (
     <Modal
-      description='Elegí una plantilla aprobada y completá únicamente los datos requeridos.'
+      description={
+        mode === 'recontact'
+          ? 'Usá una plantilla de servicio aprobada para retomar contacto. La ventana se reabre solo cuando el cliente responde.'
+          : 'Elegí una plantilla aprobada y completá únicamente los datos requeridos.'
+      }
       isOpen={isOpen}
       onClose={onClose}
-      size='large'
-      title='Enviar plantilla aprobada'
+      size={mode === 'recontact' ? 'default' : 'large'}
+      title={mode === 'recontact' ? 'Retomar contacto' : 'Enviar plantilla aprobada'}
     >
       <form
-        className='grid max-h-[min(38rem,calc(100dvh-12rem))] min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]'
+        className={
+          mode === 'recontact'
+            ? 'max-h-[min(38rem,calc(100dvh-12rem))] min-h-0'
+            : 'grid max-h-[min(38rem,calc(100dvh-12rem))] min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]'
+        }
         onSubmit={(event) => {
           event.preventDefault()
           void submit()
         }}
       >
         <section
-          aria-label='Plantillas disponibles'
-          className='min-h-0 overflow-y-auto border-b border-[var(--border-default)] p-4 md:border-b-0 md:border-r'
+          aria-label={
+            mode === 'recontact' ? 'Plantillas para retomar contacto' : 'Plantillas disponibles'
+          }
+          className={
+            mode === 'recontact'
+              ? 'min-h-0 border-b border-[var(--border-default)] p-4'
+              : 'min-h-0 overflow-y-auto border-b border-[var(--border-default)] p-4 md:border-b-0 md:border-r'
+          }
         >
           {status === 'loading' ? (
             <p className='text-sm text-[var(--text-secondary)]'>Cargando plantillas…</p>
@@ -148,13 +195,15 @@ export function HumanTemplateSelector({
               </Button>
             </div>
           ) : null}
-          {status === 'ready' && templates.length === 0 ? (
+          {status === 'ready' && visibleTemplates.length === 0 ? (
             <p className='text-sm leading-6 text-[var(--text-secondary)]'>
-              No hay plantillas aprobadas disponibles para esta conversación.
+              {mode === 'recontact'
+                ? 'No hay una plantilla aprobada disponible para retomar contacto. Configurala y aprobala en Meta antes de enviar.'
+                : 'No hay plantillas aprobadas disponibles para esta conversación.'}
             </p>
           ) : null}
           <ul className='space-y-2' aria-label='Plantillas aprobadas'>
-            {templates.map((template) => {
+            {visibleTemplates.map((template) => {
               const isSelected =
                 selected?.name === template.name && selected.language === template.language
               return (
@@ -166,17 +215,18 @@ export function HumanTemplateSelector({
                         ? 'border-[var(--action-secondary)] bg-[var(--selection-surface)]'
                         : 'border-[var(--border-default)] bg-[var(--surface)] hover:bg-[var(--hover)]'
                     }`}
-                    data-modal-initial-focus={templates[0] === template ? true : undefined}
+                    data-modal-initial-focus={visibleTemplates[0] === template ? true : undefined}
                     onClick={() => {
                       clearHeader()
-                      setSelected(template)
+                      selectTemplate(template)
                     }}
                     type='button'
                   >
                     <span className='block text-sm font-semibold text-[var(--text-primary)]'>
-                      {template.name}
+                      {template.purpose === 'RECONTACT' ? 'Retomar contacto' : template.name}
                     </span>
                     <span className='mt-1 block text-xs text-[var(--text-secondary)]'>
+                      {template.purpose === 'RECONTACT' ? `${template.name} · ` : ''}
                       {template.language} · {template.category}
                     </span>
                     <span className='mt-2 block text-xs leading-5 text-[var(--text-secondary)]'>

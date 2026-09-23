@@ -531,6 +531,7 @@ describe('WhatsAppInboxPage', () => {
           parameter_names: ['cliente'],
           header_type: 'NONE',
           header_media_required: false,
+          purpose: null,
           body_preview: null,
         },
       ],
@@ -645,8 +646,154 @@ describe('WhatsAppInboxPage', () => {
     await openConversation()
 
     expect(screen.getByLabelText('Mensaje')).toBeDisabled()
-    expect(screen.getAllByText(/Se requiere un template aprobado/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/La ventana de 24 horas está cerrada/).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /enviar template/i })).not.toBeInTheDocument()
+  })
+
+  it('offers only the approved recontact template and keeps freeform closed after sending it', async () => {
+    const sent: Record<string, unknown>[] = []
+    mockInboxApi({
+      conversationDetail: detail({
+        can_send_freeform: false,
+        template_required: true,
+        reason: 'APPROVED_TEMPLATE_REQUIRED',
+        window_expires_at: '2026-08-09T15:01:00Z',
+      }),
+      humanTemplates: [
+        {
+          name: 'retomar_contacto',
+          language: 'es_AR',
+          category: 'UTILITY',
+          parameter_names: ['nombre'],
+          header_type: 'NONE',
+          header_media_required: false,
+          purpose: 'RECONTACT',
+          body_preview: null,
+        },
+      ],
+      templateSend: (payload) => {
+        sent.push(payload)
+        return jsonResponse(201, {
+          message: message(31, {
+            direction: 'OUTBOUND',
+            body: null,
+            template_name: 'retomar_contacto',
+            template_language: 'es_AR',
+            sent_by: { id: 2, full_name: 'Vendedor FAA', role: 'VENDEDOR' },
+          }),
+          can_send_freeform: false,
+          window_expires_at: null,
+          template_required: true,
+          reason: 'APPROVED_TEMPLATE_REQUIRED',
+        })
+      },
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usar plantilla para retomar contacto' }))
+    await screen.findByRole('dialog', { name: 'Retomar contacto' })
+    await waitFor(() =>
+      expect(screen.getByText('retomar_contacto · es_AR · UTILITY')).toBeInTheDocument(),
+    )
+    fireEvent.change(screen.getByRole('textbox', { name: 'nombre' }), {
+      target: { value: 'Cliente Uno' },
+    })
+    const sendTemplate = screen.getByRole('button', { name: 'Enviar plantilla' })
+    await waitFor(() => expect(sendTemplate).toBeEnabled())
+    fireEvent.click(sendTemplate)
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0]).toMatchObject({ template_name: 'retomar_contacto', language: 'es_AR' })
+    expect(screen.getByLabelText('Mensaje')).toBeDisabled()
+    expect(screen.getByText('Plantilla aprobada: retomar_contacto · es_AR')).toBeInTheDocument()
+  })
+
+  it('shows an explicit unavailable state when no approved recontact template exists', async () => {
+    mockInboxApi({
+      conversationDetail: detail({
+        can_send_freeform: false,
+        template_required: true,
+        reason: 'APPROVED_TEMPLATE_REQUIRED',
+      }),
+      humanTemplates: [],
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usar plantilla para retomar contacto' }))
+    expect(
+      await screen.findByText(/No hay una plantilla aprobada disponible para retomar contacto/),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Mensaje')).toBeDisabled()
+  })
+
+  it('keeps the closed composer disabled when the recontact template send fails', async () => {
+    mockInboxApi({
+      conversationDetail: detail({
+        can_send_freeform: false,
+        template_required: true,
+        reason: 'APPROVED_TEMPLATE_REQUIRED',
+      }),
+      humanTemplates: [
+        {
+          name: 'retomar_contacto',
+          language: 'es_AR',
+          category: 'UTILITY',
+          parameter_names: [],
+          header_type: 'NONE',
+          header_media_required: false,
+          purpose: 'RECONTACT',
+          body_preview: null,
+        },
+      ],
+      templateSend: () => jsonResponse(422, { detail: 'La plantilla dejó de estar aprobada.' }),
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usar plantilla para retomar contacto' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Retomar contacto' })
+    await waitFor(() => expect(within(dialog).getByText('retomar_contacto')).toBeInTheDocument())
+    const sendTemplate = within(dialog).getByRole('button', { name: 'Enviar plantilla' })
+    await waitFor(() => expect(sendTemplate).toBeEnabled())
+    fireEvent.click(sendTemplate)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'La plantilla dejó de estar aprobada.',
+    )
+    expect(screen.getByLabelText('Mensaje')).toBeDisabled()
+  })
+
+  it('reopens freeform in the active chat from an inbound polling update without reloading', async () => {
+    const closed = detail({
+      can_send_freeform: false,
+      template_required: true,
+      reason: 'APPROVED_TEMPLATE_REQUIRED',
+    })
+    const reopened = summary(1, {
+      can_send_freeform: true,
+      template_required: false,
+      reason: null,
+      last_inbound_at: '2026-08-10T16:00:00Z',
+      window_expires_at: '2026-08-11T16:00:00Z',
+      resource_updated_at: '2026-08-10T16:00:00Z',
+    })
+    const fetchMock = mockInboxApi({
+      conversationDetail: closed,
+      conversationChanges: [[reopened]],
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    expect(screen.getByLabelText('Mensaje')).toBeDisabled()
+    act(() => window.dispatchEvent(new Event('focus')))
+    await waitFor(() => expect(screen.getByLabelText('Mensaje')).toBeEnabled())
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).endsWith('/api/whatsapp/conversations/1'),
+      ),
+    ).toHaveLength(1)
   })
 
   it('replaces and unlinks opportunities through explicit accessible confirmations', async () => {

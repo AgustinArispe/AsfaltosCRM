@@ -8,6 +8,7 @@ from app.services.errors import InvalidWhatsAppMessageError
 from app.services.whatsapp_api_media_service import WhatsAppApiMediaService
 from app.services.whatsapp_message_service import OutboundAttachmentInput
 from app.whatsapp import (
+    HumanTemplatePurpose,
     ProviderTemplateSnapshot,
     TemplateHeaderType,
     TemplateParameter,
@@ -29,6 +30,7 @@ class HumanTemplateSelection:
     parameter_names: tuple[str, ...]
     header_type: TemplateHeaderType
     header_media_required: bool
+    purpose: HumanTemplatePurpose | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,9 +45,11 @@ class WhatsAppHumanTemplateService:
         self,
         provider: WhatsAppProvider,
         media: WhatsAppApiMediaService,
+        recontact_template_name: str | None = None,
     ) -> None:
         self._provider = provider
         self._media = media
+        self._recontact_template_name = recontact_template_name
 
     def list_usable(self) -> tuple[HumanTemplateSelection, ...]:
         return tuple(
@@ -146,21 +150,33 @@ class WhatsAppHumanTemplateService:
             )
         )
 
-    @classmethod
-    def _selection(cls, template: ProviderTemplateSnapshot) -> HumanTemplateSelection:
+    def _selection(self, template: ProviderTemplateSnapshot) -> HumanTemplateSelection:
         parameter_names = tuple(
-            cls._required_text(name, "Template parameter name")
+            self._required_text(name, "Template parameter name")
             for name in template.parameter_names
         )
         if len(parameter_names) != len(set(parameter_names)):
             raise InvalidWhatsAppMessageError("Template parameter names must be unique")
         return HumanTemplateSelection(
-            name=cls._required_text(template.name, "Template name"),
-            language=cls._required_text(template.language, "Template language"),
-            category=cls._required_text(template.category, "Template category"),
+            name=self._required_text(template.name, "Template name"),
+            language=self._required_text(template.language, "Template language"),
+            category=self._required_text(template.category, "Template category"),
             parameter_names=parameter_names,
             header_type=template.header_type,
             header_media_required=template.header_media_required,
+            purpose=(
+                HumanTemplatePurpose.RECONTACT
+                if self._is_recontact_template(template)
+                else None
+            ),
+        )
+
+    def _is_recontact_template(self, template: ProviderTemplateSnapshot) -> bool:
+        configured_name = self._recontact_template_name
+        return (
+            configured_name is not None
+            and template.name.casefold() == configured_name.casefold()
+            and template.category.upper() == "UTILITY"
         )
 
     @classmethod

@@ -1,4 +1,5 @@
 import type { WhatsAppConversationSummary, WhatsAppMessage } from './types'
+import type { ConversationWindowStatus } from './WindowStatus'
 
 const SHORT_TIME_FORMATTER = new Intl.DateTimeFormat('es-AR', {
   hour: '2-digit',
@@ -71,6 +72,7 @@ export function composerDisabledReason(
   conversation: WhatsAppConversationSummary,
   isOnline: boolean,
   isSending: boolean,
+  windowStatus?: ConversationWindowStatus,
 ): string | null {
   if (!isOnline) return 'Sin conexión. Reconectate para enviar.'
   if (isSending) return 'El mensaje se está enviando.'
@@ -80,8 +82,8 @@ export function composerDisabledReason(
   if (!conversation.customer?.is_available) {
     return 'El cliente no está disponible para responder.'
   }
-  if (!conversation.can_send_freeform) {
-    return 'La ventana de respuesta está cerrada. Se requiere un template aprobado.'
+  if (!conversation.can_send_freeform || windowStatus?.kind === 'CLOSED') {
+    return 'La ventana de 24 horas está cerrada. Usá una plantilla aprobada para retomar contacto.'
   }
   return null
 }
