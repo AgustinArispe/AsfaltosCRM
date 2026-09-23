@@ -116,6 +116,20 @@ describe('MessageBubble authenticated media', () => {
     expect(player).toHaveAttribute('src', 'blob:http://localhost/private-media')
   })
 
+  it('renders a document download link from the authenticated blob', async () => {
+    render(
+      <MessageBubble
+        isSending={false}
+        message={mediaMessage('DOCUMENT', 'AVAILABLE')}
+        onResend={vi.fn()}
+      />,
+    )
+
+    const download = await screen.findByRole('link', { name: /documento pdf/i })
+    expect(download).toHaveAttribute('href', 'blob:http://localhost/private-media')
+    expect(download).toHaveAttribute('download', 'documento.pdf')
+  })
+
   it('shows a failed-media state without requesting a provider or filesystem URL', async () => {
     render(
       <MessageBubble

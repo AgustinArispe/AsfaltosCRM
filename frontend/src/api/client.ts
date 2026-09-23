@@ -1,5 +1,6 @@
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || '/api'
 const API_BASE_URL = configuredBaseUrl.replace(/\/$/, '')
+const APPLICATION_API_PREFIX = '/api'
 
 type ApiRequestOptions = Omit<RequestInit, 'body' | 'headers'> & {
   body?: unknown
@@ -117,10 +118,17 @@ export async function apiBlobRequest(
     throw new ApiError(422, 'Invalid media path')
   }
   const { token, onUnauthorized, ...requestOptions } = options
-  const response = await fetch(applicationPath, {
+  const response = await fetch(apiUrlForApplicationPath(applicationPath), {
     ...requestOptions,
     headers: requestHeaders(token),
   })
   if (!response.ok) return throwApiError(response, onUnauthorized)
   return response.blob()
+}
+
+export function apiUrlForApplicationPath(applicationPath: string): string {
+  if (!applicationPath.startsWith(`${APPLICATION_API_PREFIX}/`)) {
+    throw new ApiError(422, 'Invalid API path')
+  }
+  return `${API_BASE_URL}${applicationPath.slice(APPLICATION_API_PREFIX.length)}`
 }
