@@ -294,6 +294,7 @@ def _validate_put_request(request: MediaPutRequest) -> None:
     if request.media_type not in {
         WhatsAppMessageType.IMAGE,
         WhatsAppMessageType.DOCUMENT,
+        WhatsAppMessageType.AUDIO,
     }:
         raise MediaStorageError("Stored media type is invalid")
     if not request.mime_type or request.mime_type != request.mime_type.strip().lower():
@@ -364,7 +365,12 @@ def _decode_metadata(content: bytes) -> StoredMedia:
         size_bytes <= 0
         or len(checksum) != 64
         or any(character not in "0123456789abcdef" for character in checksum)
-        or media_type not in {WhatsAppMessageType.IMAGE, WhatsAppMessageType.DOCUMENT}
+        or media_type
+        not in {
+            WhatsAppMessageType.IMAGE,
+            WhatsAppMessageType.DOCUMENT,
+            WhatsAppMessageType.AUDIO,
+        }
         or not mime_type
         or mime_type != mime_type.strip().lower()
     ):

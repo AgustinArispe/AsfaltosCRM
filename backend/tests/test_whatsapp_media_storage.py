@@ -27,8 +27,10 @@ from app.whatsapp.runtime import build_configured_whatsapp_runtime
 
 IMAGE_REF = UUID("40000000-0000-0000-0000-000000000001")
 DOCUMENT_REF = UUID("40000000-0000-0000-0000-000000000002")
+AUDIO_REF = UUID("40000000-0000-0000-0000-000000000003")
 PNG_CONTENT = b"\x89PNG\r\n\x1a\nvalidated-png"
 PDF_CONTENT = b"%PDF-1.7 validated-pdf"
+OGG_OPUS_CONTENT = b"OggS" + (b"\x00" * 22) + b"\x01\x08OpusHead"
 
 
 def test_broadcast_batch_configuration_defaults_to_ten_and_rejects_larger(
@@ -66,6 +68,13 @@ def media_policy(
             "application/pdf",
             "ficha.pdf",
             PDF_CONTENT,
+        ),
+        (
+            AUDIO_REF,
+            WhatsAppMessageType.AUDIO,
+            "audio/ogg",
+            "nota.ogg",
+            OGG_OPUS_CONTENT,
         ),
     ],
 )
