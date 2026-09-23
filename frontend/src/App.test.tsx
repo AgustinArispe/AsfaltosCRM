@@ -254,6 +254,30 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' })).toHaveFocus()
   })
 
+  it('uses the WhatsApp workspace without a standalone page heading', async () => {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url = new URL(String(input), 'http://localhost')
+        if (url.pathname === '/api/auth/me') return jsonResponse(200, supervisor)
+        if (url.pathname === '/api/whatsapp/conversations/attention-summary') {
+          return jsonResponse(200, { waiting_count: 0, oldest_waiting_since_at: null })
+        }
+        if (url.pathname === '/api/whatsapp/conversations') {
+          return jsonResponse(200, { items: [], next_page_cursor: null, sync_cursor: 'cursor-1' })
+        }
+        throw new Error(`Unexpected request: ${url.pathname}`)
+      }),
+    )
+
+    renderApp('/whatsapp')
+
+    expect(await screen.findByRole('heading', { name: 'Conversaciones' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'WhatsApp', level: 1 })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
+  })
+
   it.each(['/lost', '/lost/opportunities/77', '/whatsapp-sends', '/whatsapp-sends/9'])(
     'redirects hidden product route %s to Dashboard',
     async (pathname) => {

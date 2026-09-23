@@ -86,6 +86,14 @@ def test_whatsapp_desktop_baseline(qa_pages: QaPageFactory) -> None:
     expect(
         qa_page.page.get_by_role("log", name="Historial de mensajes")
     ).to_be_visible()
+    composer = qa_page.page.get_by_role("textbox", name="Mensaje")
+    expect(composer).to_be_visible()
+    composer_box = composer.bounding_box()
+    assert composer_box is not None
+    assert composer_box["y"] + composer_box["height"] <= 900
+    assert qa_page.page.evaluate(
+        "document.documentElement.scrollHeight <= window.innerHeight"
+    )
     assert_visual_baseline(qa_page.page, "whatsapp-desktop")
 
 

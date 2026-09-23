@@ -202,7 +202,7 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
 def test_whatsapp_three_panel_semantics_and_states(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(role="VENDEDOR")
     page = qa_page.page
-    wait_for_workspace(page, "whatsapp", "WhatsApp")
+    wait_for_workspace(page, "whatsapp")
     conversations = page.get_by_role("list", name="Conversaciones de WhatsApp")
     expect(conversations).to_be_visible()
     expect(page.get_by_role("button", name="Esperando")).to_have_attribute(

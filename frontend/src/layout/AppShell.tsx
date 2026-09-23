@@ -180,11 +180,13 @@ function SidebarNavigation({
 
 export function AppShell({
   pageTitle,
+  compactWorkspace = false,
   activeNavigationPath,
   notificationCount,
   children,
 }: {
-  pageTitle: string
+  pageTitle?: string
+  compactWorkspace?: boolean
   activeNavigationPath?: string
   notificationCount?: number
   children: ReactNode
@@ -315,29 +317,44 @@ export function AppShell({
           </div>
         ) : null}
         <main
-          className='min-w-0 overflow-x-clip px-4 py-5 sm:px-6 lg:px-8 lg:py-7'
+          className={
+            compactWorkspace
+              ? 'min-w-0 overflow-x-clip px-4 py-3 sm:px-6 lg:px-8 lg:py-4'
+              : 'min-w-0 overflow-x-clip px-4 py-5 sm:px-6 lg:px-8 lg:py-7'
+          }
           id='main-content'
           ref={mainRef}
           tabIndex={-1}
         >
-          <div className='mb-5 flex min-h-11 items-center gap-3'>
-            <IconButton
-              className='lg:hidden'
-              icon='menu'
-              label='Abrir navegación'
-              onClick={() => setIsMobileNavigationOpen(true)}
-              ref={mobileNavigationTriggerRef}
-            />
-            <div className='min-w-0'>
-              <h1
-                className='truncate rounded-[var(--radius-control)] text-[length:var(--text-title-size)] font-bold leading-[var(--text-title-line)] tracking-[-0.025em] text-[var(--brand-deep)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
-                data-page-heading
-                tabIndex={-1}
-              >
-                {pageTitle}
-              </h1>
+          {pageTitle ? (
+            <div className='mb-5 flex min-h-11 items-center gap-3'>
+              <IconButton
+                className='lg:hidden'
+                icon='menu'
+                label='Abrir navegación'
+                onClick={() => setIsMobileNavigationOpen(true)}
+                ref={mobileNavigationTriggerRef}
+              />
+              <div className='min-w-0'>
+                <h1
+                  className='truncate rounded-[var(--radius-control)] text-[length:var(--text-title-size)] font-bold leading-[var(--text-title-line)] tracking-[-0.025em] text-[var(--brand-deep)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+                  data-page-heading
+                  tabIndex={-1}
+                >
+                  {pageTitle}
+                </h1>
+              </div>
             </div>
-          </div>
+          ) : compactWorkspace ? (
+            <div className='mb-2 flex min-h-11 items-center lg:hidden'>
+              <IconButton
+                icon='menu'
+                label='Abrir navegación'
+                onClick={() => setIsMobileNavigationOpen(true)}
+                ref={mobileNavigationTriggerRef}
+              />
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

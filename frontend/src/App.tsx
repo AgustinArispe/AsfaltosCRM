@@ -97,7 +97,7 @@ function RoutedApp() {
   }
   if (route.kind === 'conversation') {
     return (
-      <AppShell activeNavigationPath='/whatsapp' pageTitle='WhatsApp'>
+      <AppShell activeNavigationPath='/whatsapp' compactWorkspace>
         <LazyWorkspace>
           <WhatsAppInboxPage
             initialConversationId={route.conversationId}
@@ -132,7 +132,10 @@ function RoutedApp() {
     )
 
   return (
-    <AppShell pageTitle={navigationItem.label}>
+    <AppShell
+      compactWorkspace={route.workspace === 'whatsapp'}
+      pageTitle={route.workspace === 'whatsapp' ? undefined : navigationItem.label}
+    >
       <LazyWorkspace>{pageContent}</LazyWorkspace>
     </AppShell>
   )
