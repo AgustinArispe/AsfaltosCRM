@@ -1,9 +1,9 @@
 # CRM-052 — WhatsApp Service Window & Recontact Template
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-23
-Implementation commit: N/A
+Implementation commit: e3c0923
 
 ## Goal
 
