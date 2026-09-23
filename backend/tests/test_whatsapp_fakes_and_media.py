@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -321,6 +322,49 @@ def test_media_service_downloads_once_and_persists_stable_storage_metadata(
     assert persisted.size_bytes == len(b"%PDF-1.7 pdf bytes")
     assert persisted.storage_key is not None
     assert storage.get(persisted.storage_key).content == b"%PDF-1.7 pdf bytes"
+
+
+def test_media_service_logs_redacted_download_and_storage_diagnostics(
+    db_session: Session,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    provider = FakeWhatsAppProvider(now=NOW, freeform_window=timedelta(hours=24))
+    provider.add_media(
+        "provider-diagnostic-id",
+        ProviderMediaPayload(
+            content=b"%PDF-1.7 diagnostic bytes",
+            mime_type="application/pdf",
+            filename="diagnostico.pdf",
+        ),
+    )
+    attachment = create_pending_attachment(
+        db_session,
+        provider,
+        "media-diagnostics-000001",
+        "provider-diagnostic-id",
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.services.whatsapp_media_service"):
+        result = WhatsAppMediaService(
+            db_session,
+            provider,
+            FakeMediaStorage(),
+            MEDIA_POLICY,
+        ).download(attachment.id, now=NOW)
+
+    assert result.storage_status is WhatsAppStorageStatus.AVAILABLE
+    records = {record.message: record for record in caplog.records}
+    downloaded = records["whatsapp_media_downloaded"]
+    stored = records["whatsapp_media_stored"]
+    assert downloaded.__dict__["whatsapp_media_stage"] == "provider_download"
+    assert downloaded.__dict__["whatsapp_media_mime"] == "application/pdf"
+    assert downloaded.__dict__["whatsapp_media_byte_count"] == len(
+        b"%PDF-1.7 diagnostic bytes"
+    )
+    assert downloaded.__dict__["whatsapp_media_error_category"] == "none"
+    assert stored.__dict__["whatsapp_media_stage"] == "storage"
+    assert stored.__dict__["whatsapp_storage_status"] == "AVAILABLE"
+    assert "provider-diagnostic-id" not in caplog.text
 
 
 @pytest.mark.parametrize("storage_failure", [False, True])

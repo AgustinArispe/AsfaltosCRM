@@ -711,7 +711,7 @@ def _verify_provider_checksum(content: bytes, expected: str | None) -> None:
     if expected is None:
         return
     try:
-        expected_digest = b64decode(expected, validate=True)
+        expected_digest = _decode_provider_checksum(expected)
     except (Base64Error, ValueError) as error:
         raise _provider_error(
             ProviderErrorKind.PERMANENT_FAILURE,
@@ -724,6 +724,21 @@ def _verify_provider_checksum(content: bytes, expected: str | None) -> None:
             "META_MEDIA_CHECKSUM_MISMATCH",
             "Meta media integrity verification failed",
         )
+
+
+def _decode_provider_checksum(expected: str) -> bytes:
+    """Decode Meta's canonical hexadecimal digest and legacy Base64 digests safely."""
+    normalized = expected.strip()
+    digest_size = sha256().digest_size
+    if len(normalized) == digest_size * 2:
+        try:
+            return bytes.fromhex(normalized)
+        except ValueError:
+            pass
+    decoded = b64decode(normalized, validate=True)
+    if len(decoded) != digest_size:
+        raise ValueError("Meta media checksum has an invalid length")
+    return decoded
 
 
 def _mapped_graph_error(error: MetaGraphFailure) -> WhatsAppProviderError:

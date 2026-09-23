@@ -21,6 +21,17 @@ from app.whatsapp import (
     WhatsAppProviderError,
 )
 
+_SAFE_PROVIDER_MEDIA_ERROR_CATEGORIES = frozenset(
+    {
+        "META_MEDIA_CHECKSUM_INVALID",
+        "META_MEDIA_CHECKSUM_MISMATCH",
+        "META_MEDIA_LENGTH_MISMATCH",
+        "META_MEDIA_MIME_MISMATCH",
+        "META_MEDIA_TOO_LARGE",
+        "META_MEDIA_URL_INVALID",
+    }
+)
+
 
 @dataclass(frozen=True, slots=True)
 class StoredAttachmentResult:
@@ -73,12 +84,47 @@ class WhatsAppMediaService:
 
         try:
             payload = self._provider.download_media(reference)
+        except WhatsAppProviderError as error:
+            return self._mark_failed(
+                attachment_id,
+                error.details.safe_message,
+                failed_at=requested_at,
+                stage="provider_download",
+                error_category=self._provider_error_category(error),
+                byte_count=None,
+            )
+
+        logging.getLogger(__name__).info(
+            "whatsapp_media_downloaded",
+            extra={
+                "whatsapp_attachment_id": attachment_id,
+                "whatsapp_storage_status": "PENDING",
+                "whatsapp_media_type": attachment_media_type.value,
+                "whatsapp_media_stage": "provider_download",
+                "whatsapp_media_mime": self._normalized_mime(payload.mime_type),
+                "whatsapp_media_byte_count": len(payload.content),
+                "whatsapp_media_error_category": "none",
+            },
+        )
+
+        try:
             validated = self._media_policy.validate(
                 media_type=attachment_media_type,
                 content=payload.content,
                 declared_mime_type=payload.mime_type,
                 filename=payload.filename,
             )
+        except MediaStorageError as error:
+            return self._mark_failed(
+                attachment_id,
+                str(error),
+                failed_at=requested_at,
+                stage="validation",
+                error_category="validation_failure",
+                byte_count=len(payload.content),
+            )
+
+        try:
             stored = self._storage.put(
                 MediaPutRequest(
                     media_ref=uuid4(),
@@ -88,17 +134,14 @@ class WhatsAppMediaService:
                     filename=validated.filename,
                 )
             )
-        except WhatsAppProviderError as error:
-            return self._mark_failed(
-                attachment_id,
-                error.details.safe_message,
-                failed_at=requested_at,
-            )
         except MediaStorageError as error:
             return self._mark_failed(
                 attachment_id,
                 str(error),
                 failed_at=requested_at,
+                stage="storage",
+                error_category="storage_failure",
+                byte_count=len(validated.content),
             )
 
         with self._session.begin():
@@ -122,6 +165,10 @@ class WhatsAppMediaService:
                     "whatsapp_attachment_id": attachment.id,
                     "whatsapp_storage_status": attachment.storage_status.value,
                     "whatsapp_media_type": attachment.media_type.value,
+                    "whatsapp_media_stage": "storage",
+                    "whatsapp_media_mime": self._normalized_mime(stored.mime_type),
+                    "whatsapp_media_byte_count": stored.size_bytes,
+                    "whatsapp_media_error_category": "none",
                 },
             )
             return self._result(attachment)
@@ -152,6 +199,10 @@ class WhatsAppMediaService:
                     "whatsapp_attachment_id": attachment.id,
                     "whatsapp_storage_status": attachment.storage_status.value,
                     "whatsapp_media_type": attachment.media_type.value,
+                    "whatsapp_media_stage": "storage_read",
+                    "whatsapp_media_mime": self._normalized_mime(attachment.mime_type),
+                    "whatsapp_media_byte_count": None,
+                    "whatsapp_media_error_category": "storage_read_failure",
                 },
             )
             return self._result(attachment)
@@ -162,6 +213,9 @@ class WhatsAppMediaService:
         safe_message: str,
         *,
         failed_at: datetime,
+        stage: str,
+        error_category: str,
+        byte_count: int | None,
     ) -> StoredAttachmentResult:
         with self._session.begin():
             attachment = self._attachment_for_update(attachment_id)
@@ -180,6 +234,10 @@ class WhatsAppMediaService:
                     "whatsapp_attachment_id": attachment.id,
                     "whatsapp_storage_status": attachment.storage_status.value,
                     "whatsapp_media_type": attachment.media_type.value,
+                    "whatsapp_media_stage": stage,
+                    "whatsapp_media_mime": self._normalized_mime(attachment.mime_type),
+                    "whatsapp_media_byte_count": byte_count,
+                    "whatsapp_media_error_category": error_category,
                 },
             )
             return self._result(attachment)
@@ -207,3 +265,17 @@ class WhatsAppMediaService:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("Datetime must be timezone-aware")
         return value.astimezone(UTC)
+
+    @staticmethod
+    def _normalized_mime(value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.partition(";")[0].strip().lower()
+        return normalized or None
+
+    @staticmethod
+    def _provider_error_category(error: WhatsAppProviderError) -> str:
+        code = error.details.code
+        if code in _SAFE_PROVIDER_MEDIA_ERROR_CATEGORIES:
+            return code.lower()
+        return "provider_failure"

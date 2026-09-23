@@ -427,6 +427,31 @@ def test_media_download_resolves_fresh_url_and_verifies_metadata() -> None:
     assert transport.requests[1].max_response_bytes == 2048
 
 
+def test_media_download_accepts_meta_hexadecimal_sha256_checksum() -> None:
+    content = b"\xff\xd8\xff Meta image"
+    checksum = sha256(content).hexdigest()
+    provider, _, _, _ = _provider(
+        [
+            _response(
+                200,
+                (
+                    '{"id":"media-hex","url":"https://lookaside.fbsbx.com/media",'
+                    f'"mime_type":"image/jpeg","sha256":"{checksum}",'
+                    f'"file_size":{len(content)}}}'
+                ).encode(),
+            ),
+            MetaHttpResponse(200, (("Content-Type", "image/jpeg"),), content),
+        ]
+    )
+
+    payload = provider.download_media(
+        ProviderMediaReference("media-hex", None, "image/jpeg", None)
+    )
+
+    assert payload.content == content
+    assert payload.mime_type == "image/jpeg"
+
+
 def test_media_download_reresolves_expired_url_and_rejects_bad_integrity() -> None:
     content = b"image-bytes"
     good_checksum = b64encode(sha256(content).digest()).decode()
