@@ -1,9 +1,9 @@
 # CRM-053 — Opportunity Detail Soft Delete
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-23
-Implementation commit: N/A
+Implementation commit: `40070d283e0c042b1153aaebb65673c7c5aad15f`
 
 ## Goal
 
