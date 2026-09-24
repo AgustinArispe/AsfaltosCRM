@@ -23,6 +23,7 @@ import { Button } from '../shared/Button'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import { SearchField } from '../shared/Workspace'
+import { OpportunityDetailPage } from './OpportunityDetailPage'
 
 function activeFilterCount(filters: LostFilters): number {
   return (
@@ -115,6 +116,7 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                     aria-label={opportunity.customer.name}
                     className='inline-flex min-h-11 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                     origin={{ kind: 'workspace', workspace: 'lost' }}
+                    search={window.location.search}
                     to={{ kind: 'opportunity', opportunityId: opportunity.id, surface: 'lost' }}
                   >
                     <span>
@@ -151,6 +153,7 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                   <AppLink
                     className='inline-flex min-h-11 items-center px-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
                     origin={{ kind: 'workspace', workspace: 'lost' }}
+                    search={window.location.search}
                     to={{ kind: 'opportunity', opportunityId: opportunity.id, surface: 'lost' }}
                   >
                     Abrir oportunidad
@@ -210,7 +213,7 @@ function Statistics({ statistics }: { statistics: LostStatistics }) {
   )
 }
 
-export function LostPage() {
+export function LostPage({ selectedOpportunityId }: { selectedOpportunityId?: number }) {
   const { token, logout, user } = useAuth()
   const session = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -482,6 +485,16 @@ export function LostPage() {
           </>
         )}
       </div>
+      {selectedOpportunityId ? (
+        <OpportunityDetailPage
+          onOpportunityDeleted={(opportunityId) => {
+            setItems((current) => current.filter((item) => item.opportunity.id !== opportunityId))
+            setReloadKey((current) => current + 1)
+          }}
+          opportunityId={selectedOpportunityId}
+          surface='lost'
+        />
+      ) : null}
     </section>
   )
 }

@@ -556,6 +556,28 @@ def test_soft_deleted_records_remain_persisted_but_hidden(
     assert persisted_opportunity is not None
 
 
+def test_supervisor_soft_deletes_opportunity_idempotently(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    customer = create_customer(api_client, "Cliente oportunidad eliminada")
+    opportunity = create_opportunity(api_client, customer.id)
+    endpoint = f"/api/opportunities/{opportunity.id}"
+
+    assert api_client.delete(endpoint).status_code == 204
+    assert api_client.delete(endpoint).status_code == 204
+    assert api_client.get(endpoint).status_code == 404
+    hidden = api_client.get("/api/opportunities", params={"customer_id": customer.id})
+    assert hidden.json()["total"] == 0
+
+    persisted = db_session.get(Opportunity, opportunity.id)
+    persisted_customer = db_session.get(Customer, customer.id)
+    assert persisted is not None
+    assert persisted.deleted_at is not None
+    assert persisted_customer is not None
+    assert persisted_customer.deleted_at is None
+
+
 def test_openapi_exposes_crm_routes(api_client: TestClient) -> None:
     response = api_client.get("/openapi.json")
 
@@ -566,3 +588,4 @@ def test_openapi_exposes_crm_routes(api_client: TestClient) -> None:
     assert "/api/opportunities/{opportunity_id}/quote" in paths
     assert "/api/opportunities/{opportunity_id}/win" in paths
     assert "/api/opportunities/{opportunity_id}/regress" in paths
+    assert "delete" in paths["/api/opportunities/{opportunity_id}"]

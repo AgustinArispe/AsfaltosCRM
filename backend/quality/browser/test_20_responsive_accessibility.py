@@ -67,9 +67,9 @@ def test_representative_viewport_matrix(
         wait_for_workspace(page, path)
         assert_no_horizontal_overflow(page)
         if path == "whatsapp":
-            expect(
-                page.get_by_role("heading", name="WhatsApp", level=1)
-            ).to_have_count(0)
+            expect(page.get_by_role("heading", name="WhatsApp", level=1)).to_have_count(
+                0
+            )
             if width >= 768:
                 expect(
                     page.get_by_role("list", name="Conversaciones de WhatsApp")

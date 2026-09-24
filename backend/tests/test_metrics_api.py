@@ -176,6 +176,33 @@ def test_metric_filters_are_applied_through_api(
     assert excluded.json()["opportunities"]["created"] == 0
 
 
+def test_soft_deleted_opportunities_are_excluded_from_metrics(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    _, _, opportunity = seed_metrics_data(db_session)
+
+    before = api_client.get("/api/metrics/overview", params=period_params())
+    deleted = api_client.delete(f"/api/opportunities/{opportunity.id}")
+    after = api_client.get("/api/metrics/overview", params=period_params())
+    pipeline = api_client.get("/api/metrics/pipeline")
+
+    assert before.status_code == 200
+    assert before.json()["opportunities"]["created"] == 1
+    assert before.json()["opportunities"]["won"] == 1
+    assert deleted.status_code == 204
+    assert after.status_code == 200
+    assert after.json()["opportunities"]["created"] == 0
+    assert after.json()["opportunities"]["won"] == 0
+    assert pipeline.status_code == 200
+    assert (
+        next(item for item in pipeline.json()["items"] if item["status"] == "GANADA")[
+            "count"
+        ]
+        == 0
+    )
+
+
 def test_instagram_source_is_filterable_and_aggregated(
     api_client: TestClient,
     db_session: Session,

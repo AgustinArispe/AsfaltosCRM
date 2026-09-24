@@ -25,6 +25,7 @@ from app.models import (
     WhatsAppConversationOpportunity,
     WhatsAppConversationResolution,
     WhatsAppHumanTemplateParameter,
+    WhatsAppMessage,
     WhatsAppStorageStatus,
 )
 from app.schemas.whatsapp import (
@@ -1009,15 +1010,26 @@ def test_soft_deleted_commercial_entities_do_not_remove_media_history(
     assert detail.customer is not None
     assert detail.active_opportunity is not None
 
-    deleted_at = datetime.now(UTC)
+    deleted = whatsapp_api.client.delete(
+        f"/api/opportunities/{detail.active_opportunity.id}"
+    )
     customer = db_session.get(Customer, detail.customer.id)
     opportunity = db_session.get(Opportunity, detail.active_opportunity.id)
-    assert customer is not None
-    assert opportunity is not None
-    customer.deleted_at = deleted_at
-    opportunity.deleted_at = deleted_at
-    db_session.commit()
+    conversation = db_session.get(WhatsAppConversation, inbound.message.conversation_id)
+    message_count = db_session.scalar(
+        select(func.count())
+        .select_from(WhatsAppMessage)
+        .where(WhatsAppMessage.conversation_id == inbound.message.conversation_id)
+    )
 
+    assert deleted.status_code == 204
+    assert customer is not None
+    assert customer.deleted_at is None
+    assert opportunity is not None
+    assert opportunity.deleted_at is not None
+    assert conversation is not None
+    assert message_count == 2
+    db_session.commit()
     content = whatsapp_api.client.get(content_url)
     assert content.status_code == 200
     assert content.content == b"%PDF-1.7 retained"

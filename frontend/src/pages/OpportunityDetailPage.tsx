@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
 import {
   type ApiSession,
+  deleteOpportunity,
   getOpportunityDetail,
   loseOpportunity,
   moveOpportunityToNegotiation,
@@ -53,17 +54,19 @@ function isEligibleForReopen(opportunity: OpportunityDetail): boolean {
 export function OpportunityDetailPage({
   cachedOpportunity,
   catalog,
+  onOpportunityDeleted,
   onOpportunityUpdated,
   opportunityId,
   surface = 'pipeline',
 }: {
   cachedOpportunity?: OpportunityDetail
   catalog?: ActiveProductCatalog
+  onOpportunityDeleted?: (opportunityId: number) => void
   onOpportunityUpdated?: (opportunity: OpportunityDetail) => void
   opportunityId: number
   surface?: 'pipeline' | 'lost' | 'won'
 }) {
-  const { token, logout } = useAuth()
+  const { token, logout, user } = useAuth()
   const returnFocusRef = useRef<HTMLElement | null>(
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
   )
@@ -74,6 +77,9 @@ export function OpportunityDetailPage({
   const [error, setError] = useState<'not-found' | 'request' | null>(null)
   const [key, setKey] = useState(0)
   const [isReopenConfirmationOpen, setIsReopenConfirmationOpen] = useState(false)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isReopening, setIsReopening] = useState(false)
   const [reopenError, setReopenError] = useState<string | null>(null)
   const [isLookingUpConversation, setIsLookingUpConversation] = useState(false)
@@ -134,6 +140,7 @@ export function OpportunityDetailPage({
   const close = () => {
     const previousFocus = returnFocusRef.current
     if (surface === 'won') navigate(`/won${window.location.search}`)
+    else if (surface === 'lost') navigate(`/lost${window.location.search}`)
     else navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
@@ -310,6 +317,22 @@ export function OpportunityDetailPage({
     navigate('/dashboard')
   }
 
+  const handleDelete = async () => {
+    if (!opportunity || isDeleting) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteOpportunity(opportunity.id, session)
+      onOpportunityDeleted?.(opportunity.id)
+      setIsDeleteConfirmationOpen(false)
+      close()
+    } catch {
+      setDeleteError('No pudimos eliminar la oportunidad. Intentá nuevamente.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const actions = opportunity ? (
     <>
       {opportunity.status === 'NUEVA' ? (
@@ -396,6 +419,21 @@ export function OpportunityDetailPage({
       ) : null}
     </>
   ) : undefined
+  const secondaryActions =
+    opportunity && user?.role === 'SUPERVISOR' ? (
+      <Button
+        className='!border-[var(--destructive-border)] !bg-[var(--destructive-subtle)] !text-[var(--destructive-text)] hover:!bg-[var(--destructive-subtle)] hover:brightness-95'
+        disabled={isDeleting}
+        onClick={() => {
+          setDeleteError(null)
+          setIsDeleteConfirmationOpen(true)
+        }}
+        variant='secondary'
+      >
+        <Icon name='trash' />
+        Eliminar oportunidad
+      </Button>
+    ) : undefined
 
   if (opportunity && isQuoteOpen) {
     return (
@@ -494,9 +532,29 @@ export function OpportunityDetailPage({
               />
             }
             opportunity={opportunity}
+            secondaryActions={secondaryActions}
           />
         </div>
       )}
+      <ConfirmationDialog
+        confirmLabel='Eliminar oportunidad'
+        description='¿Seguro que querés eliminar esta oportunidad? Esta acción la quitará de las vistas comerciales.'
+        error={deleteError}
+        isOpen={isDeleteConfirmationOpen}
+        isPending={isDeleting}
+        onCancel={() => {
+          if (!isDeleting) setIsDeleteConfirmationOpen(false)
+        }}
+        onConfirm={() => void handleDelete()}
+        pendingLabel='Eliminando…'
+        title='Eliminar oportunidad'
+        variant='danger'
+      >
+        <p className='text-sm leading-6 text-[var(--text-secondary)]'>
+          Esta acción realiza un borrado lógico y no elimina el cliente, las cotizaciones ni el
+          historial de estados.
+        </p>
+      </ConfirmationDialog>
       <ConfirmationDialog
         confirmLabel={
           pendingRegression

@@ -386,7 +386,7 @@ class OpportunityService:
         """Soft-delete a duplicate/error and resolve its active notifications."""
         with self._session.begin():
             opportunity = self._get_any_opportunity_for_update(opportunity_id)
-            deleted_at = datetime.now(UTC)
+            deleted_at = max(datetime.now(UTC), opportunity.created_at)
             if opportunity.deleted_at is None:
                 opportunity.deleted_at = deleted_at
                 opportunity.updated_at = deleted_at

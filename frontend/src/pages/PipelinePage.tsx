@@ -559,6 +559,12 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         <OpportunityDetailPage
           catalog={catalog}
           cachedOpportunity={workspace.detailsById[selectedOpportunityId]}
+          onOpportunityDeleted={(opportunityId) => {
+            mutationGenerationRef.current[opportunityId] =
+              (mutationGenerationRef.current[opportunityId] ?? 0) + 1
+            dispatch({ type: 'remove', opportunityId })
+            setAnnouncement('Oportunidad eliminada del CRM.')
+          }}
           onOpportunityUpdated={(opportunity) => {
             mutationGenerationRef.current[opportunity.id] =
               (mutationGenerationRef.current[opportunity.id] ?? 0) + 1

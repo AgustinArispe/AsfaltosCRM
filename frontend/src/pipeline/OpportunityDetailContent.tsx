@@ -450,11 +450,13 @@ function History({ opportunity }: { opportunity: OpportunityDetail }) {
 export function OpportunityDetailContent({
   opportunity,
   actions,
+  secondaryActions,
   contextual,
   layout = 'page',
 }: {
   opportunity: OpportunityDetail
   actions?: ReactNode
+  secondaryActions?: ReactNode
   contextual?: ReactNode
   layout?: 'drawer' | 'page'
 }) {
@@ -473,6 +475,17 @@ export function OpportunityDetailContent({
           <OpportunitySummary opportunity={opportunity} />
           <LossReason opportunity={opportunity} />
           {actions ? <div className='opportunity-detail__actions'>{actions}</div> : null}
+          {secondaryActions ? (
+            <section
+              aria-label='Acciones administrativas de oportunidad'
+              className='mt-5 border-t border-[var(--divider)] pt-4'
+            >
+              <p className='mb-2 text-xs font-semibold text-[var(--text-tertiary)]'>
+                Acciones administrativas
+              </p>
+              <div className='flex flex-wrap gap-2'>{secondaryActions}</div>
+            </section>
+          ) : null}
         </div>
       )}
 

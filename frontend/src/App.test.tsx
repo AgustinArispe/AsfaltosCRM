@@ -278,7 +278,7 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
   })
 
-  it.each(['/lost', '/lost/opportunities/77', '/whatsapp-sends', '/whatsapp-sends/9'])(
+  it.each(['/whatsapp-sends', '/whatsapp-sends/9'])(
     'redirects hidden product route %s to Dashboard',
     async (pathname) => {
       mockRestoredSession(supervisor)
@@ -288,6 +288,16 @@ describe('authenticated frontend', () => {
       expect(
         await screen.findByRole('heading', { name: 'Resumen comercial', level: 1 }),
       ).toBeInTheDocument()
+    },
+  )
+
+  it.each(['/lost', '/lost/opportunities/77'])(
+    'keeps the existing Perdidas workspace route available for %s',
+    async (pathname) => {
+      mockRestoredSession(supervisor)
+      renderApp(pathname)
+
+      expect(await screen.findByRole('heading', { name: 'Perdidas', level: 1 })).toBeInTheDocument()
     },
   )
 
@@ -437,6 +447,16 @@ describe('authenticated frontend', () => {
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/pipeline')
+  })
+
+  it('keeps Perdidas hidden for sellers while preserving the supervisor route', async () => {
+    mockRestoredSession(seller)
+    renderApp('/lost/opportunities/77')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Resumen comercial', level: 1 }),
+    ).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/dashboard')
   })
 
   it('loads the authorized Users workspace through its route chunk', async () => {

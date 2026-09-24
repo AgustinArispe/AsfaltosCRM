@@ -16,6 +16,20 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ token: 'lost-token', logout: auth.logout, user: auth.user }),
 }))
 
+vi.mock('./OpportunityDetailPage', () => ({
+  OpportunityDetailPage: ({
+    onOpportunityDeleted,
+    opportunityId,
+  }: {
+    onOpportunityDeleted?: (opportunityId: number) => void
+    opportunityId: number
+  }) => (
+    <button onClick={() => onOpportunityDeleted?.(opportunityId)} type='button'>
+      Simular eliminación perdida
+    </button>
+  ),
+}))
+
 function response(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -111,6 +125,23 @@ describe('LostPage', () => {
     expect(screen.getAllByText('Precio').length).toBeGreaterThan(0)
     expect(screen.getByText('1.250,5 kg perdidos')).toBeInTheDocument()
     expect(screen.queryByText(/vendedor/i)).not.toBeInTheDocument()
+  })
+
+  it('removes the deleted opportunity from Perdidas immediately and retains its filters', async () => {
+    window.history.replaceState(null, '', '/lost?source=WEB')
+    render(<LostPage selectedOpportunityId={8} />)
+    await screen.findByText('Constructora Sur')
+    const callsBeforeDelete = (fetch as ReturnType<typeof vi.fn>).mock.calls.length
+
+    fireEvent.click(screen.getByRole('button', { name: 'Simular eliminación perdida' }))
+
+    expect(screen.queryByText('Constructora Sur')).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
+        callsBeforeDelete,
+      ),
+    )
+    expect(window.location.search).toBe('?source=WEB')
   })
 
   it('sends only server-supported filters and can reset them', async () => {

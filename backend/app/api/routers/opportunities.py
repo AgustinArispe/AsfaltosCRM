@@ -173,6 +173,21 @@ def get_opportunity(
     return _detail(session, opportunity_id)
 
 
+@router.delete(
+    "/{opportunity_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Soft-delete opportunity",
+    description="Idempotent: an already deleted opportunity also returns 204.",
+)
+def delete_opportunity(
+    opportunity_id: int,
+    session: DatabaseSession,
+    _supervisor: SupervisorUser,
+) -> Response:
+    OpportunityService(session).soft_delete_opportunity(opportunity_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.post(
     "/{opportunity_id}/quote",
     response_model=OpportunityDetail,

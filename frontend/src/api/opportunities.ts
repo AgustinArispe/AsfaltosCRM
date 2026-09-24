@@ -53,6 +53,13 @@ export function getOpportunityDetail(opportunityId: number, session: ApiSession)
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}`, session)
 }
 
+export function deleteOpportunity(opportunityId: number, session: ApiSession) {
+  return apiRequest<null>(`/opportunities/${opportunityId}`, {
+    ...session,
+    method: 'DELETE',
+  })
+}
+
 export function createWhatsAppOpportunity(conversationId: number, session: ApiSession) {
   return apiRequest<OpportunityDetail>(`/whatsapp/conversations/${conversationId}/opportunity`, {
     ...session,

@@ -5,12 +5,22 @@ import { OpportunityDetailPage } from './OpportunityDetailPage'
 
 const authState = vi.hoisted(() => ({
   logout: vi.fn(),
+  user: {
+    id: 1,
+    full_name: 'Supervisora',
+    email: 'supervisora@faa.test',
+    role: 'SUPERVISOR' as 'SUPERVISOR' | 'VENDEDOR',
+    is_active: true,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  },
 }))
 
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     token: 'detail-token',
     logout: authState.logout,
+    user: authState.user,
   }),
 }))
 
@@ -94,7 +104,94 @@ function makeDetail(overrides: Partial<OpportunityDetail> = {}): OpportunityDeta
 describe('OpportunityDetailPage', () => {
   beforeEach(() => {
     authState.logout.mockReset()
+    authState.user.role = 'SUPERVISOR'
     window.history.replaceState(null, '', '/opportunities/42')
+  })
+
+  it('lets a supervisor confirm soft deletion and returns without reloading', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    const onOpportunityDeleted = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<OpportunityDetailPage onOpportunityDeleted={onOpportunityDeleted} opportunityId={42} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar oportunidad' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Eliminar oportunidad' })
+    expect(confirmation).toHaveTextContent(
+      '¿Seguro que querés eliminar esta oportunidad? Esta acción la quitará de las vistas comerciales.',
+    )
+    expect(within(confirmation).getByRole('button', { name: 'Cancelar' })).toHaveFocus()
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Eliminar oportunidad' }))
+
+    await waitFor(() => expect(onOpportunityDeleted).toHaveBeenCalledWith(42))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42')
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'DELETE' })
+    expect(window.location.pathname).toBe('/pipeline')
+  })
+
+  it('leaves the detail unchanged when the destructive confirmation is cancelled or dismissed', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, makeDetail()))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar oportunidad' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog', { name: 'Eliminar oportunidad' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar oportunidad' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar eliminar oportunidad' }))
+    expect(screen.queryByRole('dialog', { name: 'Eliminar oportunidad' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar oportunidad' }))
+    fireEvent(
+      screen.getByRole('dialog', { name: 'Eliminar oportunidad' }),
+      new Event('cancel', { cancelable: true }),
+    )
+    expect(screen.queryByRole('dialog', { name: 'Eliminar oportunidad' })).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { name: 'Del Sur SA' })).toBeInTheDocument()
+  })
+
+  it('keeps the destructive confirmation open after failure and prevents duplicate pending submits', async () => {
+    let resolveDelete: ((response: Response) => void) | undefined
+    const pendingDelete = new Promise<Response>((resolve) => {
+      resolveDelete = resolve
+    })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
+      .mockImplementationOnce(() => pendingDelete)
+      .mockResolvedValueOnce(jsonResponse(500, { detail: 'error' }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<OpportunityDetailPage opportunityId={42} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar oportunidad' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Eliminar oportunidad' })
+    const confirm = within(confirmation).getByRole('button', { name: 'Eliminar oportunidad' })
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(within(confirmation).getByRole('button', { name: 'Eliminando…' })).toBeDisabled()
+
+    resolveDelete?.(jsonResponse(500, { detail: 'error' }))
+    expect(await within(confirmation).findByRole('alert')).toHaveTextContent(
+      'No pudimos eliminar la oportunidad',
+    )
+    expect(within(confirmation).getByRole('button', { name: 'Eliminar oportunidad' })).toBeEnabled()
+  })
+
+  it('hides opportunity deletion from vendors', async () => {
+    authState.user.role = 'VENDEDOR'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())))
+
+    render(<OpportunityDetailPage opportunityId={42} />)
+
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    expect(screen.queryByRole('button', { name: 'Eliminar oportunidad' })).not.toBeInTheDocument()
   })
 
   it('shows a loading state while requesting the opportunity', () => {
@@ -268,6 +365,21 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }))
     expect(`${window.location.pathname}${window.location.search}`).toBe(
       '/won?period=all&source=WEB',
+    )
+  })
+
+  it('returns to Perdidas with the existing filters after closing its detail', async () => {
+    window.history.replaceState(null, '', '/lost/opportunities/42?source=WEB&from=2026-08-01')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(200, makeDetail({ status: 'PERDIDA' }))),
+    )
+    render(<OpportunityDetailPage opportunityId={42} surface='lost' />)
+
+    await screen.findByRole('heading', { name: 'Del Sur SA' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }))
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      '/lost?source=WEB&from=2026-08-01',
     )
   })
 

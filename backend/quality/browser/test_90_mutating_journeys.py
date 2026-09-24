@@ -216,6 +216,81 @@ def test_notifications_read_action_and_badge_synchronize(
 
 
 @pytest.mark.mutating
+def test_supervisor_deletes_opportunity_from_detail_without_reload(
+    qa_pages: QaPageFactory,
+) -> None:
+    vendor_page = qa_pages.create(role="VENDEDOR", artifact_suffix="delete-vendor")
+    vendor_page.page.get_by_role(
+        "button",
+        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+    ).click()
+    vendor_detail = vendor_page.page.get_by_role("dialog", name="Constructora del Sur")
+    expect(
+        vendor_detail.get_by_role("button", name="Eliminar oportunidad")
+    ).to_have_count(0)
+
+    light_page = qa_pages.create(
+        role="SUPERVISOR", artifact_suffix="delete-supervisor-light"
+    )
+    light_page.page.get_by_role(
+        "button",
+        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+    ).click()
+    light_confirmation_page = light_page.page
+    light_confirmation_page.get_by_role(
+        "dialog", name="Constructora del Sur"
+    ).get_by_role("button", name="Eliminar oportunidad").click()
+    light_confirmation = light_confirmation_page.get_by_role(
+        "dialog", name="Eliminar oportunidad"
+    )
+    expect(
+        light_confirmation.get_by_text(
+            "¿Seguro que querés eliminar esta oportunidad? Esta acción la quitará de las vistas comerciales."
+        )
+    ).to_be_visible()
+    light_confirmation.get_by_role("button", name="Cancelar").click()
+
+    supervisor_page = qa_pages.create(
+        role="SUPERVISOR", theme="dark", artifact_suffix="delete-supervisor"
+    )
+    page = supervisor_page.page
+    card = page.get_by_role(
+        "button",
+        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+    )
+    card.click()
+    detail = page.get_by_role("dialog", name="Constructora del Sur")
+    detail.get_by_role("button", name="Eliminar oportunidad").click()
+    confirmation = page.get_by_role("dialog", name="Eliminar oportunidad")
+    expect(
+        confirmation.get_by_text(
+            "¿Seguro que querés eliminar esta oportunidad? Esta acción la quitará de las vistas comerciales."
+        )
+    ).to_be_visible()
+    expect(confirmation.get_by_role("button", name="Cancelar")).to_be_focused()
+    with page.expect_response(
+        lambda response: (
+            response.request.method == "DELETE"
+            and response.url.endswith("/api/opportunities/1")
+            and response.status == 204
+        )
+    ):
+        confirmation.get_by_role(
+            "button", name="Eliminar oportunidad", exact=True
+        ).click()
+
+    page.wait_for_url("**/pipeline")
+    expect(card).to_have_count(0)
+    page.reload(wait_until="networkidle")
+    expect(
+        page.get_by_role(
+            "button",
+            name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+        )
+    ).to_have_count(0)
+
+
+@pytest.mark.mutating
 def test_whatsapp_expired_window_requires_approved_template(
     qa_pages: QaPageFactory,
 ) -> None:

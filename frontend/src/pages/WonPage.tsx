@@ -396,7 +396,14 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
         </footer>
       ) : null}
       {selectedOpportunityId ? (
-        <OpportunityDetailPage opportunityId={selectedOpportunityId} surface='won' />
+        <OpportunityDetailPage
+          onOpportunityDeleted={(opportunityId) => {
+            setItems((current) => current.filter((item) => item.opportunity.id !== opportunityId))
+            setRetry((value) => value + 1)
+          }}
+          opportunityId={selectedOpportunityId}
+          surface='won'
+        />
       ) : null}
     </section>
   )

@@ -22,6 +22,9 @@ const CustomersPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
 )
+const LostPage = lazy(() =>
+  import('./pages/LostPage').then((module) => ({ default: module.LostPage })),
+)
 const WonPage = lazy(() =>
   import('./pages/WonPage').then((module) => ({ default: module.WonPage })),
 )
@@ -54,11 +57,13 @@ function RoutedApp() {
 
   const route = parseRoute(pathname)
   if (!route) return <Redirect to='/pipeline' />
+  const isLostRoute =
+    (route.kind === 'workspace' && route.workspace === 'lost') ||
+    (route.kind === 'opportunity' && route.surface === 'lost')
   if (
-    (route.kind === 'workspace' &&
-      (route.workspace === 'lost' || route.workspace === 'whatsapp-sends')) ||
-    (route.kind === 'opportunity' && route.surface === 'lost') ||
-    route.kind === 'broadcast'
+    (route.kind === 'workspace' && route.workspace === 'whatsapp-sends') ||
+    route.kind === 'broadcast' ||
+    (isLostRoute && user?.role !== 'SUPERVISOR')
   ) {
     return <Redirect to='/dashboard' />
   }
@@ -75,6 +80,15 @@ function RoutedApp() {
     )
   }
   if (route.kind === 'opportunity') {
+    if (route.surface === 'lost') {
+      return (
+        <AppShell activeNavigationPath='/pipeline' pageTitle='Perdidas'>
+          <LazyWorkspace>
+            <LostPage selectedOpportunityId={route.opportunityId} />
+          </LazyWorkspace>
+        </AppShell>
+      )
+    }
     if (route.surface === 'won') {
       return (
         <AppShell activeNavigationPath='/won' pageTitle='Ganadas'>
@@ -85,6 +99,15 @@ function RoutedApp() {
       )
     }
     return <Redirect to='/dashboard' />
+  }
+  if (route.kind === 'workspace' && route.workspace === 'lost') {
+    return (
+      <AppShell activeNavigationPath='/pipeline' pageTitle='Perdidas'>
+        <LazyWorkspace>
+          <LostPage />
+        </LazyWorkspace>
+      </AppShell>
+    )
   }
   if (route.kind === 'customer') {
     return (

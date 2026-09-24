@@ -4,6 +4,20 @@ import { WonPage } from './WonPage'
 
 const logout = vi.hoisted(() => vi.fn())
 
+vi.mock('./OpportunityDetailPage', () => ({
+  OpportunityDetailPage: ({
+    onOpportunityDeleted,
+    opportunityId,
+  }: {
+    onOpportunityDeleted?: (opportunityId: number) => void
+    opportunityId: number
+  }) => (
+    <button onClick={() => onOpportunityDeleted?.(opportunityId)} type='button'>
+      Simular eliminación ganada
+    </button>
+  ),
+}))
+
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ token: 'token', logout, user: { role: 'SUPERVISOR' } }),
 }))
@@ -45,6 +59,20 @@ describe('WonPage', () => {
     await waitFor(() => expect(window.location.search).toContain('period=all'))
     const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([value]) => String(value))
     expect(calls.at(-2)).not.toContain('won_from=')
+  })
+
+  it('refreshes won results after deleting the mounted opportunity detail', async () => {
+    render(<WonPage selectedOpportunityId={41} />)
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    const callsBeforeDelete = (fetch as ReturnType<typeof vi.fn>).mock.calls.length
+
+    fireEvent.click(screen.getByRole('button', { name: 'Simular eliminación ganada' }))
+
+    await waitFor(() =>
+      expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
+        callsBeforeDelete,
+      ),
+    )
   })
 
   it('restores supported URL filters and serializes a custom inclusive end date', async () => {

@@ -16,6 +16,20 @@ const dndState = vi.hoisted(() => ({
 }))
 const logout = vi.hoisted(() => vi.fn())
 
+vi.mock('./OpportunityDetailPage', () => ({
+  OpportunityDetailPage: ({
+    onOpportunityDeleted,
+    opportunityId,
+  }: {
+    onOpportunityDeleted?: (opportunityId: number) => void
+    opportunityId: number
+  }) => (
+    <button onClick={() => onOpportunityDeleted?.(opportunityId)} type='button'>
+      Simular eliminación
+    </button>
+  ),
+}))
+
 vi.mock('@dnd-kit/react', () => ({
   PointerSensor: { configure: vi.fn(() => function ConfiguredPointerSensor() {}) },
   KeyboardSensor: {
@@ -207,6 +221,18 @@ describe('PipelinePage', () => {
       stage(container, 'NEGOCIACION').querySelector('[data-icon="handshake"]'),
     ).toBeInTheDocument()
     expect(stage(container, 'GANADA').querySelector('[data-icon="trophy"]')).toBeInTheDocument()
+  })
+
+  it('removes a deleted opportunity from the mounted pipeline detail immediately', async () => {
+    mockApi([opportunity('NUEVA', 1)])
+    render(<PipelinePage selectedOpportunityId={1} />)
+    await ready()
+
+    expect(screen.getByRole('button', { name: /Abrir oportunidad/ })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Simular eliminación' }))
+
+    expect(screen.queryByRole('button', { name: /Abrir oportunidad/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Oportunidad eliminada del CRM.')).toBeInTheDocument()
   })
 
   it('preserves keyboard drag controls and allows Ganada to move back', async () => {
