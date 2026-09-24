@@ -15,6 +15,46 @@
       "local_adaptation": null
     },
     {
+      "id": "hyperframes-animation",
+      "source": "https://github.com/heygen-com/hyperframes",
+      "audited_commit": "7129340ae8e96fc32bb45102174528dd5ecafb56",
+      "path": ".agents/skills/hyperframes-animation",
+      "license": "Apache-2.0 (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "hyperframes-cli",
+      "source": "https://github.com/heygen-com/hyperframes",
+      "audited_commit": "7129340ae8e96fc32bb45102174528dd5ecafb56",
+      "path": ".agents/skills/hyperframes-cli",
+      "license": "Apache-2.0 (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "hyperframes-core",
+      "source": "https://github.com/heygen-com/hyperframes",
+      "audited_commit": "7129340ae8e96fc32bb45102174528dd5ecafb56",
+      "path": ".agents/skills/hyperframes-core",
+      "license": "Apache-2.0 (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "hyperframes-creative",
+      "source": "https://github.com/heygen-com/hyperframes",
+      "audited_commit": "7129340ae8e96fc32bb45102174528dd5ecafb56",
+      "path": ".agents/skills/hyperframes-creative",
+      "license": "Apache-2.0 (LICENSE)",
+      "local_adaptation": null
+    },
+    {
+      "id": "hyperframes-keyframes",
+      "source": "https://github.com/heygen-com/hyperframes",
+      "audited_commit": "7129340ae8e96fc32bb45102174528dd5ecafb56",
+      "path": ".agents/skills/hyperframes-keyframes",
+      "license": "Apache-2.0 (LICENSE)",
+      "local_adaptation": null
+    },
+    {
       "id": "emil-design-eng",
       "source": "https://github.com/emilkowalski/skills",
       "audited_commit": "da80201b64de7d608a6dc5f723797ce6c65b692b",

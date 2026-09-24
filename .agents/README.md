@@ -13,6 +13,9 @@ de arquitectura, producto ni dependencias por iniciativa propia.
 No se ejecutan automáticamente en todas las tareas. Se aplican sólo cuando corresponde:
 
 - `brag`: producción de video promocional, sólo cuando el usuario lo solicite explícitamente.
+- `hyperframes-core`, `hyperframes-animation`, `hyperframes-creative`,
+  `hyperframes-keyframes` y `hyperframes-cli`: dominios requeridos por `brag`
+  para componer y validar video; no se ejecutan durante la preparación.
 - `emil-design-eng`: implementación de interfaces e interacción.
 - `pick-ui-library`: antes de incorporar una librería UI importante.
 - `review-animations`: revisión de una funcionalidad con motion terminada.
