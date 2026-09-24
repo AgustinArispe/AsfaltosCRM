@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react'
 
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
-import { Brand, BrandWordmark } from '../shared/Brand'
+import { Brand } from '../shared/Brand'
 import { Button } from '../shared/Button'
 
 type LoginError = 'invalid' | 'unexpected' | null
@@ -45,8 +45,8 @@ export function LoginPage() {
   return (
     <main className='login-page'>
       <section className='login-brand-panel' aria-label='Identidad PULSE CRM'>
-        <div className='login-brand-panel__anchor' aria-label='PULSE CRM' role='img'>
-          <BrandWordmark variant='dark' />
+        <div className='login-brand-panel__anchor'>
+          <img alt='PULSE CRM' height={180} src='/pulse-brand-touch.png' width={180} />
         </div>
       </section>
 
