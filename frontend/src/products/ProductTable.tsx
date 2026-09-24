@@ -35,7 +35,7 @@ export function ProductTable({
   onReactivate: (product: Product) => void
 }) {
   return (
-    <section aria-label='Listado de productos FAA' className='product-records'>
+    <section aria-label='Listado de productos PULSE' className='product-records'>
       <ul className='workspace-record-list'>
         {products.map((product) => {
           const isBusy = busyProductIds.has(product.id)
@@ -50,7 +50,7 @@ export function ProductTable({
               </span>
               <span className='workspace-record-identity'>
                 <strong>{product.name}</strong>
-                <span>Producto FAA</span>
+                <span>Producto PULSE</span>
               </span>
               <ProductStatus isActive={product.is_active} />
               {canManage ? (

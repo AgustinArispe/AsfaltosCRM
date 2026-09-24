@@ -44,13 +44,13 @@ export function LoginPage() {
 
   return (
     <main className='login-page'>
-      <section className='login-brand-panel' aria-label='Identidad FAA'>
+      <section className='login-brand-panel' aria-label='Identidad PULSE CRM'>
         <div className='login-brand-panel__top'>
           <div className='login-brand-panel__institution'>
             <span aria-hidden='true' />
             <div>
-              <p>Fábrica Argentina de Asfaltos</p>
-              <p>Sistema interno</p>
+              <p>PULSE CRM</p>
+              <p>Gestión comercial</p>
             </div>
           </div>
           <div className='login-brand-panel__ornament' aria-hidden='true'>
@@ -66,14 +66,14 @@ export function LoginPage() {
           </div>
         </div>
 
-        <div className='login-brand-panel__anchor' aria-label='FAA CRM' role='img'>
-          <img alt='' height={112} src='/Logo-original-Faa.jpeg' width={112} />
-          <span>CRM</span>
+        <div className='login-brand-panel__anchor' aria-label='PULSE CRM' role='img'>
+          <img alt='' height={112} src='/pulse-logo.svg' width={112} />
+          <span>PULSE CRM</span>
         </div>
 
         <div className='login-brand-panel__copy'>
-          <p>Acceso interno al sistema de gestión comercial.</p>
-          <p>Fábrica Argentina de Asfaltos</p>
+          <p>Seguí el ritmo de tus ventas.</p>
+          <p>PULSE CRM</p>
         </div>
       </section>
 

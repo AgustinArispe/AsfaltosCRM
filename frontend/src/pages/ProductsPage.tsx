@@ -153,7 +153,7 @@ export function ProductsPage() {
       </div>
 
       <div className='workspace-action-bar'>
-        <span className='workspace-action-bar__context'>Catálogo comercial FAA</span>
+        <span className='workspace-action-bar__context'>Catálogo comercial PULSE</span>
         {canManage ? (
           <Button onClick={openCreate} variant='primary'>
             <Icon name='plus' />

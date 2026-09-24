@@ -595,7 +595,7 @@ export function OpportunityDetailPage({
         title='Reabrir oportunidad'
       >
         <p className='text-sm text-[var(--text-secondary)]'>
-          El destino lo determina FAA CRM: Negociación.
+          El destino lo determina PULSE CRM: Negociación.
         </p>
       </ConfirmationDialog>
       <LossModal

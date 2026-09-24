@@ -6,7 +6,7 @@ import { AuthProvider } from './auth/AuthContext'
 import './styles.css'
 
 const rootElement = document.getElementById('root')
-if (!rootElement) throw new Error('No se encontró el contenedor raíz de FAA CRM.')
+if (!rootElement) throw new Error('No se encontró el contenedor raíz de PULSE CRM.')
 
 createRoot(rootElement).render(
   <StrictMode>

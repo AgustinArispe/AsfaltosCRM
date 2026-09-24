@@ -224,7 +224,7 @@ export function CustomerImportModal({
             {step === 'review' ? (
               <p className='rounded-[var(--radius-control)] border border-[var(--border-default)] bg-[var(--surface-subtle)] px-3 py-2.5 text-sm leading-6'>
                 {canCommit
-                  ? 'Al confirmar, FAA importará todos los cambios listados de forma atómica. Si algo falla, no se importará ninguna fila.'
+                  ? 'Al confirmar, PULSE CRM importará todos los cambios listados de forma atómica. Si algo falla, no se importará ninguna fila.'
                   : 'Corregí las filas indicadas y volvés a validar el CSV. Esta previsualización no se puede confirmar.'}
               </p>
             ) : (

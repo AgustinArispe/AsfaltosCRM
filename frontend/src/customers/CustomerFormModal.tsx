@@ -257,7 +257,7 @@ export function CustomerFormModal({
               <span>
                 <span className='font-semibold'>Legendario histórico</span>
                 <span className='mt-0.5 block text-xs leading-5 text-[var(--text-secondary)]'>
-                  FAA reconoció esta relación comercial como histórica antes del CRM.
+                  PULSE CRM reconoció esta relación comercial como histórica antes del CRM.
                 </span>
               </span>
             </label>

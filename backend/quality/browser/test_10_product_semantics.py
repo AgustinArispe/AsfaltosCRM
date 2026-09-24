@@ -240,16 +240,18 @@ def test_customers_products_and_users_are_understandable(
     expect(page.get_by_text(re.compile("CSV|Importar")).first).to_be_visible()
 
     wait_for_workspace(page, "products", "Productos")
-    expect(page.get_by_role("region", name="Listado de productos FAA")).to_be_visible()
     expect(
-        page.get_by_role("list").filter(has=page.get_by_text("Producto FAA")).first
+        page.get_by_role("region", name="Listado de productos PULSE")
+    ).to_be_visible()
+    expect(
+        page.get_by_role("list").filter(has=page.get_by_text("Producto PULSE")).first
     ).to_be_visible()
     expect(
         page.get_by_role("button", name=re.compile("Desactivar|Reactivar")).first
     ).to_be_visible()
 
     wait_for_workspace(page, "users", "Usuarios")
-    expect(page.get_by_role("region", name="Usuarios de FAA")).to_be_visible()
+    expect(page.get_by_role("region", name="Usuarios de PULSE CRM")).to_be_visible()
     expect(page.get_by_role("button", name="Nuevo usuario")).to_be_visible()
     expect(page.get_by_role("button", name="Editar").first).to_be_visible()
     expect(page.get_by_role("button", name="Contraseña").first).to_be_visible()

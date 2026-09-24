@@ -1665,8 +1665,8 @@
 }
 
 :root {
-  --brand-green: #01923b;
-  --brand-navy: #1b3b5f;
+  --brand-yellow: #f4c20d;
+  --brand-navy: #173b6d;
   --font-sans: "Manrope", Arial, Helvetica, sans-serif;
   --text-display-size: 2.5rem;
   --text-display-line: 2.75rem;
@@ -1694,7 +1694,7 @@
   --surface-raised: #ffffff;
   --surface-interactive: #f7f8fa;
   --surface-hover: #edf1f5;
-  --surface-selected: #e8eff6;
+  --surface-selected: #e8eef7;
   --surface-overlay: #ffffff;
   --surface: var(--surface-primary);
   --surface-subtle: var(--surface-secondary);
@@ -1702,9 +1702,9 @@
   --text-secondary: #596168;
   --text-tertiary: #626b73;
   --text-inverse: #f8fafb;
-  --brand-accent: var(--brand-green);
+  --brand-accent: var(--brand-yellow);
   --brand-deep: var(--brand-navy);
-  --on-brand: #ffffff;
+  --on-brand: #0f2a4d;
   --text-disabled: #90979d;
   --divider: #e1e4e8;
   --subtle-border: #d4d9de;
@@ -1714,28 +1714,28 @@
   --border-strong: var(--strong-border);
   --border-interactive: #89949e;
   --accent: var(--brand-accent);
-  --accent-hover: #00a643;
-  --accent-pressed: #009a3f;
+  --accent-hover: #d9aa00;
+  --accent-pressed: #bf9300;
   --accent-solid: var(--accent);
   --accent-strong: var(--accent-hover);
   --on-accent: #0b121b;
-  --action-primary: var(--brand-green);
+  --action-primary: var(--brand-yellow);
   --action-primary-hover: var(--accent-hover);
   --action-primary-pressed: var(--accent-pressed);
   --on-action-primary: var(--on-accent);
   --action-secondary: var(--brand-navy);
-  --action-secondary-hover: #142f4d;
-  --action-secondary-subtle: #e8eff6;
+  --action-secondary-hover: #0f2a4d;
+  --action-secondary-subtle: #e8eef7;
   --on-action-secondary: #ffffff;
-  --selection-surface: #e8eff6;
+  --selection-surface: #e8eef7;
   --selection-text: var(--brand-navy);
-  --selection-marker: var(--brand-green);
+  --selection-marker: var(--brand-yellow);
   --success-subtle: #e9f6ee;
   --success-border: #9acaaa;
   --success-text: #1c653d;
   --success-surface: var(--success-subtle);
   --informational-new: var(--brand-navy);
-  --informational-new-muted: #e8eff6;
+  --informational-new-muted: #e8eef7;
   --quoted-pending: #9a6c08;
   --quoted-pending-surface: var(--surface-interactive);
   --negotiation: #7655a8;
@@ -1770,7 +1770,7 @@
   --chart-grid: var(--divider);
   --chart-axis: var(--text-tertiary);
   --chart-primary: var(--brand-navy);
-  --chart-highlight: var(--brand-green);
+  --chart-highlight: var(--brand-yellow);
   --chart-neutral: #69737c;
   --chart-success: #1c653d;
   --chart-destructive: #b52f3b;
@@ -1778,7 +1778,7 @@
   --chart-quoted: var(--quoted-pending);
   --chart-negotiation: var(--negotiation);
   --chart-series-1: var(--brand-navy);
-  --chart-series-2: var(--brand-green);
+  --chart-series-2: var(--brand-yellow);
   --chart-series-3: #7655a8;
   --chart-series-4: #25714d;
   --chart-series-5: #7d8790;
@@ -1825,9 +1825,9 @@
   --text-secondary: #c2cdd6;
   --text-tertiary: #98a8b7;
   --text-inverse: #0b121b;
-  --brand-accent: var(--brand-green);
-  --brand-deep: #a8c7e1;
-  --on-brand: #f3f6f8;
+  --brand-accent: var(--brand-yellow);
+  --brand-deep: #b9d0ec;
+  --on-brand: #0f2a4d;
   --text-disabled: #768797;
   --divider: #2b3a48;
   --subtle-border: #3b4d5d;
@@ -1837,14 +1837,14 @@
   --border-strong: var(--strong-border);
   --border-interactive: #7890a3;
   --accent: var(--brand-accent);
-  --accent-hover: #00ad49;
-  --accent-pressed: #009a3f;
+  --accent-hover: #d9aa00;
+  --accent-pressed: #bf9300;
   --accent-solid: var(--accent);
   --accent-strong: var(--accent-hover);
   --on-accent: #0b121b;
-  --action-primary: var(--brand-green);
-  --action-primary-hover: #00ad49;
-  --action-primary-pressed: #009a3f;
+  --action-primary: var(--brand-yellow);
+  --action-primary-hover: #d9aa00;
+  --action-primary-pressed: #bf9300;
   --on-action-primary: #0b121b;
   --action-secondary: #a8c7e1;
   --action-secondary-hover: #c4daec;
@@ -1852,7 +1852,7 @@
   --on-action-secondary: #102131;
   --selection-surface: #193a55;
   --selection-text: #e4f0f8;
-  --selection-marker: var(--brand-green);
+  --selection-marker: var(--brand-yellow);
   --success-subtle: #163326;
   --success-border: #3d7152;
   --success-text: #9edbb2;
@@ -1887,7 +1887,7 @@
   --chart-grid: var(--divider);
   --chart-axis: var(--text-tertiary);
   --chart-primary: #a8c7e1;
-  --chart-highlight: var(--brand-green);
+  --chart-highlight: var(--brand-yellow);
   --chart-neutral: #b7c2cc;
   --chart-success: #9edbb2;
   --chart-destructive: #f5adb5;
@@ -1895,7 +1895,7 @@
   --chart-quoted: var(--quoted-pending);
   --chart-negotiation: var(--negotiation);
   --chart-series-1: #a8c7e1;
-  --chart-series-2: var(--brand-green);
+  --chart-series-2: var(--brand-yellow);
   --chart-series-3: #c7afe8;
   --chart-series-4: #9edbb2;
   --chart-series-5: #b7c2cc;
@@ -2402,7 +2402,7 @@ table td {
   color: var(--legendary-text);
 }
 .legendary-badge svg {
-  color: var(--brand-green);
+  color: var(--brand-yellow);
 }
 .customer-table,
 .product-table {
@@ -3089,7 +3089,7 @@ a {
   width: 0.2rem;
   height: 2.25rem;
   border-radius: 999px;
-  background: var(--brand-green);
+  background: var(--brand-yellow);
 }
 
 .login-brand-panel__institution p {
@@ -3126,8 +3126,8 @@ a {
 }
 
 .login-brand-panel__ornament span:nth-child(5) {
-  border-color: var(--brand-green);
-  background: var(--brand-green);
+  border-color: var(--brand-yellow);
+  background: var(--brand-yellow);
 }
 
 .login-brand-panel__anchor {
@@ -3245,7 +3245,7 @@ a {
 }
 
 :root[data-theme="dark"] .login-brand-panel__ornament span:nth-child(5) {
-  border-color: var(--brand-green);
+  border-color: var(--brand-yellow);
 }
 
 :root[data-theme="dark"] .login-brand-panel__anchor {
@@ -4770,7 +4770,7 @@ a {
   flex: 0 0 auto;
   place-items: center;
   border-radius: var(--radius-control);
-  background: var(--brand-green);
+  background: var(--brand-yellow);
   color: var(--on-accent);
 }
 .dashboard-attention__icon svg {
@@ -4846,7 +4846,7 @@ a {
   padding: 1rem;
 }
 .dashboard-kpi--accent {
-  background: var(--brand-green);
+  background: var(--brand-yellow);
 }
 .dashboard-kpi p,
 .dashboard-kpi span {
@@ -5267,7 +5267,7 @@ a {
   background: var(--chart-new);
 }
 .dashboard-pipeline-bar__segment--cotizada {
-  background: var(--brand-green);
+  background: var(--brand-yellow);
 }
 .dashboard-pipeline-bar__segment--negociacion {
   background: var(--chart-negotiation);
@@ -5293,7 +5293,7 @@ a {
   color: var(--chart-new);
 }
 .dashboard-marker--cotizada {
-  color: var(--brand-green);
+  color: var(--brand-yellow);
 }
 .dashboard-marker--negociacion {
   color: var(--chart-negotiation);
@@ -7495,7 +7495,7 @@ button.dashboard-comparison-bar:focus-visible {
   }
 }
 
-/* Shared centered popup language: calm FAA structure, one scroll surface and stable controls. */
+/* Shared centered popup language with one scroll surface and stable controls. */
 .crm-modal {
   opacity: 0;
   transition:

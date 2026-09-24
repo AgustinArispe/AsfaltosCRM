@@ -202,7 +202,7 @@ export function UsersPage() {
                 <strong>{sellers}</strong>
               </div>
             </section>
-            <section aria-label='Usuarios de FAA'>
+            <section aria-label='Usuarios de PULSE CRM'>
               <ul className='workspace-record-list user-record-list'>
                 {users.map((item) => (
                   <li
