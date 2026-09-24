@@ -45,7 +45,9 @@ def test_login_desktop_baseline(qa_pages: QaPageFactory, theme: Theme) -> None:
     expect(qa_page.page.get_by_role("img", name="PULSE CRM")).to_be_visible()
     logo = qa_page.page.locator(".login-brand-panel__anchor svg")
     expect(logo).to_be_visible()
-    expect(logo.locator("image")).to_have_attribute("href", "/pulse-brand-lockup-dark.png")
+    expect(logo.locator("image")).to_have_attribute(
+        "href", "/pulse-brand-lockup-dark.png"
+    )
     assert_visual_baseline(qa_page.page, f"login-{theme}", animations="allow")
 
 
