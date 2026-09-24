@@ -7758,9 +7758,6 @@ button.dashboard-comparison-bar:focus-visible {
   width: min(9.5rem, 100%);
   height: auto;
 }
-.login-brand-panel__anchor .pulse-brand__wordmark {
-  width: 100%;
-}
 .pulse-brand__wordmark--dark {
   display: none;
 }
@@ -7769,6 +7766,10 @@ button.dashboard-comparison-bar:focus-visible {
 }
 :root[data-theme="dark"] .pulse-brand__wordmark--dark {
   display: block;
+}
+.login-brand-panel__anchor .pulse-brand__wordmark {
+  display: block;
+  width: 100%;
 }
 .pulse-brand__icon {
   display: block;
