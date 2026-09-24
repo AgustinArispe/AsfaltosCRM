@@ -3075,13 +3075,7 @@ a {
 }
 
 .login-brand-panel__anchor {
-  width: min(100%, 34rem);
-}
-
-.login-brand-panel__anchor img {
-  display: block;
-  width: 100%;
-  height: auto;
+  width: min(100%, 28rem);
 }
 
 .login-form-area {
@@ -7759,19 +7753,21 @@ button.dashboard-comparison-bar:focus-visible {
   align-items: center;
   min-width: 0;
 }
-.pulse-brand__lockup {
+.pulse-brand__wordmark {
   display: block;
-  width: min(11.5rem, 100%);
+  width: min(9.5rem, 100%);
   height: auto;
-  object-fit: contain;
 }
-.pulse-brand__lockup--dark {
+.login-brand-panel__anchor .pulse-brand__wordmark {
+  width: 100%;
+}
+.pulse-brand__wordmark--dark {
   display: none;
 }
-:root[data-theme="dark"] .pulse-brand__lockup--light {
+:root[data-theme="dark"] .pulse-brand__wordmark--light {
   display: none;
 }
-:root[data-theme="dark"] .pulse-brand__lockup--dark {
+:root[data-theme="dark"] .pulse-brand__wordmark--dark {
   display: block;
 }
 .pulse-brand__icon {
@@ -7780,8 +7776,8 @@ button.dashboard-comparison-bar:focus-visible {
   height: 2.25rem;
   object-fit: contain;
 }
-.login-card .pulse-brand__lockup {
-  width: min(13rem, 100%);
+.login-card .pulse-brand__wordmark {
+  width: min(10.5rem, 100%);
 }
 .ui-sidebar__brand:not(.ui-sidebar__brand--collapsed) {
   min-height: 6rem;
