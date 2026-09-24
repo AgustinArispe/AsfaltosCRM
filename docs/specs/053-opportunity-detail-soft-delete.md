@@ -1,9 +1,9 @@
 # CRM-053 — Opportunity Detail Soft Delete
 
-Status: Implemented
+Status: Approved
 Owner: FAA CRM team
 Last updated: 2026-09-23
-Implementation commit: `40070d283e0c042b1153aaebb65673c7c5aad15f`
+Implementation commit: N/A
 
 ## Goal
 
@@ -13,10 +13,11 @@ losing the commercial and communication evidence that belongs to it.
 ## Context
 
 CRM-001 already defines `Opportunity.deleted_at`, idempotent soft deletion, retained
-history, supervisor-only administration, and exclusion from normal operational
-queries. CRM-012 defines commercial projections that exclude soft-deleted
-Opportunities. This feature exposes that existing model from the detail experience
-opened from Pipeline, Ganadas, or Perdidas.
+history, and exclusion from normal operational queries. CRM-012 defines commercial
+projections that exclude soft-deleted Opportunities. The approved CRM-053 revision
+allows every authenticated CRM role that can access an Opportunity Detail to request
+this soft deletion; it replaces the prior supervisor-only deletion permission without
+changing any other role permission.
 
 `docs/BUSINESS_RULES.md` remains authoritative for the commercial lifecycle and
 WhatsApp linking.
@@ -28,7 +29,7 @@ WhatsApp linking.
 
 ## Scope
 
-- Add a supervisor-only secondary destructive action, `Eliminar oportunidad`, to
+- Add an authenticated-role secondary destructive action, `Eliminar oportunidad`, to
   Opportunity Detail on Pipeline, Ganadas, and Perdidas.
 - Require a centered destructive confirmation modal with title `Eliminar oportunidad`,
   the message `¿Seguro que querés eliminar esta oportunidad? Esta acción la quitará de
@@ -53,8 +54,9 @@ WhatsApp linking.
 
 ## Business rules
 
-- Only `SUPERVISOR` may request deletion. `VENDEDOR` cannot see the action and the
-  backend rejects direct requests.
+- Any authenticated current CRM role (`SUPERVISOR` or `VENDEDOR`) that can access an
+  Opportunity Detail may request deletion. The action is visible to both roles and
+  unauthenticated requests remain rejected.
 - Deletion sets `deleted_at`; a repeated DELETE for the same existing Opportunity is
   successful and leaves the retained record unchanged after the first deletion.
 - The Customer and all linked WhatsApp evidence remain intact. Existing query and
@@ -69,9 +71,9 @@ soft-delete side effects for notifications and Legendary recalculation.
 
 ## Contracts / API
 
-- `DELETE /api/opportunities/{opportunity_id}` requires the existing supervisor
-  dependency and responds `204 No Content` for an active or already-deleted existing
-  Opportunity.
+- `DELETE /api/opportunities/{opportunity_id}` requires the existing authenticated
+  user dependency and responds `204 No Content` for an active or already-deleted
+  existing Opportunity.
 - Existing normal detail/list endpoints continue returning `404` / excluding the
   soft-deleted Opportunity according to their current filters.
 
@@ -83,9 +85,11 @@ automatic restore path.
 
 ## Security & permissions
 
-The endpoint uses the established authenticated supervisor authorization. The frontend
-does not treat hidden controls as authorization; it also omits the destructive action
-for vendors. No secret or provider data is added.
+The endpoint uses the established authenticated-user authorization. The frontend does
+not rely on controls as authorization, but renders the destructive action for both
+current authenticated roles. This revision does not broaden access to hidden
+workspaces, administration screens, or unrelated role-protected operations. No secret
+or provider data is added.
 
 ## Edge cases
 
@@ -98,8 +102,9 @@ for vendors. No secret or provider data is added.
 
 ## Acceptance criteria
 
-- AC-01: A supervisor can open the destructive confirmation from a Pipeline, Ganadas,
-  or Perdidas Opportunity Detail; vendors cannot expose or invoke it.
+- AC-01: A supervisor and a vendor can open the destructive confirmation from a
+  Pipeline, Ganadas, or Perdidas Opportunity Detail; unauthenticated requests are
+  rejected.
 - AC-02: The modal uses the required Spanish title/message, destructive red confirm
   button, Cancel action, and behaves correctly in Light and Dark themes.
 - AC-03: Cancel, close, and Escape make no DELETE request and leave the detail and
@@ -126,4 +131,5 @@ None.
 
 Use the existing shared `ConfirmationDialog`, `Modal`, `OpportunityService`, query
 filters, and workspace state patterns. Do not create a parallel delete implementation
-or alter cascade constraints.
+or alter cascade constraints. Change only the delete-operation authorization; retain
+all unrelated role permissions.
