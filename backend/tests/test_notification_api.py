@@ -69,6 +69,96 @@ def test_notifications_require_authentication(api_client: TestClient) -> None:
     del api_client.headers["Authorization"]
     assert api_client.get("/api/notifications").status_code == 401
     assert api_client.post("/api/notifications/read-all").status_code == 401
+    assert api_client.delete("/api/notifications/1").status_code == 401
+
+
+def test_both_roles_soft_delete_visible_notification_globally_and_preserve_evidence(
+    api_client: TestClient,
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    created_at = datetime.now(UTC) - timedelta(minutes=5)
+    notification = make_notification(
+        db_session,
+        created_at=created_at,
+        user_id=supervisor_user.id,
+    )
+    vendor = User(
+        full_name="Vendedora elimina notificaciones",
+        email=f"notification-delete-{uuid4().hex}@faa.test",
+        password_hash="hashed-password",
+        role=UserRole.VENDEDOR,
+    )
+    non_recipient = User(
+        full_name="Vendedora sin recibo",
+        email=f"notification-no-recipient-{uuid4().hex}@faa.test",
+        password_hash="hashed-password",
+        role=UserRole.VENDEDOR,
+    )
+    db_session.add_all([vendor, non_recipient])
+    db_session.flush()
+    db_session.add(
+        NotificationRecipient(
+            notification_id=notification.id,
+            user_id=vendor.id,
+            created_at=created_at,
+            read_at=created_at + timedelta(minutes=1),
+        )
+    )
+    db_session.commit()
+    notification_id = notification.id
+    opportunity_id = notification.opportunity_id
+    supervisor_id = supervisor_user.id
+    vendor_id = vendor.id
+    non_recipient_id = non_recipient.id
+    db_session.rollback()
+
+    api_client.headers["Authorization"] = (
+        f"Bearer {create_access_token(non_recipient_id)}"
+    )
+    assert api_client.delete(f"/api/notifications/{notification_id}").status_code == 404
+
+    api_client.headers["Authorization"] = f"Bearer {create_access_token(vendor_id)}"
+    assert api_client.delete(f"/api/notifications/{notification_id}").status_code == 204
+    assert api_client.get(
+        "/api/notifications", params={"include_resolved": True}
+    ).json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 20,
+        "total": 0,
+    }
+
+    api_client.headers["Authorization"] = f"Bearer {create_access_token(supervisor_id)}"
+    assert api_client.delete(f"/api/notifications/{notification_id}").status_code == 204
+    assert api_client.get(
+        "/api/notifications", params={"include_resolved": True}
+    ).json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 20,
+        "total": 0,
+    }
+    assert (
+        api_client.post(f"/api/notifications/{notification_id}/read").status_code == 404
+    )
+
+    persisted = db_session.get(Notification, notification_id)
+    assert persisted is not None
+    assert persisted.deleted_at is not None
+    assert db_session.get(Opportunity, opportunity_id) is not None
+    recipients = list(
+        db_session.scalars(
+            select(NotificationRecipient).where(
+                NotificationRecipient.notification_id == notification_id
+            )
+        )
+    )
+    assert {recipient.user_id for recipient in recipients} == {supervisor_id, vendor_id}
+    vendor_recipient = next(
+        recipient for recipient in recipients if recipient.user_id == vendor_id
+    )
+    assert vendor_recipient.read_at == created_at + timedelta(minutes=1)
 
 
 def test_list_returns_active_typed_detail_with_stable_pagination_order(

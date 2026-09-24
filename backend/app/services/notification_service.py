@@ -116,7 +116,7 @@ class NotificationService:
         current_user_id: int,
         notification_type: NotificationType | None = None,
     ) -> tuple[list[UserNotification], int]:
-        filters: list[ColumnElement[bool]] = []
+        filters: list[ColumnElement[bool]] = [Notification.deleted_at.is_(None)]
         if unread_only:
             filters.append(NotificationRecipient.read_at.is_(None))
         if not include_resolved:
@@ -157,6 +157,7 @@ class NotificationService:
             .where(
                 Notification.id == notification_id,
                 NotificationRecipient.user_id == current_user_id,
+                Notification.deleted_at.is_(None),
             )
             .options(
                 joinedload(Notification.opportunity).joinedload(Opportunity.customer)
@@ -190,6 +191,18 @@ class NotificationService:
     ) -> UserNotification:
         read_at = self._aware_utc(now) if is_read else None
         with self._session.begin():
+            notification = self._session.scalar(
+                select(Notification)
+                .join(NotificationRecipient)
+                .where(
+                    Notification.id == notification_id,
+                    NotificationRecipient.user_id == current_user_id,
+                    Notification.deleted_at.is_(None),
+                )
+                .with_for_update(of=Notification)
+            )
+            if notification is None:
+                raise EntityNotFoundError("Notification", notification_id)
             recipient = self._session.scalar(
                 select(NotificationRecipient)
                 .where(
@@ -213,6 +226,29 @@ class NotificationService:
                 self._session.flush()
             return self._delivery(recipient.notification, recipient.read_at)
 
+    def soft_delete_notification(
+        self,
+        notification_id: int,
+        *,
+        current_user_id: int,
+        now: datetime,
+    ) -> None:
+        deleted_at = self._aware_utc(now)
+        with self._session.begin():
+            notification = self._session.scalar(
+                select(Notification)
+                .join(NotificationRecipient)
+                .where(
+                    Notification.id == notification_id,
+                    NotificationRecipient.user_id == current_user_id,
+                )
+                .with_for_update(of=Notification)
+            )
+            if notification is None:
+                raise EntityNotFoundError("Notification", notification_id)
+            if notification.deleted_at is None:
+                notification.deleted_at = deleted_at
+
     def mark_all_active_as_read(self, *, current_user_id: int, now: datetime) -> int:
         read_at = self._aware_utc(now)
         with self._session.begin():
@@ -223,7 +259,8 @@ class NotificationService:
                     NotificationRecipient.read_at.is_(None),
                     NotificationRecipient.notification_id.in_(
                         select(Notification.id).where(
-                            Notification.resolved_at.is_(None)
+                            Notification.resolved_at.is_(None),
+                            Notification.deleted_at.is_(None),
                         )
                     ),
                 )

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Response, status
 
 from app.api.dependencies import CurrentUser, DatabaseSession, Pagination
 from app.models import NotificationType
@@ -83,6 +83,24 @@ def set_notification_read_state(
         now=datetime.now(UTC),
     )
     return NotificationResponse.model_validate(notification)
+
+
+@router.delete(
+    "/{notification_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Soft-delete one global operational notification",
+)
+def delete_notification(
+    notification_id: int,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> Response:
+    NotificationService(session).soft_delete_notification(
+        notification_id,
+        current_user_id=current_user.id,
+        now=datetime.now(UTC),
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(

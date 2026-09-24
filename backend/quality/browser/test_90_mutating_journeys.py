@@ -216,6 +216,53 @@ def test_notifications_read_action_and_badge_synchronize(
 
 
 @pytest.mark.mutating
+def test_both_roles_can_delete_notification_globally_without_reload(
+    qa_pages: QaPageFactory,
+) -> None:
+    vendor_page = qa_pages.create(
+        role="VENDEDOR", artifact_suffix="delete-notification-vendor"
+    )
+    vendor = vendor_page.page
+    wait_for_workspace(vendor, "notifications")
+    vendor_delete = vendor.get_by_role(
+        "button", name=re.compile("Eliminar notificación:")
+    ).first
+    vendor_name = vendor_delete.get_attribute("aria-label")
+    assert vendor_name is not None
+    vendor_delete.click()
+    vendor_confirmation = vendor.get_by_role("dialog", name="Eliminar notificación")
+    expect(
+        vendor_confirmation.get_by_text(
+            "¿Seguro que querés eliminar esta notificación? Dejará de estar disponible para todo el equipo."
+        )
+    ).to_be_visible()
+    vendor_confirmation.get_by_role("button", name="Cancelar").click()
+
+    supervisor_page = qa_pages.create(
+        role="SUPERVISOR",
+        theme="dark",
+        artifact_suffix="delete-notification-supervisor",
+    )
+    supervisor = supervisor_page.page
+    wait_for_workspace(supervisor, "notifications")
+    supervisor_delete = supervisor.get_by_role("button", name=vendor_name)
+    supervisor_delete.click()
+    confirmation = supervisor.get_by_role("dialog", name="Eliminar notificación")
+    expect(confirmation.get_by_role("button", name="Cancelar")).to_be_focused()
+    with supervisor.expect_response(
+        lambda response: (
+            response.request.method == "DELETE"
+            and re.search(r"/api/notifications/\d+$", response.url) is not None
+            and response.status == 204
+        )
+    ):
+        confirmation.get_by_role(
+            "button", name="Eliminar notificación", exact=True
+        ).click()
+    expect(supervisor.get_by_role("button", name=vendor_name)).to_have_count(0)
+
+
+@pytest.mark.mutating
 def test_supervisor_deletes_opportunity_from_detail_without_reload(
     qa_pages: QaPageFactory,
 ) -> None:

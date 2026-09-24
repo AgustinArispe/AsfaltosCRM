@@ -7297,7 +7297,7 @@ button.dashboard-comparison-bar:focus-visible {
 .notification-row__chevron {
   width: 1.15rem;
   height: 1.15rem;
-  margin-right: 3.1rem;
+  margin-right: 6.2rem;
   color: var(--text-tertiary);
   transition: transform 160ms var(--ease-ui);
 }
@@ -7329,6 +7329,37 @@ button.dashboard-comparison-bar:focus-visible {
   outline-offset: 2px;
 }
 .notification-row__read-action:disabled {
+  cursor: wait;
+  border-color: var(--disabled-border);
+  background: var(--disabled-surface);
+  color: var(--disabled-text);
+}
+.notification-row__delete-action {
+  position: absolute;
+  top: 50%;
+  right: 4rem;
+  display: inline-grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--destructive-border);
+  border-radius: var(--radius-control);
+  background: var(--destructive-subtle);
+  color: var(--destructive-text);
+  transform: translateY(-50%);
+  transition:
+    background-color 160ms var(--ease-ui),
+    border-color 160ms var(--ease-ui),
+    color 160ms var(--ease-ui);
+}
+.notification-row__delete-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--destructive-subtle) 72%, var(--destructive-border));
+}
+.notification-row__delete-action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus-ring) 42%, transparent);
+  outline-offset: 2px;
+}
+.notification-row__delete-action:disabled {
   cursor: wait;
   border-color: var(--disabled-border);
   background: var(--disabled-surface);
@@ -7452,7 +7483,8 @@ button.dashboard-comparison-bar:focus-visible {
   .workspace-record-chevron,
   .notification-row,
   .notification-row__chevron,
-  .notification-row__read-action {
+  .notification-row__read-action,
+  .notification-row__delete-action {
     transition: none;
   }
   .workspace-record-card:hover,

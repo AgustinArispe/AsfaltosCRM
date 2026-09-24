@@ -291,6 +291,33 @@ def test_soft_delete_resolves_active_notification(db_session: Session) -> None:
     assert notification.resolved_at is not None
 
 
+def test_soft_deleted_notification_is_not_regenerated_in_same_stale_episode(
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    opportunity = make_opportunity(
+        db_session,
+        status=OpportunityStatus.NUEVA,
+        age_days=15,
+    )
+    assert generate(db_session) == 1
+    notification = notifications_for(db_session, opportunity.id)[0]
+    notification_id = notification.id
+    supervisor_id = supervisor_user.id
+    db_session.rollback()
+
+    NotificationService(db_session).soft_delete_notification(
+        notification_id,
+        current_user_id=supervisor_id,
+        now=NOW + timedelta(minutes=1),
+    )
+
+    assert generate(db_session, now=NOW + timedelta(minutes=2)) == 0
+    notifications = notifications_for(db_session, opportunity.id)
+    assert len(notifications) == 1
+    assert notifications[0].deleted_at == NOW + timedelta(minutes=1)
+
+
 def test_mark_read_is_user_specific_idempotent_and_does_not_resolve(
     db_session: Session,
     supervisor_user: User,

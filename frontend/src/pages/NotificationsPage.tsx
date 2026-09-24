@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 
 import {
+  deleteNotification,
   markAllActiveNotificationsAsRead,
   markNotificationAsRead,
   type NotificationView,
@@ -14,6 +15,7 @@ import { useNotifications } from '../notifications/useNotifications'
 import type { OpportunityStatus } from '../pipeline/types'
 import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
+import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { formatDateTime, formatTimeInStage } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
 import { OverdueBadge } from '../shared/OverdueBadge'
@@ -70,11 +72,13 @@ function NotificationSkeleton() {
 function NotificationRow({
   isPending,
   notification,
+  onDelete,
   onOpen,
   onToggleReadState,
 }: {
   isPending: boolean
   notification: OperationalNotification
+  onDelete: (notification: OperationalNotification) => void
   onOpen: (notification: OperationalNotification) => void
   onToggleReadState: (notification: OperationalNotification) => void
 }) {
@@ -83,6 +87,7 @@ function NotificationRow({
   const statusLabel = STATUS_LABELS[notification.opportunity.status]
   const isNewLead = notification.type === 'NEW_LEAD'
   const toggleLabel = isUnread ? 'Marcar como leída' : 'Marcar como no leída'
+  const deleteLabel = `Eliminar notificación: ${isNewLead ? 'Nueva oportunidad recibida' : '¡Atrasado!'} · ${identityFor(notification)}`
   return (
     <li className='notification-row-wrapper'>
       <button
@@ -128,6 +133,16 @@ function NotificationRow({
       >
         <Icon className='size-4' name={isUnread ? 'check' : 'inbox'} />
       </button>
+      <button
+        aria-label={deleteLabel}
+        className='notification-row__delete-action'
+        disabled={isPending}
+        onClick={() => onDelete(notification)}
+        title='Eliminar notificación'
+        type='button'
+      >
+        <Icon className='size-4' name='trash' />
+      </button>
     </li>
   )
 }
@@ -139,6 +154,11 @@ export function NotificationsPage() {
   )
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
   const [isMarkingAll, setIsMarkingAll] = useState(false)
+  const [notificationToDelete, setNotificationToDelete] = useState<OperationalNotification | null>(
+    null,
+  )
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [readError, setReadError] = useState<string | null>(() => {
     const saved = window.sessionStorage.getItem(READ_ERROR_STORAGE_KEY)
     window.sessionStorage.removeItem(READ_ERROR_STORAGE_KEY)
@@ -160,6 +180,7 @@ export function NotificationsPage() {
     items,
     loadMore,
     pendingFirstPage,
+    removeNotification,
     refresh,
     removeActiveUnread,
     reconcileNotification,
@@ -251,6 +272,34 @@ export function NotificationsPage() {
       .finally(() => setIsMarkingAll(false))
   }
 
+  const closeDeleteConfirmation = () => {
+    if (isDeleting) return
+    setNotificationToDelete(null)
+    setDeleteError(null)
+  }
+
+  const confirmDelete = () => {
+    const notification = notificationToDelete
+    if (!notification || isDeleting) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    setPending(notification.id, true)
+    void deleteNotification(notification.id, session)
+      .then(() => {
+        removeNotification(notification.id)
+        if (notification.read_at === null && notification.resolved_at === null)
+          attention?.adjustCount(-1)
+        attention?.refresh()
+        setNotificationToDelete(null)
+        setAnnouncement('Notificación eliminada para todo el equipo.')
+      })
+      .catch(() => setDeleteError('No pudimos eliminar la notificación. Intentá nuevamente.'))
+      .finally(() => {
+        setIsDeleting(false)
+        setPending(notification.id, false)
+      })
+  }
+
   return (
     <section aria-label='Historial de notificaciones' className='notifications-page'>
       <div className='notifications-page__controls'>
@@ -333,6 +382,10 @@ export function NotificationsPage() {
               isPending={pendingIds.has(notification.id)}
               key={notification.id}
               notification={notification}
+              onDelete={(current) => {
+                setDeleteError(null)
+                setNotificationToDelete(current)
+              }}
               onOpen={(current) => {
                 lastActivatedRow.current = document.activeElement as HTMLButtonElement | null
                 openNotification(current)
@@ -342,6 +395,23 @@ export function NotificationsPage() {
           ))}
         </ol>
       )}
+      <ConfirmationDialog
+        confirmLabel='Eliminar notificación'
+        description='Esta acción afecta a todo el equipo.'
+        error={deleteError}
+        isOpen={notificationToDelete !== null}
+        isPending={isDeleting}
+        onCancel={closeDeleteConfirmation}
+        onConfirm={confirmDelete}
+        pendingLabel='Eliminando…'
+        title='Eliminar notificación'
+        variant='danger'
+      >
+        <p className='text-sm leading-6 text-[var(--text-secondary)]'>
+          ¿Seguro que querés eliminar esta notificación? Dejará de estar disponible para todo el
+          equipo.
+        </p>
+      </ConfirmationDialog>
       {items.length < total ? (
         <div className='notifications-page__load-more'>
           <Button disabled={isLoadingMore} onClick={loadMore} size='compact'>

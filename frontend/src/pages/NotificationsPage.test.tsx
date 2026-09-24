@@ -66,9 +66,11 @@ function response(body: unknown, status = 200): Response {
 }
 
 function mockApi({
+  failDelete = false,
   failRead = false,
   failInitial = false,
 }: {
+  failDelete?: boolean
   failRead?: boolean
   failInitial?: boolean
 } = {}) {
@@ -114,6 +116,11 @@ function mockApi({
       const isRead = JSON.parse(String(init?.body)).is_read as boolean
       return Promise.resolve(
         response({ ...olderActive, read_at: isRead ? olderActive.read_at : null }),
+      )
+    }
+    if (url.pathname === '/api/notifications/2' && init?.method === 'DELETE') {
+      return Promise.resolve(
+        failDelete ? response({ detail: 'fail' }, 500) : new Response(null, { status: 204 }),
       )
     }
     if (url.pathname === '/api/notifications/read-all')
@@ -210,6 +217,79 @@ describe('NotificationsPage', () => {
       '/api/notifications/2/read-state',
       expect.objectContaining({ method: 'PUT' }),
     )
+  })
+
+  it('confirms global deletion, removes the row, and reconciles unread attention', async () => {
+    const fetchMock = mockApi()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<PageWithAttention />)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Eliminar notificación: ¡Atrasado! · Obra nueva · Constructora FAA',
+      }),
+    )
+
+    const confirmation = screen.getByRole('dialog', { name: 'Eliminar notificación' })
+    expect(confirmation).toHaveTextContent('Dejará de estar disponible para todo el equipo')
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar notificación' }))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: /¡Atrasado!: Obra nueva/ }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.getByLabelText('Contador sin leer')).toHaveTextContent('0')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/notifications/2',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+    expect(window.location.pathname).toBe('/notifications')
+  })
+
+  it('leaves a notification unchanged when global deletion is cancelled or dismissed with Escape', async () => {
+    const fetchMock = mockApi()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<NotificationsPage />)
+    const deleteAction = await screen.findByRole('button', {
+      name: 'Eliminar notificación: ¡Atrasado! · Obra nueva · Constructora FAA',
+    })
+
+    fireEvent.click(deleteAction)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByRole('button', { name: /¡Atrasado!: Obra nueva/ })).toBeInTheDocument()
+
+    fireEvent.click(deleteAction)
+    fireEvent(
+      screen.getByRole('dialog', { name: 'Eliminar notificación' }),
+      new Event('cancel', { cancelable: true }),
+    )
+    expect(screen.queryByRole('dialog', { name: 'Eliminar notificación' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /¡Atrasado!: Obra nueva/ })).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/notifications/2',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('keeps the confirmation open with a retryable error when global deletion fails', async () => {
+    vi.stubGlobal('fetch', mockApi({ failDelete: true }))
+    render(<NotificationsPage />)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Eliminar notificación: ¡Atrasado! · Obra nueva · Constructora FAA',
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar notificación' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos eliminar la notificación',
+    )
+    expect(screen.getByRole('dialog', { name: 'Eliminar notificación' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /¡Atrasado!: Obra nueva/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Eliminar notificación' })).toBeEnabled()
   })
 
   it('changes read to unread without navigation and leaves resolved attention unchanged', async () => {

@@ -74,6 +74,13 @@ export function setNotificationReadState(
   })
 }
 
+export function deleteNotification(notificationId: number, session: ApiSession): Promise<void> {
+  return apiRequest<void>(`/notifications/${notificationId}`, {
+    ...session,
+    method: 'DELETE',
+  })
+}
+
 export function markAllActiveNotificationsAsRead(
   session: ApiSession,
 ): Promise<NotificationReadAllResponse> {
