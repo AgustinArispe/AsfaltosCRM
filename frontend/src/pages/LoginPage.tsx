@@ -45,35 +45,8 @@ export function LoginPage() {
   return (
     <main className='login-page'>
       <section className='login-brand-panel' aria-label='Identidad PULSE CRM'>
-        <div className='login-brand-panel__top'>
-          <div className='login-brand-panel__institution'>
-            <span aria-hidden='true' />
-            <div>
-              <p>PULSE CRM</p>
-              <p>Gestión comercial</p>
-            </div>
-          </div>
-          <div className='login-brand-panel__ornament' aria-hidden='true'>
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-
         <div className='login-brand-panel__anchor' aria-label='PULSE CRM' role='img'>
-          <img alt='' height={112} src='/pulse-logo.svg' width={112} />
-          <span>PULSE CRM</span>
-        </div>
-
-        <div className='login-brand-panel__copy'>
-          <p>Seguí el ritmo de tus ventas.</p>
-          <p>PULSE CRM</p>
+          <img alt='' height={157} src='/pulse-brand-lockup-dark.png' width={531} />
         </div>
       </section>
 

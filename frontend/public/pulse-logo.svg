@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title">
-  <title id="title">PULSE CRM</title>
-  <rect width="240" height="240" rx="43" fill="#F4C20D"/>
-  <text x="120" y="117" fill="#0F2A4D" font-family="Manrope, Arial, sans-serif" font-size="49" font-weight="800" letter-spacing="-1.5" text-anchor="middle">PULSE</text>
-  <rect x="58" y="133" width="124" height="2" rx="1" fill="#173B6D" opacity=".46"/>
-  <text x="120" y="174" fill="#173B6D" font-family="Manrope, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="7" text-anchor="middle">CRM</text>
-</svg>
