@@ -182,7 +182,7 @@ def get_opportunity(
 def delete_opportunity(
     opportunity_id: int,
     session: DatabaseSession,
-    _supervisor: SupervisorUser,
+    _current_user: CurrentUser,
 ) -> Response:
     OpportunityService(session).soft_delete_opportunity(opportunity_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

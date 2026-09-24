@@ -184,14 +184,14 @@ describe('OpportunityDetailPage', () => {
     expect(within(confirmation).getByRole('button', { name: 'Eliminar oportunidad' })).toBeEnabled()
   })
 
-  it('hides opportunity deletion from vendors', async () => {
+  it('shows opportunity deletion to vendors who can access the detail', async () => {
     authState.user.role = 'VENDEDOR'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, makeDetail())))
 
     render(<OpportunityDetailPage opportunityId={42} />)
 
     await screen.findByRole('heading', { name: 'Del Sur SA' })
-    expect(screen.queryByRole('button', { name: 'Eliminar oportunidad' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Eliminar oportunidad' })).toBeVisible()
   })
 
   it('shows a loading state while requesting the opportunity', () => {

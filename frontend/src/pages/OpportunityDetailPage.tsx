@@ -66,7 +66,7 @@ export function OpportunityDetailPage({
   opportunityId: number
   surface?: 'pipeline' | 'lost' | 'won'
 }) {
-  const { token, logout, user } = useAuth()
+  const { token, logout } = useAuth()
   const returnFocusRef = useRef<HTMLElement | null>(
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
   )
@@ -419,21 +419,20 @@ export function OpportunityDetailPage({
       ) : null}
     </>
   ) : undefined
-  const secondaryActions =
-    opportunity && user?.role === 'SUPERVISOR' ? (
-      <Button
-        className='!border-[var(--destructive-border)] !bg-[var(--destructive-subtle)] !text-[var(--destructive-text)] hover:!bg-[var(--destructive-subtle)] hover:brightness-95'
-        disabled={isDeleting}
-        onClick={() => {
-          setDeleteError(null)
-          setIsDeleteConfirmationOpen(true)
-        }}
-        variant='secondary'
-      >
-        <Icon name='trash' />
-        Eliminar oportunidad
-      </Button>
-    ) : undefined
+  const secondaryActions = opportunity ? (
+    <Button
+      className='!border-[var(--destructive-border)] !bg-[var(--destructive-subtle)] !text-[var(--destructive-text)] hover:!bg-[var(--destructive-subtle)] hover:brightness-95'
+      disabled={isDeleting}
+      onClick={() => {
+        setDeleteError(null)
+        setIsDeleteConfirmationOpen(true)
+      }}
+      variant='secondary'
+    >
+      <Icon name='trash' />
+      Eliminar oportunidad
+    </Button>
+  ) : undefined
 
   if (opportunity && isQuoteOpen) {
     return (

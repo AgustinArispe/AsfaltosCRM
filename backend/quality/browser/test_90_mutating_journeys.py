@@ -225,30 +225,16 @@ def test_supervisor_deletes_opportunity_from_detail_without_reload(
         name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
     ).click()
     vendor_detail = vendor_page.page.get_by_role("dialog", name="Constructora del Sur")
-    expect(
-        vendor_detail.get_by_role("button", name="Eliminar oportunidad")
-    ).to_have_count(0)
-
-    light_page = qa_pages.create(
-        role="SUPERVISOR", artifact_suffix="delete-supervisor-light"
-    )
-    light_page.page.get_by_role(
-        "button",
-        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
-    ).click()
-    light_confirmation_page = light_page.page
-    light_confirmation_page.get_by_role(
-        "dialog", name="Constructora del Sur"
-    ).get_by_role("button", name="Eliminar oportunidad").click()
-    light_confirmation = light_confirmation_page.get_by_role(
+    vendor_detail.get_by_role("button", name="Eliminar oportunidad").click()
+    vendor_confirmation = vendor_page.page.get_by_role(
         "dialog", name="Eliminar oportunidad"
     )
     expect(
-        light_confirmation.get_by_text(
+        vendor_confirmation.get_by_text(
             "¿Seguro que querés eliminar esta oportunidad? Esta acción la quitará de las vistas comerciales."
         )
     ).to_be_visible()
-    light_confirmation.get_by_role("button", name="Cancelar").click()
+    vendor_confirmation.get_by_role("button", name="Cancelar").click()
 
     supervisor_page = qa_pages.create(
         role="SUPERVISOR", theme="dark", artifact_suffix="delete-supervisor"

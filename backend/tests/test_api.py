@@ -578,6 +578,23 @@ def test_supervisor_soft_deletes_opportunity_idempotently(
     assert persisted_customer.deleted_at is None
 
 
+def test_opportunity_soft_delete_requires_authentication(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    customer = create_customer(api_client, "Cliente eliminación autenticada")
+    opportunity = create_opportunity(api_client, customer.id)
+    del api_client.headers["Authorization"]
+
+    response = api_client.delete(f"/api/opportunities/{opportunity.id}")
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+    persisted = db_session.get(Opportunity, opportunity.id)
+    assert persisted is not None
+    assert persisted.deleted_at is None
+
+
 def test_openapi_exposes_crm_routes(api_client: TestClient) -> None:
     response = api_client.get("/openapi.json")
 

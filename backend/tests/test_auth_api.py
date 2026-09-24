@@ -485,7 +485,6 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
     )
     second_id = second_opportunity.json()["id"]
     second_detail = api_client.get(f"/api/opportunities/{second_id}").json()
-    assert api_client.delete(f"/api/opportunities/{second_id}").status_code == 403
     assert (
         api_client.put(
             f"/api/opportunities/{second_id}/assignee",
@@ -518,6 +517,10 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
     )
     assert assigned.status_code == 200
     assert assigned.json()["assigned_user"]["id"] == vendor.id
+
+    authenticate_as(api_client, vendor)
+    assert api_client.delete(f"/api/opportunities/{second_id}").status_code == 204
+    assert api_client.delete(f"/api/opportunities/{second_id}").status_code == 204
 
     history = db_session.scalars(
         select(OpportunityStatusHistory)
