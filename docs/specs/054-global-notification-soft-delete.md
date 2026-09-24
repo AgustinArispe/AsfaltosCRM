@@ -1,9 +1,9 @@
 # CRM-054 — Global Notification Soft Delete
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-24
-Implementation commit: N/A
+Implementation commit: f7d0fd22e10a563a35ca8abe2cf5952d60e76b6a
 
 ## Goal
 
