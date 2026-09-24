@@ -7,6 +7,14 @@
   },
   "skills": [
     {
+      "id": "brag",
+      "source": "https://github.com/latent-spaces/brag",
+      "audited_commit": "c893c5ed52aed84e3e2ee56787de869fccdae6b0",
+      "path": ".agents/skills/brag",
+      "license": "MIT (LICENSE)",
+      "local_adaptation": null
+    },
+    {
       "id": "emil-design-eng",
       "source": "https://github.com/emilkowalski/skills",
       "audited_commit": "da80201b64de7d608a6dc5f723797ce6c65b692b",

@@ -1,1 +1,2 @@
 backend/app/demo_media/*.pdf binary
+.agents/skills/brag/** whitespace=-blank-at-eof,-trailing-space

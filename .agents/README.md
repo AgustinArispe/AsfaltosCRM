@@ -12,6 +12,7 @@ de arquitectura, producto ni dependencias por iniciativa propia.
 
 No se ejecutan automáticamente en todas las tareas. Se aplican sólo cuando corresponde:
 
+- `brag`: producción de video promocional, sólo cuando el usuario lo solicite explícitamente.
 - `emil-design-eng`: implementación de interfaces e interacción.
 - `pick-ui-library`: antes de incorporar una librería UI importante.
 - `review-animations`: revisión de una funcionalidad con motion terminada.
