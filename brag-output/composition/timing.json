@@ -1,0 +1,133 @@
+{
+  "duration": 30,
+  "fps": 30,
+  "frames": 900,
+  "width": 1920,
+  "height": 1080,
+  "theme": "light",
+  "audio": "none",
+  "sceneBoundaries": [
+    0,
+    2.5,
+    6,
+    11,
+    16,
+    22,
+    27,
+    30
+  ],
+  "overlays": [
+    {
+      "id": "opening-copy",
+      "copy": "Segu\u00ed el ritmo de tus ventas",
+      "in": [
+        0.1,
+        0.4
+      ],
+      "hold": [
+        0.4,
+        2.3
+      ],
+      "out": [
+        2.3,
+        2.5
+      ]
+    },
+    {
+      "id": "arrival-copy",
+      "copy": "Tus oportunidades llegan a un solo lugar.",
+      "in": [
+        2.6,
+        2.9
+      ],
+      "hold": [
+        2.9,
+        5.7
+      ],
+      "out": [
+        5.7,
+        5.9
+      ]
+    },
+    {
+      "id": "pipeline-copy",
+      "copy": "Cada oportunidad, bajo control.",
+      "in": [
+        6.1,
+        6.4
+      ],
+      "hold": [
+        6.4,
+        10.6
+      ],
+      "out": [
+        10.6,
+        10.8
+      ]
+    },
+    {
+      "id": "detail-copy",
+      "copy": "Todo el contexto. En un solo lugar.",
+      "in": [
+        11.1,
+        11.4
+      ],
+      "hold": [
+        11.4,
+        15.6
+      ],
+      "out": [
+        15.6,
+        15.8
+      ]
+    },
+    {
+      "id": "whatsapp-copy",
+      "copy": "Conversaciones conectadas con tus oportunidades.",
+      "in": [
+        16.1,
+        16.4
+      ],
+      "hold": [
+        16.4,
+        21.6
+      ],
+      "out": [
+        21.6,
+        21.8
+      ]
+    },
+    {
+      "id": "dashboard-copy",
+      "copy": "Decid\u00ed con datos reales.",
+      "in": [
+        22.1,
+        22.4
+      ],
+      "hold": [
+        22.4,
+        26.6
+      ],
+      "out": [
+        26.6,
+        26.8
+      ]
+    },
+    {
+      "id": "closing-copy",
+      "copy": "Segu\u00ed el ritmo de tus ventas",
+      "in": [
+        27.2,
+        27.5
+      ],
+      "hold": [
+        27.5,
+        30
+      ],
+      "out": [
+        30,
+        30
+      ]
+    }
+  ]
+}

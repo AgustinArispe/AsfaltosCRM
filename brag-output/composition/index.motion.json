@@ -1,0 +1,42 @@
+{
+  "duration": 30,
+  "assertions": [
+    {
+      "kind": "appearsBy",
+      "selector": "#opening-logo",
+      "bySec": 0.5
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#opening-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#arrival-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#pipeline-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#detail-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#whatsapp-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#dashboard-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#closing-copy"
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#closing-logo"
+    }
+  ]
+}

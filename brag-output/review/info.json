@@ -1,0 +1,18 @@
+{
+  "name": "composition",
+  "resolution": "landscape",
+  "width": 1920,
+  "height": 1080,
+  "duration": 30,
+  "elements": 8,
+  "tracks": 2,
+  "types": {
+    "text": 8
+  },
+  "size": 8984287,
+  "_meta": {
+    "version": "0.8.74",
+    "latestVersion": "0.8.73",
+    "updateAvailable": false
+  }
+}

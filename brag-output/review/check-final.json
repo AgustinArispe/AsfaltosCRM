@@ -1,0 +1,342 @@
+{
+  "ok": true,
+  "strict": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 15,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 2 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"opening\"> is a timeline element that contains nested <div id=\"opening-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#opening",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"opening\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"arrival\"> is a timeline element that contains nested <div id=\"arrival-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#arrival",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"arrival\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"pipeline\"> is a timeline element that contains nested <div id=\"pipeline-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#pipeline",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"pipeline\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"detail\"> is a timeline element that contains nested <div id=\"detail-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#detail",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"detail\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"whatsapp\"> is a timeline element that contains nested <div id=\"whatsapp-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#whatsapp",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"whatsapp\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"dashboard\"> is a timeline element that contains nested <div id=\"dashboard-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#dashboard",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"dashboard\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"closing\"> is a timeline element that contains nested <div id=\"closing-visual\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#closing",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"closing\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"opening-copy-clip\"> is a timeline element that contains nested <p id=\"opening-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#opening-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"opening-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"arrival-copy-clip\"> is a timeline element that contains nested <p id=\"arrival-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#arrival-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"arrival-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"pipeline-copy-clip\"> is a timeline element that contains nested <p id=\"pipeline-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#pipeline-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"pipeline-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"detail-copy-clip\"> is a timeline element that contains nested <p id=\"detail-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#detail-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"detail-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"whatsapp-copy-clip\"> is a timeline element that contains nested <p id=\"whatsapp-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#whatsapp-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"whatsapp-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"dashboard-copy-clip\"> is a timeline element that contains nested <p id=\"dashboard-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#dashboard-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"dashboard-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"closing-copy-clip\"> is a timeline element that contains nested <p id=\"closing-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#closing-copy-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"closing-copy-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      }
+    ],
+    "filesScanned": 1
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "duration": 30,
+    "samples": [
+      0,
+      0.5,
+      2.5,
+      3.5,
+      5,
+      7.5,
+      10.85,
+      11,
+      12,
+      14.5,
+      15.85,
+      16,
+      17.5,
+      19,
+      21,
+      21.9,
+      22,
+      23.5,
+      24.5,
+      25.5,
+      26.5,
+      26.85,
+      27,
+      28.5,
+      29.967
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 0,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "specPath": "/Users/santiago/Documents/AsfaltosCrm-pulse-demo/brag-output/composition/index.motion.json",
+    "samples": 300
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      0,
+      10.85,
+      17.5,
+      24.5,
+      29.967
+    ],
+    "checked": 3,
+    "passed": 3
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  },
+  "_meta": {
+    "version": "0.8.74",
+    "latestVersion": "0.8.73",
+    "updateAvailable": false
+  }
+}

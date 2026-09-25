@@ -1,0 +1,183 @@
+{
+  "ok": true,
+  "duration": 30,
+  "fps": 30,
+  "frames": 900,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "theme": "light",
+  "audio": "none",
+  "localAssets": 30,
+  "images": [
+    {
+      "asset": "assets/pulse-brand-touch.png",
+      "width": 180,
+      "height": 180,
+      "sha256": "558515d361cf7a71b483ea46a49e5e03c2f6f8d71f9f181f0bf8b2fae6c2dba6"
+    },
+    {
+      "asset": "assets/notification.png",
+      "width": 1010,
+      "height": 84,
+      "sha256": "09aa8733d91ffc4d4ea66408ca6c21185fc379ff63074b0475c2cd3fabb6d572"
+    },
+    {
+      "asset": "assets/notification-badge.png",
+      "width": 238,
+      "height": 44,
+      "sha256": "698e00c142a4e6d9e8a572ce351010dc0201d701e1e88475f7bcdf12fa23a888"
+    },
+    {
+      "asset": "assets/pipeline-title.png",
+      "width": 480,
+      "height": 52,
+      "sha256": "c1df74adbef7dc28404d08152a55599728f6560ecd59a8a477ccf45cccd8a359"
+    },
+    {
+      "asset": "assets/pipeline.png",
+      "width": 1184,
+      "height": 390,
+      "sha256": "6f6d13be749c87ba6d2435cc00fbf8003963972f231a21806597b607c3796c62"
+    },
+    {
+      "asset": "assets/nexo-card.png",
+      "width": 366,
+      "height": 96,
+      "sha256": "6347212abf5aec4d0ce51cadba9af394bede8a78b5d3099d9bc3f792ee91053a"
+    },
+    {
+      "asset": "assets/detail-header.png",
+      "width": 350,
+      "height": 52,
+      "sha256": "bf62f6fbcde0d6a97c47a5071805c2875f73e3295b67872fce53ce7be2b3777f"
+    },
+    {
+      "asset": "assets/relation.png",
+      "width": 352,
+      "height": 204,
+      "sha256": "65affb3e3210e515e4db6097aed696a6276df12b0ed2ed6b6797a17cdc358e58"
+    },
+    {
+      "asset": "assets/query.png",
+      "width": 760,
+      "height": 132,
+      "sha256": "1795e25b4f2641c15691e578f5e1d96ebf64cfae67e2d7b032626f52f3705fbf"
+    },
+    {
+      "asset": "assets/product.png",
+      "width": 590,
+      "height": 86,
+      "sha256": "8f994d5d7f0149a5332acd67f1b06f42f6da475a3accbfaab4ff5fd9dae63a0c"
+    },
+    {
+      "asset": "assets/activity.png",
+      "width": 306,
+      "height": 284,
+      "sha256": "1fc5f967d79845854f9f13209d7f06af17a0a992985cd5e9674bfef478bd77c6"
+    },
+    {
+      "asset": "assets/notes.png",
+      "width": 306,
+      "height": 216,
+      "sha256": "573c9883422611f525f3fd3c3b7e7218e2ec52f1d7f61401f9f3845adf7becba"
+    },
+    {
+      "asset": "assets/whatsapp-action.png",
+      "width": 168,
+      "height": 44,
+      "sha256": "6b523e1f7ce81796cb75f6f80fbdc66b17b47192bf61168d9fa564ffdb385a27"
+    },
+    {
+      "asset": "assets/whatsapp-nav.png",
+      "width": 238,
+      "height": 46,
+      "sha256": "a0845b9fa42824466a401ea1546eb9a4174d120343d9aff6666d2c37293988c8"
+    },
+    {
+      "asset": "assets/paula-header.png",
+      "width": 740,
+      "height": 64,
+      "sha256": "e1659c78ddf4977f74b6ad3c791ac8df7e1066bb5d7de01e885b5fd6304528ab"
+    },
+    {
+      "asset": "assets/paula-in.png",
+      "width": 612,
+      "height": 72,
+      "sha256": "b68c667a03dc37f517a96b793b78326b1099a53ecd2e1b43db7b6feea850dffa"
+    },
+    {
+      "asset": "assets/paula-out.png",
+      "width": 612,
+      "height": 70,
+      "sha256": "3077764c9b42a03007ed38b4010311f631dbeb8322202f52f10a1157da69a21a"
+    },
+    {
+      "asset": "assets/delta-header.png",
+      "width": 740,
+      "height": 64,
+      "sha256": "ec25e0316c3e7600dbef4fee929c0dcd329cf344cf5b88afba004f60ca9fcc7a"
+    },
+    {
+      "asset": "assets/delta-image.png",
+      "width": 610,
+      "height": 250,
+      "sha256": "a16db4d3c7543392399da92930b52a4a8f186d81e0b5d32003ad3c9c6a2c8263"
+    },
+    {
+      "asset": "assets/urbania-header.png",
+      "width": 740,
+      "height": 64,
+      "sha256": "4253125685745378e49562d17e63a358449e495b2d719a46e111515e5626f721"
+    },
+    {
+      "asset": "assets/urbania-audio.png",
+      "width": 610,
+      "height": 186,
+      "sha256": "5fe4c3dd29d32a171e4e3d3c2d973b91d77b13426c895c4cce568ed2f6851f3d"
+    },
+    {
+      "asset": "assets/dashboard-title.png",
+      "width": 624,
+      "height": 52,
+      "sha256": "2b1e05cda5b69a7e4c2b014530cf7889ce74246fe213ceda21c1850cb6db99ec"
+    },
+    {
+      "asset": "assets/period.png",
+      "width": 1552,
+      "height": 42,
+      "sha256": "030e6c7459b9fb7029f93b2d5b4740a18e2ea4c918d4ec19af6471ceedebea60"
+    },
+    {
+      "asset": "assets/won.png",
+      "width": 372,
+      "height": 74,
+      "sha256": "10c6e6e377fc9dcc0e07336f0d1c1f16600cd3a7e99233a821f11c55ead14571"
+    },
+    {
+      "asset": "assets/conversion.png",
+      "width": 378,
+      "height": 138,
+      "sha256": "26c9f3eec6dad8dc3239798c037a8b35e6e6aa854d07c0fbb54dca885233def4"
+    },
+    {
+      "asset": "assets/active.png",
+      "width": 1600,
+      "height": 376,
+      "sha256": "101bb5b8fbfbb875314ff750edb710e95de418ba6c308877fd14f15735ba9a8f"
+    },
+    {
+      "asset": "assets/evolution.png",
+      "width": 1600,
+      "height": 550,
+      "sha256": "a570bdbc09116d7894310ff8d054bc0b69559208246e4f29ec005ee4b7e6327b"
+    },
+    {
+      "asset": "assets/origins.png",
+      "width": 524,
+      "height": 522,
+      "sha256": "86093ac19000486c19b957dec08bef08a6a19e0b8599b80fb41a7a26395bab8d"
+    }
+  ]
+}

@@ -1,0 +1,3821 @@
+{
+  "project": "composition",
+  "runtime": "all",
+  "compositions": [
+    {
+      "composition": "index.html",
+      "source": "index.html",
+      "tweens": [
+        {
+          "id": "#opening-logo-fromTo-0",
+          "target": "#opening-logo",
+          "method": "fromTo",
+          "start": 0,
+          "duration": 0.3,
+          "end": 0.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "scale": 0.97,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.3,
+              "properties": {
+                "scale": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#opening-visual",
+              "summary": "opacity 0..1"
+            }
+          ]
+        },
+        {
+          "id": "#opening-visual-to-2400-visual",
+          "target": "#opening-visual",
+          "method": "to",
+          "group": "visual",
+          "start": 2.4,
+          "duration": 0.3,
+          "end": 2.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 2.4,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 2.7,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#arrival-notice-fromTo-2500",
+          "target": "#arrival-notice",
+          "method": "fromTo",
+          "start": 2.5,
+          "duration": 0.3,
+          "end": 2.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 2.5,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 2.8,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#arrival-visual",
+              "summary": "opacity 0..1"
+            }
+          ]
+        },
+        {
+          "id": "#arrival-badge-fromTo-2500",
+          "target": "#arrival-badge",
+          "method": "fromTo",
+          "start": 2.5,
+          "duration": 0.3,
+          "end": 2.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 2.5,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 2.8,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#arrival-visual",
+              "summary": "opacity 0..1"
+            }
+          ]
+        },
+        {
+          "id": "#badge-ring-fromTo-3300-visual",
+          "target": "#badge-ring",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 3.3,
+          "duration": 0.15,
+          "end": 3.45,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 3.3,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 3.45,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#arrival-visual",
+              "summary": "opacity 0..1"
+            }
+          ]
+        },
+        {
+          "id": "#badge-ring-to-3450-visual",
+          "target": "#badge-ring",
+          "method": "to",
+          "group": "visual",
+          "start": 3.45,
+          "duration": 0.15,
+          "end": 3.6,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 3.45,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 3.6,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#arrival-visual",
+              "summary": "opacity 0..1"
+            }
+          ]
+        },
+        {
+          "id": "#delta-focus-fromTo-4500-visual",
+          "target": "#delta-focus",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 4.5,
+          "duration": 0.15,
+          "end": 4.65,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 4.5,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 4.65,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#delta-focus-to-4650-visual",
+          "target": "#delta-focus",
+          "method": "to",
+          "group": "visual",
+          "start": 4.65,
+          "duration": 0.15,
+          "end": 4.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 4.65,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 4.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#arrival-visual-to-4200-visual",
+          "target": "#arrival-visual",
+          "method": "to",
+          "group": "visual",
+          "start": 4.2,
+          "duration": 0.3,
+          "end": 4.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 4.2,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 4.5,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#pipeline-visual-fromTo-4200",
+          "target": "#pipeline-visual",
+          "method": "fromTo",
+          "start": 4.2,
+          "duration": 0.3,
+          "end": 4.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 4.2,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 4.5,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#board-fromTo-4500",
+          "target": "#board",
+          "method": "fromTo",
+          "start": 4.5,
+          "duration": 0.3,
+          "end": 4.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 4.5,
+              "properties": {
+                "scale": 1.02,
+                "x": 24
+              }
+            },
+            {
+              "pct": 100,
+              "time": 4.8,
+              "properties": {
+                "scale": 1,
+                "x": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 24,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#board,#nexo-to-6000-position",
+          "target": "#board,#nexo",
+          "method": "to",
+          "group": "position",
+          "start": 6,
+          "duration": 1,
+          "end": 7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 6,
+              "properties": {
+                "x": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 7,
+              "properties": {
+                "x": -24
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": -24,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#board,#nexo-to-7000-position",
+          "target": "#board,#nexo",
+          "method": "to",
+          "group": "position",
+          "start": 7,
+          "duration": 1,
+          "end": 8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 7,
+              "properties": {
+                "x": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 8,
+              "properties": {
+                "x": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#nexo-to-7300",
+          "target": "#nexo",
+          "method": "to",
+          "start": 7.3,
+          "duration": 0.25,
+          "end": 7.55,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 7.3,
+              "properties": {
+                "y": 0,
+                "scale": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 7.55,
+              "properties": {
+                "y": -4,
+                "scale": 1.02
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": -4
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#nexo-focus-fromTo-8200-visual",
+          "target": "#nexo-focus",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 8.2,
+          "duration": 0.15,
+          "end": 8.35,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 8.2,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 8.35,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#nexo-focus-to-8350-visual",
+          "target": "#nexo-focus",
+          "method": "to",
+          "group": "visual",
+          "start": 8.35,
+          "duration": 0.15,
+          "end": 8.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 8.35,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 8.5,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#stage-0-fromTo-9000-visual",
+          "target": "#stage-0",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 9,
+          "duration": 0.15,
+          "end": 9.15,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 9,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 9.15,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#stage-0-to-9150-visual",
+          "target": "#stage-0",
+          "method": "to",
+          "group": "visual",
+          "start": 9.15,
+          "duration": 0.15,
+          "end": 9.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 9.15,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 9.3,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#stage-1-fromTo-9300-visual",
+          "target": "#stage-1",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 9.3,
+          "duration": 0.15,
+          "end": 9.45,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 9.3,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 9.45,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#stage-1-to-9450-visual",
+          "target": "#stage-1",
+          "method": "to",
+          "group": "visual",
+          "start": 9.45,
+          "duration": 0.15,
+          "end": 9.6,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 9.45,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 9.6,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#stage-2-fromTo-9600-visual",
+          "target": "#stage-2",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 9.6,
+          "duration": 0.15,
+          "end": 9.75,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 9.6,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 9.75,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#stage-2-to-9750-visual",
+          "target": "#stage-2",
+          "method": "to",
+          "group": "visual",
+          "start": 9.75,
+          "duration": 0.15,
+          "end": 9.9,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 9.75,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 9.9,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#pipeline-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#pipeline-visual-to-10700-visual",
+          "target": "#pipeline-visual",
+          "method": "to",
+          "group": "visual",
+          "start": 10.7,
+          "duration": 0.3,
+          "end": 11,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 11,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#detail-visual-fromTo-10700",
+          "target": "#detail-visual",
+          "method": "fromTo",
+          "start": 10.7,
+          "duration": 0.3,
+          "end": 11,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.7,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 11,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#query-focus-fromTo-12200-visual",
+          "target": "#query-focus",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 12.2,
+          "duration": 0.15,
+          "end": 12.35,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 12.2,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 12.35,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#query-focus-to-12350-visual",
+          "target": "#query-focus",
+          "method": "to",
+          "group": "visual",
+          "start": 12.35,
+          "duration": 0.15,
+          "end": 12.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 12.35,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 12.5,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#query-to-12400-position",
+          "target": "#query",
+          "method": "to",
+          "group": "position",
+          "start": 12.4,
+          "duration": 0.4,
+          "end": 12.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 12.4,
+              "properties": {
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 12.8,
+              "properties": {
+                "y": -24
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": -24
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#query-to-12800-position",
+          "target": "#query",
+          "method": "to",
+          "group": "position",
+          "start": 12.8,
+          "duration": 0.4,
+          "end": 13.2,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 12.8,
+              "properties": {
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 13.2,
+              "properties": {
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#product,#activity-set-0-visual",
+          "target": "#product,#activity",
+          "method": "set",
+          "group": "visual",
+          "start": 0,
+          "duration": 0,
+          "end": 0,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#product-fromTo-13000",
+          "target": "#product",
+          "method": "fromTo",
+          "start": 13,
+          "duration": 0.3,
+          "end": 13.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 13,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 13.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#activity-fromTo-13000",
+          "target": "#activity",
+          "method": "fromTo",
+          "start": 13,
+          "duration": 0.3,
+          "end": 13.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 13,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 13.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#notes-set-0-visual",
+          "target": "#notes",
+          "method": "set",
+          "group": "visual",
+          "start": 0,
+          "duration": 0,
+          "end": 0,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#notes-fromTo-14100",
+          "target": "#notes",
+          "method": "fromTo",
+          "start": 14.1,
+          "duration": 0.3,
+          "end": 14.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 14.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 14.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#activity-to-14100-visual",
+          "target": "#activity",
+          "method": "to",
+          "group": "visual",
+          "start": 14.1,
+          "duration": 0.3,
+          "end": 14.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 14.1,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 14.4,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#whatsapp-action-to-15200-scale",
+          "target": "#whatsapp-action",
+          "method": "to",
+          "group": "scale",
+          "start": 15.2,
+          "duration": 0.3,
+          "end": 15.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.2,
+              "properties": {
+                "scale": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 15.5,
+              "properties": {
+                "scale": 1.06
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#detail-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#detail-visual-to-15700-visual",
+          "target": "#detail-visual",
+          "method": "to",
+          "group": "visual",
+          "start": 15.7,
+          "duration": 0.3,
+          "end": 16,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 16,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#paula-in,#paula-out,#delta-header,#delta-image,#urbania-header,#urbania-audio-set-0-visual",
+          "target": "#paula-in,#paula-out,#delta-header,#delta-image,#urbania-header,#urbania-audio",
+          "method": "set",
+          "group": "visual",
+          "start": 0,
+          "duration": 0,
+          "end": 0,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#whatsapp-visual-fromTo-15700",
+          "target": "#whatsapp-visual",
+          "method": "fromTo",
+          "start": 15.7,
+          "duration": 0.3,
+          "end": 16,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.7,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 16,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#paula-in-fromTo-16200",
+          "target": "#paula-in",
+          "method": "fromTo",
+          "start": 16.2,
+          "duration": 0.3,
+          "end": 16.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 16.2,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 16.5,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#paula-out-fromTo-17000",
+          "target": "#paula-out",
+          "method": "fromTo",
+          "start": 17,
+          "duration": 0.3,
+          "end": 17.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 17,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 17.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#read-focus-fromTo-17400-visual",
+          "target": "#read-focus",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 17.4,
+          "duration": 0.15,
+          "end": 17.55,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 17.4,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 17.55,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#read-focus-to-17550-visual",
+          "target": "#read-focus",
+          "method": "to",
+          "group": "visual",
+          "start": 17.55,
+          "duration": 0.15,
+          "end": 17.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 17.55,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 17.7,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#paula-header,#paula-in,#paula-out-to-17900-visual",
+          "target": "#paula-header,#paula-in,#paula-out",
+          "method": "to",
+          "group": "visual",
+          "start": 17.9,
+          "duration": 0.2,
+          "end": 18.1,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 17.9,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 18.1,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#delta-header-fromTo-17900",
+          "target": "#delta-header",
+          "method": "fromTo",
+          "start": 17.9,
+          "duration": 0.2,
+          "end": 18.1,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 17.9,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 18.1,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#delta-image-fromTo-18100",
+          "target": "#delta-image",
+          "method": "fromTo",
+          "start": 18.1,
+          "duration": 0.3,
+          "end": 18.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 18.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 18.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#delta-image-to-18500",
+          "target": "#delta-image",
+          "method": "to",
+          "start": 18.5,
+          "duration": 1.2,
+          "end": 19.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 18.5,
+              "properties": {
+                "scale": 1,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 19.7,
+              "properties": {
+                "scale": 1.06,
+                "y": -24
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": -24
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#delta-header,#delta-image-to-19900-visual",
+          "target": "#delta-header,#delta-image",
+          "method": "to",
+          "group": "visual",
+          "start": 19.9,
+          "duration": 0.2,
+          "end": 20.1,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 19.9,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 20.1,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#urbania-header-fromTo-19900",
+          "target": "#urbania-header",
+          "method": "fromTo",
+          "start": 19.9,
+          "duration": 0.2,
+          "end": 20.1,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 19.9,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 20.1,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#urbania-audio-fromTo-20100",
+          "target": "#urbania-audio",
+          "method": "fromTo",
+          "start": 20.1,
+          "duration": 0.3,
+          "end": 20.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 20.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 20.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#whatsapp-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#whatsapp-visual-to-21800-visual",
+          "target": "#whatsapp-visual",
+          "method": "to",
+          "group": "visual",
+          "start": 21.8,
+          "duration": 0.2,
+          "end": 22,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 21.8,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 22,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#won,#conversion,#active,#evolution,#origins-set-0-visual",
+          "target": "#won,#conversion,#active,#evolution,#origins",
+          "method": "set",
+          "group": "visual",
+          "start": 0,
+          "duration": 0,
+          "end": 0,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#dashboard-visual-fromTo-21800",
+          "target": "#dashboard-visual",
+          "method": "fromTo",
+          "start": 21.8,
+          "duration": 0.3,
+          "end": 22.1,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 21.8,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 22.1,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#won-fromTo-22200",
+          "target": "#won",
+          "method": "fromTo",
+          "start": 22.2,
+          "duration": 0.3,
+          "end": 22.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 22.2,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 22.5,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#conversion-fromTo-23000",
+          "target": "#conversion",
+          "method": "fromTo",
+          "start": 23,
+          "duration": 0.3,
+          "end": 23.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 23,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 23.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#conversion-focus-fromTo-23300-visual",
+          "target": "#conversion-focus",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 23.3,
+          "duration": 0.15,
+          "end": 23.45,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 23.3,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 23.45,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#conversion-focus-to-23450-visual",
+          "target": "#conversion-focus",
+          "method": "to",
+          "group": "visual",
+          "start": 23.45,
+          "duration": 0.15,
+          "end": 23.6,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 23.45,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 23.6,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#active-fromTo-24000",
+          "target": "#active",
+          "method": "fromTo",
+          "start": 24,
+          "duration": 0.3,
+          "end": 24.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 24,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 24.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#won,#conversion,#active-to-24800-visual",
+          "target": "#won,#conversion,#active",
+          "method": "to",
+          "group": "visual",
+          "start": 24.8,
+          "duration": 0.2,
+          "end": 25,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 24.8,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 25,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#evolution-fromTo-25000",
+          "target": "#evolution",
+          "method": "fromTo",
+          "start": 25,
+          "duration": 0.3,
+          "end": 25.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 25,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 25.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#evolution-to-25200-position",
+          "target": "#evolution",
+          "method": "to",
+          "group": "position",
+          "start": 25.2,
+          "duration": 0.7,
+          "end": 25.9,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 25.2,
+              "properties": {
+                "x": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 25.9,
+              "properties": {
+                "x": -24
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": -24,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#evolution-to-25800-visual",
+          "target": "#evolution",
+          "method": "to",
+          "group": "visual",
+          "start": 25.8,
+          "duration": 0.2,
+          "end": 26,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 25.8,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 26,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#origins-fromTo-26000",
+          "target": "#origins",
+          "method": "fromTo",
+          "start": 26,
+          "duration": 0.3,
+          "end": 26.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 26,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 26.3,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#origins-to-26350-position",
+          "target": "#origins",
+          "method": "to",
+          "group": "position",
+          "start": 26.35,
+          "duration": 0.3,
+          "end": 26.65,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 26.35,
+              "properties": {
+                "x": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 26.65,
+              "properties": {
+                "x": -360
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": -360,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#dashboard-visual",
+              "summary": "opacity 0..1, y 0..16"
+            }
+          ]
+        },
+        {
+          "id": "#dashboard-visual-to-26700-visual",
+          "target": "#dashboard-visual",
+          "method": "to",
+          "group": "visual",
+          "start": 26.7,
+          "duration": 0.3,
+          "end": 27,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 26.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 27,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#closing-logo-fromTo-26700",
+          "target": "#closing-logo",
+          "method": "fromTo",
+          "start": 26.7,
+          "duration": 0.3,
+          "end": 27,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 26.7,
+              "properties": {
+                "opacity": 0,
+                "scale": 0.97,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 27,
+              "properties": {
+                "opacity": 1,
+                "scale": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#opening-copy-fromTo-100",
+          "target": "#opening-copy",
+          "method": "fromTo",
+          "start": 0.1,
+          "duration": 0.3,
+          "end": 0.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#opening-copy-to-2300-visual",
+          "target": "#opening-copy",
+          "method": "to",
+          "group": "visual",
+          "start": 2.3,
+          "duration": 0.2,
+          "end": 2.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 2.3,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 2.5,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#arrival-copy-fromTo-2600",
+          "target": "#arrival-copy",
+          "method": "fromTo",
+          "start": 2.6,
+          "duration": 0.3,
+          "end": 2.9,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 2.6,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 2.9,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#arrival-copy-to-5700-visual",
+          "target": "#arrival-copy",
+          "method": "to",
+          "group": "visual",
+          "start": 5.7,
+          "duration": 0.2,
+          "end": 5.9,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 5.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 5.9,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#pipeline-copy-fromTo-6100",
+          "target": "#pipeline-copy",
+          "method": "fromTo",
+          "start": 6.1,
+          "duration": 0.3,
+          "end": 6.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 6.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 6.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#pipeline-copy-to-10600-visual",
+          "target": "#pipeline-copy",
+          "method": "to",
+          "group": "visual",
+          "start": 10.6,
+          "duration": 0.2,
+          "end": 10.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.6,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 10.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#detail-copy-fromTo-11100",
+          "target": "#detail-copy",
+          "method": "fromTo",
+          "start": 11.1,
+          "duration": 0.3,
+          "end": 11.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 11.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 11.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#detail-copy-to-15600-visual",
+          "target": "#detail-copy",
+          "method": "to",
+          "group": "visual",
+          "start": 15.6,
+          "duration": 0.2,
+          "end": 15.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.6,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 15.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#whatsapp-copy-fromTo-16100",
+          "target": "#whatsapp-copy",
+          "method": "fromTo",
+          "start": 16.1,
+          "duration": 0.3,
+          "end": 16.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 16.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 16.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#whatsapp-copy-to-21600-visual",
+          "target": "#whatsapp-copy",
+          "method": "to",
+          "group": "visual",
+          "start": 21.6,
+          "duration": 0.2,
+          "end": 21.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 21.6,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 21.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#dashboard-copy-fromTo-22100",
+          "target": "#dashboard-copy",
+          "method": "fromTo",
+          "start": 22.1,
+          "duration": 0.3,
+          "end": 22.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 22.1,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 22.4,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#dashboard-copy-to-26600-visual",
+          "target": "#dashboard-copy",
+          "method": "to",
+          "group": "visual",
+          "start": 26.6,
+          "duration": 0.2,
+          "end": 26.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 26.6,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 26.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#closing-copy-fromTo-27200",
+          "target": "#closing-copy",
+          "method": "fromTo",
+          "start": 27.2,
+          "duration": 0.3,
+          "end": 27.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 27.2,
+              "properties": {
+                "opacity": 0,
+                "y": 16
+              }
+            },
+            {
+              "pct": 100,
+              "time": 27.5,
+              "properties": {
+                "opacity": 1,
+                "y": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 16
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#cursor-set-0",
+          "target": "#cursor",
+          "method": "set",
+          "start": 0,
+          "duration": 0,
+          "end": 0,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "x": 0,
+                "y": 0,
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0,
+              "properties": {
+                "x": 470,
+                "y": 610,
+                "opacity": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 470,
+              "y": 610
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-6700-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 6.7,
+          "duration": 0.2,
+          "end": 6.9,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 6.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 6.9,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#cursor-to-6800-position",
+          "target": "#cursor",
+          "method": "to",
+          "group": "position",
+          "start": 6.8,
+          "duration": 0.6,
+          "end": 7.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 6.8,
+              "properties": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 7.4,
+              "properties": {
+                "x": 992,
+                "y": 420
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 992,
+              "y": 420
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-10200-position",
+          "target": "#cursor",
+          "method": "to",
+          "group": "position",
+          "start": 10.2,
+          "duration": 0.3,
+          "end": 10.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.2,
+              "properties": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 10.5,
+              "properties": {
+                "x": 1010,
+                "y": 425
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 1010,
+              "y": 425
+            }
+          ]
+        },
+        {
+          "id": "#click-ring-fromTo-10600-visual",
+          "target": "#click-ring",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 10.6,
+          "duration": 0.1,
+          "end": 10.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.6,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 10.7,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#cursor",
+              "summary": "opacity 0..1, x 0..1010, y 0..722"
+            }
+          ]
+        },
+        {
+          "id": "#click-ring-to-10700-visual",
+          "target": "#click-ring",
+          "method": "to",
+          "group": "visual",
+          "start": 10.7,
+          "duration": 0.1,
+          "end": 10.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 10.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#cursor",
+              "summary": "opacity 0..1, x 0..1010, y 0..722"
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-10800-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 10.8,
+          "duration": 0.2,
+          "end": 11,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.8,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 11,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#cursor-set-13700-position",
+          "target": "#cursor",
+          "method": "set",
+          "group": "position",
+          "start": 13.7,
+          "duration": 0,
+          "end": 13.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 13.7,
+              "properties": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 13.7,
+              "properties": {
+                "x": 1540,
+                "y": 630
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 1540,
+              "y": 630
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-13900-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 13.9,
+          "duration": 0.2,
+          "end": 14.1,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 13.9,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 14.1,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#click-ring-fromTo-14100-visual",
+          "target": "#click-ring",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 14.1,
+          "duration": 0.1,
+          "end": 14.2,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 14.1,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 14.2,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#cursor",
+              "summary": "opacity 0..1, x 0..1010, y 0..722"
+            }
+          ]
+        },
+        {
+          "id": "#click-ring-to-14200-visual",
+          "target": "#click-ring",
+          "method": "to",
+          "group": "visual",
+          "start": 14.2,
+          "duration": 0.1,
+          "end": 14.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 14.2,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 14.3,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#cursor",
+              "summary": "opacity 0..1, x 0..1010, y 0..722"
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-15100-position",
+          "target": "#cursor",
+          "method": "to",
+          "group": "position",
+          "start": 15.1,
+          "duration": 0.4,
+          "end": 15.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.1,
+              "properties": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 15.5,
+              "properties": {
+                "x": 865,
+                "y": 722
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 865,
+              "y": 722
+            }
+          ]
+        },
+        {
+          "id": "#click-ring-fromTo-15600-visual",
+          "target": "#click-ring",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 15.6,
+          "duration": 0.1,
+          "end": 15.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.6,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 15.7,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#cursor",
+              "summary": "opacity 0..1, x 0..1010, y 0..722"
+            }
+          ]
+        },
+        {
+          "id": "#click-ring-to-15700-visual",
+          "target": "#click-ring",
+          "method": "to",
+          "group": "visual",
+          "start": 15.7,
+          "duration": 0.1,
+          "end": 15.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.7,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 15.8,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null,
+          "composedWith": [
+            {
+              "selector": "#cursor",
+              "summary": "opacity 0..1, x 0..1010, y 0..722"
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-15800-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 15.8,
+          "duration": 0.2,
+          "end": 16,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 15.8,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 16,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#cursor-set-20200-position",
+          "target": "#cursor",
+          "method": "set",
+          "group": "position",
+          "start": 20.2,
+          "duration": 0,
+          "end": 20.2,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 20.2,
+              "properties": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 20.2,
+              "properties": {
+                "x": 482,
+                "y": 505
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 482,
+              "y": 505
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-20500-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 20.5,
+          "duration": 0.2,
+          "end": 20.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 20.5,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 20.7,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#cursor-to-21500-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 21.5,
+          "duration": 0.2,
+          "end": 21.7,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 21.5,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 21.7,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#cursor-set-24000-position",
+          "target": "#cursor",
+          "method": "set",
+          "group": "position",
+          "start": 24,
+          "duration": 0,
+          "end": 24,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 24,
+              "properties": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 24,
+              "properties": {
+                "x": 1300,
+                "y": 635
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 1300,
+              "y": 635
+            }
+          ]
+        },
+        {
+          "id": "#cursor-to-24300-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 24.3,
+          "duration": 0.2,
+          "end": 24.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 24.3,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 24.5,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#cursor-to-24800-visual",
+          "target": "#cursor",
+          "method": "to",
+          "group": "visual",
+          "start": 24.8,
+          "duration": 0.2,
+          "end": 25,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 24.8,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 25,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        }
+      ],
+      "traces": [
+        {
+          "target": "#delta-image",
+          "strokes": [
+            {
+              "id": "#delta-image-fromTo-18100",
+              "start": 18.1,
+              "end": 18.4,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 18.1,
+                  "properties": {
+                    "opacity": 0,
+                    "y": 16
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 18.4,
+                  "properties": {
+                    "opacity": 1,
+                    "y": 0
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 16
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                }
+              ]
+            },
+            {
+              "id": "#delta-image-to-18500",
+              "start": 18.5,
+              "end": 19.7,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 18.5,
+                  "properties": {
+                    "scale": 1,
+                    "y": 0
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 19.7,
+                  "properties": {
+                    "scale": 1.06,
+                    "y": -24
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 0,
+                  "y": -24
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "target": "#evolution",
+          "strokes": [
+            {
+              "id": "#evolution-fromTo-25000",
+              "start": 25,
+              "end": 25.3,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 25,
+                  "properties": {
+                    "opacity": 0,
+                    "y": 16
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 25.3,
+                  "properties": {
+                    "opacity": 1,
+                    "y": 0
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 16
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                }
+              ]
+            },
+            {
+              "id": "#evolution-to-25200-position",
+              "start": 25.2,
+              "end": 25.9,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 25.2,
+                  "properties": {
+                    "x": 0
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 25.9,
+                  "properties": {
+                    "x": -24
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": -24,
+                  "y": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "target": "#origins",
+          "strokes": [
+            {
+              "id": "#origins-fromTo-26000",
+              "start": 26,
+              "end": 26.3,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 26,
+                  "properties": {
+                    "opacity": 0,
+                    "y": 16
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 26.3,
+                  "properties": {
+                    "opacity": 1,
+                    "y": 0
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 16
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                }
+              ]
+            },
+            {
+              "id": "#origins-to-26350-position",
+              "start": 26.35,
+              "end": 26.65,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 26.35,
+                  "properties": {
+                    "x": 0
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 26.65,
+                  "properties": {
+                    "x": -360
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": -360,
+                  "y": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "target": "#cursor",
+          "strokes": [
+            {
+              "id": "#cursor-to-6800-position",
+              "start": 6.8,
+              "end": 7.4,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 6.8,
+                  "properties": {
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 7.4,
+                  "properties": {
+                    "x": 992,
+                    "y": 420
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 992,
+                  "y": 420
+                }
+              ]
+            },
+            {
+              "id": "#cursor-to-10200-position",
+              "start": 10.2,
+              "end": 10.5,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 10.2,
+                  "properties": {
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 10.5,
+                  "properties": {
+                    "x": 1010,
+                    "y": 425
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 1010,
+                  "y": 425
+                }
+              ]
+            },
+            {
+              "id": "#cursor-to-15100-position",
+              "start": 15.1,
+              "end": 15.5,
+              "keyframes": [
+                {
+                  "pct": 0,
+                  "time": 15.1,
+                  "properties": {
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                {
+                  "pct": 100,
+                  "time": 15.5,
+                  "properties": {
+                    "x": 865,
+                    "y": 722
+                  }
+                }
+              ],
+              "points": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 865,
+                  "y": 722
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "cssKeyframes": [],
+      "anime": []
+    }
+  ],
+  "_meta": {
+    "version": "0.8.74",
+    "latestVersion": "0.8.73",
+    "updateAvailable": false
+  }
+}

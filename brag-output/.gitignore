@@ -1,0 +1,3 @@
+# Uncropped local source captures can contain excluded demo/internal UI fields.
+# Only approved crops are versioned in composition/assets/.
+captures/

@@ -1,0 +1,282 @@
+{
+  "pipeline": {
+    "source": "../captures/pipeline.png",
+    "crop": [
+      297,
+      182,
+      1184,
+      390
+    ],
+    "asset": "assets/pipeline.png"
+  },
+  "pipeline-title": {
+    "source": "../captures/pipeline.png",
+    "crop": [
+      288,
+      28,
+      480,
+      52
+    ],
+    "asset": "assets/pipeline-title.png"
+  },
+  "nexo-card": {
+    "source": "../captures/pipeline.png",
+    "crop": [
+      705,
+      249,
+      367,
+      97
+    ],
+    "asset": "assets/nexo-card.png"
+  },
+  "delta-card": {
+    "source": "../captures/pipeline.png",
+    "crop": [
+      306,
+      352,
+      367,
+      95
+    ],
+    "asset": "assets/delta-card.png"
+  },
+  "notification": {
+    "source": "../captures/notifications.png",
+    "crop": [
+      289,
+      184,
+      1010,
+      84
+    ],
+    "asset": "assets/notification.png"
+  },
+  "notification-badge": {
+    "source": "../captures/notifications.png",
+    "crop": [
+      8,
+      204,
+      239,
+      45
+    ],
+    "asset": "assets/notification-badge.png"
+  },
+  "detail-header": {
+    "source": "../captures/detail.png",
+    "crop": [
+      424,
+      110,
+      351,
+      52
+    ],
+    "asset": "assets/detail-header.png"
+  },
+  "relation": {
+    "source": "../captures/detail.png",
+    "crop": [
+      420,
+      227,
+      353,
+      205
+    ],
+    "asset": "assets/relation.png"
+  },
+  "query": {
+    "source": "../captures/detail.png",
+    "crop": [
+      420,
+      658,
+      760,
+      132
+    ],
+    "asset": "assets/query.png"
+  },
+  "product": {
+    "source": "../captures/detail.png",
+    "crop": [
+      435,
+      851,
+      590,
+      86
+    ],
+    "asset": "assets/product.png"
+  },
+  "activity": {
+    "source": "../captures/detail.png",
+    "crop": [
+      1194,
+      658,
+      306,
+      285
+    ],
+    "asset": "assets/activity.png"
+  },
+  "notes": {
+    "source": "../captures/detail-notes.png",
+    "crop": [
+      1194,
+      614,
+      306,
+      217
+    ],
+    "asset": "assets/notes.png"
+  },
+  "whatsapp-action": {
+    "source": "../captures/detail.png",
+    "crop": [
+      820,
+      457,
+      168,
+      45
+    ],
+    "asset": "assets/whatsapp-action.png"
+  },
+  "paula-header": {
+    "source": "../captures/paula.png",
+    "crop": [
+      608,
+      17,
+      740,
+      65
+    ],
+    "asset": "assets/paula-header.png"
+  },
+  "paula-in": {
+    "source": "../captures/paula.png",
+    "crop": [
+      626,
+      256,
+      612,
+      73
+    ],
+    "asset": "assets/paula-in.png"
+  },
+  "paula-out": {
+    "source": "../captures/paula.png",
+    "crop": [
+      1258,
+      337,
+      612,
+      71
+    ],
+    "asset": "assets/paula-out.png"
+  },
+  "whatsapp-nav": {
+    "source": "../captures/paula.png",
+    "crop": [
+      8,
+      265,
+      239,
+      47
+    ],
+    "asset": "assets/whatsapp-nav.png"
+  },
+  "delta-header": {
+    "source": "../captures/delta.png",
+    "crop": [
+      608,
+      17,
+      740,
+      65
+    ],
+    "asset": "assets/delta-header.png"
+  },
+  "delta-image": {
+    "source": "../captures/delta.png",
+    "crop": [
+      627,
+      100,
+      610,
+      251
+    ],
+    "asset": "assets/delta-image.png"
+  },
+  "urbania-header": {
+    "source": "../captures/urbania.png",
+    "crop": [
+      608,
+      17,
+      740,
+      65
+    ],
+    "asset": "assets/urbania-header.png"
+  },
+  "urbania-audio": {
+    "source": "../captures/urbania.png",
+    "crop": [
+      627,
+      99,
+      610,
+      186
+    ],
+    "asset": "assets/urbania-audio.png"
+  },
+  "dashboard-title": {
+    "source": "../captures/dashboard.png",
+    "crop": [
+      287,
+      27,
+      625,
+      53
+    ],
+    "asset": "assets/dashboard-title.png"
+  },
+  "period": {
+    "source": "../captures/dashboard.png",
+    "crop": [
+      311,
+      180,
+      1552,
+      42
+    ],
+    "asset": "assets/period.png"
+  },
+  "won": {
+    "source": "../captures/dashboard.png",
+    "crop": [
+      314,
+      239,
+      373,
+      74
+    ],
+    "asset": "assets/won.png"
+  },
+  "conversion": {
+    "source": "../captures/dashboard.png",
+    "crop": [
+      1094,
+      231,
+      378,
+      139
+    ],
+    "asset": "assets/conversion.png"
+  },
+  "active": {
+    "source": "../captures/dashboard.png",
+    "crop": [
+      287,
+      410,
+      1601,
+      376
+    ],
+    "asset": "assets/active.png"
+  },
+  "evolution": {
+    "source": "../captures/dashboard-evolution.png",
+    "crop": [
+      287,
+      47,
+      1601,
+      550
+    ],
+    "asset": "assets/evolution.png"
+  },
+  "origins": {
+    "source": "../captures/dashboard-origins.png",
+    "crop": [
+      287,
+      430,
+      524,
+      522
+    ],
+    "asset": "assets/origins.png"
+  }
+}
