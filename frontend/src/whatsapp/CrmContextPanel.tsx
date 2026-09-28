@@ -34,12 +34,12 @@ function OpportunityCard({
   opportunity,
   detail,
   action,
-  conversationId,
+  onOpen,
 }: {
   opportunity: WhatsAppOpportunitySummary
   detail: OpportunityDetail | null
   action?: React.ReactNode
-  conversationId: number
+  onOpen: (opportunityId: number) => void
 }) {
   return (
     <article className='rounded-[var(--radius-control)] bg-[var(--surface-interactive)] px-3 py-3'>
@@ -78,12 +78,11 @@ function OpportunityCard({
       ) : null}
       <AppLink
         className='mt-3 inline-flex min-h-11 items-center text-xs font-semibold text-[var(--text-secondary)] underline decoration-[var(--subtle-border)] underline-offset-4 outline-none hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
-        origin={{ kind: 'conversation', conversationId }}
-        to={{
-          kind: 'opportunity',
-          opportunityId: opportunity.id,
-          surface: 'pipeline',
+        onClick={(event) => {
+          event.preventDefault()
+          onOpen(opportunity.id)
         }}
+        to={{ kind: 'opportunity', opportunityId: opportunity.id, surface: 'pipeline' }}
       >
         Abrir oportunidad
       </AppLink>
@@ -103,6 +102,8 @@ export function CrmContextPanel({
   onRetryContext,
   onUpdateLink,
   onCreateOpportunity,
+  onOpenCustomer,
+  onOpenOpportunity,
 }: {
   conversation: WhatsAppConversationDetail
   customerDetail: CustomerDetail | null
@@ -115,6 +116,8 @@ export function CrmContextPanel({
   onRetryContext: () => void
   onUpdateLink: (opportunityId: number | null) => Promise<void>
   onCreateOpportunity: () => Promise<void>
+  onOpenCustomer: (customerId: number) => void
+  onOpenOpportunity: (opportunityId: number) => void
 }) {
   const [confirmation, setConfirmation] = useState<LinkConfirmation | null>(null)
   const customer = conversation.customer
@@ -161,7 +164,10 @@ export function CrmContextPanel({
             {customer?.is_available ? (
               <AppLink
                 className='inline-flex min-h-11 items-center text-xs font-semibold text-[var(--text-secondary)] underline decoration-[var(--subtle-border)] underline-offset-4 outline-none hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
-                origin={{ kind: 'conversation', conversationId: conversation.id }}
+                onClick={(event) => {
+                  event.preventDefault()
+                  onOpenCustomer(customer.id)
+                }}
                 to={{ kind: 'customer', customerId: customer.id }}
               >
                 Abrir ficha
@@ -214,7 +220,7 @@ export function CrmContextPanel({
                   </Button>
                 }
                 detail={opportunityDetail}
-                conversationId={conversation.id}
+                onOpen={onOpenOpportunity}
                 opportunity={active}
               />
             </div>

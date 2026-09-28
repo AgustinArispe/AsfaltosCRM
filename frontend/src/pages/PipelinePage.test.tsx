@@ -256,10 +256,10 @@ describe('PipelinePage', () => {
     expect(wonCard).toHaveClass('cursor-grab')
     expect(wonCard.closest('.pipeline-card')).not.toHaveClass('pipeline-card--terminal')
     fireEvent.click(wonCard)
-    expect(window.location.pathname).toBe('/pipeline/opportunities/4')
+    expect(window.location.pathname).toBe('/pipeline')
   })
 
-  it('uses deterministic identity fallback and opens the canonical CRM-020 route on card activation', async () => {
+  it('uses deterministic identity fallback and opens the detail popup on card activation', async () => {
     const item = opportunity('NUEVA', 4)
     item.customer = { ...item.customer, id: 0, name: '', company: null }
     mockApi([item])
@@ -267,7 +267,7 @@ describe('PipelinePage', () => {
     await ready()
     const card = screen.getByRole('button', { name: /Cliente #0/ })
     fireEvent.click(card)
-    expect(window.location.pathname).toBe('/pipeline/opportunities/4')
+    expect(window.location.pathname).toBe('/pipeline')
   })
 
   it('shows skeletons, column empties, and no-results distinctly', async () => {

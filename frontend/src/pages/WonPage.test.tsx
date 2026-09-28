@@ -160,7 +160,7 @@ describe('WonPage', () => {
     openButton.focus()
     expect(openButton).toHaveFocus()
     fireEvent.click(openButton)
-    expect(window.location.pathname).toBe('/won/opportunities/41')
+    expect(window.location.pathname).toBe('/won')
     fireEvent.click(screen.getByRole('button', { name: 'Restablecer' }))
     expect(window.location.pathname).toBe('/won')
   })

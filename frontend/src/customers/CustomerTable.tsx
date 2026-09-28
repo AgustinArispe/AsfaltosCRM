@@ -18,11 +18,13 @@ export function CustomerTable({
   role,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   customers: CustomerSummary[]
   role: UserRole
   onEdit: (customer: CustomerSummary) => void
   onDelete: (customer: CustomerSummary) => void
+  onOpen: (customerId: number) => void
 }) {
   return (
     <section aria-label='Listado de clientes' className='customer-records'>
@@ -32,6 +34,10 @@ export function CustomerTable({
             <AppLink
               aria-label={customer.name}
               className='customer-record__main'
+              onClick={(event) => {
+                event.preventDefault()
+                onOpen(customer.id)
+              }}
               origin={{ kind: 'workspace', workspace: 'customers' }}
               to={{ kind: 'customer', customerId: customer.id }}
             >

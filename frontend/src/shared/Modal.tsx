@@ -20,7 +20,6 @@ export function Modal({
   contentClassName,
   initialFocusClose = false,
   returnFocusTo,
-  presentation = 'dialog',
   children,
 }: {
   isOpen: boolean
@@ -34,7 +33,6 @@ export function Modal({
   contentClassName?: string
   initialFocusClose?: boolean
   returnFocusTo?: HTMLElement | null
-  presentation?: 'dialog' | 'page'
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -111,60 +109,6 @@ export function Modal({
       event.preventDefault()
       first.focus()
     }
-  }
-
-  if (presentation === 'page') {
-    return (
-      <section
-        aria-describedby={description ? descriptionId : undefined}
-        aria-labelledby={titleId}
-        className={`mx-auto w-full ${widthClass} text-[var(--text-primary)] ${contentClassName ?? ''}`}
-      >
-        <div className='overflow-hidden rounded-[var(--radius-surface)] border border-[var(--subtle-border)] bg-[var(--surface-primary)] shadow-[var(--shadow-surface)]'>
-          <header className='flex items-start justify-between gap-4 border-b border-[var(--divider)] px-5 py-4 sm:px-6'>
-            <div className='min-w-0 flex-1'>
-              {renderHeader ? (
-                renderHeader({ titleId, descriptionId })
-              ) : (
-                <>
-                  <h2
-                    className='text-base font-semibold tracking-tight text-[var(--text-primary)]'
-                    id={titleId}
-                  >
-                    {title}
-                  </h2>
-                  {description ? (
-                    <p
-                      className='mt-1 text-sm leading-5 text-[var(--text-secondary)]'
-                      id={descriptionId}
-                    >
-                      {description}
-                    </p>
-                  ) : null}
-                </>
-              )}
-            </div>
-            <button
-              aria-label={closeLabel ?? `Cerrar ${title.toLowerCase()}`}
-              className='ui-pressable grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--hover)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-40'
-              disabled={closeDisabled}
-              onClick={onClose}
-              type='button'
-            >
-              <svg aria-hidden='true' className='size-5' fill='none' viewBox='0 0 24 24'>
-                <path
-                  d='m6 6 12 12M18 6 6 18'
-                  stroke='currentColor'
-                  strokeLinecap='round'
-                  strokeWidth='1.8'
-                />
-              </svg>
-            </button>
-          </header>
-          {children}
-        </div>
-      </section>
-    )
   }
 
   return (

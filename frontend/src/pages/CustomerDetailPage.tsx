@@ -174,7 +174,13 @@ function CustomerOpportunities({
   )
 }
 
-export function CustomerDetailPage({ customerId }: { customerId: number }) {
+export function CustomerDetailPage({
+  customerId,
+  onClose,
+}: {
+  customerId: number
+  onClose?: () => void
+}) {
   const { token, logout, user } = useAuth()
   const [customer, setCustomer] = useState<CustomerDetail | null>(null)
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([])
@@ -218,10 +224,13 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
     return () => controller.abort()
   }, [apiSession, customerId, reloadKey])
 
-  const close = () => navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
+  const close = () => {
+    if (onClose) onClose()
+    else navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
+  }
 
   return (
-    <Modal isOpen onClose={close} presentation='page' size='large' title='Ficha de cliente'>
+    <Modal isOpen onClose={close} size='large' title='Ficha de cliente'>
       <div className='px-4 pt-3'>
         <BackToCustomersLink />
       </div>

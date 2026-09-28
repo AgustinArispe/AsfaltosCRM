@@ -54,6 +54,7 @@ function isEligibleForReopen(opportunity: OpportunityDetail): boolean {
 export function OpportunityDetailPage({
   cachedOpportunity,
   catalog,
+  onClose,
   onOpportunityDeleted,
   onOpportunityUpdated,
   opportunityId,
@@ -61,6 +62,7 @@ export function OpportunityDetailPage({
 }: {
   cachedOpportunity?: OpportunityDetail
   catalog?: ActiveProductCatalog
+  onClose?: () => void
   onOpportunityDeleted?: (opportunityId: number) => void
   onOpportunityUpdated?: (opportunity: OpportunityDetail) => void
   opportunityId: number
@@ -139,7 +141,8 @@ export function OpportunityDetailPage({
   }, [key, opportunityId, session, surface])
   const close = () => {
     const previousFocus = returnFocusRef.current
-    if (surface === 'won') navigate(`/won${window.location.search}`)
+    if (onClose) onClose()
+    else if (surface === 'won') navigate(`/won${window.location.search}`)
     else if (surface === 'lost') navigate(`/lost${window.location.search}`)
     else navigateToHistoryOrigin({ kind: 'workspace', workspace: surface })
     window.requestAnimationFrame(() => {
@@ -440,7 +443,6 @@ export function OpportunityDetailPage({
       contentClassName='opportunity-modal-panel'
       isOpen
       onClose={close}
-      presentation='page'
       renderHeader={({ titleId }) => (
         <OpportunityDetailModalHeader
           opportunity={opportunity}
@@ -460,6 +462,7 @@ export function OpportunityDetailPage({
           titleId={titleId}
         />
       )}
+      returnFocusTo={returnFocusRef.current}
       size='opportunity'
       title={
         opportunity?.customer.company ?? opportunity?.customer.name ?? 'Detalle de oportunidad'

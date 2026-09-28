@@ -7,6 +7,8 @@ import { ConversationList } from '../whatsapp/ConversationList'
 import { CrmContextPanel } from '../whatsapp/CrmContextPanel'
 import { HumanTemplateSelector } from '../whatsapp/HumanTemplateSelector'
 import { useWhatsAppInbox } from '../whatsapp/useWhatsAppInbox'
+import { CustomerDetailPage } from './CustomerDetailPage'
+import { OpportunityDetailPage } from './OpportunityDetailPage'
 
 export function WhatsAppInboxPage({ initialConversationId }: { initialConversationId?: number }) {
   const [isContextOpen, setIsContextOpen] = useState(false)
@@ -18,6 +20,8 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
   const [isTemplateOpen, setIsTemplateOpen] = useState(false)
   const [templateMode, setTemplateMode] = useState<'all' | 'recontact'>('all')
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [openCustomerId, setOpenCustomerId] = useState<number | null>(null)
+  const [openOpportunityId, setOpenOpportunityId] = useState<number | null>(null)
 
   useEffect(() => {
     void inbox.selectedConversationId
@@ -131,6 +135,8 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
               linkError={inbox.linkError}
               onRetryContext={inbox.retryContextLoad}
               onCreateOpportunity={inbox.createOpportunity}
+              onOpenCustomer={setOpenCustomerId}
+              onOpenOpportunity={setOpenOpportunityId}
               onUpdateLink={inbox.updateOpportunityLink}
               opportunityDetail={inbox.opportunityDetail}
               status={inbox.contextStatus}
@@ -138,6 +144,15 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
           ) : null}
         </div>
       </Drawer>
+      {openCustomerId ? (
+        <CustomerDetailPage customerId={openCustomerId} onClose={() => setOpenCustomerId(null)} />
+      ) : null}
+      {openOpportunityId ? (
+        <OpportunityDetailPage
+          onClose={() => setOpenOpportunityId(null)}
+          opportunityId={openOpportunityId}
+        />
+      ) : null}
       <HumanTemplateSelector
         error={inbox.humanTemplateError}
         isOpen={isTemplateOpen}

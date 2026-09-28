@@ -74,7 +74,7 @@ function lossReasonLabel(key: string): string {
   )
 }
 
-function LostRows({ items }: { items: LostOpportunity[] }) {
+function LostRows({ items, onOpen }: { items: LostOpportunity[]; onOpen: (id: number) => void }) {
   return (
     <section aria-label='Oportunidades perdidas actuales' className='lost-list overflow-x-auto'>
       <table className='w-full min-w-[50rem] border-collapse text-left text-sm'>
@@ -115,6 +115,10 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                   <AppLink
                     aria-label={opportunity.customer.name}
                     className='inline-flex min-h-11 items-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+                    onClick={(event) => {
+                      event.preventDefault()
+                      onOpen(opportunity.id)
+                    }}
                     origin={{ kind: 'workspace', workspace: 'lost' }}
                     search={window.location.search}
                     to={{ kind: 'opportunity', opportunityId: opportunity.id, surface: 'lost' }}
@@ -152,6 +156,10 @@ function LostRows({ items }: { items: LostOpportunity[] }) {
                 <td className='px-4 py-3 text-right'>
                   <AppLink
                     className='inline-flex min-h-11 items-center px-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+                    onClick={(event) => {
+                      event.preventDefault()
+                      onOpen(opportunity.id)
+                    }}
                     origin={{ kind: 'workspace', workspace: 'lost' }}
                     search={window.location.search}
                     to={{ kind: 'opportunity', opportunityId: opportunity.id, surface: 'lost' }}
@@ -232,6 +240,8 @@ export function LostPage({ selectedOpportunityId }: { selectedOpportunityId?: nu
     Array<{ id: number; name: string; company: string | null }>
   >([])
   const [products, setProducts] = useState<Array<{ id: number; name: string }>>([])
+  const [openOpportunityId, setOpenOpportunityId] = useState<number | null>(null)
+  const activeOpportunityId = selectedOpportunityId ?? openOpportunityId
   const filterCount = activeFilterCount(filters)
 
   useEffect(() => {
@@ -457,7 +467,7 @@ export function LostPage({ selectedOpportunityId }: { selectedOpportunityId?: nu
             {statistics ? <Statistics statistics={statistics} /> : null}
             <div className='mt-4'>
               {items.length ? (
-                <LostRows items={items} />
+                <LostRows items={items} onOpen={setOpenOpportunityId} />
               ) : (
                 <EmptyState
                   description={
@@ -485,13 +495,14 @@ export function LostPage({ selectedOpportunityId }: { selectedOpportunityId?: nu
           </>
         )}
       </div>
-      {selectedOpportunityId ? (
+      {activeOpportunityId ? (
         <OpportunityDetailPage
+          onClose={openOpportunityId ? () => setOpenOpportunityId(null) : undefined}
           onOpportunityDeleted={(opportunityId) => {
             setItems((current) => current.filter((item) => item.opportunity.id !== opportunityId))
             setReloadKey((current) => current + 1)
           }}
-          opportunityId={selectedOpportunityId}
+          opportunityId={activeOpportunityId}
           surface='lost'
         />
       ) : null}

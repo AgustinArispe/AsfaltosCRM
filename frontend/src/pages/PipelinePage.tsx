@@ -31,7 +31,6 @@ import {
 } from '../pipeline/StageTransitionConfirmationModal'
 import type { OpportunitySummary, PipelineStatus, QuoteProductInput } from '../pipeline/types'
 import { useActiveProductCatalog } from '../pipeline/useActiveProductCatalog'
-import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { Icon } from '../shared/Icon'
 import { EmptyState, InlineFeedback } from '../shared/StatusStates'
@@ -75,6 +74,8 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
   const [showStageAge, setShowStageAge] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const [isManualCreationOpen, setIsManualCreationOpen] = useState(false)
+  const [openOpportunityId, setOpenOpportunityId] = useState<number | null>(null)
+  const activeOpportunityId = selectedOpportunityId ?? openOpportunityId
   const [pendingStageTransition, setPendingStageTransition] =
     useState<PendingStageTransition | null>(null)
   const [isConfirmingStageTransition, setIsConfirmingStageTransition] = useState(false)
@@ -516,13 +517,8 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         <PipelineBoard
           busyOpportunityIds={busyOpportunityIds}
           onMove={requestStageTransition}
-          onOpenDetail={(opportunityId) =>
-            navigateRoute(
-              { kind: 'opportunity', opportunityId, surface: 'pipeline' },
-              { origin: { kind: 'workspace', workspace: 'pipeline' } },
-            )
-          }
-          selectedOpportunityId={selectedOpportunityId}
+          onOpenDetail={setOpenOpportunityId}
+          selectedOpportunityId={activeOpportunityId ?? undefined}
           opportunities={projectedOpportunities}
           showStageAge={showStageAge}
         />
@@ -555,10 +551,11 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
           user={user}
         />
       ) : null}
-      {selectedOpportunityId ? (
+      {activeOpportunityId ? (
         <OpportunityDetailPage
           catalog={catalog}
-          cachedOpportunity={workspace.detailsById[selectedOpportunityId]}
+          cachedOpportunity={workspace.detailsById[activeOpportunityId]}
+          onClose={openOpportunityId ? () => setOpenOpportunityId(null) : undefined}
           onOpportunityDeleted={(opportunityId) => {
             mutationGenerationRef.current[opportunityId] =
               (mutationGenerationRef.current[opportunityId] ?? 0) + 1
@@ -570,7 +567,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
               (mutationGenerationRef.current[opportunity.id] ?? 0) + 1
             dispatch({ type: 'cache-detail', opportunity })
           }}
-          opportunityId={selectedOpportunityId}
+          opportunityId={activeOpportunityId}
           surface='pipeline'
         />
       ) : null}

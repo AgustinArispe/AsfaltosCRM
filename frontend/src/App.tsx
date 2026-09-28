@@ -13,9 +13,6 @@ import { LazyWorkspace } from './shared/LazyWorkspace'
 import { LoadingState } from './shared/StatusStates'
 import { ThemeProvider } from './theme/ThemeProvider'
 
-const CustomerDetailPage = lazy(() =>
-  import('./pages/CustomerDetailPage').then((module) => ({ default: module.CustomerDetailPage })),
-)
 const CustomersPage = lazy(() =>
   import('./pages/CustomersPage').then((module) => ({ default: module.CustomersPage })),
 )
@@ -113,7 +110,7 @@ function RoutedApp() {
     return (
       <AppShell activeNavigationPath='/customers' pageTitle='Ficha de cliente'>
         <LazyWorkspace>
-          <CustomerDetailPage customerId={route.customerId} />
+          <CustomersPage selectedCustomerId={route.customerId} />
         </LazyWorkspace>
       </AppShell>
     )

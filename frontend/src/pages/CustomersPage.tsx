@@ -23,11 +23,12 @@ import { Button } from '../shared/Button'
 import { Icon } from '../shared/Icon'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import { SearchField, Toolbar } from '../shared/Workspace'
+import { CustomerDetailPage } from './CustomerDetailPage'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300
 
-export function CustomersPage() {
+export function CustomersPage({ selectedCustomerId }: { selectedCustomerId?: number }) {
   const { token, logout, user } = useAuth()
   const [customers, setCustomers] = useState<CustomerSummary[]>([])
   const [total, setTotal] = useState(0)
@@ -42,6 +43,8 @@ export function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState<CustomerSummary | null>(null)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [announcement, setAnnouncement] = useState('')
+  const [openCustomerId, setOpenCustomerId] = useState<number | null>(null)
+  const activeCustomerId = selectedCustomerId ?? openCustomerId
 
   const apiSession = useMemo<ApiSession>(
     () => ({ token: token ?? '', onUnauthorized: logout }),
@@ -221,6 +224,7 @@ export function CustomersPage() {
               customers={customers}
               onDelete={setDeleteTarget}
               onEdit={openEdit}
+              onOpen={setOpenCustomerId}
               role={user.role}
             />
             <nav aria-label='Paginación de clientes' className='workspace-pagination'>
@@ -271,6 +275,12 @@ export function CustomersPage() {
           onClose={() => setIsImportOpen(false)}
           onCommitted={handleImportCommitted}
           session={apiSession}
+        />
+      ) : null}
+      {activeCustomerId ? (
+        <CustomerDetailPage
+          customerId={activeCustomerId}
+          onClose={openCustomerId ? () => setOpenCustomerId(null) : undefined}
         />
       ) : null}
     </section>

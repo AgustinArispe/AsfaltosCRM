@@ -4,7 +4,6 @@ import { getWonFilterOptions, getWonStatistics, listWonOpportunities } from '../
 import { useAuth } from '../auth/AuthContext'
 import { SOURCE_LABELS } from '../pipeline/config'
 import { isLeadSource } from '../pipeline/types'
-import { navigateRoute } from '../routing/router'
 import { Button } from '../shared/Button'
 import { Input, Select } from '../shared/FormControls'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
@@ -92,6 +91,8 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
+  const [openOpportunityId, setOpenOpportunityId] = useState<number | null>(null)
+  const activeOpportunityId = selectedOpportunityId ?? openOpportunityId
   useEffect(() => {
     getWonFilterOptions(session)
       .then(setOptions)
@@ -333,19 +334,7 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
                 <button
                   aria-label={`Abrir oportunidad ${item.opportunity.id} de ${item.opportunity.customer.name}`}
                   className='won-result-card'
-                  onClick={() =>
-                    navigateRoute(
-                      {
-                        kind: 'opportunity',
-                        opportunityId: item.opportunity.id,
-                        surface: 'won',
-                      },
-                      {
-                        origin: { kind: 'workspace', workspace: 'won' },
-                        search: window.location.search,
-                      },
-                    )
-                  }
+                  onClick={() => setOpenOpportunityId(item.opportunity.id)}
                   type='button'
                 >
                   <span className='won-result-card__icon'>
@@ -395,13 +384,14 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
           </Button>
         </footer>
       ) : null}
-      {selectedOpportunityId ? (
+      {activeOpportunityId ? (
         <OpportunityDetailPage
+          onClose={openOpportunityId ? () => setOpenOpportunityId(null) : undefined}
           onOpportunityDeleted={(opportunityId) => {
             setItems((current) => current.filter((item) => item.opportunity.id !== opportunityId))
             setRetry((value) => value + 1)
           }}
-          opportunityId={selectedOpportunityId}
+          opportunityId={activeOpportunityId}
           surface='won'
         />
       ) : null}
