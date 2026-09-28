@@ -14,8 +14,10 @@ from app.models import (
     WhatsAppConversationResolution,
     WhatsAppOpportunityLinkSource,
 )
+from app.services.customer_identity_service import comparable_phone
 from app.services.errors import (
     EntityNotFoundError,
+    InvalidWhatsAppMessageError,
     WhatsAppConversationResolutionError,
     WhatsAppOpportunityAssociationError,
 )
@@ -51,6 +53,92 @@ class WhatsAppConversationService:
             )
             self._session.flush()
         return conversation
+
+    def hide_conversation(
+        self,
+        conversation_id: int,
+        *,
+        now: datetime | None = None,
+    ) -> None:
+        hidden_at = self._aware_utc(now or datetime.now(UTC))
+        with self._session.begin():
+            conversation = self._get_for_update(conversation_id, include_hidden=True)
+            if conversation.deleted_at is None:
+                conversation.deleted_at = hidden_at
+                conversation.updated_at = later_datetime(
+                    conversation.updated_at, hidden_at
+                )
+                self._session.flush()
+
+    def open_or_create_for_opportunity(
+        self,
+        opportunity_id: int,
+        *,
+        changed_by_user_id: int,
+        now: datetime | None = None,
+    ) -> WhatsAppConversation:
+        opened_at = self._aware_utc(now or datetime.now(UTC))
+        with self._session.begin():
+            opportunity = self._session.scalar(
+                select(Opportunity)
+                .where(
+                    Opportunity.id == opportunity_id,
+                    Opportunity.deleted_at.is_(None),
+                )
+                .with_for_update()
+            )
+            if opportunity is None:
+                raise EntityNotFoundError("Opportunity", opportunity_id)
+            customer = self._session.scalar(
+                select(Customer)
+                .where(
+                    Customer.id == opportunity.customer_id,
+                    Customer.deleted_at.is_(None),
+                )
+                .with_for_update()
+            )
+            if customer is None:
+                raise EntityNotFoundError("Customer", opportunity.customer_id)
+            phone_match_key = comparable_phone(customer.phone)
+            if phone_match_key is None:
+                raise InvalidWhatsAppMessageError(
+                    "Opportunity customer must have a valid phone number"
+                )
+            conversation = self._session.scalar(
+                select(WhatsAppConversation)
+                .where(WhatsAppConversation.phone_match_key == phone_match_key)
+                .with_for_update()
+            )
+            if conversation is None:
+                conversation = WhatsAppConversation(
+                    customer_id=customer.id,
+                    external_phone=phone_match_key,
+                    phone_match_key=phone_match_key,
+                    resolution_status=WhatsAppConversationResolution.RESOLVED,
+                    updated_at=opened_at,
+                )
+                self._session.add(conversation)
+                self._session.flush()
+            elif conversation.customer_id not in {None, customer.id}:
+                raise WhatsAppOpportunityAssociationError(
+                    "WhatsApp conversation belongs to a different customer"
+                )
+            else:
+                conversation.customer_id = customer.id
+                conversation.resolution_status = WhatsAppConversationResolution.RESOLVED
+                conversation.deleted_at = None
+                conversation.updated_at = later_datetime(
+                    conversation.updated_at, opened_at
+                )
+            self.link_opportunity_in_transaction(
+                conversation=conversation,
+                opportunity_id=opportunity.id,
+                link_source=WhatsAppOpportunityLinkSource.MANUAL,
+                linked_by_user_id=changed_by_user_id,
+                linked_at=opened_at,
+            )
+            self._session.flush()
+            return conversation
 
     def resolve_customer(
         self,
@@ -220,7 +308,12 @@ class WhatsAppConversationService:
         self,
         conversation_id: int,
     ) -> list[Opportunity]:
-        conversation = self._session.get(WhatsAppConversation, conversation_id)
+        conversation = self._session.scalar(
+            select(WhatsAppConversation).where(
+                WhatsAppConversation.id == conversation_id,
+                WhatsAppConversation.deleted_at.is_(None),
+            )
+        )
         if conversation is None:
             raise EntityNotFoundError("WhatsAppConversation", conversation_id)
         if conversation.customer_id is None:
@@ -237,18 +330,29 @@ class WhatsAppConversationService:
             )
         )
 
-    def _get_for_update(self, conversation_id: int) -> WhatsAppConversation:
+    def _get_for_update(
+        self,
+        conversation_id: int,
+        *,
+        include_hidden: bool = False,
+    ) -> WhatsAppConversation:
+        filters = [WhatsAppConversation.id == conversation_id]
+        if not include_hidden:
+            filters.append(WhatsAppConversation.deleted_at.is_(None))
         conversation = self._session.scalar(
-            select(WhatsAppConversation)
-            .where(WhatsAppConversation.id == conversation_id)
-            .with_for_update()
+            select(WhatsAppConversation).where(*filters).with_for_update()
         )
         if conversation is None:
             raise EntityNotFoundError("WhatsAppConversation", conversation_id)
         return conversation
 
     def _conversation_customer_id(self, conversation_id: int) -> int:
-        conversation = self._session.get(WhatsAppConversation, conversation_id)
+        conversation = self._session.scalar(
+            select(WhatsAppConversation).where(
+                WhatsAppConversation.id == conversation_id,
+                WhatsAppConversation.deleted_at.is_(None),
+            )
+        )
         if conversation is None:
             raise EntityNotFoundError("WhatsAppConversation", conversation_id)
         if (

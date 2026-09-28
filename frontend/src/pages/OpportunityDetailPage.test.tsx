@@ -506,7 +506,7 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Cotizar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Marcar pérdida' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cotizar' })).toHaveClass('h-11')
-    expect(screen.getByRole('button', { name: 'Abrir WhatsApp' })).toHaveClass('h-11')
+    expect(screen.getByRole('button', { name: 'Iniciar WhatsApp' })).toHaveClass('h-11')
     expect(screen.getByRole('button', { name: 'Marcar pérdida' })).toHaveClass('h-11')
     fireEvent.click(screen.getByRole('button', { name: 'Cotizar' }))
     const product = await screen.findByRole('radio', { name: 'SuperPhalt' })
@@ -651,27 +651,15 @@ describe('OpportunityDetailPage', () => {
     expect(onOpportunityUpdated).toHaveBeenCalledTimes(1)
   })
 
-  it('navigates to the exact internal WhatsApp conversation and never uses an external fallback', async () => {
+  it('opens the CRM WhatsApp conversation and never uses an external fallback', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
-      .mockResolvedValueOnce(
-        jsonResponse(200, {
-          items: [
-            {
-              id: 73,
-              external_phone: '+54 11 4444-5555',
-              customer: { id: 7 },
-            },
-          ],
-          next_page_cursor: null,
-          sync_cursor: 'cursor',
-        }),
-      )
+      .mockResolvedValueOnce(jsonResponse(200, { id: 73 }))
     vi.stubGlobal('fetch', fetchMock)
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
-    const whatsAppButton = screen.getByRole('button', { name: 'Abrir WhatsApp' })
+    const whatsAppButton = screen.getByRole('button', { name: 'Iniciar WhatsApp' })
     expect(whatsAppButton.querySelector('[data-icon="whatsapp"]')).toBeInTheDocument()
     fireEvent.click(whatsAppButton)
     await waitFor(() => expect(window.location.pathname).toBe('/whatsapp/conversations/73'))
@@ -680,21 +668,17 @@ describe('OpportunityDetailPage', () => {
     ).toBeNull()
   })
 
-  it('explains when no internal WhatsApp conversation can be verified', async () => {
+  it('explains when WhatsApp cannot be opened for the customer', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, makeDetail()))
-      .mockImplementation(() =>
-        Promise.resolve(
-          jsonResponse(200, { items: [], next_page_cursor: null, sync_cursor: 'cursor' }),
-        ),
-      )
+      .mockImplementation(() => Promise.resolve(jsonResponse(422, { detail: 'Invalid phone' })))
     vi.stubGlobal('fetch', fetchMock)
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar WhatsApp' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No existe una conversación interna vinculada',
+      'No pudimos iniciar WhatsApp para este contacto',
     )
   })
 })

@@ -152,6 +152,7 @@ class WhatsAppInboundService:
                 if locked_conversation is None:
                     raise RuntimeError("WhatsApp conversation changed during inbound")
                 conversation = locked_conversation
+                conversation.deleted_at = None
                 self._refresh_existing_conversation(conversation, normalized)
 
             opportunity: Opportunity | None = None

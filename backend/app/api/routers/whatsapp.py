@@ -163,6 +163,35 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         ).get_conversation_detail(conversation_id)
         return presenter.conversation_detail(detail, now=datetime.now(UTC))
 
+    @router.delete(
+        "/conversations/{conversation_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def hide_conversation(
+        conversation_id: int,
+        session: DatabaseSession,
+        _current_user: CurrentUser,
+    ) -> Response:
+        WhatsAppConversationService(session).hide_conversation(conversation_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @router.post(
+        "/opportunities/{opportunity_id}/conversation",
+        response_model=ConversationDetailResponse,
+    )
+    def open_opportunity_conversation(
+        opportunity_id: int,
+        session: DatabaseSession,
+        current_user: CurrentUser,
+    ) -> ConversationDetailResponse:
+        conversation = WhatsAppConversationService(
+            session
+        ).open_or_create_for_opportunity(
+            opportunity_id,
+            changed_by_user_id=current_user.id,
+        )
+        return _conversation_detail(session, runtime, presenter, conversation.id)
+
     @router.get(
         "/conversations/{conversation_id}/templates",
         response_model=list[HumanTemplateResponse],
@@ -179,6 +208,7 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
             runtime.provider,
             WhatsAppApiMediaService(session, runtime),
             runtime.recontact_template_name,
+            runtime.recontact_template_language,
         ).list_usable()
         return [
             HumanTemplateResponse(
@@ -204,6 +234,9 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         limit: Annotated[int, Query(ge=1, le=100)] = 100,
         before_cursor: str | None = None,
     ) -> MessagePageResponse:
+        ConversationQueryService(session, runtime.metrics).get_conversation_detail(
+            conversation_id
+        )
         before = (
             runtime.cursors.decode_message_page(before_cursor)
             if before_cursor is not None
@@ -304,6 +337,7 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
             runtime.provider,
             media,
             runtime.recontact_template_name,
+            runtime.recontact_template_language,
         ).prepare_send(
             template_name=payload.template_name,
             language=payload.language,

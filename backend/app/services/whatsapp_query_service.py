@@ -82,7 +82,10 @@ class ConversationQueryService:
             select(
                 func.count(WhatsAppConversation.id),
                 func.min(WhatsAppConversation.waiting_since_at),
-            ).where(WhatsAppConversation.waiting_for_response.is_(True))
+            ).where(
+                WhatsAppConversation.waiting_for_response.is_(True),
+                WhatsAppConversation.deleted_at.is_(None),
+            )
         ).one()
         return ConversationAttentionSummary(
             waiting_count=waiting_count,
@@ -100,7 +103,10 @@ class ConversationQueryService:
         statements = 0
         snapshot = self._snapshot(page.cursor, snapshot_at)
         change_key = _conversation_change_key()
-        query_filters: list[ColumnElement[bool]] = [change_key <= snapshot]
+        query_filters: list[ColumnElement[bool]] = [
+            change_key <= snapshot,
+            WhatsAppConversation.deleted_at.is_(None),
+        ]
         if filters.waiting_only:
             query_filters.append(WhatsAppConversation.waiting_for_response.is_(True))
         if filters.unread_only:
@@ -203,7 +209,10 @@ class ConversationQueryService:
         statement = (
             select(WhatsAppConversation, change_key.label("resource_updated_at"))
             .outerjoin(Customer, Customer.id == WhatsAppConversation.customer_id)
-            .where(WhatsAppConversation.id == conversation_id)
+            .where(
+                WhatsAppConversation.id == conversation_id,
+                WhatsAppConversation.deleted_at.is_(None),
+            )
             .options(
                 raiseload("*"),
                 load_only(
@@ -802,7 +811,10 @@ class PollingQueryService:
         statement = (
             select(WhatsAppConversation, change_key.label("resource_updated_at"))
             .outerjoin(Customer, Customer.id == WhatsAppConversation.customer_id)
-            .where(_after_change_cursor(change_key, WhatsAppConversation.id, page))
+            .where(
+                _after_change_cursor(change_key, WhatsAppConversation.id, page),
+                WhatsAppConversation.deleted_at.is_(None),
+            )
             .options(
                 raiseload("*"),
                 load_only(

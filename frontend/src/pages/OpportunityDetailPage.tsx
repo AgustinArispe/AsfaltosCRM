@@ -14,7 +14,7 @@ import {
   winOpportunity,
 } from '../api/opportunities'
 import { listActiveProducts } from '../api/products'
-import { listWhatsAppConversations } from '../api/whatsapp'
+import { openWhatsAppConversationForOpportunity } from '../api/whatsapp'
 import { useAuth } from '../auth/AuthContext'
 import { OPPORTUNITY_STATUS_LABELS, STAGE_BY_STATUS } from '../pipeline/config'
 import { LossModal } from '../pipeline/LossModal'
@@ -39,9 +39,9 @@ import { Icon } from '../shared/Icon'
 import { Modal } from '../shared/Modal'
 import { InlineFeedback, LoadingState } from '../shared/StatusStates'
 
-function normalizedPhone(value: string | null): string | null {
-  const normalized = value?.replace(/\D/g, '') ?? ''
-  return normalized || null
+function hasComparablePhone(value: string | null): boolean {
+  const comparable = value?.trim().replace(/[\s()-]/g, '') ?? ''
+  return [...comparable].filter((character) => /[0-9]/.test(character)).length >= 7
 }
 
 function isEligibleForReopen(opportunity: OpportunityDetail): boolean {
@@ -184,35 +184,13 @@ export function OpportunityDetailPage({
     setIsLookingUpConversation(true)
     setWhatsAppFeedback(null)
     try {
-      const phone = normalizedPhone(opportunity.customer.phone)
-      const searches = phone
-        ? [phone, opportunity.customer.company ?? opportunity.customer.name]
-        : [opportunity.customer.company ?? opportunity.customer.name]
-      let conversationId: number | null = null
-      for (const search of searches) {
-        const page = await listWhatsAppConversations(
-          { limit: 50, waitingOnly: false, unreadOnly: false, search },
-          session,
-        )
-        const exactPhone = phone
-          ? page.items.find((item) => normalizedPhone(item.external_phone) === phone)
-          : undefined
-        const customerMatch = page.items.find(
-          (item) => item.customer?.id === opportunity.customer.id,
-        )
-        conversationId = exactPhone?.id ?? customerMatch?.id ?? null
-        if (conversationId) break
-      }
-      if (conversationId) {
-        navigateRoute(
-          { kind: 'conversation', conversationId },
-          { origin: { kind: 'opportunity', opportunityId: opportunity.id, surface } },
-        )
-      } else {
-        setWhatsAppFeedback('No existe una conversación interna vinculada.')
-      }
+      const conversation = await openWhatsAppConversationForOpportunity(opportunity.id, session)
+      navigateRoute(
+        { kind: 'conversation', conversationId: conversation.id },
+        { origin: { kind: 'opportunity', opportunityId: opportunity.id, surface } },
+      )
     } catch {
-      setWhatsAppFeedback('No pudimos buscar una conversación interna. Intentá nuevamente.')
+      setWhatsAppFeedback('No pudimos iniciar WhatsApp para este contacto. Verificá su teléfono.')
     } finally {
       setIsLookingUpConversation(false)
     }
@@ -388,12 +366,12 @@ export function OpportunityDetailPage({
       ) : null}
       <Button
         className='opportunity-detail__action opportunity-whatsapp-action'
-        disabled={isLookingUpConversation}
+        disabled={isLookingUpConversation || !hasComparablePhone(opportunity.customer.phone)}
         isLoading={isLookingUpConversation}
         onClick={() => void handleWhatsApp()}
       >
         <Icon name='whatsapp' />
-        {isLookingUpConversation ? 'Buscando conversación…' : 'Abrir WhatsApp'}
+        {isLookingUpConversation ? 'Abriendo WhatsApp…' : 'Iniciar WhatsApp'}
       </Button>
       {isEligibleForReopen(opportunity) ? (
         <Button

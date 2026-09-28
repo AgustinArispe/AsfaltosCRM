@@ -47,6 +47,7 @@ def test_visual_qa_identifiers_and_fake_templates_are_deterministic() -> None:
         "qa-follow-up",
         "qa-delivery",
         "qa-marketing",
+        "qa-recontact",
     }
     assert all(template.status == "APPROVED" for template in templates)
 

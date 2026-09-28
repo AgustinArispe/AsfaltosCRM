@@ -7,6 +7,7 @@ import {
   getOpportunityDetail,
 } from '../api/opportunities'
 import {
+  deleteWhatsAppConversation,
   getWhatsAppConversation,
   getWhatsAppMediaBlob,
   linkWhatsAppOpportunity,
@@ -99,6 +100,7 @@ export function useWhatsAppInbox(
   const [selectedReloadKey, setSelectedReloadKey] = useState(0)
   const [isLoadingOlder, setIsLoadingOlder] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [isHidingConversation, setIsHidingConversation] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null)
   const [humanTemplates, setHumanTemplates] = useState<WhatsAppHumanTemplate[]>([])
@@ -462,6 +464,25 @@ export function useWhatsAppInbox(
     setConversations((current) => upsertConversations(current, [detail]))
   }, [apiSession])
 
+  const hideConversation = useCallback(async (): Promise<boolean> => {
+    const conversationId = selectedConversationIdRef.current
+    if (!conversationId || isHidingConversation) return false
+    setIsHidingConversation(true)
+    try {
+      await deleteWhatsAppConversation(conversationId, apiSession)
+      setConversations((current) => current.filter((item) => item.id !== conversationId))
+      if (selectedConversationIdRef.current === conversationId) {
+        setSelectedConversationId(null)
+      }
+      return true
+    } catch (error: unknown) {
+      setDetailError(errorMessage(error, 'No pudimos eliminar la conversación.'))
+      return false
+    } finally {
+      setIsHidingConversation(false)
+    }
+  }, [apiSession, isHidingConversation])
+
   const dispatchPendingSend = useCallback(
     async (pending: PendingSend): Promise<boolean> => {
       setIsSending(true)
@@ -714,6 +735,7 @@ export function useWhatsAppInbox(
     nextMessageCursor,
     isLoadingOlder,
     isSending,
+    isHidingConversation,
     sendError,
     failedSend,
     humanTemplates,
@@ -745,5 +767,6 @@ export function useWhatsAppInbox(
     sendHumanTemplate,
     updateOpportunityLink,
     createOpportunity,
+    hideConversation,
   }
 }

@@ -46,10 +46,12 @@ class WhatsAppHumanTemplateService:
         provider: WhatsAppProvider,
         media: WhatsAppApiMediaService,
         recontact_template_name: str | None = None,
+        recontact_template_language: str | None = None,
     ) -> None:
         self._provider = provider
         self._media = media
         self._recontact_template_name = recontact_template_name
+        self._recontact_template_language = recontact_template_language
 
     def list_usable(self) -> tuple[HumanTemplateSelection, ...]:
         return tuple(
@@ -137,10 +139,13 @@ class WhatsAppHumanTemplateService:
             media_type=expected_type,
         )
 
-    @staticmethod
-    def _is_usable(template: ProviderTemplateSnapshot) -> bool:
+    def _is_usable(self, template: ProviderTemplateSnapshot) -> bool:
         return (
-            template.category.upper() != "MARKETING"
+            template.name.casefold() != "hello_world"
+            and (
+                template.category.upper() != "MARKETING"
+                or self._is_recontact_template(template)
+            )
             and template.status.upper() == "APPROVED"
             and template.supported_for_send
             and (
@@ -173,10 +178,12 @@ class WhatsAppHumanTemplateService:
 
     def _is_recontact_template(self, template: ProviderTemplateSnapshot) -> bool:
         configured_name = self._recontact_template_name
+        configured_language = self._recontact_template_language
         return (
             configured_name is not None
+            and configured_language is not None
             and template.name.casefold() == configured_name.casefold()
-            and template.category.upper() == "UTILITY"
+            and template.language == configured_language
         )
 
     @classmethod

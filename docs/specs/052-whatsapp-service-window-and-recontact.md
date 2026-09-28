@@ -35,11 +35,12 @@ authoritative: Meta is the source of truth for templates, approval and policy.
 - When closed, keep free-form text and attachment sending disabled, explain the Meta
   restriction in Spanish, and surface the primary CTA `Usar plantilla para retomar
   contacto` at the composer.
-- Add an optional non-secret runtime setting holding the configured *name* of FAA's
-  recontact template. The CRM resolves that name against the fresh provider catalog;
-  it exposes a template as recontact only if Meta currently reports it as approved,
-  supported and non-marketing. Its language and all sendable details remain the
-  provider's values. No Meta template ID is hardcoded or exposed.
+- Add optional non-secret runtime settings holding the configured *name* and language
+  of FAA's recontact template. The CRM resolves that exact pair against the fresh
+  provider catalog. `retomar_consulta_vencida` / `es_AR` is an explicitly approved
+  FAA recontact template and may be `MARKETING`; any other marketing template remains
+  unavailable in the human Inbox selector. Meta approval, supported send shape, and
+  provider availability remain mandatory. No Meta template ID is hardcoded or exposed.
 - Reuse the current approved-template send endpoint, provider abstraction,
   idempotency key, message status/delivery model, and polling. The recontact selector
   shows only the catalog entries identified as recontact; absence is explicit and has
@@ -65,9 +66,11 @@ authoritative: Meta is the source of truth for templates, approval and policy.
   and therefore never reopens free-form sending.
 - A later valid inbound customer message updates `last_inbound_at`; the existing
   provider calculation then reopens the window automatically.
-- The recontact template is available only when the configured name matches a fresh,
-  currently approved and supported, non-marketing provider template. Pending,
-  rejected, paused, missing, unsupported, or marketing entries are unavailable.
+- The recontact template is available only when the configured name and language
+  match a fresh, currently approved and supported provider template. The approved FAA
+  pair `retomar_consulta_vencida` / `es_AR` may be categorized as `MARKETING`; this
+  exception does not make arbitrary marketing templates available. Pending, rejected,
+  paused, missing, unsupported, or mismatched entries are unavailable.
 - The suggested copy submitted for Meta approval is: `Hola {{1}}, somos de FAA. Te
   escribimos para continuar con tu consulta. Cuando puedas, respondé este mensaje y
   seguimos por acá.` The CRM neither stores nor assumes that copy; the Meta catalog is
@@ -130,9 +133,11 @@ configuration, not a database catalog and not a Meta ID.
 - AC-02: The closed composer disables free-form text/attachments, explains why in
   Spanish, and exposes `Usar plantilla para retomar contacto` without searching the
   generic template UI.
-- AC-03: The catalog marks only the configured, fresh Meta-approved, supported,
-  non-marketing template as `RECONTACT`; a missing, pending, rejected or marketing
-  match produces no recontact option and no fallback.
+- AC-03: The catalog marks only the configured, fresh Meta-approved and supported
+  template pair as `RECONTACT`. `retomar_consulta_vencida` / `es_AR` remains usable
+  when Meta reports `MARKETING`; a missing, pending, rejected, unsupported or
+  mismatched entry produces no recontact option and no fallback. Other marketing
+  templates remain absent from the human Inbox selector.
 - AC-04: Recontact template selection and sending use the existing provider pathway,
   idempotency and delivery states; send success or failure preserves closed free-form
   state.
@@ -155,8 +160,9 @@ separate approved spec.
 
 ## Implementation notes
 
-Use the existing provider catalog service rather than a local catalog. `WHATSAPP_RECONTACT_TEMPLATE_NAME`
-is deliberately an optional template-name selector, not a credential or an external
-ID; production setup must first create and approve the template in Meta, then set the
-matching name. Keep UI status logic in a typed presentation component and use native
-disabled controls, accessible status text and the existing accessible modal.
+Use the existing provider catalog service rather than a local catalog.
+`WHATSAPP_RECONTACT_TEMPLATE_NAME` and `WHATSAPP_RECONTACT_TEMPLATE_LANGUAGE` are
+optional non-secret selectors, not credentials or external IDs. Production setup uses
+`retomar_consulta_vencida` and `es_AR` after Meta approval. Keep UI status logic in a
+typed presentation component and use native disabled controls, accessible status text
+and the existing accessible modal.

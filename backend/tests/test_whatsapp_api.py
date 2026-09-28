@@ -82,7 +82,8 @@ def whatsapp_api(
     )
     runtime = build_fake_whatsapp_runtime(
         provider=provider,
-        recontact_template_name="retomar_contacto",
+        recontact_template_name="retomar_consulta_vencida",
+        recontact_template_language="es_AR",
     )
     application = create_app(runtime, security_settings=development_security_settings())
 
@@ -495,7 +496,7 @@ def test_human_templates_are_safe_fresh_and_idempotent(
     )
 
 
-def test_recontact_template_requires_a_current_approved_utility_catalog_match(
+def test_recontact_template_requires_the_configured_approved_marketing_catalog_match(
     whatsapp_api: WhatsAppApiContext,
 ) -> None:
     inbound = _inject_text(
@@ -507,10 +508,10 @@ def test_recontact_template_requires_a_current_approved_utility_catalog_match(
     whatsapp_api.provider.set_templates(
         (
             ProviderTemplateSnapshot(
-                external_id="utility-recontact-v1",
-                name="retomar_contacto",
+                external_id="marketing-recontact-v1",
+                name="retomar_consulta_vencida",
                 language="es_AR",
-                category="UTILITY",
+                category="MARKETING",
                 status="APPROVED",
                 header_type=TemplateHeaderType.NONE,
                 parameter_names=("nombre",),
@@ -536,7 +537,7 @@ def test_recontact_template_requires_a_current_approved_utility_catalog_match(
     sent = whatsapp_api.client.post(
         f"{templates_url}/send",
         json={
-            "template_name": "retomar_contacto",
+            "template_name": "retomar_consulta_vencida",
             "language": "es_AR",
             "parameters": [{"name": "nombre", "value": "Cliente FAA"}],
             "client_generated_id": str(uuid4()),
@@ -551,10 +552,10 @@ def test_recontact_template_requires_a_current_approved_utility_catalog_match(
     whatsapp_api.provider.set_templates(
         (
             ProviderTemplateSnapshot(
-                external_id="utility-recontact-pending-v1",
-                name="retomar_contacto",
+                external_id="marketing-recontact-pending-v1",
+                name="retomar_consulta_vencida",
                 language="es_AR",
-                category="UTILITY",
+                category="MARKETING",
                 status="PENDING",
                 header_type=TemplateHeaderType.NONE,
                 parameter_names=("nombre",),
@@ -567,7 +568,7 @@ def test_recontact_template_requires_a_current_approved_utility_catalog_match(
     rejected = whatsapp_api.client.post(
         f"{templates_url}/send",
         json={
-            "template_name": "retomar_contacto",
+            "template_name": "retomar_consulta_vencida",
             "language": "es_AR",
             "parameters": [{"name": "nombre", "value": "Cliente FAA"}],
             "client_generated_id": str(uuid4()),
@@ -1205,6 +1206,44 @@ def test_whatsapp_conversation_creation_keeps_source_server_controlled(
     assert opportunity.initial_whatsapp_message_id == inbound.message.id
 
 
+def test_opportunity_can_open_or_reuse_a_whatsapp_conversation_without_sending(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    customer = Customer(name="Cliente web WhatsApp", phone="+54 11 6000-0092")
+    db_session.add(customer)
+    db_session.flush()
+    opportunity = Opportunity(
+        customer_id=customer.id,
+        source=LeadSource.WEB,
+        status=OpportunityStatus.NUEVA,
+        current_status_entered_at=_NOW,
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
+    db_session.add(opportunity)
+    db_session.commit()
+
+    response = whatsapp_api.client.post(
+        f"/api/whatsapp/opportunities/{opportunity.id}/conversation"
+    )
+    assert response.status_code == 200
+    created = ConversationDetailResponse.model_validate(response.json())
+    assert created.customer is not None
+    assert created.customer.id == customer.id
+    assert created.active_opportunity is not None
+    assert created.active_opportunity.id == opportunity.id
+    assert whatsapp_api.provider.requests == []
+
+    reused = whatsapp_api.client.post(
+        f"/api/whatsapp/opportunities/{opportunity.id}/conversation"
+    )
+    assert reused.status_code == 200
+    assert reused.json()["id"] == created.id
+    assert supervisor_user.id > 0
+
+
 def test_closed_window_and_identity_review_return_conflicts(
     db_session: Session,
     supervisor_user: User,
@@ -1276,6 +1315,55 @@ def test_missing_resources_use_documented_not_found(
         whatsapp_api.client.get("/api/whatsapp/attachments/999999/content").status_code
         == 404
     )
+
+
+def test_hidden_conversation_is_excluded_and_restored_by_a_new_inbound_message(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+) -> None:
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.hidden-before",
+        phone="+54 11 6000-0098",
+    )
+    conversation_id = inbound.message.conversation_id
+
+    hidden = whatsapp_api.client.delete(
+        f"/api/whatsapp/conversations/{conversation_id}"
+    )
+    assert hidden.status_code == 204
+    assert (
+        whatsapp_api.client.get(
+            f"/api/whatsapp/conversations/{conversation_id}"
+        ).status_code
+        == 404
+    )
+    assert (
+        whatsapp_api.client.get(
+            f"/api/whatsapp/conversations/{conversation_id}/messages"
+        ).status_code
+        == 404
+    )
+    assert conversation_id not in {
+        item["id"]
+        for item in whatsapp_api.client.get("/api/whatsapp/conversations").json()[
+            "items"
+        ]
+    }
+    hidden_row = db_session.get(WhatsAppConversation, conversation_id)
+    assert hidden_row is not None
+    assert hidden_row.deleted_at is not None
+    db_session.rollback()
+
+    restored = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.hidden-after",
+        phone="+54 11 6000-0098",
+    )
+    assert restored.message.conversation_id == conversation_id
+    restored_row = db_session.get(WhatsAppConversation, conversation_id)
+    assert restored_row is not None
+    assert restored_row.deleted_at is None
 
 
 def test_dev_routes_are_absent_for_non_fake_provider(

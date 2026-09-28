@@ -337,7 +337,10 @@ class WhatsAppMessageService:
                     )
             conversation = self._session.scalar(
                 select(WhatsAppConversation)
-                .where(WhatsAppConversation.id == message_input.conversation_id)
+                .where(
+                    WhatsAppConversation.id == message_input.conversation_id,
+                    WhatsAppConversation.deleted_at.is_(None),
+                )
                 .with_for_update()
                 .execution_options(populate_existing=True)
             )

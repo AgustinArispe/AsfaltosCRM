@@ -59,6 +59,20 @@ export function getWhatsAppConversation(conversationId: number, session: ApiSess
   )
 }
 
+export function deleteWhatsAppConversation(conversationId: number, session: ApiSession) {
+  return apiRequest<void>(`/whatsapp/conversations/${conversationId}`, {
+    ...session,
+    method: 'DELETE',
+  })
+}
+
+export function openWhatsAppConversationForOpportunity(opportunityId: number, session: ApiSession) {
+  return apiRequest<WhatsAppConversationDetail>(
+    `/whatsapp/opportunities/${opportunityId}/conversation`,
+    { ...session, method: 'POST' },
+  )
+}
+
 export function listWhatsAppHumanTemplates(conversationId: number, session: ApiSession) {
   return apiRequest<WhatsAppHumanTemplate[]>(
     `/whatsapp/conversations/${conversationId}/templates`,

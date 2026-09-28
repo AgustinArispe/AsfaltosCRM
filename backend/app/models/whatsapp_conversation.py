@@ -119,6 +119,7 @@ class WhatsAppConversation(TimestampMixin, Base):
     )
     waiting_since_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     window_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     customer: Mapped[Customer | None] = relationship(
         back_populates="whatsapp_conversations",

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigateRoute } from '../routing/router'
+import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { Drawer } from '../shared/Drawer'
 import { ChatPanel } from '../whatsapp/ChatPanel'
 import { ConversationList } from '../whatsapp/ConversationList'
@@ -16,6 +17,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
   )
   const [isTemplateOpen, setIsTemplateOpen] = useState(false)
   const [templateMode, setTemplateMode] = useState<'all' | 'recontact'>('all')
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
 
   useEffect(() => {
     void inbox.selectedConversationId
@@ -96,6 +98,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             messages={inbox.messages}
             onBack={returnToConversationList}
             onDiscardFailed={inbox.discardFailedSend}
+            onDelete={() => setIsDeleteConfirmationOpen(true)}
             onLoadOlder={inbox.loadOlderMessages}
             onOpenContext={() => setIsContextOpen(true)}
             onOpenTemplates={() => {
@@ -146,6 +149,26 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
         status={inbox.humanTemplateStatus}
         templates={inbox.humanTemplates}
       />
+      <ConfirmationDialog
+        confirmLabel='Eliminar conversación'
+        description='La conversación dejará de mostrarse en la bandeja. Sus mensajes y vínculos comerciales se conservarán.'
+        error={inbox.detailError}
+        isOpen={isDeleteConfirmationOpen}
+        isPending={inbox.isHidingConversation}
+        onCancel={() => setIsDeleteConfirmationOpen(false)}
+        onConfirm={() => {
+          void inbox.hideConversation().then((hidden) => {
+            if (hidden) setIsDeleteConfirmationOpen(false)
+          })
+        }}
+        pendingLabel='Eliminando conversación…'
+        title='¿Eliminar conversación?'
+        variant='danger'
+      >
+        <p className='text-sm leading-6 text-[var(--text-secondary)]'>
+          Podrá volver a aparecer si el cliente escribe nuevamente por WhatsApp.
+        </p>
+      </ConfirmationDialog>
     </div>
   )
 }

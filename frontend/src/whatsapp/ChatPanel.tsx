@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { Button } from '../shared/Button'
+import { Icon } from '../shared/Icon'
 import { LoadingState } from '../shared/StatusStates'
 import { conversationDisplayName } from './inbox-state'
 import { MessageComposer } from './MessageComposer'
@@ -33,6 +34,7 @@ export function ChatPanel({
   onRetryFailed,
   onDiscardFailed,
   onResend,
+  onDelete,
 }: {
   conversation: WhatsAppConversationDetail | null
   detailStatus: 'idle' | 'loading' | 'ready' | 'error'
@@ -57,6 +59,7 @@ export function ChatPanel({
   onRetryFailed: () => Promise<boolean>
   onDiscardFailed: () => void
   onResend: (message: WhatsAppMessage) => Promise<boolean>
+  onDelete: () => void
 }) {
   const mobileBackRef = useRef<HTMLButtonElement>(null)
   const conversationId = conversation?.id
@@ -148,6 +151,14 @@ export function ChatPanel({
             variant='ghost'
           >
             Contexto CRM
+          </Button>
+          <Button
+            aria-label='Eliminar conversación'
+            onClick={onDelete}
+            size='compact'
+            variant='ghost'
+          >
+            <Icon name='trash' />
           </Button>
         </div>
       </header>
