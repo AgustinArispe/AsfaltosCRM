@@ -1,9 +1,9 @@
 # CRM-055 — WhatsApp Conversation Visibility & Web Initiation
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-09-28
-Implementation commit: N/A
+Implementation commit: `994489c63956a941a5fc4f865564f1413605c8cf`
 
 ## Goal
 
