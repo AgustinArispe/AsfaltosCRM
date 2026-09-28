@@ -212,11 +212,12 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
 
     expect(await screen.findByRole('heading', { name: 'Del Sur SA' })).toBeInTheDocument()
-    const dialog = screen.getByRole('dialog', { name: 'Del Sur SA' })
-    expect(dialog).toHaveClass('w-[min(70rem,calc(100%-2rem))]')
+    const detailPage = screen.getByRole('region', { name: 'Del Sur SA' })
+    expect(detailPage).toHaveClass('w-[min(70rem,calc(100%-2rem))]')
     expect(
-      within(dialog).queryByRole('heading', { name: 'Detalle de oportunidad' }),
+      within(detailPage).queryByRole('heading', { name: 'Detalle de oportunidad' }),
     ).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Del Sur SA' })).not.toBeInTheDocument()
     expect(screen.getByText('Constructora del Sur')).toBeInTheDocument()
     expect(screen.getByText('ventas@delsur.test')).toBeInTheDocument()
     expect(screen.getByText('+54 11 4444-5555')).toBeInTheDocument()
@@ -228,7 +229,7 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getAllByText('3 ago 2026, 14:35')).toHaveLength(2)
     expect(screen.getByText('2 semanas')).toBeInTheDocument()
 
-    const summary = dialog.querySelector('.opportunity-detail__summary--page')
+    const summary = detailPage.querySelector('.opportunity-detail__summary--page')
     expect(
       Array.from(summary?.querySelectorAll('dt') ?? []).map((term) => term.textContent),
     ).toEqual([

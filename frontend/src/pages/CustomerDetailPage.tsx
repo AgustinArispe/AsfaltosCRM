@@ -221,7 +221,7 @@ export function CustomerDetailPage({ customerId }: { customerId: number }) {
   const close = () => navigateToHistoryOrigin({ kind: 'workspace', workspace: 'customers' })
 
   return (
-    <Modal isOpen onClose={close} size='large' title='Ficha de cliente'>
+    <Modal isOpen onClose={close} presentation='page' size='large' title='Ficha de cliente'>
       <div className='px-4 pt-3'>
         <BackToCustomersLink />
       </div>

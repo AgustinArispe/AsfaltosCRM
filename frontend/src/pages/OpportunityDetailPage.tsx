@@ -440,6 +440,7 @@ export function OpportunityDetailPage({
       contentClassName='opportunity-modal-panel'
       isOpen
       onClose={close}
+      presentation='page'
       renderHeader={({ titleId }) => (
         <OpportunityDetailModalHeader
           opportunity={opportunity}
@@ -459,7 +460,6 @@ export function OpportunityDetailPage({
           titleId={titleId}
         />
       )}
-      returnFocusTo={returnFocusRef.current}
       size='opportunity'
       title={
         opportunity?.customer.company ?? opportunity?.customer.name ?? 'Detalle de oportunidad'

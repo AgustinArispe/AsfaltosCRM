@@ -325,7 +325,7 @@ describe('authenticated frontend', () => {
     ).toHaveAttribute('title', 'Notificaciones, 7 notificaciones activas sin leer')
   })
 
-  it('opens the CRM-020 modal over Pipeline, restores focus, and keeps the deep-link route', async () => {
+  it('opens the CRM-020 detail page over Pipeline and keeps the deep-link route', async () => {
     window.sessionStorage.setItem(SESSION_TOKEN_KEY, 'stored-token')
     const fetchMock = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
@@ -360,10 +360,11 @@ describe('authenticated frontend', () => {
     fireEvent.click(cardButton)
 
     expect(window.location.pathname).toBe('/pipeline/opportunities/77')
-    const drawer = await screen.findByRole('dialog', {
+    const detailPage = await screen.findByRole('region', {
       name: 'Navegación SA',
     })
-    expect(within(drawer).getByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(within(detailPage).getByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Navegación SA' })).not.toBeInTheDocument()
     expect(document.querySelector('.pipeline-board')).toBe(board)
     expect(document.querySelector('#main-content')).toBe(main)
     expect(
@@ -378,13 +379,10 @@ describe('authenticated frontend', () => {
     ).toHaveLength(stageRequestsBeforeOpen)
     act(() => window.history.forward())
     await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/77'))
-    expect(await screen.findByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Navegación SA' })).toBeInTheDocument()
     expect(document.querySelector('.pipeline-board')).toBe(board)
 
-    fireEvent(
-      screen.getByRole('dialog', { name: 'Navegación SA' }),
-      new Event('cancel', { cancelable: true }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle de oportunidad' }))
     await waitFor(() => expect(window.location.pathname).toBe('/pipeline'))
     expect(document.querySelector('.pipeline-board')).toBe(board)
     expect(document.querySelector('#main-content')).toBe(main)
@@ -398,7 +396,7 @@ describe('authenticated frontend', () => {
     })
 
     expect(await screen.findByRole('heading', { name: 'Navegación SA' })).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Navegación SA' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Oportunidades' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -428,7 +426,7 @@ describe('authenticated frontend', () => {
 
     renderApp('/pipeline/opportunities/77')
 
-    expect(await screen.findByRole('dialog', { name: 'Navegación SA' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Navegación SA' })).toBeInTheDocument()
     expect(
       fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/opportunities?')),
     ).toHaveLength(4)
