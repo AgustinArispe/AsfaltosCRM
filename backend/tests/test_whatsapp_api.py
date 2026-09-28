@@ -40,6 +40,7 @@ from app.schemas.whatsapp import (
     MessagePageResponse,
     OutboundMessageResponse,
 )
+from app.services.lead_intake_service import LeadIntakeInput, LeadIntakeService
 from app.whatsapp import (
     FakeMediaStorage,
     FakeWhatsAppProvider,
@@ -1255,6 +1256,71 @@ def test_opportunity_can_open_or_reuse_a_whatsapp_conversation_without_sending(
         == 1
     )
     assert supervisor_user.id > 0
+
+
+def test_web_customer_reclaims_hidden_conversation_from_deleted_customer(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+) -> None:
+    inbound = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.identity-old",
+        phone="+54 11 6000-0093",
+        display_name="Nombre histórico",
+    )
+    conversation = db_session.get(WhatsAppConversation, inbound.message.conversation_id)
+    assert conversation is not None
+    old_customer = db_session.get(Customer, conversation.customer_id)
+    assert old_customer is not None
+    deleted_at = datetime.now(UTC)
+    old_customer.deleted_at = deleted_at
+    conversation.deleted_at = deleted_at
+    old_opportunity = db_session.scalar(
+        select(Opportunity).where(Opportunity.customer_id == old_customer.id)
+    )
+    assert old_opportunity is not None
+    old_opportunity.deleted_at = deleted_at
+    db_session.commit()
+
+    current_customer = Customer(name="Cliente actual", email="actual@faa.test")
+    db_session.add(current_customer)
+    db_session.commit()
+    web = LeadIntakeService(db_session).intake(
+        LeadIntakeInput(
+            name="Cliente web nuevo",
+            company=None,
+            email="actual@faa.test",
+            phone="+54 11 6000-0093",
+            province=None,
+            message=None,
+            source=LeadSource.WEB,
+            external_submission_id="identity-web-0093",
+        )
+    )
+    assert web.customer_id == current_customer.id
+    assert current_customer.phone == "+54 11 6000-0093"
+
+    response = whatsapp_api.client.post(
+        f"/api/whatsapp/opportunities/{web.opportunity_id}/conversation"
+    )
+    assert response.status_code == 200
+    detail = ConversationDetailResponse.model_validate(response.json())
+    assert detail.id == conversation.id
+    assert detail.customer is not None
+    assert detail.customer.id == current_customer.id
+    assert detail.customer.name == "Cliente actual"
+    reassigned = db_session.get(WhatsAppConversation, conversation.id)
+    assert reassigned is not None
+    assert reassigned.customer_id == current_customer.id
+    assert reassigned.deleted_at is None
+    assert (
+        db_session.scalar(
+            select(func.count(WhatsAppMessage.id)).where(
+                WhatsAppMessage.conversation_id == conversation.id
+            )
+        )
+        == 1
+    )
 
 
 def test_closed_window_and_identity_review_return_conflicts(

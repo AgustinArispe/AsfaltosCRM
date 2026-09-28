@@ -120,11 +120,19 @@ class WhatsAppConversationService:
                 )
                 self._session.add(conversation)
                 self._session.flush()
-            elif conversation.customer_id not in {None, customer.id}:
-                raise WhatsAppOpportunityAssociationError(
-                    "WhatsApp conversation belongs to a different customer"
-                )
             else:
+                if conversation.customer_id not in {None, customer.id}:
+                    previous_customer = self._session.get(
+                        Customer,
+                        conversation.customer_id,
+                    )
+                    if (
+                        previous_customer is None
+                        or previous_customer.deleted_at is None
+                    ):
+                        raise WhatsAppOpportunityAssociationError(
+                            "Este número de WhatsApp ya está asociado a otro cliente."
+                        )
                 conversation.customer_id = customer.id
                 conversation.resolution_status = WhatsAppConversationResolution.RESOLVED
                 conversation.deleted_at = None
