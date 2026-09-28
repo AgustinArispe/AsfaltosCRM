@@ -115,6 +115,7 @@ class WhatsAppConversationService:
                     external_phone=phone_match_key,
                     phone_match_key=phone_match_key,
                     resolution_status=WhatsAppConversationResolution.RESOLVED,
+                    created_at=opened_at,
                     updated_at=opened_at,
                 )
                 self._session.add(conversation)

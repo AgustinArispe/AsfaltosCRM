@@ -1241,6 +1241,19 @@ def test_opportunity_can_open_or_reuse_a_whatsapp_conversation_without_sending(
     )
     assert reused.status_code == 200
     assert reused.json()["id"] == created.id
+    persisted = db_session.get(WhatsAppConversation, created.id)
+    assert persisted is not None
+    assert persisted.created_at is not None
+    assert persisted.updated_at is not None
+    assert persisted.updated_at >= persisted.created_at
+    assert (
+        db_session.scalar(
+            select(func.count(WhatsAppConversation.id)).where(
+                WhatsAppConversation.phone_match_key == "+541160000092"
+            )
+        )
+        == 1
+    )
     assert supervisor_user.id > 0
 
 
