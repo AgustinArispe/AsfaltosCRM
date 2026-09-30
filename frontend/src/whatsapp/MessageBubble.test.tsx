@@ -61,7 +61,7 @@ describe('MessageBubble authenticated media', () => {
     authState.logout.mockReset()
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(new Response(new Blob(['media']), { status: 200 }))),
+      vi.fn(() => Promise.resolve(new Response('media', { status: 200 }))),
     )
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
