@@ -109,7 +109,7 @@ export function ConversationList({
   return (
     <section
       aria-labelledby='whatsapp-conversations-title'
-      className='whatsapp-inbox flex min-h-0 flex-col border-e border-[var(--divider)] bg-[var(--surface-secondary)]'
+      className='whatsapp-inbox flex h-full min-h-0 flex-col border-e border-[var(--divider)] bg-[var(--surface-secondary)]'
     >
       <div className='shrink-0 border-b border-[var(--subtle-border)] px-3 py-3'>
         <div className='flex items-center justify-between gap-3'>
@@ -173,7 +173,10 @@ export function ConversationList({
         </div>
       ) : null}
 
-      <div aria-busy={status === 'loading'} className='min-h-0 flex-1 overflow-y-auto'>
+      <div
+        aria-busy={status === 'loading'}
+        className='min-h-0 flex-1 overflow-y-auto overscroll-y-contain'
+      >
         {isInitialLoading ? (
           <LoadingState label='Cargando conversaciones…' />
         ) : status === 'error' && conversations.length === 0 ? (

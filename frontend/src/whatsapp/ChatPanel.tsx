@@ -113,7 +113,7 @@ export function ChatPanel({
       aria-labelledby='active-chat-title'
       className='whatsapp-chat flex min-h-0 flex-1 flex-col bg-[var(--surface-primary)]'
     >
-      <header className='flex min-h-[4.25rem] shrink-0 items-center justify-between gap-3 border-b border-[var(--subtle-border)] px-3 py-2 sm:px-4'>
+      <header className='flex min-h-[4.25rem] shrink-0 flex-col items-stretch gap-2 border-b border-[var(--subtle-border)] px-3 py-2 sm:px-4 md:flex-row md:items-center md:justify-between md:gap-3'>
         <div className='flex min-w-0 items-center gap-2'>
           <button
             aria-label='Volver a conversaciones'
@@ -141,7 +141,7 @@ export function ChatPanel({
             </h2>
           </div>
         </div>
-        <div className='flex min-w-0 items-center gap-2'>
+        <div className='flex min-w-0 items-center justify-between gap-2 md:justify-start'>
           <WindowStatus status={windowStatus} />
           <Button
             aria-controls='whatsapp-context-drawer'

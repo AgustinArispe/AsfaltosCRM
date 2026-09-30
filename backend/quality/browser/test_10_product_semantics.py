@@ -147,7 +147,7 @@ def test_pipeline_controls_search_detail_and_opportunity_evidence(
     expect(dialog.get_by_text("+54 9 11 5550-1001")).to_be_visible()
     expect(dialog.get_by_role("button", name="Actividad")).to_be_visible()
     expect(dialog.get_by_role("button", name="Notas")).to_be_visible()
-    expect(dialog.get_by_role("button", name="Abrir WhatsApp")).to_be_visible()
+    expect(dialog.get_by_role("button", name="Iniciar WhatsApp")).to_be_visible()
     expect(dialog.get_by_role("button", name="Cotizar")).to_be_visible()
     expect(dialog.get_by_role("button", name="Marcar pérdida")).to_be_visible()
     dialog.get_by_role("button", name="Cerrar detalle de oportunidad").click()

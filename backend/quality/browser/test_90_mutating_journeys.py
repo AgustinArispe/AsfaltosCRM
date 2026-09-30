@@ -120,6 +120,10 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
     expect(detail.get_by_text("Cotizada", exact=True)).to_be_visible()
     expect(detail.get_by_text("CA-30", exact=True)).to_be_visible()
     page.reload(wait_until="networkidle")
+    page.get_by_role(
+        "button",
+        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+    ).click()
     expect(
         page.get_by_role("dialog", name="Constructora del Sur")
         .get_by_text("1.500 kg")

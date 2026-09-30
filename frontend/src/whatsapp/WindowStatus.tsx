@@ -94,14 +94,16 @@ export function WindowStatus({ status }: { status: ConversationWindowStatus }) {
         : 'border-[var(--success-text)]/25 bg-[var(--success-surface)] text-[var(--success-text)]'
 
   return (
-    <div className='min-w-0 text-right'>
+    <div className='min-w-0 text-left md:text-right'>
       <span
         className={`inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${tone}`}
       >
         {status.label}
       </span>
       {status.notice ? (
-        <p className='mt-1 text-xs leading-4 text-[var(--text-secondary)]'>{status.notice}</p>
+        <p className='mt-1 hidden text-xs leading-4 text-[var(--text-secondary)] md:block'>
+          {status.notice}
+        </p>
       ) : null}
     </div>
   )

@@ -196,6 +196,7 @@ function jsonResponse(status: number, body: unknown): Response {
 
 type MockApiOptions = {
   conversations?: WhatsAppConversationSummary[]
+  moreConversations?: WhatsAppConversationSummary[]
   conversationDetail?: WhatsAppConversationDetail
   messages?: WhatsAppMessage[]
   initialFailure?: boolean
@@ -208,6 +209,7 @@ type MockApiOptions = {
 
 function mockInboxApi({
   conversations = [summary(1), summary(2)],
+  moreConversations = [],
   conversationDetail = detail(),
   messages = [message(1), outboundMessage(2)],
   initialFailure = false,
@@ -229,11 +231,15 @@ function mockInboxApi({
           shouldFailInitial = false
           throw new TypeError('network unavailable')
         }
+        const isOlderPage = url.searchParams.get('page_cursor') === 'older-cursor-1'
         return jsonResponse(200, {
-          items: conversations,
-          next_page_cursor: null,
+          items: isOlderPage ? moreConversations : conversations,
+          next_page_cursor: !isOlderPage && moreConversations.length > 0 ? 'older-cursor-1' : null,
           sync_cursor: 'conversation-cursor-1',
         })
+      }
+      if (url.pathname === '/api/whatsapp/conversations/1' && method === 'DELETE') {
+        return new Response(null, { status: 204 })
       }
       if (url.pathname === '/api/whatsapp/conversations/changes') {
         const items =
@@ -428,6 +434,100 @@ describe('WhatsAppInboxPage', () => {
     expect(new Headers(readCall?.[1]?.headers).get('Authorization')).toBe('Bearer whatsapp-token')
     expect(screen.queryByLabelText('2 mensajes sin leer')).not.toBeInTheDocument()
     expect(screen.getByText('Respuesta pendiente.')).toBeInTheDocument()
+  })
+
+  it('keeps the conversation list position when returning from a chat', async () => {
+    mockInboxApi({
+      conversations: Array.from({ length: 40 }, (_, index) =>
+        summary(index + 1, { last_message_at: '2026-08-10T15:01:00Z' }),
+      ),
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    const list = screen.getByRole('list', { name: 'Conversaciones de WhatsApp' })
+    const scrollRegion = list.parentElement
+    expect(scrollRegion).not.toBeNull()
+    expect(scrollRegion).toHaveClass('overflow-y-auto')
+    expect(
+      scrollRegion?.contains(screen.getByRole('searchbox', { name: 'Buscar conversaciones' })),
+    ).toBe(false)
+
+    if (!scrollRegion) throw new Error('No se encontró la zona de scroll de conversaciones')
+    scrollRegion.scrollTop = 500
+    fireEvent.click(document.getElementById('whatsapp-conversation-1') as HTMLElement)
+    expect(scrollRegion.scrollTop).toBe(500)
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a conversaciones' }))
+
+    expect(list.parentElement).toBe(scrollRegion)
+    expect(scrollRegion.scrollTop).toBe(500)
+    expect(screen.getByRole('searchbox', { name: 'Buscar conversaciones' })).toBeInTheDocument()
+  })
+
+  it('loads an older conversation page inside the existing scroll region', async () => {
+    const fetchMock = mockInboxApi({
+      conversations: [summary(1), summary(2)],
+      moreConversations: [summary(3)],
+    })
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    const list = screen.getByRole('list', { name: 'Conversaciones de WhatsApp' })
+    const scrollRegion = list.parentElement
+    if (!scrollRegion) throw new Error('No se encontró la zona de scroll de conversaciones')
+    scrollRegion.scrollTop = 200
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más conversaciones' }))
+
+    expect(await screen.findByText('Cliente 3')).toBeInTheDocument()
+    expect(list.parentElement).toBe(scrollRegion)
+    expect(scrollRegion.scrollTop).toBe(200)
+    expect(screen.getByRole('searchbox', { name: 'Buscar conversaciones' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Cargar más conversaciones' }),
+    ).not.toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('page_cursor=older-cursor-1')),
+    ).toBe(true)
+  })
+
+  it('keeps a conversation after canceling deletion and removes it only after confirmation', async () => {
+    const fetchMock = mockInboxApi()
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar conversación' }))
+    const dialog = await screen.findByRole('dialog', { name: '¿Eliminar conversación?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(
+      screen.queryByRole('dialog', { name: '¿Eliminar conversación?' }),
+    ).not.toBeInTheDocument()
+    expect(document.getElementById('whatsapp-conversation-1')).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(
+        ([input, init]) =>
+          String(input).endsWith('/api/whatsapp/conversations/1') && init?.method === 'DELETE',
+      ),
+    ).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar conversación' }))
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: '¿Eliminar conversación?' })).getByRole(
+        'button',
+        { name: 'Eliminar conversación' },
+      ),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '¿Eliminar conversación?' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(document.getElementById('whatsapp-conversation-1')).not.toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input, init]) =>
+          String(input).endsWith('/api/whatsapp/conversations/1') && init?.method === 'DELETE',
+      ),
+    ).toHaveLength(1)
   })
 
   it('retries a failed initial load and shows distinct filtered empty results', async () => {
