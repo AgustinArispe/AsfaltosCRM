@@ -1,9 +1,9 @@
 # CRM-056 — Manual WhatsApp response handling
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-10-02
-Implementation commit: N/A
+Implementation commit: `ccf1776`
 
 ## Goal
 
