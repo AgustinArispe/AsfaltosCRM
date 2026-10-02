@@ -89,6 +89,7 @@ export function ConversationList({
   onSelect,
   onLoadMore,
   onRetry,
+  onCollapse,
 }: {
   conversations: WhatsAppConversationSummary[]
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -104,12 +105,14 @@ export function ConversationList({
   onSelect: (conversationId: number) => void
   onLoadMore: () => void
   onRetry: () => void
+  onCollapse: () => void
 }) {
   const isInitialLoading = status === 'loading' && conversations.length === 0
   return (
     <section
       aria-labelledby='whatsapp-conversations-title'
       className='whatsapp-inbox flex h-full min-h-0 flex-col border-e border-[var(--divider)] bg-[var(--surface-secondary)]'
+      id='whatsapp-conversations-panel'
     >
       <div className='shrink-0 border-b border-[var(--subtle-border)] px-3 py-3'>
         <div className='flex items-center justify-between gap-3'>
@@ -119,9 +122,23 @@ export function ConversationList({
           >
             Conversaciones
           </h2>
-          <span className='text-xs tabular-nums text-[var(--text-tertiary)]'>
-            {conversations.length}
-          </span>
+          <div className='flex items-center gap-1'>
+            <span className='text-xs tabular-nums text-[var(--text-tertiary)]'>
+              {conversations.length}
+            </span>
+            <button
+              aria-controls='whatsapp-conversations-panel'
+              aria-expanded={true}
+              aria-label='Ocultar conversaciones'
+              className='ui-pressable hidden size-9 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--surface-interactive)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] md:grid'
+              id='whatsapp-conversations-collapse'
+              onClick={onCollapse}
+              title='Ocultar conversaciones'
+              type='button'
+            >
+              <Icon className='size-4' name='chevron-left' />
+            </button>
+          </div>
         </div>
         <label className='relative mt-3 block'>
           <span className='sr-only'>Buscar conversaciones</span>

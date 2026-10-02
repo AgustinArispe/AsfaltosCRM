@@ -417,6 +417,28 @@ describe('WhatsAppInboxPage', () => {
     })
   })
 
+  it('collapses and restores the desktop conversation sidebar without losing the chat', async () => {
+    mockInboxApi()
+    const { container } = render(<WhatsAppInboxPage />)
+    await openConversation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ocultar conversaciones' }))
+    const expand = screen.getByRole('button', { name: 'Mostrar conversaciones' })
+    expect(expand).toHaveAttribute('aria-expanded', 'false')
+    expect(container.querySelector('.whatsapp-workspace > div')).toHaveClass(
+      'md:grid-cols-[3.5rem_minmax(0,1fr)]',
+    )
+    expect(screen.getByText('Necesito una cotización')).toBeInTheDocument()
+
+    fireEvent.click(expand)
+    expect(screen.queryByRole('button', { name: 'Mostrar conversaciones' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ocultar conversaciones' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+    expect(screen.getByRole('searchbox', { name: 'Buscar conversaciones' })).toBeInTheDocument()
+  })
+
   it('marks a waiting conversation handled without changing messages or the Meta window', async () => {
     window.history.replaceState(null, '', '/whatsapp?waiting=true')
     const fetchMock = mockInboxApi()
@@ -788,6 +810,20 @@ describe('WhatsAppInboxPage', () => {
 
     expect(screen.getByLabelText('Mensaje')).toBeDisabled()
     expect(screen.getAllByText(/La ventana de 24 horas está cerrada/).length).toBeGreaterThan(0)
+    const noticeToggle = screen.getByRole('button', {
+      name: 'La ventana de 24 horas está cerrada.',
+    })
+    const noticeDetails = screen.getByText(/Meta solo permite enviar una plantilla aprobada/)
+    expect(noticeToggle).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(noticeToggle)
+    expect(noticeToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(noticeDetails).not.toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Usar plantilla para retomar contacto' }),
+    ).toBeEnabled()
+    fireEvent.click(noticeToggle)
+    expect(noticeDetails).toBeVisible()
+    expect(screen.getByLabelText('Mensaje')).toBeDisabled()
     expect(screen.queryByRole('button', { name: /enviar template/i })).not.toBeInTheDocument()
   })
 

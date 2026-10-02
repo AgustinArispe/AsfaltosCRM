@@ -99,3 +99,37 @@ def test_whatsapp_template_required_failed_and_unknown_evidence(
         "canonical dataset must expose a template-required conversation"
     )
     assert found_failed, "canonical dataset must expose a failed WhatsApp message"
+
+
+def test_whatsapp_sidebar_and_closed_window_notice_collapse(
+    qa_pages: QaPageFactory,
+) -> None:
+    qa_page = qa_pages.create(role="SUPERVISOR")
+    page = qa_page.page
+    wait_for_workspace(page, "whatsapp")
+    conversations = page.get_by_role("list", name="Conversaciones de WhatsApp")
+    conversations.get_by_role("button", name=re.compile("Paula Benítez")).click()
+
+    page.get_by_role("button", name="Ocultar conversaciones").click()
+    expand = page.get_by_role("button", name="Mostrar conversaciones")
+    expect(expand).to_be_visible()
+    expect(expand).to_be_focused()
+    expect(conversations).to_be_hidden()
+    expect(page.get_by_role("log", name="Historial de mensajes")).to_be_visible()
+    expand.click()
+    expect(conversations).to_be_visible()
+    expect(page.get_by_role("button", name="Ocultar conversaciones")).to_be_focused()
+
+    notice = page.get_by_role("button", name="La ventana de 24 horas está cerrada.")
+    details = page.get_by_text(
+        "Meta solo permite enviar una plantilla aprobada hasta que el cliente vuelva a responder."
+    )
+    expect(details).to_be_visible()
+    notice.click()
+    expect(notice).to_have_attribute("aria-expanded", "false")
+    expect(details).to_be_hidden()
+    expect(
+        page.get_by_role("button", name="Usar plantilla para retomar contacto")
+    ).to_be_visible()
+    notice.click()
+    expect(details).to_be_visible()

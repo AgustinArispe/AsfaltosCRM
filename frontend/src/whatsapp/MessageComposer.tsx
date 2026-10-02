@@ -63,6 +63,7 @@ export function MessageComposer({
   const [body, setBody] = useState('')
   const [attachment, setAttachment] = useState<StagedWhatsAppAttachment | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
+  const [isWindowNoticeExpanded, setIsWindowNoticeExpanded] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const helpId = useId()
   const errorId = useId()
@@ -186,22 +187,41 @@ export function MessageComposer({
       ) : null}
       {windowStatus.kind === 'CLOSED' ? (
         <div
-          className='mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--warning-text)]/35 bg-[var(--warning-surface)] px-3 py-2.5'
+          className='mb-3 rounded-[var(--radius-control)] border border-[var(--warning-text)]/35 bg-[var(--warning-surface)] px-3 py-2.5'
           id='whatsapp-window-closed-help'
         >
-          <p className='max-w-xl text-xs leading-5 text-[var(--warning-text)]'>
-            <strong>La ventana de 24 horas está cerrada.</strong> Meta solo permite enviar una
-            plantilla aprobada hasta que el cliente vuelva a responder.
-          </p>
-          <Button
-            disabled={!canUseRecontactTemplate}
-            onClick={onOpenRecontactTemplates}
-            size='compact'
-            type='button'
-            variant='secondary'
+          <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2'>
+            <button
+              aria-controls='whatsapp-window-closed-details'
+              aria-expanded={isWindowNoticeExpanded}
+              className='ui-pressable flex min-h-9 min-w-0 items-center gap-2 rounded-[var(--radius-control)] text-left text-xs font-semibold leading-5 text-[var(--warning-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+              onClick={() => setIsWindowNoticeExpanded((current) => !current)}
+              type='button'
+            >
+              <Icon className='size-4 shrink-0' name='alert' />
+              <span>La ventana de 24 horas está cerrada.</span>
+              <Icon
+                className={`size-4 shrink-0 ${isWindowNoticeExpanded ? '-rotate-90' : 'rotate-90'}`}
+                name='chevron-left'
+              />
+            </button>
+            <Button
+              disabled={!canUseRecontactTemplate}
+              onClick={onOpenRecontactTemplates}
+              size='compact'
+              type='button'
+              variant='secondary'
+            >
+              Usar plantilla para retomar contacto
+            </Button>
+          </div>
+          <p
+            className='mt-1 text-xs leading-5 text-[var(--warning-text)]'
+            hidden={!isWindowNoticeExpanded}
+            id='whatsapp-window-closed-details'
           >
-            Usar plantilla para retomar contacto
-          </Button>
+            Meta solo permite enviar una plantilla aprobada hasta que el cliente vuelva a responder.
+          </p>
         </div>
       ) : null}
       {attachment ? (

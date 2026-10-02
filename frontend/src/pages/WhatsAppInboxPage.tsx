@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { navigateRoute } from '../routing/router'
 import { ConfirmationDialog } from '../shared/ConfirmationDialog'
 import { Drawer } from '../shared/Drawer'
+import { Icon } from '../shared/Icon'
 import { ChatPanel } from '../whatsapp/ChatPanel'
 import { ConversationList } from '../whatsapp/ConversationList'
 import { CrmContextPanel } from '../whatsapp/CrmContextPanel'
@@ -22,6 +23,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
   const [openCustomerId, setOpenCustomerId] = useState<number | null>(null)
   const [openOpportunityId, setOpenOpportunityId] = useState<number | null>(null)
+  const [isConversationSidebarCollapsed, setIsConversationSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     void inbox.selectedConversationId
@@ -48,19 +50,45 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
     })
   }
 
+  const setConversationSidebarCollapsed = (collapsed: boolean) => {
+    setIsConversationSidebarCollapsed(collapsed)
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(
+          collapsed ? 'whatsapp-conversations-expand' : 'whatsapp-conversations-collapse',
+        )
+        ?.focus({ preventScroll: true })
+    })
+  }
+
   return (
     <div className='whatsapp-workspace relative h-[calc(100dvh-4.75rem)] min-h-[36rem] overflow-hidden rounded-[var(--radius-surface)] bg-[var(--surface-primary)] lg:h-[calc(100dvh-2rem)]'>
-      <div className='grid h-full min-h-0 min-w-0 md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]'>
+      <div
+        className={[
+          'grid h-full min-h-0 min-w-0',
+          isConversationSidebarCollapsed
+            ? 'md:grid-cols-[3.5rem_minmax(0,1fr)]'
+            : 'md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]',
+        ].join(' ')}
+      >
         <div
-          className={['min-h-0', inbox.selectedConversationId ? 'hidden md:block' : 'block'].join(
-            ' ',
-          )}
+          className={[
+            'min-h-0',
+            isConversationSidebarCollapsed
+              ? inbox.selectedConversationId
+                ? 'hidden'
+                : 'block md:hidden'
+              : inbox.selectedConversationId
+                ? 'hidden md:block'
+                : 'block',
+          ].join(' ')}
         >
           <ConversationList
             conversations={inbox.conversations}
             error={inbox.conversationError}
             hasMore={Boolean(inbox.nextConversationCursor)}
             onLoadMore={() => void inbox.loadMoreConversations()}
+            onCollapse={() => setConversationSidebarCollapsed(true)}
             onRetry={inbox.retryConversationLoad}
             onSearchChange={inbox.setSearchDraft}
             onSelect={(conversationId) => {
@@ -80,6 +108,29 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             waitingOnly={inbox.waitingOnly}
           />
         </div>
+
+        {isConversationSidebarCollapsed ? (
+          <aside
+            aria-label='Conversaciones contraídas'
+            className='hidden h-full min-h-0 flex-col items-center gap-2 border-e border-[var(--divider)] bg-[var(--surface-secondary)] px-1.5 py-3 md:flex'
+          >
+            <button
+              aria-controls='whatsapp-conversations-panel'
+              aria-expanded={false}
+              aria-label='Mostrar conversaciones'
+              className='ui-pressable grid size-11 place-items-center rounded-[var(--radius-control)] text-[var(--text-secondary)] outline-none hover:bg-[var(--surface-interactive)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+              id='whatsapp-conversations-expand'
+              onClick={() => setConversationSidebarCollapsed(false)}
+              title='Mostrar conversaciones'
+              type='button'
+            >
+              <Icon className='size-5' name='inbox' />
+            </button>
+            <span className='text-xs tabular-nums text-[var(--text-tertiary)]'>
+              {inbox.conversations.length}
+            </span>
+          </aside>
+        ) : null}
 
         <div
           className={[
