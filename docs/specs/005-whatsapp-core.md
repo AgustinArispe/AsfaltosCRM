@@ -2,7 +2,7 @@
 
 Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-10
+Last updated: 2026-10-02
 Implementation commit: `8de68bf`
 
 ## Goal
@@ -34,7 +34,7 @@ Meta HTTP integration, real webhooks, WhatsApp API routers, Inbox frontend, broa
 - Existing customers do not automatically receive a new opportunity. Open opportunities are suggestions; linking is explicit and historical terminal links are retained.
 - Identity matching is exact and conservative by normalized phone/email signals; ambiguous or soft-deleted matches require review. New customer fallback is `Contacto WhatsApp ••••1234` when display name is absent/invalid.
 - Inbound messages are `RECEIVED`; outbound dispatch is `PENDING -> IN_PROGRESS -> ACCEPTED` or `DEFINITIVE_FAILED`/`UNKNOWN`. Provider delivery is independently `SENT`, `DELIVERED`, `READ`, or `FAILED`.
-- `waiting_for_response` is true when inbound messages exist after the last valid human outbound response. Pending, in-progress, unknown, failed, and broadcast messages do not resolve it.
+- `waiting_for_response` is true when inbound messages exist after the last valid human outbound response. Pending, in-progress, unknown, failed, and broadcast messages do not resolve it. CRM-056 adds explicit manual handling of the current inbound request.
 - Unread count is global for the team; marking a conversation read clears its current count.
 
 ## Data model
@@ -79,7 +79,7 @@ Domain services require an active CRM user for human outbound and manual linking
 - AC-05: Outbound client-generated IDs are idempotent; a payload conflict is rejected and explicit retry creates a linked new message.
 - AC-06: Fake provider success, permanent failure, retryable failure, both timeout outcomes, deterministic IDs, duplicate events, and out-of-order events are testable.
 - AC-07: Dispatch and provider delivery states reconcile monotonically and retain compact status events, including events received before acceptance.
-- AC-08: Waiting becomes true after inbound and resolves only after accepted human outbound; failed/unknown outbound does not resolve it.
+- AC-08: In the original core, waiting becomes true after inbound and resolves after accepted human outbound; failed/unknown outbound does not resolve it. CRM-056 separately covers manual handling.
 - AC-09: Global unread count increments for inbound and is cleared by the conversation read operation.
 - AC-10: Image/document attachments persist typed metadata and transition through fake media download/storage success or failure without temporary URLs.
 - AC-11: Freeform sending is allowed only when the provider window decision permits it; the window expiry is exposed by the domain result.

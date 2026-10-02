@@ -220,6 +220,8 @@ function mockInboxApi({
   templateSend,
 }: MockApiOptions = {}) {
   let shouldFailInitial = initialFailure
+  let currentDetail = conversationDetail
+  let currentConversations = conversations
   let sendCalls = 0
   let changeCalls = 0
   const fetchMock = vi.fn(
@@ -233,7 +235,7 @@ function mockInboxApi({
         }
         const isOlderPage = url.searchParams.get('page_cursor') === 'older-cursor-1'
         return jsonResponse(200, {
-          items: isOlderPage ? moreConversations : conversations,
+          items: isOlderPage ? moreConversations : currentConversations,
           next_page_cursor: !isOlderPage && moreConversations.length > 0 ? 'older-cursor-1' : null,
           sync_cursor: 'conversation-cursor-1',
         })
@@ -252,7 +254,19 @@ function mockInboxApi({
         })
       }
       if (url.pathname === '/api/whatsapp/conversations/1' && method === 'GET') {
-        return jsonResponse(200, conversationDetail)
+        return jsonResponse(200, currentDetail)
+      }
+      if (url.pathname === '/api/whatsapp/conversations/1/handled' && method === 'POST') {
+        currentDetail = {
+          ...currentDetail,
+          waiting_for_response: false,
+          waiting_since_at: null,
+          resource_updated_at: '2026-08-10T16:00:00Z',
+        }
+        currentConversations = currentConversations.map((item) =>
+          item.id === 1 ? { ...item, ...currentDetail } : item,
+        )
+        return jsonResponse(200, currentDetail)
       }
       if (url.pathname === '/api/whatsapp/conversations/1/templates' && method === 'GET') {
         return jsonResponse(200, humanTemplates)
@@ -295,7 +309,7 @@ function mockInboxApi({
         })
       }
       if (url.pathname === '/api/whatsapp/conversations/1/read') {
-        return jsonResponse(200, { ...conversationDetail, unread_count: 0 })
+        return jsonResponse(200, { ...currentDetail, unread_count: 0 })
       }
       if (url.pathname === '/api/customers/11') {
         return jsonResponse(200, customerDetail)
@@ -401,6 +415,33 @@ describe('WhatsAppInboxPage', () => {
       configurable: true,
       value: vi.fn(),
     })
+  })
+
+  it('marks a waiting conversation handled without changing messages or the Meta window', async () => {
+    window.history.replaceState(null, '', '/whatsapp?waiting=true')
+    const fetchMock = mockInboxApi()
+    render(<WhatsAppInboxPage />)
+    await openConversation()
+    expect(document.getElementById('whatsapp-conversation-1')).toBeInTheDocument()
+    expect(screen.getByText('Respuesta pendiente.')).toBeInTheDocument()
+    expect(screen.getByText('Necesito una cotización')).toBeInTheDocument()
+    expect(screen.getByText('Ventana abierta')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar como atendida' }))
+
+    await waitFor(() => expect(screen.queryByText('Respuesta pendiente.')).not.toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Marcar como atendida' })).not.toBeInTheDocument()
+    expect(document.getElementById('whatsapp-conversation-1')).not.toBeInTheDocument()
+    expect(screen.getByText('Necesito una cotización')).toBeInTheDocument()
+    expect(screen.getByText('Ventana abierta')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cliente Uno' })).toBeInTheDocument()
+    expect(
+      fetchMock.mock.calls.some(
+        ([input, init]) =>
+          String(input).endsWith('/api/whatsapp/conversations/1/handled') &&
+          init?.method === 'POST',
+      ),
+    ).toBe(true)
   })
 
   it('loads the prioritized Inbox, marks global read and enriches only selected CRM context', async () => {

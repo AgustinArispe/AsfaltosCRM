@@ -16,6 +16,7 @@ import {
   listWhatsAppHumanTemplates,
   listWhatsAppMessageChanges,
   listWhatsAppMessages,
+  markWhatsAppConversationHandled,
   markWhatsAppConversationRead,
   sendWhatsAppHumanTemplate,
   sendWhatsAppMessage,
@@ -101,6 +102,8 @@ export function useWhatsAppInbox(
   const [isLoadingOlder, setIsLoadingOlder] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isHidingConversation, setIsHidingConversation] = useState(false)
+  const [isMarkingHandled, setIsMarkingHandled] = useState(false)
+  const [handleError, setHandleError] = useState<string | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const [failedSend, setFailedSend] = useState<PendingSend | null>(null)
   const [humanTemplates, setHumanTemplates] = useState<WhatsAppHumanTemplate[]>([])
@@ -483,6 +486,24 @@ export function useWhatsAppInbox(
     }
   }, [apiSession, isHidingConversation])
 
+  const markConversationHandled = useCallback(async (): Promise<void> => {
+    const conversationId = selectedConversationIdRef.current
+    if (!conversationId || isMarkingHandled) return
+    setIsMarkingHandled(true)
+    setHandleError(null)
+    try {
+      const summary = await markWhatsAppConversationHandled(conversationId, apiSession)
+      setConversations((current) => upsertConversations(current, [summary]))
+      setSelectedDetail((current) =>
+        current?.id === summary.id ? { ...current, ...summary } : current,
+      )
+    } catch (error: unknown) {
+      setHandleError(errorMessage(error, 'No pudimos marcar la conversación como atendida.'))
+    } finally {
+      setIsMarkingHandled(false)
+    }
+  }, [apiSession, isMarkingHandled])
+
   const dispatchPendingSend = useCallback(
     async (pending: PendingSend): Promise<boolean> => {
       setIsSending(true)
@@ -736,6 +757,8 @@ export function useWhatsAppInbox(
     isLoadingOlder,
     isSending,
     isHidingConversation,
+    isMarkingHandled,
+    handleError,
     sendError,
     failedSend,
     humanTemplates,
@@ -768,5 +791,6 @@ export function useWhatsAppInbox(
     updateOpportunityLink,
     createOpportunity,
     hideConversation,
+    markConversationHandled,
   }
 }

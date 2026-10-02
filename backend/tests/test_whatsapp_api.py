@@ -274,6 +274,130 @@ def test_conversation_polling_observes_read_filter_exit(
     assert changes.next_cursor
 
 
+def test_manual_handling_clears_waiting_until_a_new_inbound(
+    whatsapp_api: WhatsAppApiContext,
+    db_session: Session,
+    supervisor_user: User,
+) -> None:
+    first = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.handled.first",
+        phone="+54 11 6000-0031",
+    )
+    conversation_id = first.message.conversation_id
+    path = f"/api/whatsapp/conversations/{conversation_id}"
+    before = ConversationDetailResponse.model_validate(
+        whatsapp_api.client.get(path).json()
+    )
+    initial_page = ConversationPageResponse.model_validate(
+        whatsapp_api.client.get("/api/whatsapp/conversations").json()
+    )
+    initial_waiting = whatsapp_api.client.get(
+        "/api/whatsapp/conversations", params={"waiting_only": True}
+    ).json()["items"]
+    initial_waiting_count = whatsapp_api.client.get(
+        "/api/whatsapp/conversations/attention-summary"
+    ).json()["waiting_count"]
+    message_page = whatsapp_api.client.get(f"{path}/messages").json()
+    opportunity_id = before.active_opportunity.id if before.active_opportunity else None
+    assert before.waiting_for_response is True
+    assert before.unread_count == 1
+
+    handled_response = whatsapp_api.client.post(f"{path}/handled")
+    assert handled_response.status_code == 200
+    handled = ConversationDetailResponse.model_validate(
+        whatsapp_api.client.get(path).json()
+    )
+    assert handled.waiting_for_response is False
+    assert handled.waiting_since_at is None
+    assert handled.unread_count == before.unread_count
+    assert handled.window_expires_at == before.window_expires_at
+    assert handled.active_opportunity == before.active_opportunity
+    assert handled.customer == before.customer
+    assert (
+        whatsapp_api.client.get(f"{path}/messages").json()["items"]
+        == message_page["items"]
+    )
+    waiting_after_handling = whatsapp_api.client.get(
+        "/api/whatsapp/conversations", params={"waiting_only": True}
+    ).json()["items"]
+    assert len(waiting_after_handling) == len(initial_waiting) - 1
+    assert conversation_id not in {item["id"] for item in waiting_after_handling}
+    assert (
+        whatsapp_api.client.get("/api/whatsapp/conversations/attention-summary").json()[
+            "waiting_count"
+        ]
+        == initial_waiting_count - 1
+    )
+    changes = ConversationChangePageResponse.model_validate(
+        whatsapp_api.client.get(
+            "/api/whatsapp/conversations/changes",
+            params={"cursor": initial_page.sync_cursor},
+        ).json()
+    )
+    assert any(
+        item.id == conversation_id and not item.waiting_for_response
+        for item in changes.items
+    )
+    assert whatsapp_api.client.post(f"{path}/handled").status_code == 200
+
+    db_session.expire_all()
+    persisted = db_session.get(WhatsAppConversation, conversation_id)
+    assert persisted is not None
+    assert persisted.handled_at is not None
+    assert persisted.handled_by_user_id == supervisor_user.id
+    assert persisted.handled_through_message_id == first.message.id
+    assert persisted.unread_count == 1
+    if opportunity_id is not None:
+        assert db_session.get(Opportunity, opportunity_id) is not None
+    db_session.commit()
+
+    replay = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.handled.first",
+        phone="+54 11 6000-0031",
+    )
+    assert replay.message.id == first.message.id
+    assert whatsapp_api.client.get(path).json()["waiting_for_response"] is False
+
+    second = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.handled.second",
+        phone="+54 11 6000-0031",
+        provider_message_at=_NOW + timedelta(minutes=2),
+    )
+    assert second.message.id != first.message.id
+    refreshed = ConversationDetailResponse.model_validate(
+        whatsapp_api.client.get(path).json()
+    )
+    assert refreshed.waiting_for_response is True
+    assert refreshed.unread_count == 2
+    assert before.window_expires_at is not None
+    assert refreshed.window_expires_at == before.window_expires_at + timedelta(
+        minutes=2
+    )
+    assert (
+        whatsapp_api.client.get("/api/whatsapp/conversations/attention-summary").json()[
+            "waiting_count"
+        ]
+        == initial_waiting_count
+    )
+    db_session.expire_all()
+    assert persisted.handled_at is not None
+    assert persisted.handled_through_message_id == first.message.id
+    db_session.commit()
+
+    assert whatsapp_api.client.post(f"{path}/handled").status_code == 200
+    late = _inject_text(
+        whatsapp_api,
+        external_id="wamid.api.handled.late",
+        phone="+54 11 6000-0031",
+        provider_message_at=_NOW - timedelta(minutes=1),
+    )
+    assert late.message.id > second.message.id
+    assert whatsapp_api.client.get(path).json()["waiting_for_response"] is True
+
+
 def test_conversation_change_polling_pages_without_skips(
     whatsapp_api: WhatsAppApiContext,
 ) -> None:
@@ -1411,6 +1535,12 @@ def test_hidden_conversation_is_excluded_and_restored_by_a_new_inbound_message(
         f"/api/whatsapp/conversations/{conversation_id}"
     )
     assert hidden.status_code == 204
+    assert (
+        whatsapp_api.client.post(
+            f"/api/whatsapp/conversations/{conversation_id}/handled"
+        ).status_code
+        == 404
+    )
     assert (
         whatsapp_api.client.get(
             f"/api/whatsapp/conversations/{conversation_id}"

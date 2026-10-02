@@ -59,6 +59,13 @@ export function getWhatsAppConversation(conversationId: number, session: ApiSess
   )
 }
 
+export function markWhatsAppConversationHandled(conversationId: number, session: ApiSession) {
+  return apiRequest<WhatsAppConversationSummary>(
+    `/whatsapp/conversations/${conversationId}/handled`,
+    { ...session, method: 'POST' },
+  )
+}
+
 export function deleteWhatsAppConversation(conversationId: number, session: ApiSession) {
   return apiRequest<void>(`/whatsapp/conversations/${conversationId}`, {
     ...session,

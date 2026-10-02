@@ -391,6 +391,25 @@ def create_whatsapp_router(runtime: WhatsAppRuntime) -> APIRouter:
         ).get_conversation_detail(conversation_id)
         return presenter.conversation_summary(detail.summary, now=datetime.now(UTC))
 
+    @router.post(
+        "/conversations/{conversation_id}/handled",
+        response_model=ConversationSummaryResponse,
+    )
+    def mark_conversation_handled(
+        conversation_id: int,
+        session: DatabaseSession,
+        current_user: CurrentUser,
+    ) -> ConversationSummaryResponse:
+        WhatsAppConversationService(session).mark_as_handled(
+            conversation_id,
+            handled_by_user_id=current_user.id,
+        )
+        detail = ConversationQueryService(
+            session,
+            runtime.metrics,
+        ).get_conversation_detail(conversation_id)
+        return presenter.conversation_summary(detail.summary, now=datetime.now(UTC))
+
     @router.put(
         "/conversations/{conversation_id}/opportunity-link",
         response_model=ConversationDetailResponse,

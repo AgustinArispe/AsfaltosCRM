@@ -33,9 +33,12 @@ export function MessageComposer({
   conversation,
   isOnline,
   isSending,
+  isMarkingHandled,
+  handleError,
   sendError,
   hasFailedSend,
   onSend,
+  onMarkHandled,
   onRetryFailed,
   onDiscardFailed,
   onOpenTemplates,
@@ -45,9 +48,12 @@ export function MessageComposer({
   conversation: WhatsAppConversationDetail
   isOnline: boolean
   isSending: boolean
+  isMarkingHandled: boolean
+  handleError: string | null
   sendError: string | null
   hasFailedSend: boolean
   onSend: (input: NewMessageInput) => Promise<boolean>
+  onMarkHandled: () => void
   onRetryFailed: () => Promise<boolean>
   onDiscardFailed: () => void
   onOpenTemplates: () => void
@@ -163,7 +169,20 @@ export function MessageComposer({
               ? `Desde ${formatDateTime(conversation.waiting_since_at)}.`
               : 'El último mensaje funcional es del cliente.'}
           </span>
+          <Button
+            disabled={isMarkingHandled || !isOnline}
+            onClick={onMarkHandled}
+            size='compact'
+            variant='ghost'
+          >
+            {isMarkingHandled ? 'Marcando…' : 'Marcar como atendida'}
+          </Button>
         </div>
+      ) : null}
+      {handleError ? (
+        <p className='text-xs text-[var(--destructive-text)]' role='alert'>
+          {handleError}
+        </p>
       ) : null}
       {windowStatus.kind === 'CLOSED' ? (
         <div

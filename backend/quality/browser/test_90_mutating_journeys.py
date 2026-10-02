@@ -349,6 +349,32 @@ def test_whatsapp_expired_window_requires_approved_template(
 
 
 @pytest.mark.mutating
+def test_whatsapp_manual_handling_persists_after_reload(
+    qa_pages: QaPageFactory,
+) -> None:
+    qa_page = qa_pages.create(role="SUPERVISOR")
+    page = qa_page.page
+    wait_for_workspace(page, "whatsapp")
+    conversations = page.get_by_role("list", name="Conversaciones de WhatsApp")
+    conversations.get_by_role("button", name=re.compile("Paula Benítez")).click()
+    handle = page.get_by_role("button", name="Marcar como atendida")
+    expect(handle).to_be_visible()
+    with page.expect_response(
+        lambda response: (
+            response.request.method == "POST"
+            and response.url.endswith("/api/whatsapp/conversations/2/handled")
+            and response.status == 200
+        )
+    ):
+        handle.click()
+    expect(handle).to_have_count(0)
+    expect(page.get_by_text("Respuesta pendiente.")).to_have_count(0)
+    page.reload(wait_until="networkidle")
+    expect(page.get_by_text("Respuesta pendiente.")).to_have_count(0)
+    expect(page.get_by_role("button", name="Marcar como atendida")).to_have_count(0)
+
+
+@pytest.mark.mutating
 def test_customer_product_and_user_administration(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR")
     page = qa_page.page

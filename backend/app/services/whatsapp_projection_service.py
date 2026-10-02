@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import overload
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -41,8 +41,21 @@ def recompute_response_projection(
         WhatsAppMessage.conversation_id == conversation.id,
         WhatsAppMessage.direction == WhatsAppDirection.INBOUND,
     ]
+    if conversation.handled_through_message_id is not None:
+        unanswered_filters.append(
+            WhatsAppMessage.id > conversation.handled_through_message_id
+        )
     if valid_outbound_at is not None:
-        unanswered_filters.append(inbound_time > valid_outbound_at)
+        temporal_filter = inbound_time > valid_outbound_at
+        if conversation.handled_through_message_id is not None:
+            temporal_filter = or_(
+                temporal_filter,
+                and_(
+                    WhatsAppMessage.id > conversation.handled_through_message_id,
+                    WhatsAppMessage.created_at > valid_outbound_at,
+                ),
+            )
+        unanswered_filters.append(temporal_filter)
     waiting_since = session.scalar(
         select(func.min(inbound_time)).where(*unanswered_filters)
     )

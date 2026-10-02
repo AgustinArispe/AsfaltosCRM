@@ -62,6 +62,13 @@ class WhatsAppConversation(TimestampMixin, Base):
             name="ck_whatsapp_conversations_waiting_matches_since",
         ),
         CheckConstraint(
+            "(handled_at IS NULL AND handled_by_user_id IS NULL "
+            "AND handled_through_message_id IS NULL) OR "
+            "(handled_at IS NOT NULL AND handled_by_user_id IS NOT NULL "
+            "AND handled_through_message_id IS NOT NULL)",
+            name="ck_whatsapp_conversations_handled_fields",
+        ),
+        CheckConstraint(
             "updated_at >= created_at",
             name="ck_whatsapp_conversations_updated_after_created",
         ),
@@ -118,6 +125,16 @@ class WhatsAppConversation(TimestampMixin, Base):
         server_default=false(),
     )
     waiting_since_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    handled_by_user_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "users.id",
+            name="fk_whatsapp_conversations_handled_by_users",
+            ondelete="RESTRICT",
+        ),
+    )
+    handled_through_message_id: Mapped[int | None] = mapped_column(BigInteger)
     window_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

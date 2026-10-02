@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -12,6 +12,8 @@ from app.models import (
     WhatsAppConversation,
     WhatsAppConversationOpportunity,
     WhatsAppConversationResolution,
+    WhatsAppDirection,
+    WhatsAppMessage,
     WhatsAppOpportunityLinkSource,
 )
 from app.services.customer_identity_service import comparable_phone
@@ -22,7 +24,10 @@ from app.services.errors import (
     WhatsAppOpportunityAssociationError,
 )
 from app.services.opportunity_service import OpportunityService
-from app.services.whatsapp_projection_service import later_datetime
+from app.services.whatsapp_projection_service import (
+    later_datetime,
+    recompute_response_projection,
+)
 
 OPEN_OPPORTUNITY_STATUSES = frozenset(
     {
@@ -51,6 +56,33 @@ class WhatsAppConversationService:
                 conversation.updated_at,
                 read_at,
             )
+            self._session.flush()
+        return conversation
+
+    def mark_as_handled(
+        self,
+        conversation_id: int,
+        *,
+        handled_by_user_id: int,
+        now: datetime | None = None,
+    ) -> WhatsAppConversation:
+        handled_at = self._aware_utc(now or datetime.now(UTC))
+        with self._session.begin():
+            conversation = self._get_for_update(conversation_id)
+            if not conversation.waiting_for_response:
+                return conversation
+            latest_inbound_id = self._session.scalar(
+                select(func.max(WhatsAppMessage.id)).where(
+                    WhatsAppMessage.conversation_id == conversation.id,
+                    WhatsAppMessage.direction == WhatsAppDirection.INBOUND,
+                )
+            )
+            if latest_inbound_id is None:
+                raise RuntimeError("Waiting conversation has no inbound message")
+            conversation.handled_at = handled_at
+            conversation.handled_by_user_id = handled_by_user_id
+            conversation.handled_through_message_id = latest_inbound_id
+            recompute_response_projection(self._session, conversation, now=handled_at)
             self._session.flush()
         return conversation
 

@@ -97,12 +97,15 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
             isContextOpen={isContextOpen}
             isOnline={inbox.isOnline}
             isSending={inbox.isSending}
+            isMarkingHandled={inbox.isMarkingHandled}
+            handleError={inbox.handleError}
             messageError={inbox.messageError}
             messageStatus={inbox.messageStatus}
             messages={inbox.messages}
             onBack={returnToConversationList}
             onDiscardFailed={inbox.discardFailedSend}
             onDelete={() => setIsDeleteConfirmationOpen(true)}
+            onMarkHandled={() => void inbox.markConversationHandled()}
             onLoadOlder={inbox.loadOlderMessages}
             onOpenContext={() => setIsContextOpen(true)}
             onOpenTemplates={() => {

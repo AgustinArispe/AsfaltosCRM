@@ -20,6 +20,8 @@ export function ChatPanel({
   hasOlderMessages,
   isLoadingOlder,
   isSending,
+  isMarkingHandled,
+  handleError,
   sendError,
   hasFailedSend,
   isOnline,
@@ -35,6 +37,7 @@ export function ChatPanel({
   onDiscardFailed,
   onResend,
   onDelete,
+  onMarkHandled,
 }: {
   conversation: WhatsAppConversationDetail | null
   detailStatus: 'idle' | 'loading' | 'ready' | 'error'
@@ -45,6 +48,8 @@ export function ChatPanel({
   hasOlderMessages: boolean
   isLoadingOlder: boolean
   isSending: boolean
+  isMarkingHandled: boolean
+  handleError: string | null
   sendError: string | null
   hasFailedSend: boolean
   isOnline: boolean
@@ -60,6 +65,7 @@ export function ChatPanel({
   onDiscardFailed: () => void
   onResend: (message: WhatsAppMessage) => Promise<boolean>
   onDelete: () => void
+  onMarkHandled: () => void
 }) {
   const mobileBackRef = useRef<HTMLButtonElement>(null)
   const conversationId = conversation?.id
@@ -181,11 +187,14 @@ export function ChatPanel({
         hasFailedSend={hasFailedSend}
         isOnline={isOnline}
         isSending={isSending}
+        isMarkingHandled={isMarkingHandled}
+        handleError={handleError}
         onDiscardFailed={onDiscardFailed}
         onOpenTemplates={onOpenTemplates}
         onOpenRecontactTemplates={onOpenRecontactTemplates}
         onRetryFailed={onRetryFailed}
         onSend={onSend}
+        onMarkHandled={onMarkHandled}
         sendError={sendError}
         windowStatus={windowStatus}
       />
