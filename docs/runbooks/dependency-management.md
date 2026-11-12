@@ -103,3 +103,15 @@ Frontend dependencies remain reproducible through `frontend/package-lock.json` a
 manifest and lock diff together, then run Biome, coverage, TypeScript/Vite build, and
 `npm audit --audit-level=high`. Do not hand-edit `package-lock.json` or install frontend
 quality tools globally.
+
+## 2026-11-12 release preparation
+
+Before publishing CRM-057/058/059, refresh the vulnerable quality dependencies:
+Vite 6.4.6, Vitest and coverage-v8 4.1.12; the generated npm graph also updates
+source-map-js and undici. Runtime React dependencies are unchanged.
+
+The Python quality lock updates certifi, filelock, msgpack, Pillow 13.0.0,
+virtualenv 21.14.10 and setuptools. The runtime Python lock is unchanged. Generate
+and verify both Python locks with the canonical compiler above; audit the full
+graphs, including development dependencies. No vulnerability exceptions or audit
+threshold reductions are part of this release.
