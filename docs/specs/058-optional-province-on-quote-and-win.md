@@ -1,9 +1,9 @@
 # CRM-058 — Optional province when quoting or winning
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-11-11
-Implementation commit: N/A
+Last updated: 2026-11-12
+Implementation commit: `eb410cb0deb15eceed63e777eb4f04b1bde39f1a`
 
 ## Authorization and scope
 
@@ -65,3 +65,12 @@ None.
   existing development dependency alerts (3 moderate, 3 high), while production
   dependencies report zero. No commit, push or production deployment; the spec
   remains Approved pending a verified implementation commit.
+
+## Publication preparation — 2026-11-12
+
+The user authorized publishing all pending work to main. The implementation is
+recorded above in a separate documentation commit. The complete local suite now
+passes 529 backend and 294 frontend tests, build/typing/format/migration checks and
+Compose health checks. Both full dependency audits pass after the quality lock
+refresh. GitHub validation runs on a temporary branch before main is updated; the
+earlier blocker notes describe the state before this publication preparation.

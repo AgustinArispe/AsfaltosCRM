@@ -1,9 +1,9 @@
 # CRM-059 — Shared period filters
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-11-11
-Implementation commit: N/A
+Last updated: 2026-11-12
+Implementation commit: `eb410cb0deb15eceed63e777eb4f04b1bde39f1a`
 
 ## Authorization and scope
 
@@ -78,3 +78,19 @@ None.
 - Full npm audit retains six existing development dependency alerts (3 moderate,
   3 high); production-only audit reports zero. No commit, push or deployment;
   status remains Approved pending a verified implementation commit.
+
+## Publication preparation — 2026-11-12
+
+The user authorized publishing all pending changes to main. The implementation
+commit is recorded above; follow-up `db17793` makes Más períodos explicitly
+accessible and refreshes four reviewed visual baselines from GitHub Chromium
+artifacts. Desktop light/dark screenshots confirm the requested shared period
+layout and 15-day option. The first remote run passed 43 browser cases and
+identified two selector lookups plus four expected baseline changes; validation is
+rerun after the correction without weakening comparison thresholds or tests.
+
+The full local suite passes 529 backend and 294 frontend tests, coverage, build,
+typing, format and migration checks; Compose services are healthy. npm and Python
+audits now report no known vulnerabilities. Earlier browser/audit/publishing
+limitations above describe the prior local-only session. All changes are validated
+on a temporary Git branch before updating main.

@@ -1,9 +1,9 @@
 # CRM-057 — Prequote stage and customer transition notes
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-11-11
-Implementation commit: N/A
+Last updated: 2026-11-12
+Implementation commit: `eb410cb0deb15eceed63e777eb4f04b1bde39f1a`
 
 ## Goal and authorization
 
@@ -110,3 +110,14 @@ Release requires a database backup and coordinated backend/frontend deployment:
 old clients without transition notes receive 422 and must reload. Migration 0019
 intentionally refuses an automatic downgrade that could discard stage notes;
 rollback requires a reviewed restore plan.
+
+## Publication preparation — 2026-11-12
+
+The user explicitly authorized publishing all pending changes to main. Commit
+`eb410cb` implements CRM-057/058/059; `db17793` fixes the period selector's accessible
+name and stores the four reviewed Chromium baselines for the intended UI changes.
+Local verification passes 529 backend tests (93.26% coverage), 294 frontend tests,
+build, typing, formatting, migration checks and healthy Compose services. Updated
+development dependency locks pass both full npm and Python vulnerability audits
+without exceptions. GitHub validation runs on a temporary branch before main is
+updated. The earlier audit/publishing limitations above describe the prior session.
