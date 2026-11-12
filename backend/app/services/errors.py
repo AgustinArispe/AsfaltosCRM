@@ -13,6 +13,10 @@ class DomainError(Exception):
     """Base class for business-rule failures independent of HTTP."""
 
 
+class InvalidTransitionNoteError(DomainError):
+    """A manual stage mutation must carry a bounded nonblank note."""
+
+
 class AuthenticationError(DomainError):
     pass
 

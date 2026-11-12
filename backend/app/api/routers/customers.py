@@ -16,10 +16,48 @@ from app.schemas import (
     CustomerUpdate,
     PaginatedResponse,
 )
+from app.schemas.opportunity import CustomerStageNoteResponse
 from app.services.customer_service import CustomerService
+from app.services.customer_stage_note_service import CustomerStageNoteService
 from app.services.errors import PermissionDeniedError
 
 router = APIRouter(prefix="/customers", tags=["customers"])
+
+
+@router.get(
+    "/{customer_id}/stage-notes",
+    response_model=PaginatedResponse[CustomerStageNoteResponse],
+)
+def list_customer_stage_notes(
+    customer_id: int,
+    session: DatabaseSession,
+    pagination: Pagination,
+    _current_user: CurrentUser,
+) -> PaginatedResponse[CustomerStageNoteResponse]:
+    notes, total = CustomerStageNoteService(session).list_notes(
+        customer_id,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
+    return PaginatedResponse(
+        items=[
+            CustomerStageNoteResponse(
+                id=item.history.id,
+                from_status=item.history.from_status,
+                to_status=item.history.to_status,
+                changed_at=item.history.changed_at,
+                changed_by_user_id=item.history.changed_by_user_id,
+                transition_kind=item.history.transition_kind,
+                note=item.history.note,
+                opportunity_id=item.history.opportunity_id,
+                author_name=item.author_name,
+            )
+            for item in notes
+        ],
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total=total,
+    )
 
 
 @router.post(

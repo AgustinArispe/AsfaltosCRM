@@ -80,7 +80,7 @@ def test_pipeline_controls_search_detail_and_opportunity_evidence(
     expect(
         page.get_by_role("region", name=re.compile("Etapas del pipeline"))
     ).to_be_visible()
-    for stage in ("Nueva", "Cotizada", "Negociación", "Ganada"):
+    for stage in ("Nueva", "Para cotizar", "Cotizada", "Ganada"):
         expect(page.get_by_role("heading", name=stage, exact=True)).to_be_visible()
     expect(page.get_by_text("¡Atrasado!", exact=True).first).to_be_visible()
 
@@ -148,7 +148,7 @@ def test_pipeline_controls_search_detail_and_opportunity_evidence(
     expect(dialog.get_by_role("button", name="Actividad")).to_be_visible()
     expect(dialog.get_by_role("button", name="Notas")).to_be_visible()
     expect(dialog.get_by_role("button", name="Iniciar WhatsApp")).to_be_visible()
-    expect(dialog.get_by_role("button", name="Cotizar")).to_be_visible()
+    expect(dialog.get_by_role("button", name="Pasar a Para cotizar")).to_be_visible()
     expect(dialog.get_by_role("button", name="Marcar pérdida")).to_be_visible()
     dialog.get_by_role("button", name="Cerrar detalle de oportunidad").click()
     expect(dialog).not_to_be_visible()
@@ -174,7 +174,7 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     for label in ("Creadas", "Ganadas", "Pérdidas"):
         expect(series.get_by_text(label, exact=True)).to_be_visible()
 
-    page.get_by_label("Período", exact=True).select_option("custom")
+    page.get_by_label("Más períodos", exact=True).select_option("custom")
     page.get_by_label("Desde").fill("2026-08-10")
     page.get_by_label("Hasta").fill("2026-08-14")
     peak = page.get_by_role(

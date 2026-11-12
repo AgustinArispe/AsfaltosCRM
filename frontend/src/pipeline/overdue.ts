@@ -3,7 +3,7 @@ import type { OpportunityStatus } from './types'
 export const OVERDUE_STAGE_DAYS = 7
 export const OVERDUE_LABEL = '¡Atrasado!'
 
-const OPEN_STATUSES: ReadonlySet<OpportunityStatus> = new Set(['NUEVA', 'COTIZADA', 'NEGOCIACION'])
+const OPEN_STATUSES: ReadonlySet<OpportunityStatus> = new Set(['NUEVA', 'PARA_COTIZAR', 'COTIZADA'])
 
 export function isOpportunityOverdue(
   status: OpportunityStatus,

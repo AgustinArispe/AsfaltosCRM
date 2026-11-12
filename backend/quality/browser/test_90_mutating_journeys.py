@@ -17,7 +17,7 @@ def test_pipeline_keyboard_drag_persists_after_reload(
     source = page.get_by_role(
         "button",
         name=re.compile(
-            "Abrir oportunidad de Rutas del Centro, origen WhatsApp.*arrastrar"
+            "Abrir oportunidad de Lucía Fernández, origen WhatsApp.*arrastrar"
         ),
     )
     source.focus()
@@ -26,15 +26,18 @@ def test_pipeline_keyboard_drag_persists_after_reload(
     page.keyboard.press("Space")
     confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
     expect(confirmation).to_be_visible()
-    confirmation.get_by_role("button", name="Avanzar a Negociación").click()
-    target = page.get_by_role("region", name="Negociación")
+    confirmation.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+        "Prueba QA: preparar la cotización"
+    )
+    confirmation.get_by_role("button", name="Avanzar a Para cotizar").click()
+    target = page.get_by_role("region", name="Para cotizar", exact=True)
     expect(
-        target.get_by_role("button", name=re.compile("Rutas del Centro"))
+        target.get_by_role("button", name=re.compile("Lucía Fernández"))
     ).to_be_visible()
     page.reload(wait_until="networkidle")
     expect(
-        page.get_by_role("region", name="Negociación").get_by_role(
-            "button", name=re.compile("Rutas del Centro")
+        page.get_by_role("region", name="Para cotizar", exact=True).get_by_role(
+            "button", name=re.compile("Lucía Fernández")
         )
     ).to_be_visible()
 
@@ -45,9 +48,9 @@ def test_pipeline_drag_persists_after_reload(qa_pages: QaPageFactory) -> None:
     page = qa_page.page
     source = page.get_by_role(
         "button",
-        name=re.compile("Abrir oportunidad de Vial Patagonia, origen Web.*arrastrar"),
+        name=re.compile("Abrir oportunidad de Obras Cuyo, origen Web.*arrastrar"),
     ).first
-    target = page.get_by_role("region", name="Negociación")
+    target = page.get_by_role("region", name="Para cotizar", exact=True)
     source_box = source.bounding_box()
     target_box = target.bounding_box()
     assert source_box is not None and target_box is not None
@@ -64,14 +67,15 @@ def test_pipeline_drag_persists_after_reload(qa_pages: QaPageFactory) -> None:
     page.mouse.up()
     confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
     expect(confirmation).to_be_visible()
-    confirmation.get_by_role("button", name="Avanzar a Negociación").click()
-    expect(
-        target.get_by_role("button", name=re.compile("Vial Patagonia"))
-    ).to_be_visible()
+    confirmation.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+        "Prueba QA: propuesta en preparación"
+    )
+    confirmation.get_by_role("button", name="Avanzar a Para cotizar").click()
+    expect(target.get_by_role("button", name=re.compile("Obras Cuyo"))).to_be_visible()
     page.reload(wait_until="networkidle")
     expect(
-        page.get_by_role("region", name="Negociación").get_by_role(
-            "button", name=re.compile("Vial Patagonia")
+        page.get_by_role("region", name="Para cotizar", exact=True).get_by_role(
+            "button", name=re.compile("Obras Cuyo")
         )
     ).to_be_visible()
 
@@ -87,6 +91,12 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
         name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
     ).click()
     detail = page.get_by_role("dialog", name="Constructora del Sur")
+    detail.get_by_role("button", name="Pasar a Para cotizar").click()
+    preparation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
+    preparation.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+        "Prueba QA: preparar propuesta"
+    )
+    preparation.get_by_role("button", name="Pasar a Para cotizar").click()
     detail.get_by_role("button", name="Cotizar").click()
     quote = page.get_by_role("dialog", name="Cotizar oportunidad")
 
@@ -116,6 +126,10 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
     expect(quote.get_by_role("heading", name="Confirmá la cotización")).to_be_visible()
     expect(quote.get_by_text("1.500 kg", exact=True).first).to_be_visible()
     expect(quote.get_by_role("button", name="Confirmar cotización")).to_have_count(1)
+    expect(quote.get_by_role("button", name="Confirmar cotización")).to_be_disabled()
+    quote.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+        "Prueba QA: cotización enviada"
+    )
     quote.get_by_role("button", name="Confirmar cotización").click()
     expect(detail.get_by_text("Cotizada", exact=True)).to_be_visible()
     expect(detail.get_by_text("CA-30", exact=True)).to_be_visible()
@@ -143,6 +157,9 @@ def test_loss_action_redirects_from_hidden_workspace_to_dashboard(
     detail = page.get_by_role("dialog", name="Ramiro Sosa")
     detail.get_by_role("button", name="Marcar pérdida").click()
     loss = page.get_by_role("dialog", name="Marcar como perdida")
+    loss.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+        "Prueba QA: precio no aceptado"
+    )
     loss.get_by_role("button", name="Confirmar pérdida").click()
     expect(loss.get_by_role("alert")).to_have_text("Seleccioná un motivo de pérdida.")
     loss.get_by_label("Motivo").select_option("PRECIO")

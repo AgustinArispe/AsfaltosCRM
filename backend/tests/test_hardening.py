@@ -204,8 +204,15 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
     }
     assert (
         api_client.post(
+            f"/api/opportunities/{quoted_opportunity['id']}/prepare-quote",
+            json={"note": "Preparar propuesta de prueba"},
+        ).status_code
+        == 200
+    )
+    assert (
+        api_client.post(
             f"/api/opportunities/{quoted_opportunity['id']}/quote",
-            json=quote_payload,
+            json={**(quote_payload), "note": "Seguimiento API de prueba CRM-057"},
         ).status_code
         == 200
     )
@@ -247,7 +254,7 @@ def test_inactive_product_is_historical_but_cannot_enter_a_new_quote(
     assert (
         api_client.post(
             f"/api/opportunities/{new_opportunity['id']}/quote",
-            json=quote_payload,
+            json={**(quote_payload), "note": "Seguimiento API de prueba CRM-057"},
         ).status_code
         == 409
     )

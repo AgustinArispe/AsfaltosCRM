@@ -1,4 +1,5 @@
 import type { LeadSource, LossReason, OpportunitySummary } from '../pipeline/types'
+import type { PeriodPreset } from '../shared/periods'
 
 export type LostOpportunity = {
   opportunity: OpportunitySummary
@@ -23,6 +24,7 @@ export type LostStatistics = {
 }
 
 export type LostFilters = {
+  period?: PeriodPreset
   search: string
   reasons: LossReason[]
   customerId: number | null

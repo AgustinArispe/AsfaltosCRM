@@ -41,12 +41,16 @@ from app.services.metrics_service import (
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
-def _filters(query: MetricsQuery) -> MetricsFilters:
+def _filters(query: MetricsQuery, session: DatabaseSession) -> MetricsFilters:
+    if query.all_history:
+        period = MetricsService(session).history_period()
+    else:
+        assert query.from_ is not None and query.to is not None
+        period = MetricsPeriod(
+            start=query.from_.astimezone(UTC), end=query.to.astimezone(UTC)
+        )
     return MetricsFilters(
-        period=MetricsPeriod(
-            start=query.from_.astimezone(UTC),
-            end=query.to.astimezone(UTC),
-        ),
+        period=period,
         dimensions=_dimensions(query),
     )
 
@@ -77,7 +81,7 @@ def get_metrics_overview(
     _current_user: CurrentUser,
     query: Annotated[MetricsQuery, Query()],
 ) -> MetricsOverviewResponse:
-    filters = _filters(query)
+    filters = _filters(query, session)
     metrics = MetricsService(session).overview(filters)
     return MetricsOverviewResponse(
         period=_period_response(filters.period),
@@ -102,7 +106,7 @@ def get_product_metrics(
     _current_user: CurrentUser,
     query: Annotated[MetricsQuery, Query()],
 ) -> ProductMetricsResponse:
-    filters = _filters(query)
+    filters = _filters(query, session)
     return ProductMetricsResponse(
         period=_period_response(filters.period),
         items=[
@@ -122,7 +126,7 @@ def get_source_metrics(
     _current_user: CurrentUser,
     query: Annotated[MetricsQuery, Query()],
 ) -> SourceMetricsResponse:
-    filters = _filters(query)
+    filters = _filters(query, session)
     return SourceMetricsResponse(
         period=_period_response(filters.period),
         items=[
@@ -143,7 +147,7 @@ def get_province_metrics(
     _current_user: CurrentUser,
     query: Annotated[MetricsQuery, Query()],
 ) -> ProvinceMetricsResponse:
-    filters = _filters(query)
+    filters = _filters(query, session)
     return ProvinceMetricsResponse(
         period=_period_response(filters.period),
         items=[
@@ -167,7 +171,7 @@ def get_timeline_metrics(
     _current_user: CurrentUser,
     query: Annotated[TimelineMetricsQuery, Query()],
 ) -> TimelineMetricsResponse:
-    filters = _filters(query)
+    filters = _filters(query, session)
     return TimelineMetricsResponse(
         period=_period_response(filters.period),
         granularity=query.granularity,
@@ -247,7 +251,7 @@ def get_metric_opportunities(
     _current_user: CurrentUser,
     query: Annotated[MetricOpportunitiesQuery, Query()],
 ) -> MetricOpportunitiesResponse:
-    filters = _filters(query)
+    filters = _filters(query, session)
     items, total = MetricsService(session).metric_opportunities(
         kind=query.kind,
         dimensions=filters.dimensions,

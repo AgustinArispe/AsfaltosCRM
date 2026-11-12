@@ -8,7 +8,13 @@ export function isLeadSource(value: string | null): value is LeadSource {
   return value !== null && LEAD_SOURCES.some((source) => source === value)
 }
 
-export type OpportunityStatus = 'NUEVA' | 'COTIZADA' | 'NEGOCIACION' | 'GANADA' | 'PERDIDA'
+export type OpportunityStatus =
+  | 'NUEVA'
+  | 'PARA_COTIZAR'
+  | 'COTIZADA'
+  | 'NEGOCIACION'
+  | 'GANADA'
+  | 'PERDIDA'
 
 export type PipelineStatus = Exclude<OpportunityStatus, 'PERDIDA'>
 
@@ -48,6 +54,7 @@ export type OpportunityStatusHistory = {
   to_status: OpportunityStatus
   changed_at: string
   changed_by_user_id: number | null
+  note?: string | null
 }
 
 export type OpportunityDetail = OpportunitySummary & {

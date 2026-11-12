@@ -62,12 +62,18 @@ def quote_opportunity(
     opportunity_id: int,
     product_id: int,
 ) -> OpportunityDetail:
+    prepared = client.post(
+        f"/api/opportunities/{opportunity_id}/prepare-quote",
+        json={"note": "Preparar cotización de prueba"},
+    )
+    assert prepared.status_code == 200
     payload: dict[str, object] = {
-        "products": [{"product_id": product_id, "quantity_kg": 2500}]
+        "note": "Cotización de prueba confirmada",
+        "products": [{"product_id": product_id, "quantity_kg": 2500}],
     }
     response = client.post(
         f"/api/opportunities/{opportunity_id}/quote",
-        json=payload,
+        json={**(payload), "note": "Seguimiento API de prueba CRM-057"},
     )
     assert response.status_code == 200
     return OpportunityDetail.model_validate(response.json(), by_name=True)
@@ -316,25 +322,22 @@ def test_complete_won_flow_and_detail_history(
         opportunity_id,
         product.id,
     )
-    negotiation = api_client.post(
-        f"/api/opportunities/{opportunity_id}/move-to-negotiation",
-        json={},
-    )
+    negotiation = api_client.get(f"/api/opportunities/{opportunity_id}")
     won = api_client.post(
         f"/api/opportunities/{opportunity_id}/win",
-        json={},
+        json={**({}), "note": "Seguimiento API de prueba CRM-057"},
     )
     detail = api_client.get(f"/api/opportunities/{opportunity_id}")
 
     assert quoted.status == "COTIZADA"
     assert negotiation.status_code == 200
-    assert negotiation.json()["status"] == "NEGOCIACION"
+    assert negotiation.json()["status"] == "COTIZADA"
     assert won.status_code == 200
     assert won.json()["status"] == "GANADA"
     assert [entry["to_status"] for entry in detail.json()["history"]] == [
         "NUEVA",
+        "PARA_COTIZAR",
         "COTIZADA",
-        "NEGOCIACION",
         "GANADA",
     ]
     assert all(
@@ -351,30 +354,42 @@ def test_opportunity_regression_is_confirmable_by_expected_state_and_audited(
     product = create_product(api_client, "Producto con retrocesos")
     opportunity = create_opportunity(api_client, customer.id)
     quote_opportunity(api_client, opportunity.id, product.id)
-    api_client.post(f"/api/opportunities/{opportunity.id}/move-to-negotiation", json={})
-    api_client.post(f"/api/opportunities/{opportunity.id}/win", json={})
+    api_client.get(f"/api/opportunities/{opportunity.id}")
+    api_client.post(
+        f"/api/opportunities/{opportunity.id}/win",
+        json={**({}), "note": "Seguimiento API de prueba CRM-057"},
+    )
 
     negotiation = api_client.post(
         f"/api/opportunities/{opportunity.id}/regress",
-        json={"expected_status": "GANADA", "target_status": "NEGOCIACION"},
+        json={
+            **({"expected_status": "GANADA", "target_status": "COTIZADA"}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
     quoted = api_client.post(
         f"/api/opportunities/{opportunity.id}/regress",
-        json={"expected_status": "NEGOCIACION", "target_status": "COTIZADA"},
+        json={
+            **({"expected_status": "COTIZADA", "target_status": "PARA_COTIZAR"}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
     forbidden = api_client.post(
         f"/api/opportunities/{opportunity.id}/regress",
-        json={"expected_status": "COTIZADA", "target_status": "NUEVA"},
+        json={
+            **({"expected_status": "PARA_COTIZAR", "target_status": "NUEVA"}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
 
     assert negotiation.status_code == quoted.status_code == 200
-    assert negotiation.json()["status"] == "NEGOCIACION"
-    assert quoted.json()["status"] == "COTIZADA"
+    assert negotiation.json()["status"] == "COTIZADA"
+    assert quoted.json()["status"] == "PARA_COTIZAR"
     assert forbidden.status_code == 409
     history = quoted.json()["history"]
     assert [(entry["from_status"], entry["to_status"]) for entry in history[-2:]] == [
-        ("GANADA", "NEGOCIACION"),
-        ("NEGOCIACION", "COTIZADA"),
+        ("GANADA", "COTIZADA"),
+        ("COTIZADA", "PARA_COTIZAR"),
     ]
     assert all(entry["changed_at"] for entry in history)
     assert all(
@@ -382,7 +397,7 @@ def test_opportunity_regression_is_confirmable_by_expected_state_and_audited(
     )
     assert quoted.json()["products"] == negotiation.json()["products"]
     persisted = api_client.get(f"/api/opportunities/{opportunity.id}").json()
-    assert persisted["status"] == "COTIZADA"
+    assert persisted["status"] == "PARA_COTIZAR"
     assert len(persisted["history"]) == len(history)
 
 
@@ -392,7 +407,10 @@ def test_lost_opportunity_flow(api_client: TestClient) -> None:
 
     response = api_client.post(
         f"/api/opportunities/{opportunity.id}/lose",
-        json={"loss_reason": "PRECIO"},
+        json={
+            **({"loss_reason": "PRECIO"}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
 
     assert response.status_code == 200
@@ -408,17 +426,25 @@ def test_other_loss_reason_requires_and_returns_detail(api_client: TestClient) -
 
     missing_detail = api_client.post(
         f"/api/opportunities/{opportunity.id}/lose",
-        json={"loss_reason": "OTRO"},
+        json={**({"loss_reason": "OTRO"}), "note": "Seguimiento API de prueba CRM-057"},
     )
     unexpected_detail = api_client.post(
         f"/api/opportunities/{opportunity.id}/lose",
-        json={"loss_reason": "PRECIO", "loss_reason_detail": "No corresponde"},
+        json={
+            **({"loss_reason": "PRECIO", "loss_reason_detail": "No corresponde"}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
     response = api_client.post(
         f"/api/opportunities/{opportunity.id}/lose",
         json={
-            "loss_reason": "OTRO",
-            "loss_reason_detail": "  El cliente postergó la compra  ",
+            **(
+                {
+                    "loss_reason": "OTRO",
+                    "loss_reason_detail": "  El cliente postergó la compra  ",
+                }
+            ),
+            "note": "Seguimiento API de prueba CRM-057",
         },
     )
 
@@ -469,7 +495,7 @@ def test_update_quote_products_and_unassign_user(
     assert update.status_code == 200
     assert update.json()["products"][0]["product"]["id"] == second_product.id
     assert Decimal(update.json()["products"][0]["quantity_kg"]) == Decimal("875.500")
-    assert len(update.json()["history"]) == 2
+    assert len(update.json()["history"]) == 3
     assert unassigned.status_code == 200
     assert unassigned.json()["assigned_user"] is None
 
@@ -485,14 +511,28 @@ def test_opportunity_domain_and_product_errors_are_translated(
     )
     opportunity = create_opportunity(api_client, customer.id)
 
-    invalid_transition = api_client.post(f"/api/opportunities/{opportunity.id}/win")
+    invalid_transition = api_client.post(
+        f"/api/opportunities/{opportunity.id}/win",
+        json={"note": "Seguimiento API de prueba CRM-057"},
+    )
+    api_client.post(
+        f"/api/opportunities/{opportunity.id}/prepare-quote",
+        json={"note": "Preparar cotización de prueba CRM-057"},
+    )
     inactive_quote = api_client.post(
         f"/api/opportunities/{opportunity.id}/quote",
-        json={"products": [{"product_id": inactive_product.id, "quantity_kg": 100}]},
+        json={
+            **({"products": [{"product_id": inactive_product.id, "quantity_kg": 100}]}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
+    )
+    api_client.post(
+        f"/api/opportunities/{opportunity.id}/prepare-quote",
+        json={"note": "Preparar cotización de prueba CRM-057"},
     )
     empty_quote = api_client.post(
         f"/api/opportunities/{opportunity.id}/quote",
-        json={"products": []},
+        json={**({"products": []}), "note": "Seguimiento API de prueba CRM-057"},
     )
 
     assert invalid_transition.status_code == 409
@@ -505,9 +545,16 @@ def test_opportunity_request_validation_and_not_found(api_client: TestClient) ->
         "/api/opportunities",
         json={"customer_id": 1, "source": "META"},
     )
+    api_client.post(
+        "/api/opportunities/1/prepare-quote",
+        json={"note": "Preparar cotización de prueba CRM-057"},
+    )
     invalid_quantity = api_client.post(
         "/api/opportunities/1/quote",
-        json={"products": [{"product_id": 1, "quantity_kg": 0}]},
+        json={
+            **({"products": [{"product_id": 1, "quantity_kg": 0}]}),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
 
     assert invalid_source.status_code == 422

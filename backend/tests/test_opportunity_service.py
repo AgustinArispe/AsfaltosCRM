@@ -182,9 +182,11 @@ def create_quoted_opportunity(
         customer_id=customer.id,
         source=LeadSource.WEB,
     )
+    service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
     service.quote_opportunity(
         opportunity.id,
         [quote_item(product) for product in quoted_products],
+        note="Seguimiento de prueba CRM-057",
     )
     return service, opportunity, quoted_products
 
@@ -193,7 +195,6 @@ def create_negotiating_opportunity(
     db_session: Session,
 ) -> tuple[OpportunityService, Opportunity, Product]:
     service, opportunity, products = create_quoted_opportunity(db_session)
-    service.move_to_negotiation(opportunity.id)
     return service, opportunity, products[0]
 
 
@@ -338,6 +339,7 @@ def test_quote_opportunity_accepts_one_or_multiple_products(
     )
     previous_status_time = opportunity.current_status_entered_at
 
+    service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
     service.quote_opportunity(
         opportunity.id,
         [
@@ -345,6 +347,7 @@ def test_quote_opportunity_accepts_one_or_multiple_products(
             for index, product in enumerate(products)
         ],
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     lines = get_quote_lines(db_session, opportunity.id)
     history = get_history(db_session, opportunity.id)
@@ -355,9 +358,10 @@ def test_quote_opportunity_accepts_one_or_multiple_products(
     assert {line.product_id for line in lines} == {product.id for product in products}
     assert [entry.to_status for entry in history] == [
         OpportunityStatus.NUEVA,
+        OpportunityStatus.PARA_COTIZAR,
         OpportunityStatus.COTIZADA,
     ]
-    assert history[-1].from_status is OpportunityStatus.NUEVA
+    assert history[-1].from_status is OpportunityStatus.PARA_COTIZAR
     assert history[-1].changed_by_user_id == actor.id
     assert history[-1].changed_at == opportunity.current_status_entered_at
 
@@ -366,16 +370,21 @@ def test_quote_opportunity_rejects_empty_product_set(db_session: Session) -> Non
     service, opportunity = create_new_opportunity(db_session)
 
     with pytest.raises(InvalidQuoteProductsError):
-        service.quote_opportunity(opportunity.id, [])
+        service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
+        service.quote_opportunity(
+            opportunity.id, [], note="Seguimiento de prueba CRM-057"
+        )
 
 
 def test_quote_opportunity_rejects_missing_product(db_session: Session) -> None:
     service, opportunity = create_new_opportunity(db_session)
 
     with pytest.raises(EntityNotFoundError):
+        service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
         service.quote_opportunity(
             opportunity.id,
             [QuoteProductInput(999_999_999, Decimal("1"))],
+            note="Seguimiento de prueba CRM-057",
         )
 
 
@@ -390,7 +399,10 @@ def test_quote_opportunity_rejects_inactive_product(db_session: Session) -> None
     )
 
     with pytest.raises(InactiveProductError):
-        service.quote_opportunity(opportunity.id, [quote_item(product)])
+        service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
+        service.quote_opportunity(
+            opportunity.id, [quote_item(product)], note="Seguimiento de prueba CRM-057"
+        )
 
 
 @pytest.mark.parametrize("quantity", ["0", "-0.001", "NaN"])
@@ -408,9 +420,11 @@ def test_quote_opportunity_rejects_non_positive_or_non_finite_quantity(
     )
 
     with pytest.raises(InvalidQuoteProductsError):
+        service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
         service.quote_opportunity(
             opportunity.id,
             [quote_item(product, quantity)],
+            note="Seguimiento de prueba CRM-057",
         )
 
 
@@ -425,9 +439,11 @@ def test_quote_opportunity_rejects_duplicate_products(db_session: Session) -> No
     )
 
     with pytest.raises(InvalidQuoteProductsError):
+        service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
         service.quote_opportunity(
             opportunity.id,
             [quote_item(product, "100"), quote_item(product, "200")],
+            note="Seguimiento de prueba CRM-057",
         )
 
 
@@ -442,6 +458,7 @@ def test_quote_failure_rolls_back_products_status_and_history(
         customer_id=customer.id,
         source=LeadSource.WEB,
     )
+    service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
     original_status_time = opportunity.current_status_entered_at
 
     with pytest.raises(EntityNotFoundError):
@@ -451,12 +468,13 @@ def test_quote_failure_rolls_back_products_status_and_history(
                 quote_item(valid_product),
                 QuoteProductInput(999_999_999, Decimal("500")),
             ],
+            note="Seguimiento de prueba CRM-057",
         )
 
-    assert opportunity.status is OpportunityStatus.NUEVA
+    assert opportunity.status is OpportunityStatus.PARA_COTIZAR
     assert opportunity.current_status_entered_at == original_status_time
     assert get_quote_lines(db_session, opportunity.id) == []
-    assert len(get_history(db_session, opportunity.id)) == 1
+    assert len(get_history(db_session, opportunity.id)) == 2
 
 
 def test_normal_pipeline_transitions_and_history_are_coherent(
@@ -472,28 +490,34 @@ def test_normal_pipeline_transitions_and_history_are_coherent(
         source=LeadSource.WEB,
         changed_by_user_id=actor.id,
     )
+    service.prepare_quote(
+        opportunity.id,
+        note="Preparación de prueba CRM-057",
+        changed_by_user_id=actor.id,
+    )
+    prepared_at = opportunity.current_status_entered_at
     service.quote_opportunity(
         opportunity.id,
         [quote_item(product)],
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     quoted_at = opportunity.current_status_entered_at
-    service.move_to_negotiation(
+    service.mark_as_won(
         opportunity.id,
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
-    negotiation_at = opportunity.current_status_entered_at
-    service.mark_as_won(opportunity.id, changed_by_user_id=actor.id)
     history = get_history(db_session, opportunity.id)
 
     assert opportunity.status is OpportunityStatus.GANADA
     assert opportunity.loss_reason is None
-    assert quoted_at < negotiation_at < opportunity.current_status_entered_at
+    assert prepared_at < quoted_at < opportunity.current_status_entered_at
     assert [(entry.from_status, entry.to_status) for entry in history] == [
         (None, OpportunityStatus.NUEVA),
-        (OpportunityStatus.NUEVA, OpportunityStatus.COTIZADA),
-        (OpportunityStatus.COTIZADA, OpportunityStatus.NEGOCIACION),
-        (OpportunityStatus.NEGOCIACION, OpportunityStatus.GANADA),
+        (OpportunityStatus.NUEVA, OpportunityStatus.PARA_COTIZAR),
+        (OpportunityStatus.PARA_COTIZAR, OpportunityStatus.COTIZADA),
+        (OpportunityStatus.COTIZADA, OpportunityStatus.GANADA),
     ]
     assert all(entry.changed_by_user_id == actor.id for entry in history)
     assert [entry.changed_at for entry in history] == sorted(
@@ -501,16 +525,16 @@ def test_normal_pipeline_transitions_and_history_are_coherent(
     )
 
 
-def test_move_to_negotiation_rejects_new_opportunity(db_session: Session) -> None:
-    service, opportunity = create_new_opportunity(db_session)
+def test_prepare_quote_rejects_already_quoted_opportunity(db_session: Session) -> None:
+    service, opportunity, _ = create_quoted_opportunity(db_session)
 
     with pytest.raises(InvalidStateTransitionError):
-        service.move_to_negotiation(opportunity.id)
+        service.prepare_quote(opportunity.id, note="Seguimiento de prueba CRM-057")
 
 
 @pytest.mark.parametrize(
     "starting_status",
-    [OpportunityStatus.NUEVA, OpportunityStatus.COTIZADA],
+    [OpportunityStatus.NUEVA, OpportunityStatus.PARA_COTIZAR],
 )
 def test_mark_as_won_rejects_state_jumps(
     db_session: Session,
@@ -519,17 +543,17 @@ def test_mark_as_won_rejects_state_jumps(
     if starting_status is OpportunityStatus.NUEVA:
         service, opportunity = create_new_opportunity(db_session)
     else:
-        service, opportunity, _ = create_quoted_opportunity(db_session)
+        service, opportunity = create_new_opportunity(db_session)
+        service.prepare_quote(opportunity.id, note="Preparar antes de cotizar")
 
     with pytest.raises(InvalidStateTransitionError):
-        service.mark_as_won(opportunity.id)
+        service.mark_as_won(opportunity.id, note="Seguimiento de prueba CRM-057")
 
 
 @pytest.mark.parametrize(
     ("starting_status", "transition_method"),
     [
-        (OpportunityStatus.COTIZADA, "move_to_negotiation"),
-        (OpportunityStatus.NEGOCIACION, "mark_as_won"),
+        (OpportunityStatus.COTIZADA, "mark_as_won"),
     ],
 )
 def test_forward_transition_requires_quoted_products(
@@ -552,7 +576,7 @@ def test_forward_transition_requires_quoted_products(
     service = OpportunityService(db_session)
 
     with pytest.raises(InvalidQuoteProductsError):
-        getattr(service, transition_method)(opportunity.id)
+        getattr(service, transition_method)(opportunity.id, note="Cierre de prueba")
 
 
 def test_mark_new_opportunity_as_lost_without_products(db_session: Session) -> None:
@@ -564,6 +588,7 @@ def test_mark_new_opportunity_as_lost_without_products(db_session: Session) -> N
         opportunity.id,
         LossReason.SIN_RESPUESTA,
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     history = get_history(db_session, opportunity.id)
 
@@ -577,17 +602,27 @@ def test_mark_new_opportunity_as_lost_without_products(db_session: Session) -> N
 
 @pytest.mark.parametrize(
     "starting_status",
-    [OpportunityStatus.COTIZADA, OpportunityStatus.NEGOCIACION],
+    [OpportunityStatus.COTIZADA, OpportunityStatus.PARA_COTIZAR],
 )
 def test_mark_quoted_or_negotiating_opportunity_as_lost_preserves_products(
     db_session: Session,
     starting_status: OpportunityStatus,
 ) -> None:
     service, opportunity, products = create_quoted_opportunity(db_session)
-    if starting_status is OpportunityStatus.NEGOCIACION:
-        service.move_to_negotiation(opportunity.id)
+    if starting_status is OpportunityStatus.PARA_COTIZAR:
+        actor = make_user()
+        persist(db_session, actor)
+        service.regress_stage(
+            opportunity.id,
+            expected_status=OpportunityStatus.COTIZADA,
+            target_status=OpportunityStatus.PARA_COTIZAR,
+            changed_by_user_id=actor.id,
+            note="Revisar la propuesta antes de volver a cotizar",
+        )
 
-    service.mark_as_lost(opportunity.id, LossReason.PRECIO)
+    service.mark_as_lost(
+        opportunity.id, LossReason.PRECIO, note="Seguimiento de prueba CRM-057"
+    )
     lines = get_quote_lines(db_session, opportunity.id)
     history = get_history(db_session, opportunity.id)
 
@@ -602,7 +637,7 @@ def test_mark_as_lost_requires_loss_reason(db_session: Session) -> None:
     service, opportunity = create_new_opportunity(db_session)
 
     with pytest.raises(InvalidLossReasonError):
-        service.mark_as_lost(opportunity.id, None)
+        service.mark_as_lost(opportunity.id, None, note="Seguimiento de prueba CRM-057")
 
     assert opportunity.status is OpportunityStatus.NUEVA
     assert opportunity.loss_reason is None
@@ -617,6 +652,7 @@ def test_mark_as_lost_with_other_reason_persists_normalized_detail(
         opportunity.id,
         LossReason.OTRO,
         "  El cliente decidió esperar  ",
+        note="Seguimiento de prueba CRM-057",
     )
 
     loss_events = get_loss_events(db_session, opportunity.id)
@@ -642,7 +678,9 @@ def test_mark_as_lost_rejects_invalid_reason_detail_combinations(
     service, opportunity = create_new_opportunity(db_session)
 
     with pytest.raises(InvalidLossReasonError):
-        service.mark_as_lost(opportunity.id, reason, detail)
+        service.mark_as_lost(
+            opportunity.id, reason, detail, note="Seguimiento de prueba CRM-057"
+        )
 
     assert opportunity.status is OpportunityStatus.NUEVA
     assert opportunity.loss_reason_detail is None
@@ -658,10 +696,15 @@ def test_terminal_opportunity_rejects_further_transitions_and_quote_edits(
 ) -> None:
     if terminal_status is OpportunityStatus.GANADA:
         service, opportunity, _ = create_negotiating_opportunity(db_session)
-        service.mark_as_won(opportunity.id)
+        service.mark_as_won(opportunity.id, note="Seguimiento de prueba CRM-057")
     else:
         service, opportunity = create_new_opportunity(db_session)
-        service.mark_as_lost(opportunity.id, LossReason.OTRO, "Motivo de prueba")
+        service.mark_as_lost(
+            opportunity.id,
+            LossReason.OTRO,
+            "Motivo de prueba",
+            note="Seguimiento de prueba CRM-057",
+        )
     opportunity_id = opportunity.id
 
     with pytest.raises(ClosedOpportunityError):
@@ -669,6 +712,7 @@ def test_terminal_opportunity_rejects_further_transitions_and_quote_edits(
             opportunity_id,
             LossReason.OTRO,
             "Segundo intento de prueba",
+            note="Seguimiento de prueba CRM-057",
         )
     with pytest.raises(ClosedOpportunityError):
         service.update_quote_products(
@@ -709,7 +753,7 @@ def test_update_quote_products_replaces_current_set_without_status_change(
         products[0].id: Decimal("2500.000"),
         added_product.id: Decimal("750.000"),
     }
-    assert len(history) == 2
+    assert len(history) == 3
 
 
 def test_conditional_assignee_update_rejects_stale_snapshot(
@@ -771,7 +815,7 @@ def test_update_quote_products_is_allowed_in_negotiation(
     lines = get_quote_lines(db_session, opportunity.id)
     history = get_history(db_session, opportunity.id)
 
-    assert opportunity.status is OpportunityStatus.NEGOCIACION
+    assert opportunity.status is OpportunityStatus.COTIZADA
     assert opportunity.current_status_entered_at == status_time
     assert lines[0].quantity_kg == Decimal("1800.000")
     assert len(history) == 3

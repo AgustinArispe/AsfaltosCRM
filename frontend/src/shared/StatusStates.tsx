@@ -140,13 +140,15 @@ export function ChartSurface({
   title,
   children,
   showTitle = true,
+  className = '',
 }: {
   title: string
   children: ReactNode
   showTitle?: boolean
+  className?: string
 }) {
   return (
-    <section aria-label={title} className='ui-chart-surface'>
+    <section aria-label={title} className={`ui-chart-surface ${className}`}>
       {showTitle ? <h2>{title}</h2> : null}
       {children}
     </section>

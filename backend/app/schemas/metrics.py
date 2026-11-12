@@ -28,14 +28,21 @@ ProvinceFilter = Annotated[
 class MetricsQuery(StrictRequestModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    from_: datetime = Field(alias="from")
-    to: datetime
+    from_: datetime | None = Field(default=None, alias="from")
+    to: datetime | None = None
+    all_history: bool = False
     source: LeadSource | None = None
     product_id: int | None = Field(default=None, gt=0)
     province: ProvinceFilter | None = None
 
     @model_validator(mode="after")
     def validate_period(self) -> Self:
+        if self.all_history:
+            if self.from_ is not None or self.to is not None:
+                raise ValueError("all_history cannot be combined with from/to")
+            return self
+        if self.from_ is None or self.to is None:
+            raise ValueError("from and to are required for a bounded period")
         if (
             self.from_.tzinfo is None
             or self.from_.utcoffset() is None
@@ -79,7 +86,7 @@ class MetricOpportunitiesQuery(MetricsQuery):
             not in {
                 OpportunityStatus.NUEVA,
                 OpportunityStatus.COTIZADA,
-                OpportunityStatus.NEGOCIACION,
+                OpportunityStatus.PARA_COTIZAR,
             }
         ):
             raise ValueError("status is only valid for an active stage")

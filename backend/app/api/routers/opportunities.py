@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.api.dependencies import (
     CurrentUser,
@@ -28,6 +28,7 @@ from app.schemas import (
     QuoteProductsUpdate,
     QuoteRequest,
     ReopenOpportunityRequest,
+    StageCompletionRequest,
     StatusChangeRequest,
 )
 from app.services import (
@@ -202,24 +203,27 @@ def quote_opportunity(
     OpportunityService(session).quote_opportunity(
         opportunity_id,
         _quote_inputs(payload),
+        note=payload.note,
+        province=payload.province,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
 
 
 @router.post(
-    "/{opportunity_id}/move-to-negotiation",
+    "/{opportunity_id}/prepare-quote",
     response_model=OpportunityDetail,
-    summary="Move quoted opportunity to negotiation",
+    summary="Prepare a new opportunity for quotation",
 )
-def move_to_negotiation(
+def prepare_quote(
     opportunity_id: int,
+    payload: StatusChangeRequest,
     session: DatabaseSession,
     current_user: CurrentUser,
-    _payload: Annotated[StatusChangeRequest | None, Body()] = None,
 ) -> OpportunityDetail:
-    OpportunityService(session).move_to_negotiation(
+    OpportunityService(session).prepare_quote(
         opportunity_id,
+        note=payload.note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -228,16 +232,18 @@ def move_to_negotiation(
 @router.post(
     "/{opportunity_id}/win",
     response_model=OpportunityDetail,
-    summary="Mark negotiating opportunity as won",
+    summary="Mark quoted opportunity as won",
 )
 def mark_as_won(
     opportunity_id: int,
+    payload: StageCompletionRequest,
     session: DatabaseSession,
     current_user: CurrentUser,
-    _payload: Annotated[StatusChangeRequest | None, Body()] = None,
 ) -> OpportunityDetail:
     OpportunityService(session).mark_as_won(
         opportunity_id,
+        note=payload.note,
+        province=payload.province,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -258,6 +264,7 @@ def regress_opportunity(
         opportunity_id,
         expected_status=payload.expected_status,
         target_status=payload.target_status,
+        note=payload.note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -278,6 +285,7 @@ def mark_as_lost(
         opportunity_id,
         payload.loss_reason,
         payload.loss_reason_detail,
+        note=payload.note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -324,7 +332,7 @@ def update_assignee(
 @router.post(
     "/{opportunity_id}/reopen",
     response_model=OpportunityDetail,
-    summary="Reopen a lost opportunity into negotiation",
+    summary="Reopen a lost opportunity into COTIZADA",
 )
 def reopen_opportunity(
     opportunity_id: int,
@@ -336,6 +344,7 @@ def reopen_opportunity(
         opportunity_id,
         command_id=payload.command_id,
         expected_status=payload.expected_status,
+        note=payload.note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)

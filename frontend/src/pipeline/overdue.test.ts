@@ -6,7 +6,7 @@ const NOW = Date.parse('2026-09-16T12:00:00Z')
 
 describe('isOpportunityOverdue', () => {
   it('marks every open stage overdue at the exact seven-day boundary', () => {
-    for (const status of ['NUEVA', 'COTIZADA', 'NEGOCIACION'] as const) {
+    for (const status of ['NUEVA', 'PARA_COTIZAR', 'COTIZADA'] as const) {
       expect(isOpportunityOverdue(status, '2026-09-09T12:00:00Z', NOW)).toBe(true)
     }
   })

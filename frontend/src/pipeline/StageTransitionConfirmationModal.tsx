@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { Button } from '../shared/Button'
 import { Icon } from '../shared/Icon'
 import { Modal } from '../shared/Modal'
 import { opportunityStatusColorClass, PIPELINE_STAGES, STAGE_BY_STATUS } from './config'
+import { StageNoteField } from './StageNoteField'
+import { StageProvinceField } from './StageProvinceField'
 import type { PipelineStatus } from './types'
 
 export type PendingStageTransition = {
@@ -42,12 +45,25 @@ export function StageTransitionConfirmationModal({
   isPending,
   onCancel,
   onConfirm,
+  error,
+  customerProvince,
 }: {
   transition: PendingStageTransition | null
   isPending: boolean
   onCancel: () => void
-  onConfirm: () => void
+  onConfirm: (note: string, province?: string) => void
+  error?: string | null
+  customerProvince?: string | null
 }) {
+  const [note, setNote] = useState('')
+  const [province, setProvince] = useState('')
+  useEffect(() => {
+    if (!transition) {
+      setNote('')
+      setProvince('')
+    }
+  }, [transition])
+  if (!transition) return null
   const targetStatus = transition?.targetStatus ?? 'NUEVA'
   const stage = STAGE_BY_STATUS.get(targetStatus)
   const copy = transition
@@ -62,7 +78,12 @@ export function StageTransitionConfirmationModal({
       onClose={onCancel}
       title='Confirmar cambio de etapa'
     >
-      <div className='px-5 py-5 sm:px-6'>
+      <div className='space-y-4 px-5 py-5 sm:px-6'>
+        {error ? (
+          <p className='text-sm text-[var(--destructive-text)]' role='alert'>
+            {error}
+          </p>
+        ) : null}
         <div
           className={`flex items-center gap-3 rounded-[var(--radius-control)] border border-[var(--opportunity-stage-border)] bg-[var(--opportunity-stage-surface)] px-3.5 py-3 ${opportunityStatusColorClass(targetStatus)}`}
         >
@@ -81,6 +102,15 @@ export function StageTransitionConfirmationModal({
             </p>
           </div>
         </div>
+        <StageNoteField disabled={isPending} onChange={setNote} value={note} />
+        {targetStatus === 'GANADA' ? (
+          <StageProvinceField
+            currentProvince={customerProvince}
+            disabled={isPending}
+            onChange={setProvince}
+            value={province}
+          />
+        ) : null}
       </div>
       <footer className='flex flex-wrap justify-end gap-2 border-t border-[var(--divider)] px-5 py-4 sm:px-6'>
         <Button
@@ -91,7 +121,12 @@ export function StageTransitionConfirmationModal({
         >
           Cancelar
         </Button>
-        <Button isLoading={isPending} onClick={onConfirm} variant='primary'>
+        <Button
+          disabled={!note.trim()}
+          isLoading={isPending}
+          onClick={() => onConfirm(note.trim(), province.trim() || undefined)}
+          variant='primary'
+        >
           {copy?.actionLabel ?? 'Confirmar cambio'}
         </Button>
       </footer>

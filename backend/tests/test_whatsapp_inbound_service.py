@@ -405,6 +405,7 @@ def test_link_history_preserves_terminal_opportunities(
         LossReason.OTRO,
         "Motivo de prueba",
         changed_by_user_id=None,
+        note="Seguimiento de prueba CRM-057",
     )
     assert first.status is OpportunityStatus.PERDIDA
 

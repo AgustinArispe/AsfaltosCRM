@@ -32,6 +32,19 @@ describe('Dashboard filters', () => {
     expect(year.from).toBe('2026-01-01T00:00:00-03:00')
   })
 
+  it('restores 15 days, serializes inclusive boundaries, and keeps all history unbounded', () => {
+    const initial = defaultDashboardFilters(now)
+    const fortnight = filtersForPreset('last-15-days', initial, now)
+    expect(fortnight.from).toBe('2026-07-31T00:00:00-03:00')
+    expect(fortnight.to).toBe('2026-08-15T00:00:00-03:00')
+    const restored = dashboardFiltersFromQuery('?period=last-15-days', now)
+    expect(restored).toEqual(fortnight)
+    const all = dashboardFiltersFromQuery('?period=all&from=2026-08-01&to=2026-08-14', now)
+    expect(all.from).toBe('')
+    expect(all.to).toBe('')
+    expect(timelineGranularity(all)).toBe('month')
+  })
+
   it('serializes inclusive custom end dates as the next Buenos Aires midnight', () => {
     const custom = filtersForCustomRange(defaultDashboardFilters(now), '2026-02-10', '2026-02-12')
 

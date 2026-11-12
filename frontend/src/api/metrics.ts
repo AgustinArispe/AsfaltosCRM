@@ -27,8 +27,11 @@ function dimensionQuery(filters: MetricDimensions): URLSearchParams {
 
 function periodQuery(filters: MetricsFilters): URLSearchParams {
   const query = dimensionQuery(filters)
-  query.set('from', filters.from)
-  query.set('to', filters.to)
+  if (!filters.from && !filters.to) query.set('all_history', 'true')
+  else {
+    query.set('from', filters.from)
+    query.set('to', filters.to)
+  }
   return query
 }
 

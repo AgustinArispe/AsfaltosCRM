@@ -3,6 +3,7 @@ import type { SVGAttributes } from 'react'
 export type IconName =
   | 'alert'
   | 'bell'
+  | 'calendar'
   | 'check'
   | 'check-circle'
   | 'chevron-left'
@@ -44,6 +45,7 @@ export type IconName =
 const PATHS: Record<IconName, string> = {
   alert: 'M12 4 3.5 19h17L12 4Zm0 5v4m0 3h.01',
   bell: 'M18 9a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7M10 20h4',
+  calendar: 'M7 3v4m10-4v4M4 10h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1ZM8 14h3v3H8z',
   check: 'm5 12 4 4L19 6',
   'check-circle': 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-13-1 3 3 5-6',
   'chevron-left': 'm14 6-6 6 6 6',

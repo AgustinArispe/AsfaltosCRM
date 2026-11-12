@@ -107,7 +107,7 @@ function mockDashboardApi(options: MockOptions = {}) {
             opportunity_id: 41,
             customer_name: 'Hormigones Sur',
             customer_company: 'HS SA',
-            current_status: 'COTIZADA',
+            current_status: 'PARA_COTIZAR',
             source: 'WEB',
             products: [
               {
@@ -132,7 +132,7 @@ function mockDashboardApi(options: MockOptions = {}) {
             loss_event_id: null,
             customer_name: 'Hormigones Sur',
             customer_company: 'HS SA',
-            current_status: 'COTIZADA',
+            current_status: 'PARA_COTIZAR',
             source: 'WEB',
             relevant_at: '2026-08-14T12:00:00Z',
             quantity_kg: '750.000',
@@ -147,11 +147,11 @@ function mockDashboardApi(options: MockOptions = {}) {
         items: [
           { status: 'NUEVA', count: options.zeroPipeline ? 0 : options.twoStagePipeline ? 8 : 9 },
           {
-            status: 'COTIZADA',
+            status: 'PARA_COTIZAR',
             count: options.zeroPipeline ? 0 : options.twoStagePipeline ? 2 : 4,
           },
           {
-            status: 'NEGOCIACION',
+            status: 'COTIZADA',
             count: options.zeroPipeline || options.twoStagePipeline ? 0 : 5,
           },
           { status: 'GANADA', count: 4 },
@@ -291,14 +291,14 @@ describe('DashboardPage', () => {
     if (!activeSection) throw new Error('Active Opportunities section is missing')
     expect(within(activeSection).getByText('18')).toBeInTheDocument()
     expect(within(activeSection).getByText('Nueva')).toBeInTheDocument()
+    expect(within(activeSection).getByText('Para cotizar')).toBeInTheDocument()
     expect(within(activeSection).getByText('Cotizada')).toBeInTheDocument()
-    expect(within(activeSection).getByText('Negociación')).toBeInTheDocument()
     const overdueLink = within(activeSection).getByRole('link', { name: /¡Atrasado!2/ })
     expect(overdueLink).toHaveAttribute('href', '/notifications?view=active')
     expect(within(activeSection).queryByText(/Snapshot/i)).not.toBeInTheDocument()
     expect(activeSection.querySelector('.dashboard-pipeline-bar')).not.toBeInTheDocument()
     expect(
-      within(activeSection).getByRole('button', { name: /etapa Cotizada/i }),
+      within(activeSection).getByRole('button', { name: /etapa Para cotizar/i }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Kg cotizados')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Evolución comercial diaria')).toBeInTheDocument()
@@ -320,9 +320,9 @@ describe('DashboardPage', () => {
       fetchMock.mock.calls.some(([input]) => String(input).includes('/metrics/opportunities')),
     ).toBe(false)
 
-    fireEvent.click(screen.getByRole('button', { name: /Cotizada: 4, 22 %; abrir detalle/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Para cotizar: 4, 22 %; abrir detalle/i }))
 
-    expect(await screen.findByRole('dialog')).toHaveAccessibleName('Oportunidades cotizadas')
+    expect(await screen.findByRole('dialog')).toHaveAccessibleName('Oportunidades para cotizar')
     expect(await screen.findByText('Hormigones Sur')).toBeVisible()
     const opportunityCard = screen.getByRole('button', {
       name: 'Abrir oportunidad 41 de Hormigones Sur',
@@ -330,7 +330,7 @@ describe('DashboardPage', () => {
     expect(opportunityCard).toHaveClass(
       'metric-drilldown__card',
       'opportunity-stage-tone',
-      'opportunity-stage-tone--cotizada',
+      'opportunity-stage-tone--negociacion',
     )
     expect(opportunityCard.querySelector('.metric-drilldown__icon')).toBeInTheDocument()
     expect(screen.getByText('750 kg')).toBeInTheDocument()
@@ -339,13 +339,43 @@ describe('DashboardPage', () => {
         const url = new URL(String(input), 'http://localhost')
         return (
           url.pathname === '/api/metrics/opportunities' &&
-          url.searchParams.get('status') === 'COTIZADA'
+          url.searchParams.get('status') === 'PARA_COTIZAR'
         )
       }),
     ).toBe(true)
 
     fireEvent.click(opportunityCard)
     expect(window.location.pathname).toBe('/pipeline/opportunities/41')
+  })
+
+  it('uses shared 15-day bounds and real unbounded history in metrics and drilldowns', async () => {
+    const fetchMock = await renderLoaded()
+    fireEvent.click(screen.getByRole('button', { name: 'Últimos 15 días' }))
+    await waitFor(() => expect(window.location.search).toContain('period=last-15-days'))
+    const timelineRequests = () =>
+      fetchMock.mock.calls
+        .map(([url]) => new URL(String(url), 'http://localhost'))
+        .filter((url) => url.pathname === '/api/metrics/timeline')
+    const from = (screen.getByLabelText('Desde') as HTMLInputElement).value
+    const to = (screen.getByLabelText('Hasta') as HTMLInputElement).value
+    expect((Date.parse(to) - Date.parse(from)) / 86400000).toBe(14)
+    expect(timelineRequests().at(-1)?.searchParams.get('from')).toBe(`${from}T00:00:00-03:00`)
+    fireEvent.click(screen.getByRole('button', { name: 'Todo' }))
+    await waitFor(() =>
+      expect(timelineRequests().at(-1)?.searchParams.get('all_history')).toBe('true'),
+    )
+    const timeline = timelineRequests().at(-1)
+    expect(timeline?.searchParams.get('granularity')).toBe('month')
+    expect(timeline?.searchParams.has('from')).toBe(false)
+    expect(timeline?.searchParams.has('to')).toBe(false)
+    expect(screen.getByText('Todo el historial')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: /^Ganadas4 ganadas/ }))
+    await screen.findByRole('dialog', { name: 'Oportunidades ganadas' })
+    const detailRequest = fetchMock.mock.calls
+      .map(([url]) => new URL(String(url), 'http://localhost'))
+      .find((url) => url.pathname === '/api/metrics/opportunities')
+    expect(detailRequest?.searchParams.get('all_history')).toBe('true')
+    expect(detailRequest?.searchParams.has('from')).toBe(false)
   })
 
   it.each([{ staleTotal: 0 }, { staleFailure: true }])(
@@ -365,8 +395,8 @@ describe('DashboardPage', () => {
     await renderLoaded()
     const donut = screen.getByLabelText('Distribución de oportunidades activas por etapa')
     const nueva = within(donut).getByRole('button', { name: /Nueva: 9, 50 %/ })
-    const cotizada = within(donut).getByRole('button', { name: /Cotizada: 4, 22 %/ })
-    const negociacion = within(donut).getByRole('button', { name: /Negociación: 5, 28 %/ })
+    const cotizada = within(donut).getByRole('button', { name: /Para cotizar: 4, 22 %/ })
+    const negociacion = within(donut).getByRole('button', { name: /Cotizada: 5, 28 %/ })
     const segmentLengths = [nueva, cotizada, negociacion].map(
       (segment) => Number(segment.getAttribute('data-share')) * 100,
     )
@@ -377,7 +407,7 @@ describe('DashboardPage', () => {
     expect(donut.querySelector('[stroke-dasharray]')).not.toBeInTheDocument()
     expect(donut.querySelector('[class*="ganada"]')).not.toBeInTheDocument()
 
-    const quotedRow = screen.getByRole('button', { name: /etapa Cotizada/i })
+    const quotedRow = screen.getByRole('button', { name: /etapa Para cotizar/i })
     fireEvent.mouseEnter(cotizada)
     expect(quotedRow).toHaveClass('is-highlighted')
     fireEvent.mouseLeave(cotizada)
@@ -421,12 +451,14 @@ describe('DashboardPage', () => {
 
   it('closes the opportunity modal and restores focus to its trigger', async () => {
     await renderLoaded()
-    const trigger = screen.getByRole('button', { name: /Ver oportunidades en etapa Cotizada/i })
+    const trigger = screen.getByRole('button', { name: /Ver oportunidades en etapa Para cotizar/i })
     trigger.focus()
     fireEvent.click(trigger)
     const dialog = await screen.findByRole('dialog')
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /Cerrar oportunidades cotizadas/i }))
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: /Cerrar oportunidades para cotizar/i }),
+    )
 
     await waitFor(() => expect(trigger).toHaveFocus())
   })
@@ -481,7 +513,7 @@ describe('DashboardPage', () => {
       }
     }
     const initial = counts()
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'last-three-months' } })
+    fireEvent.change(screen.getByLabelText('Más períodos'), { target: { value: 'three-months' } })
     await waitFor(() => expect(counts().commercial).toBe(initial.commercial + 5))
     expect(counts()).toEqual({
       commercial: initial.commercial + 5,
@@ -530,7 +562,7 @@ describe('DashboardPage', () => {
 
   it('keeps the bounded monthly fallback for custom periods longer than one year', async () => {
     const fetchMock = await renderLoaded()
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'custom' } })
+    fireEvent.change(screen.getByLabelText('Más períodos'), { target: { value: 'custom' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2024-01-01' } })
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-08-14' } })
     await waitFor(() => {

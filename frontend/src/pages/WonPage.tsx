@@ -8,30 +8,15 @@ import { Button } from '../shared/Button'
 import { Input, Select } from '../shared/FormControls'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
+import { PeriodFilter } from '../shared/PeriodFilter'
+import { isPeriodPreset, periodSelection } from '../shared/periods'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import type { WonFilterOptions, WonFilters, WonOpportunity, WonStatistics } from '../won/types'
 import { OpportunityDetailPage } from './OpportunityDetailPage'
 
-function buenosAiresToday(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
 function periodDates(period: WonFilters['period']): Pick<WonFilters, 'from' | 'to'> {
-  if (period === 'all') return { from: '', to: '' }
-  const today = buenosAiresToday()
-  const [year, month] = today.split('-').map(Number)
-  if (year === undefined || month === undefined) return { from: '', to: '' }
-  const start =
-    period === 'year'
-      ? `${year}-01-01`
-      : period === 'three-months'
-        ? new Date(Date.UTC(year, month - 3, 1)).toISOString().slice(0, 10)
-        : `${year}-${String(month).padStart(2, '0')}-01`
-  return { from: start, to: today }
+  const { from, to } = periodSelection(period === 'custom' ? 'month' : period)
+  return { from, to }
 }
 const DEFAULT_FILTERS: WonFilters = {
   period: 'month',
@@ -47,20 +32,13 @@ function readFilters(): WonFilters {
   const query = new URLSearchParams(window.location.search)
   const source = query.get('source')
   const period = query.get('period')
-  const validPeriod =
-    period === 'three-months' ||
-    period === 'year' ||
-    period === 'custom' ||
-    period === 'all' ||
-    period === 'month'
-      ? period
-      : 'month'
+  const validPeriod = isPeriodPreset(period) ? period : 'month'
   return {
     ...DEFAULT_FILTERS,
     ...periodDates(validPeriod),
     period: validPeriod,
-    from: query.get('from') ?? periodDates(validPeriod).from,
-    to: query.get('to') ?? periodDates(validPeriod).to,
+    from: validPeriod === 'all' ? '' : (query.get('from') ?? periodDates(validPeriod).from),
+    to: validPeriod === 'all' ? '' : (query.get('to') ?? periodDates(validPeriod).to),
     search: query.get('search') ?? '',
     source: isLeadSource(source) ? source : '',
     product: query.get('product') ?? '',
@@ -138,8 +116,6 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
     setFilters(DEFAULT_FILTERS)
     window.history.replaceState(null, '', '/won')
   }
-  const changePeriod = (period: WonFilters['period']) =>
-    setDraft((current) => ({ ...current, period, ...periodDates(period) }))
   const loadMore = async () => {
     if (!nextCursor) return
     setLoadingMore(true)
@@ -163,6 +139,17 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
           apply()
         }}
       >
+        <PeriodFilter
+          value={{ preset: draft.period, from: draft.from, to: draft.to }}
+          onChange={(selection) =>
+            setDraft((current) => ({
+              ...current,
+              period: selection.preset,
+              from: selection.from,
+              to: selection.to,
+            }))
+          }
+        />
         <div className='won-filter won-filter--search'>
           <Icon className='won-filter__search-icon' name='search' />
           <Input
@@ -173,42 +160,6 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
             onChange={(event) => setDraft({ ...draft, search: event.target.value })}
           />
         </div>
-        <div className='won-filter'>
-          <Select
-            id='won-period'
-            label='Período'
-            value={draft.period}
-            onChange={(event) => changePeriod(event.target.value as WonFilters['period'])}
-          >
-            <option value='month'>Este mes</option>
-            <option value='three-months'>Últimos 3 meses</option>
-            <option value='year'>Este año</option>
-            <option value='custom'>Personalizado</option>
-            <option value='all'>Todo el historial</option>
-          </Select>
-        </div>
-        {draft.period === 'custom' ? (
-          <>
-            <div className='won-filter'>
-              <Input
-                id='won-from'
-                label='Desde'
-                type='date'
-                value={draft.from}
-                onChange={(event) => setDraft({ ...draft, from: event.target.value })}
-              />
-            </div>
-            <div className='won-filter'>
-              <Input
-                id='won-to'
-                label='Hasta'
-                type='date'
-                value={draft.to}
-                onChange={(event) => setDraft({ ...draft, to: event.target.value })}
-              />
-            </div>
-          </>
-        ) : null}
         <div className='won-filter'>
           <Select
             id='won-product'

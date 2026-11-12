@@ -17,6 +17,7 @@ class LeadSource(StrEnum):
 
 class OpportunityStatus(StrEnum):
     NUEVA = "NUEVA"
+    PARA_COTIZAR = "PARA_COTIZAR"
     COTIZADA = "COTIZADA"
     NEGOCIACION = "NEGOCIACION"
     GANADA = "GANADA"

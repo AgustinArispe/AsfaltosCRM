@@ -39,8 +39,10 @@ from app.services import (
     WhatsAppOpportunityAssociationError,
     WhatsAppReplyInProgressError,
 )
+from app.services.errors import InvalidTransitionNoteError
 
 DOMAIN_ERROR_STATUS: tuple[tuple[type[DomainError], int], ...] = (
+    (InvalidTransitionNoteError, status.HTTP_422_UNPROCESSABLE_CONTENT),
     (AuthenticationError, status.HTTP_401_UNAUTHORIZED),
     (IntakeAuthenticationError, status.HTTP_401_UNAUTHORIZED),
     (PermissionDeniedError, status.HTTP_403_FORBIDDEN),

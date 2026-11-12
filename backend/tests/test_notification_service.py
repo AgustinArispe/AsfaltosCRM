@@ -88,7 +88,7 @@ def notifications_for(
         (OpportunityStatus.NUEVA, 6, False, 0),
         (OpportunityStatus.NUEVA, 7, False, 1),
         (OpportunityStatus.COTIZADA, 8, False, 1),
-        (OpportunityStatus.NEGOCIACION, 12, False, 1),
+        (OpportunityStatus.COTIZADA, 12, False, 1),
         (OpportunityStatus.GANADA, 12, False, 0),
         (OpportunityStatus.PERDIDA, 12, False, 0),
         (OpportunityStatus.NUEVA, 12, True, 0),
@@ -181,9 +181,13 @@ def test_transition_resolves_stale_and_new_stage_can_generate_again(
     persist(db_session, product)
     assert generate(db_session) == 1
 
+    OpportunityService(db_session).prepare_quote(
+        opportunity.id, note="Preparación de prueba CRM-057"
+    )
     OpportunityService(db_session).quote_opportunity(
         opportunity.id,
         [QuoteProductInput(product_id=product.id, quantity_kg=Decimal("1000"))],
+        note="Seguimiento de prueba CRM-057",
     )
     first_notification = notifications_for(db_session, opportunity.id)[0]
 
@@ -203,11 +207,13 @@ def test_transition_resolves_stale_and_new_stage_can_generate_again(
 def test_win_resolves_active_stale_notification(db_session: Session) -> None:
     opportunity = _make_quoted_opportunity(
         db_session,
-        status=OpportunityStatus.NEGOCIACION,
+        status=OpportunityStatus.COTIZADA,
     )
     assert generate(db_session) == 1
 
-    OpportunityService(db_session).mark_as_won(opportunity.id)
+    OpportunityService(db_session).mark_as_won(
+        opportunity.id, note="Seguimiento de prueba CRM-057"
+    )
 
     assert notifications_for(db_session, opportunity.id)[0].resolved_at is not None
 
@@ -220,7 +226,9 @@ def test_lose_resolves_active_stale_notification(db_session: Session) -> None:
     )
     assert generate(db_session) == 1
 
-    OpportunityService(db_session).mark_as_lost(opportunity.id, LossReason.PRECIO)
+    OpportunityService(db_session).mark_as_lost(
+        opportunity.id, LossReason.PRECIO, note="Seguimiento de prueba CRM-057"
+    )
 
     assert notifications_for(db_session, opportunity.id)[0].resolved_at is not None
 
@@ -411,6 +419,7 @@ def test_mark_all_reads_only_active_unread_notifications(
         resolved_opportunity.id,
         LossReason.OTRO,
         "Motivo de prueba",
+        note="Seguimiento de prueba CRM-057",
     )
 
     updated_count = NotificationService(db_session).mark_all_active_as_read(

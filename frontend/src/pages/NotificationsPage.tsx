@@ -31,6 +31,7 @@ const READ_ERROR_STORAGE_KEY = 'faa-crm.notifications.read-error'
 
 const STATUS_LABELS: Record<OpportunityStatus, string> = {
   NUEVA: 'Nueva',
+  PARA_COTIZAR: 'Para cotizar',
   COTIZADA: 'Cotizada',
   NEGOCIACION: 'Negociación',
   GANADA: 'Ganada',

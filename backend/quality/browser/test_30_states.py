@@ -25,7 +25,7 @@ def test_empty_search_and_filter_states_explain_next_action(
     expect(page.get_by_text("Probá con otro nombre", exact=False)).to_be_visible()
 
     wait_for_workspace(page, "dashboard")
-    page.get_by_label("Período", exact=True).select_option("custom")
+    page.get_by_label("Más períodos", exact=True).select_option("custom")
     page.get_by_label("Desde").fill("2025-01-01")
     page.get_by_label("Hasta").fill("2025-02-01")
     expect(page.get_by_text("No hay evolución en el período")).to_be_visible()

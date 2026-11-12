@@ -1,4 +1,5 @@
 import type { LeadSource, OpportunitySummary } from '../pipeline/types'
+import type { PeriodPreset } from '../shared/periods'
 
 export type WonOpportunity = {
   opportunity: OpportunitySummary
@@ -13,7 +14,7 @@ export type WonFilterOptions = {
   responsible_users: Array<{ id: number; full_name: string; is_active: boolean }>
 }
 export type WonFilters = {
-  period: 'month' | 'three-months' | 'year' | 'custom' | 'all'
+  period: PeriodPreset
   from: string
   to: string
   search: string

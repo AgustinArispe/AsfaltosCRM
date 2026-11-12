@@ -83,12 +83,13 @@ def _quoted_negotiation(
         source=LeadSource.WEB,
         changed_by_user_id=actor.id,
     )
+    service.prepare_quote(opportunity.id, note="Preparación de prueba CRM-057")
     service.quote_opportunity(
         opportunity.id,
         [QuoteProductInput(product.id, Decimal("1250.500"))],
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
-    service.move_to_negotiation(opportunity.id, changed_by_user_id=actor.id)
     return opportunity, product
 
 
@@ -213,7 +214,9 @@ def test_notes_work_in_terminal_states_and_reject_deleted_opportunity(
     customer = _customer(db_session, suffix)
     opportunity, _ = _quoted_negotiation(db_session, customer, actor, suffix)
     OpportunityService(db_session).mark_as_won(
-        opportunity.id, changed_by_user_id=actor.id
+        opportunity.id,
+        changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     note = OpportunityNoteService(db_session).create(
         opportunity.id,
@@ -242,19 +245,24 @@ def test_stage_regression_preserves_quote_updates_timestamps_and_history(
     customer = _customer(db_session, suffix)
     opportunity, product = _quoted_negotiation(db_session, customer, actor, suffix)
     service = OpportunityService(db_session)
-    service.mark_as_won(opportunity.id, changed_by_user_id=actor.id)
+    service.mark_as_won(
+        opportunity.id,
+        changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
+    )
     won_at = opportunity.current_status_entered_at
     regression_at = won_at + timedelta(seconds=1)
 
     service.regress_stage(
         opportunity.id,
         expected_status=OpportunityStatus.GANADA,
-        target_status=OpportunityStatus.NEGOCIACION,
+        target_status=OpportunityStatus.COTIZADA,
         changed_by_user_id=actor.id,
         occurred_at=regression_at,
+        note="Seguimiento de prueba CRM-057",
     )
 
-    assert opportunity.status is OpportunityStatus.NEGOCIACION
+    assert opportunity.status is OpportunityStatus.COTIZADA
     assert opportunity.current_status_entered_at == regression_at
     assert opportunity.updated_at == regression_at
     assert opportunity.opportunity_products[0].product_id == product.id
@@ -264,7 +272,7 @@ def test_stage_regression_preserves_quote_updates_timestamps_and_history(
         .order_by(OpportunityStatusHistory.id)
     ).all()
     assert history[-1].from_status is OpportunityStatus.GANADA
-    assert history[-1].to_status is OpportunityStatus.NEGOCIACION
+    assert history[-1].to_status is OpportunityStatus.COTIZADA
     assert history[-1].changed_at == regression_at
     assert history[-1].changed_by_user_id == actor.id
 
@@ -272,9 +280,10 @@ def test_stage_regression_preserves_quote_updates_timestamps_and_history(
     with pytest.raises(InvalidStateTransitionError):
         service.regress_stage(
             opportunity.id,
-            expected_status=OpportunityStatus.NEGOCIACION,
+            expected_status=OpportunityStatus.COTIZADA,
             target_status=OpportunityStatus.NUEVA,
             changed_by_user_id=actor.id,
+            note="Seguimiento de prueba CRM-057",
         )
 
 
@@ -367,6 +376,7 @@ def test_loss_workspace_reopen_reloss_and_snapshots(db_session: Session) -> None
         opportunity.id,
         LossReason.PRECIO,
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     assert (
         OpportunityQueryService(db_session).list_opportunities(
@@ -405,14 +415,16 @@ def test_loss_workspace_reopen_reloss_and_snapshots(db_session: Session) -> None
         command_id=command_id,
         expected_status=OpportunityStatus.PERDIDA,
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     replay = service.reopen(
         opportunity.id,
         command_id=command_id,
         expected_status=OpportunityStatus.PERDIDA,
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
-    assert reopened.status is OpportunityStatus.NEGOCIACION
+    assert reopened.status is OpportunityStatus.COTIZADA
     assert replay.id == reopened.id
     detail = OpportunityQueryService(db_session).get_detail(opportunity.id)
     assert detail.is_reopened is True
@@ -428,6 +440,7 @@ def test_loss_workspace_reopen_reloss_and_snapshots(db_session: Session) -> None
         opportunity.id,
         LossReason.COMPETENCIA,
         changed_by_user_id=actor.id,
+        note="Seguimiento de prueba CRM-057",
     )
     episodes = list(
         db_session.scalars(
@@ -463,6 +476,7 @@ def test_reopen_requires_lost_status_and_retained_quote(db_session: Session) -> 
             command_id=uuid4(),
             expected_status=OpportunityStatus.PERDIDA,
             changed_by_user_id=actor.id,
+            note="Seguimiento de prueba CRM-057",
         )
 
 
@@ -707,6 +721,7 @@ def test_crm_commercial_api_contracts(
         LossReason.OTRO,
         "El proyecto quedó en revisión interna",
         changed_by_user_id=supervisor_user.id,
+        note="Seguimiento de prueba CRM-057",
     )
 
     note_command = uuid4()
@@ -764,12 +779,17 @@ def test_crm_commercial_api_contracts(
     reopened = api_client.post(
         f"/api/opportunities/{opportunity.id}/reopen",
         json={
-            "command_id": str(uuid4()),
-            "expected_status": "PERDIDA",
+            **(
+                {
+                    "command_id": str(uuid4()),
+                    "expected_status": "PERDIDA",
+                }
+            ),
+            "note": "Seguimiento API de prueba CRM-057",
         },
     )
     assert reopened.status_code == 200
-    assert reopened.json()["status"] == "NEGOCIACION"
+    assert reopened.json()["status"] == "COTIZADA"
     assert reopened.json()["is_reopened"] is True
     assert reopened.json()["loss_reason"] is None
     assert reopened.json()["loss_reason_detail"] is None

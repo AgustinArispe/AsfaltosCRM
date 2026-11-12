@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type ReactNode, useState } from 'react'
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { OPPORTUNITY_STATUS_LABELS } from '../pipeline/config'
 import { AppLink } from '../routing/router'
@@ -69,7 +69,9 @@ export function DashboardKpis({
           <h2 id='dashboard-result-title'>Resultado del período</h2>
         </div>
         <p className='dashboard-period-label'>
-          {formatCommercialPeriod(filters.customStart, filters.customEnd)}
+          {filters.preset === 'all'
+            ? 'Todo el historial'
+            : formatCommercialPeriod(filters.customStart, filters.customEnd)}
         </p>
       </header>
       <div className='dashboard-outcomes'>
@@ -138,11 +140,11 @@ export function DashboardKpis({
   )
 }
 
-const ACTIVE_STATUSES = ['NUEVA', 'COTIZADA', 'NEGOCIACION'] as const
+const ACTIVE_STATUSES = ['NUEVA', 'PARA_COTIZAR', 'COTIZADA'] as const
 const ACTIVE_DRILLDOWN_TITLES: Record<(typeof ACTIVE_STATUSES)[number], string> = {
   NUEVA: 'Oportunidades nuevas',
+  PARA_COTIZAR: 'Oportunidades para cotizar',
   COTIZADA: 'Oportunidades cotizadas',
-  NEGOCIACION: 'Oportunidades en negociación',
 }
 const DONUT_CENTER = 56
 const DONUT_RADIUS = 44
@@ -355,7 +357,8 @@ const SERIES: Array<{
 ]
 
 function chartTicks(maximum: number): number[] {
-  return [...new Set([0, Math.ceil(maximum / 3), Math.ceil((maximum * 2) / 3), maximum])]
+  const step = Math.max(1, Math.ceil(maximum / 3))
+  return Array.from({ length: Math.ceil(maximum / step) + 1 }, (_, index) => index * step)
 }
 
 function dayNumber(bucket: string): number {
@@ -390,38 +393,56 @@ export function TimelineChart({
   onDrilldown: (selection: DrilldownSelection) => void
 }) {
   const [hoveredBucket, setHoveredBucket] = useState<number | null>(null)
+  const chartRef = useRef<SVGSVGElement>(null)
+  const [chartWidth, setChartWidth] = useState(1000)
   const maximum = Math.max(
     0,
     ...(timeline?.items.flatMap((item) => SERIES.map((series) => series.value(item))) ?? []),
   )
-  const scaleMaximum = Math.max(1, maximum)
-  const chartWidth = 1000
-  const chartHeight = 320
+  const ticks = chartTicks(Math.max(1, maximum))
+  const scaleMaximum = ticks[ticks.length - 1]
+  const chartHeight = 256
   const plotLeft = 48
-  const plotRight = 982
+  const plotRight = chartWidth - 16
   const plotTop = 24
-  const plotBottom = 264
+  const plotBottom = 212
   const chartItems = timeline?.items ?? []
   const xAxisLabelInterval =
     timeline?.granularity === 'day' ? timelineDayLabelInterval(chartItems.length) : 1
   const hasActivity = maximum > 0
+  useEffect(() => {
+    const chart = chartRef.current
+    if (!chart || !hasActivity) return
+    const observer = new ResizeObserver(([entry]) => {
+      setChartWidth(Math.max(896, Math.round(entry.contentRect.width)))
+    })
+    observer.observe(chart)
+    return () => observer.disconnect()
+  }, [hasActivity])
   const slotWidth = chartItems.length ? (plotRight - plotLeft) / chartItems.length : 0
-  const groupWidth = Math.min(21, slotWidth * 0.76)
+  const groupWidth = Math.min(36, slotWidth * 0.76)
   const barGap = Math.min(1.5, groupWidth * 0.08)
   const barWidth = Math.max(2, (groupWidth - barGap * 2) / SERIES.length)
   const bucketCenter = (index: number): number => plotLeft + slotWidth * (index + 0.5)
   const barHeight = (value: number): number => (value / scaleMaximum) * (plotBottom - plotTop)
   return (
-    <ChartSurface showTitle={false} title='Evolución comercial'>
+    <ChartSurface
+      className='dashboard-timeline-surface'
+      showTitle={false}
+      title='Evolución comercial'
+    >
       <div className='dashboard-timeline'>
         <div className='dashboard-chart-heading'>
           <div>
             <h2>Evolución comercial</h2>
+            <p className='dashboard-chart-context'>
+              Creadas por fecha de alta. Ganadas y pérdidas por fecha de cierre.
+            </p>
           </div>
           <ul aria-label='Series de evolución' className='dashboard-series-legend'>
             {SERIES.map((series) => (
               <li className={`dashboard-series-${series.key}`} key={series.key}>
-                <span />
+                <span aria-hidden='true' />
                 {series.label}
               </li>
             ))}
@@ -430,126 +451,158 @@ export function TimelineChart({
         <SurfaceState error={error} hasData={Boolean(timeline)} onRetry={onRetry} />
         {!timeline && !error ? <Skeleton className='dashboard-chart-skeleton' /> : null}
         {timeline?.items.length && hasActivity ? (
-          <div className='dashboard-daily-chart'>
-            <svg
-              aria-label='Evolución comercial diaria'
-              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            >
-              {chartTicks(scaleMaximum).map((tick) => {
-                const y = plotBottom - (tick / scaleMaximum) * (plotBottom - plotTop)
-                return (
-                  <g className='dashboard-daily-chart__grid' key={tick}>
-                    <line x1={plotLeft} x2={plotRight} y1={y} y2={y} />
-                    <text x='37' y={y + 4}>
-                      {formatCount(tick)}
-                    </text>
-                  </g>
-                )
-              })}
-              {hoveredBucket !== null ? (
-                <rect
-                  className='dashboard-daily-chart__hover-column'
-                  height={plotBottom - plotTop + 30}
-                  width={slotWidth}
-                  x={plotLeft + hoveredBucket * slotWidth}
-                  y={plotTop}
-                />
-              ) : null}
-              {timeline.items.map((item, index) => {
-                const groupLeft = bucketCenter(index) - groupWidth / 2
-                return SERIES.map((series, seriesIndex) => {
-                  const value = series.value(item)
-                  if (value === 0) return null
-                  const height = barHeight(value)
+          <div className='dashboard-timeline__plot'>
+            <p className='dashboard-timeline__axis-title'>Cantidad de oportunidades</p>
+            <div className='dashboard-daily-chart'>
+              <svg
+                aria-label='Evolución comercial diaria'
+                ref={chartRef}
+                viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+              >
+                {timeline.granularity === 'day'
+                  ? timeline.items.map((item, index) =>
+                      index % 2 === 1 ? (
+                        <rect
+                          className='dashboard-daily-chart__day-band'
+                          data-day-band={item.bucket}
+                          focusable='false'
+                          height={plotBottom - plotTop + 40}
+                          key={`day-band-${item.bucket}`}
+                          width={slotWidth}
+                          x={plotLeft + index * slotWidth}
+                          y={plotTop - 8}
+                        />
+                      ) : null,
+                    )
+                  : null}
+                {ticks.map((tick) => {
+                  const y = plotBottom - (tick / scaleMaximum) * (plotBottom - plotTop)
                   return (
-                    <rect
-                      className={`dashboard-daily-chart__bar dashboard-series-${series.key} ${hoveredBucket === index ? 'is-highlighted' : ''}`}
-                      data-bucket={item.bucket}
-                      data-series={series.key}
-                      height={height}
-                      key={`${item.bucket}-${series.key}`}
-                      rx={Math.min(3, barWidth / 2)}
-                      width={barWidth}
-                      x={groupLeft + seriesIndex * (barWidth + barGap)}
-                      y={plotBottom - height}
-                    />
+                    <g className='dashboard-daily-chart__grid' key={tick}>
+                      <line x1={plotLeft} x2={plotRight} y1={y} y2={y} />
+                      <text x='37' y={y + 4}>
+                        {formatCount(tick)}
+                      </text>
+                    </g>
                   )
-                })
-              })}
-              {timeline.items.map((item, index) => {
-                const label = bucketLabel(item.bucket, timeline.granularity)
-                return (
-                  // biome-ignore lint/a11y/useSemanticElements: An SVG hit target is required to make each chart bucket independently keyboard accessible.
+                })}
+                {hoveredBucket !== null ? (
                   <rect
-                    aria-label={`Abrir movimientos de ${label}: ${item.leads_created} creadas, ${item.won} ganadas, ${item.lost} pérdidas`}
-                    className='dashboard-daily-chart__hit-area'
-                    height={plotBottom - plotTop + 34}
-                    key={`hit-${item.bucket}`}
-                    onBlur={() => setHoveredBucket(null)}
-                    onClick={() =>
-                      onDrilldown({
-                        mode: 'movements',
-                        title: `Movimientos · ${label}`,
-                        bucket: item.bucket,
-                        granularity: timeline.granularity,
-                      })
-                    }
-                    onFocus={() => setHoveredBucket(index)}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return
-                      event.preventDefault()
-                      onDrilldown({
-                        mode: 'movements',
-                        title: `Movimientos · ${label}`,
-                        bucket: item.bucket,
-                        granularity: timeline.granularity,
-                      })
-                    }}
-                    onMouseEnter={() => setHoveredBucket(index)}
-                    onMouseLeave={() => setHoveredBucket(null)}
-                    role='button'
-                    tabIndex={0}
+                    className='dashboard-daily-chart__hover-column'
+                    height={plotBottom - plotTop + 30}
                     width={slotWidth}
-                    x={plotLeft + index * slotWidth}
+                    x={plotLeft + hoveredBucket * slotWidth}
                     y={plotTop}
                   />
-                )
-              })}
-              {timeline.items.map((item, index) =>
-                index % xAxisLabelInterval === 0 ? (
-                  <text
-                    className={`dashboard-daily-chart__label ${hoveredBucket === index ? 'is-highlighted' : ''}`}
-                    data-axis-bucket={item.bucket}
-                    key={item.bucket}
-                    textAnchor='middle'
-                    x={bucketCenter(index)}
-                    y='291'
-                  >
-                    {dayNumber(item.bucket)}
-                  </text>
-                ) : null,
-              )}
-            </svg>
-            {hoveredBucket !== null && timeline.items[hoveredBucket] ? (
-              <div
-                className='dashboard-daily-chart__tooltip'
-                role='tooltip'
-                style={{
-                  left: `${Math.min(90, Math.max(10, (bucketCenter(hoveredBucket) / chartWidth) * 100))}%`,
-                }}
-              >
-                <strong>
-                  {bucketLabel(timeline.items[hoveredBucket].bucket, timeline.granularity)}
-                </strong>
-                {SERIES.map((series) => (
-                  <span key={series.key}>
-                    <i className={`dashboard-series-${series.key}`} />
-                    {series.label}
-                    <b>{formatCount(series.value(timeline.items[hoveredBucket]))}</b>
-                  </span>
-                ))}
-              </div>
-            ) : null}
+                ) : null}
+                {timeline.items.map((item, index) => {
+                  const groupLeft = bucketCenter(index) - groupWidth / 2
+                  return SERIES.map((series, seriesIndex) => {
+                    const value = series.value(item)
+                    if (value === 0) return null
+                    const height = barHeight(value)
+                    return (
+                      <rect
+                        className={`dashboard-daily-chart__bar dashboard-series-${series.key} ${hoveredBucket === index ? 'is-highlighted' : ''}`}
+                        data-bucket={item.bucket}
+                        data-series={series.key}
+                        height={height}
+                        key={`${item.bucket}-${series.key}`}
+                        rx={Math.min(3, barWidth / 2)}
+                        width={barWidth}
+                        x={groupLeft + seriesIndex * (barWidth + barGap)}
+                        y={plotBottom - height}
+                      />
+                    )
+                  })
+                })}
+                {timeline.items.map((item, index) => {
+                  const label = bucketLabel(item.bucket, timeline.granularity)
+                  return (
+                    // biome-ignore lint/a11y/useSemanticElements: An SVG hit target is required to make each chart bucket independently keyboard accessible.
+                    <rect
+                      aria-label={`Abrir movimientos de ${label}: ${item.leads_created} creadas, ${item.won} ganadas, ${item.lost} pérdidas`}
+                      className='dashboard-daily-chart__hit-area'
+                      height={plotBottom - plotTop + 34}
+                      key={`hit-${item.bucket}`}
+                      onBlur={() => setHoveredBucket(null)}
+                      onClick={() =>
+                        onDrilldown({
+                          mode: 'movements',
+                          title: `Movimientos · ${label}`,
+                          bucket: item.bucket,
+                          granularity: timeline.granularity,
+                        })
+                      }
+                      onFocus={() => setHoveredBucket(index)}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return
+                        event.preventDefault()
+                        onDrilldown({
+                          mode: 'movements',
+                          title: `Movimientos · ${label}`,
+                          bucket: item.bucket,
+                          granularity: timeline.granularity,
+                        })
+                      }}
+                      onMouseEnter={() => setHoveredBucket(index)}
+                      onMouseLeave={() => setHoveredBucket(null)}
+                      role='button'
+                      tabIndex={0}
+                      width={slotWidth}
+                      x={plotLeft + index * slotWidth}
+                      y={plotTop}
+                    />
+                  )
+                })}
+                {timeline.items.map((item, index) =>
+                  index % xAxisLabelInterval === 0 ? (
+                    <text
+                      className={`dashboard-daily-chart__label ${hoveredBucket === index ? 'is-highlighted' : ''}`}
+                      data-axis-bucket={item.bucket}
+                      key={item.bucket}
+                      textAnchor='middle'
+                      x={bucketCenter(index)}
+                      y='239'
+                    >
+                      {dayNumber(item.bucket)}
+                    </text>
+                  ) : null,
+                )}
+              </svg>
+              {hoveredBucket !== null && timeline.items[hoveredBucket] ? (
+                <div
+                  className='dashboard-daily-chart__tooltip'
+                  role='tooltip'
+                  style={{
+                    left: `${Math.min(90, Math.max(10, (bucketCenter(hoveredBucket) / chartWidth) * 100))}%`,
+                  }}
+                >
+                  <strong>
+                    {bucketLabel(timeline.items[hoveredBucket].bucket, timeline.granularity)}
+                  </strong>
+                  {SERIES.map((series) => (
+                    <span key={series.key}>
+                      <i className={`dashboard-series-${series.key}`} />
+                      {series.label}
+                      <b>{formatCount(series.value(timeline.items[hoveredBucket]))}</b>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className='dashboard-timeline__reading-guide'>
+              <span>
+                {timeline.granularity === 'day' ? 'Días del período' : 'Meses del período'}
+              </span>
+              <span className='dashboard-timeline__scroll-hint'>
+                Deslizá el gráfico para recorrer el período.
+              </span>
+              <span>
+                Seleccioná {timeline.granularity === 'day' ? 'un día' : 'un mes'} para ver sus
+                movimientos.
+              </span>
+            </div>
           </div>
         ) : null}
         {timeline && (!timeline.items.length || !hasActivity) ? (

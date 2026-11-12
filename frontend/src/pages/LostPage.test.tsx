@@ -65,6 +65,34 @@ const lostItem = {
 }
 
 describe('LostPage', () => {
+  it('applies shared 15-day dates to losses and removes bounds for Todo', async () => {
+    render(<LostPage />)
+    await screen.findByText('Constructora Sur')
+    const count = (fetch as ReturnType<typeof vi.fn>).mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Últimos 15 días' }))
+    expect(fetch).toHaveBeenCalledTimes(count)
+    const from = (screen.getByLabelText('Desde') as HTMLInputElement).value
+    const to = (screen.getByLabelText('Hasta') as HTMLInputElement).value
+    expect((Date.parse(to) - Date.parse(from)) / 86400000).toBe(14)
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    await waitFor(() => expect(window.location.search).toContain('period=last-15-days'))
+    expect(
+      (fetch as ReturnType<typeof vi.fn>).mock.calls
+        .slice(count)
+        .every(
+          ([url]) =>
+            new URL(String(url), 'http://localhost').searchParams.get('lost_from') ===
+            `${from}T00:00:00-03:00`,
+        ),
+    ).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Todo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    await waitFor(() => expect(window.location.search).toBe('?period=all'))
+    const last = (fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1)
+    expect(String(last?.[0])).not.toContain('lost_from')
+    expect(String(last?.[0])).not.toContain('lost_to')
+  })
+
   beforeEach(() => {
     window.history.replaceState(null, '', '/lost')
     vi.stubGlobal(

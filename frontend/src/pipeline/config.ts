@@ -17,7 +17,16 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     status: 'NUEVA',
     label: 'Nueva',
     singularLabel: 'Nueva',
-    icon: 'document',
+    icon: 'inbox',
+    nextStatus: 'PARA_COTIZAR',
+    previousStatus: null,
+    tone: 'neutral',
+  },
+  {
+    status: 'PARA_COTIZAR',
+    label: 'Para cotizar',
+    singularLabel: 'Para cotizar',
+    icon: 'pencil',
     nextStatus: 'COTIZADA',
     previousStatus: null,
     tone: 'neutral',
@@ -26,18 +35,9 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     status: 'COTIZADA',
     label: 'Cotizada',
     singularLabel: 'Cotizada',
-    icon: 'coins',
-    nextStatus: 'NEGOCIACION',
-    previousStatus: null,
-    tone: 'neutral',
-  },
-  {
-    status: 'NEGOCIACION',
-    label: 'Negociación',
-    singularLabel: 'Negociación',
-    icon: 'handshake',
+    icon: 'document',
     nextStatus: 'GANADA',
-    previousStatus: 'COTIZADA',
+    previousStatus: 'PARA_COTIZAR',
     tone: 'neutral',
   },
   {
@@ -46,7 +46,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     singularLabel: 'Ganada',
     icon: 'trophy',
     nextStatus: null,
-    previousStatus: 'NEGOCIACION',
+    previousStatus: 'COTIZADA',
     tone: 'success',
   },
 ] as const
@@ -59,14 +59,16 @@ export const STAGE_BY_STATUS = new Map(PIPELINE_STAGES.map((stage) => [stage.sta
 
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   NUEVA: 'Nueva',
+  PARA_COTIZAR: 'Para cotizar',
   COTIZADA: 'Cotizada',
-  NEGOCIACION: 'Negociación',
+  NEGOCIACION: 'Negociación (histórico)',
   GANADA: 'Ganada',
   PERDIDA: 'Pérdida',
 }
 
 export const OPPORTUNITY_STATUS_TONES: Record<OpportunityStatus, BadgeTone> = {
   NUEVA: 'new',
+  PARA_COTIZAR: 'negotiation',
   COTIZADA: 'quoted',
   NEGOCIACION: 'negotiation',
   GANADA: 'won',
@@ -75,6 +77,7 @@ export const OPPORTUNITY_STATUS_TONES: Record<OpportunityStatus, BadgeTone> = {
 
 export const OPPORTUNITY_STATUS_COLOR_CLASSES: Record<OpportunityStatus, string> = {
   NUEVA: 'opportunity-stage-tone--nueva',
+  PARA_COTIZAR: 'opportunity-stage-tone--negociacion',
   COTIZADA: 'opportunity-stage-tone--cotizada',
   NEGOCIACION: 'opportunity-stage-tone--negociacion',
   GANADA: 'opportunity-stage-tone--ganada',

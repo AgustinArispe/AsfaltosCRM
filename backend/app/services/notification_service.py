@@ -22,7 +22,7 @@ STALE_OPPORTUNITY_STATUSES = frozenset(
     {
         OpportunityStatus.NUEVA,
         OpportunityStatus.COTIZADA,
-        OpportunityStatus.NEGOCIACION,
+        OpportunityStatus.PARA_COTIZAR,
     }
 )
 

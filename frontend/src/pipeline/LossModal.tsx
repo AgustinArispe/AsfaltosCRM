@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Button } from '../shared/Button'
 import { Modal } from '../shared/Modal'
 import { LOSS_REASON_OPTIONS } from './config'
+import { StageNoteField } from './StageNoteField'
 import type { LossReason, OpportunitySummary } from './types'
 
 export function LossModal({
@@ -11,10 +12,15 @@ export function LossModal({
 }: {
   opportunity: OpportunitySummary | null
   onClose: () => void
-  onConfirm: (lossReason: LossReason, lossReasonDetail: string | null) => Promise<void>
+  onConfirm: (
+    lossReason: LossReason,
+    lossReasonDetail: string | null,
+    note: string,
+  ) => Promise<void>
 }) {
   const [lossReason, setLossReason] = useState<LossReason | ''>('')
   const [lossReasonDetail, setLossReasonDetail] = useState('')
+  const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [errorField, setErrorField] = useState<'reason' | 'detail' | 'form' | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -24,10 +30,12 @@ export function LossModal({
     void opportunity?.id
     setLossReason('')
     setLossReasonDetail('')
+    setNote('')
     setError(null)
     setErrorField(null)
     setIsSubmitting(false)
   }, [opportunity?.id])
+  if (!opportunity) return null
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -44,11 +52,16 @@ export function LossModal({
       return
     }
 
+    if (!note.trim()) {
+      setError('Escribí una nota para registrar el cambio de estado.')
+      setErrorField('form')
+      return
+    }
     setIsSubmitting(true)
     setError(null)
     setErrorField(null)
     try {
-      await onConfirm(lossReason, lossReason === 'OTRO' ? normalizedDetail : null)
+      await onConfirm(lossReason, lossReason === 'OTRO' ? normalizedDetail : null, note.trim())
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -154,6 +167,7 @@ export function LossModal({
               ) : null}
             </div>
           ) : null}
+          <StageNoteField disabled={isSubmitting} onChange={setNote} value={note} />
           {error && errorField === 'form' ? (
             <p className='text-sm font-medium text-[var(--destructive-text)]' role='alert'>
               {error}
@@ -165,7 +179,7 @@ export function LossModal({
           <Button disabled={isSubmitting} onClick={onClose}>
             Cancelar
           </Button>
-          <Button disabled={isSubmitting} type='submit' variant='danger'>
+          <Button disabled={isSubmitting || !note.trim()} type='submit' variant='danger'>
             {isSubmitting ? 'Guardando…' : 'Confirmar pérdida'}
           </Button>
         </footer>

@@ -1224,7 +1224,7 @@ def test_existing_customer_links_replace_unlink_and_preserve_history(
     db_session.add_all((customer, other_customer))
     db_session.flush()
     first_opportunity = _opportunity(customer.id, OpportunityStatus.GANADA)
-    second_opportunity = _opportunity(customer.id, OpportunityStatus.NEGOCIACION)
+    second_opportunity = _opportunity(customer.id, OpportunityStatus.COTIZADA)
     wrong_opportunity = _opportunity(other_customer.id, OpportunityStatus.NUEVA)
     db_session.add_all((first_opportunity, second_opportunity, wrong_opportunity))
     db_session.flush()

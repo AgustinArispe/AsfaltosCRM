@@ -421,6 +421,11 @@ function History({ opportunity }: { opportunity: OpportunityDetail }) {
                 <p className='mt-0.5 text-sm font-medium leading-5 text-[var(--text-primary)]'>
                   {historyDescription(entry)}
                 </p>
+                {entry.note ? (
+                  <p className='mt-2 whitespace-pre-wrap break-words rounded-[var(--radius-control)] bg-[var(--surface-secondary)] p-3 text-sm leading-6 text-[var(--text-primary)] [overflow-wrap:anywhere]'>
+                    {entry.note}
+                  </p>
+                ) : null}
                 {entry.from_status === null ? (
                   <p className='mt-0.5 text-xs text-[var(--text-tertiary)]'>
                     Estado inicial: {OPPORTUNITY_STATUS_LABELS[entry.to_status]}

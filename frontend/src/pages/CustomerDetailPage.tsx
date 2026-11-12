@@ -4,6 +4,7 @@ import { deleteCustomer, getCustomer, updateCustomer } from '../api/customers'
 import { type ApiSession, listCustomerOpportunities } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { CustomerFormModal } from '../customers/CustomerFormModal'
+import { CustomerStageNotes } from '../customers/CustomerStageNotes'
 import { DeleteCustomerModal } from '../customers/DeleteCustomerModal'
 import { customerErrorMessage } from '../customers/errors'
 import { LegendaryBadge } from '../customers/LegendaryBadge'
@@ -348,6 +349,7 @@ export function CustomerDetailPage({
             </div>
             <CustomerOpportunities customerId={customer.id} opportunities={opportunities} />
           </section>
+          <CustomerStageNotes customerId={customer.id} key={customer.id} session={apiSession} />
           <CustomerFormModal
             customer={customer}
             isOpen={isEditing}

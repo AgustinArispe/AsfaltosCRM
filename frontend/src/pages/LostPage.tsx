@@ -21,6 +21,8 @@ import { AppLink } from '../routing/router'
 import { Badge } from '../shared/Badge'
 import { Button } from '../shared/Button'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
+import { PeriodFilter } from '../shared/PeriodFilter'
+import { isPeriodPreset, periodSelection } from '../shared/periods'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import { SearchField } from '../shared/Workspace'
 import { OpportunityDetailPage } from './OpportunityDetailPage'
@@ -42,18 +44,27 @@ function readLostFilters(): LostFilters {
   const query = new URLSearchParams(window.location.search)
   const source = query.get('source')
   const product = query.get('product')
+  const requestedPeriod = query.get('period')
+  const period = isPeriodPreset(requestedPeriod)
+    ? requestedPeriod
+    : query.get('from') || query.get('to')
+      ? 'custom'
+      : 'all'
+  const dates = periodSelection(period === 'custom' ? 'all' : period)
   return {
     ...EMPTY_LOST_FILTERS,
+    period,
     source: isLeadSource(source) ? source : '',
     productId: product && /^[1-9]\d*$/.test(product) ? Number(product) : null,
     province: query.get('province') ?? '',
-    lostFrom: query.get('from') ?? '',
-    lostTo: query.get('to') ?? '',
+    lostFrom: period === 'all' ? '' : (query.get('from') ?? dates.from),
+    lostTo: period === 'all' ? '' : (query.get('to') ?? dates.to),
   }
 }
 
 function replaceLostQuery(filters: LostFilters): void {
   const query = new URLSearchParams()
+  if (filters.period) query.set('period', filters.period)
   if (filters.source) query.set('source', filters.source)
   if (filters.productId) query.set('product', String(filters.productId))
   if (filters.province) query.set('province', filters.province)
@@ -327,6 +338,21 @@ export function LostPage({ selectedOpportunityId }: { selectedOpportunityId?: nu
           applyFilters()
         }}
       >
+        <PeriodFilter
+          value={{
+            preset: draft.period ?? (draft.lostFrom || draft.lostTo ? 'custom' : 'all'),
+            from: draft.lostFrom,
+            to: draft.lostTo,
+          }}
+          onChange={(selection) =>
+            setDraft((current) => ({
+              ...current,
+              period: selection.preset,
+              lostFrom: selection.from,
+              lostTo: selection.to,
+            }))
+          }
+        />
         <SearchField
           label='Buscar'
           className='max-w-sm'
@@ -422,24 +448,6 @@ export function LostPage({ selectedOpportunityId }: { selectedOpportunityId?: nu
                   </option>
                 ))}
               </select>
-            </label>
-            <label className='ui-label'>
-              Desde
-              <input
-                className='ui-field'
-                onChange={(event) => updateDraft('lostFrom', event.target.value)}
-                type='date'
-                value={draft.lostFrom}
-              />
-            </label>
-            <label className='ui-label'>
-              Hasta
-              <input
-                className='ui-field'
-                onChange={(event) => updateDraft('lostTo', event.target.value)}
-                type='date'
-                value={draft.lostTo}
-              />
             </label>
           </div>
         </details>

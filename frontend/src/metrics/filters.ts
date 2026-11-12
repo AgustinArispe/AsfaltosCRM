@@ -1,8 +1,14 @@
 import { SOURCE_LABELS } from '../pipeline/config'
 import { isLeadSource, type LeadSource } from '../pipeline/types'
+import {
+  isPeriodPreset,
+  type PeriodPreset,
+  periodSelection,
+  validDateRange,
+} from '../shared/periods'
 import type { MetricsFilters, TimelineGranularity } from './types'
 
-export type DashboardPeriodPreset = 'month' | 'last-three-months' | 'year' | 'custom'
+export type DashboardPeriodPreset = PeriodPreset | 'last-three-months'
 
 export type DashboardFilters = MetricsFilters & {
   preset: DashboardPeriodPreset
@@ -72,21 +78,15 @@ export function filtersForPreset(
   current: DashboardFilters,
   now = new Date(),
 ): DashboardFilters {
-  const { year, month } = partsInBuenosAires(now)
-  const from =
-    preset === 'month'
-      ? firstOfMonth(year, month)
-      : preset === 'last-three-months'
-        ? monthBoundary(year, month, -2)
-        : firstOfMonth(year, 1)
-  const to = monthBoundary(year, month, 1)
+  const selection = periodSelection(preset === 'last-three-months' ? 'three-months' : preset, now)
+  const { from, to } = selection
   return {
     ...current,
     preset,
     customStart: from,
-    customEnd: addDays(to, -1),
-    from: serializeBoundary(from),
-    to: serializeBoundary(to),
+    customEnd: to,
+    from: from ? serializeBoundary(from) : '',
+    to: to ? serializeBoundary(addDays(to, 1)) : '',
   }
 }
 
@@ -108,6 +108,7 @@ export function filtersForCustomRange(
 }
 
 export function timelineGranularity(filters: MetricsFilters): TimelineGranularity {
+  if (!filters.from && !filters.to) return 'month'
   const from = filters.from.slice(0, 10)
   const to = filters.to.slice(0, 10)
   const [fromYear, fromMonth, fromDay] = from.split('-').map(Number)
@@ -139,22 +140,20 @@ export function dashboardFiltersFromQuery(search: string, now = new Date()): Das
   const preset: DashboardPeriodPreset =
     period === 'three-months'
       ? 'last-three-months'
-      : period === 'year' || period === 'custom' || period === 'month'
+      : isPeriodPreset(period)
         ? period
         : defaults.preset
   const from = query.get('from')
   const to = query.get('to')
-  const validDates =
-    from !== null &&
-    to !== null &&
-    /^\d{4}-\d{2}-\d{2}$/.test(from) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(to) &&
-    from <= to
-  const periodFilters = validDates
-    ? filtersForCustomRange({ ...defaults, preset }, from, to)
-    : preset === 'custom'
-      ? defaults
-      : filtersForPreset(preset, defaults, now)
+  const validDates = from !== null && to !== null && validDateRange(from, to)
+  const periodFilters =
+    preset === 'all'
+      ? filtersForPreset('all', defaults, now)
+      : validDates
+        ? filtersForCustomRange({ ...defaults, preset }, from, to)
+        : preset === 'custom'
+          ? defaults
+          : filtersForPreset(preset, defaults, now)
   const source = query.get('source')
   const productId = Number(query.get('product'))
   return {

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-
+import { OpportunityContextPanel } from './OpportunityContextPanel'
 import { OpportunityDetailContent, OpportunityDetailModalHeader } from './OpportunityDetailContent'
 import type { OpportunityDetail } from './types'
 
@@ -58,6 +58,33 @@ const opportunity: OpportunityDetail = {
 }
 
 describe('OpportunityDetailContent', () => {
+  it('shows transition notes in the activity panel used by the opportunity drawer', () => {
+    render(
+      <OpportunityContextPanel
+        opportunity={{
+          ...opportunity,
+          history: [
+            {
+              id: 4,
+              from_status: 'PARA_COTIZAR',
+              to_status: 'COTIZADA',
+              changed_at: '2026-11-11T12:00:00Z',
+              changed_by_user_id: 2,
+              note: 'Se envió la cotización.\nEl cliente la está revisando.',
+            },
+          ],
+        }}
+        session={{ token: 'local-test', onUnauthorized: () => undefined }}
+      />,
+    )
+
+    expect(screen.getByText('Pasó de Para cotizar a Cotizada')).toBeInTheDocument()
+    expect(screen.getByText(/Se envió la cotización/)).toHaveTextContent(
+      'Se envió la cotización. El cliente la está revisando.',
+    )
+    expect(screen.getByText(/Se envió la cotización/)).toHaveClass('whitespace-pre-wrap')
+  })
+
   it('renders the commercial detail, loss context, customer contacts, quote and history', () => {
     render(
       <>
@@ -88,7 +115,7 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
     expect(screen.getByText('Total cotizado')).toBeInTheDocument()
     expect(screen.getByText('Consulta creada')).toBeInTheDocument()
-    expect(screen.getByText(/Pasó de Negociación a Pérdida/)).toBeInTheDocument()
+    expect(screen.getByText('Pasó de Negociación (histórico) a Pérdida')).toBeInTheDocument()
 
     const summary = document.querySelector('.opportunity-detail__summary--page')
     expect(summary).not.toBeNull()

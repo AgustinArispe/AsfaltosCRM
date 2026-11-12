@@ -102,7 +102,7 @@ function bucketFilters(filters: MetricsFilters, selection: MovementSelection): M
         ? addDays(start, 7)
         : nextMonth(start)
   const from = start > filters.from.slice(0, 10) ? start : filters.from.slice(0, 10)
-  const to = rawEnd < filters.to.slice(0, 10) ? rawEnd : filters.to.slice(0, 10)
+  const to = !filters.to || rawEnd < filters.to.slice(0, 10) ? rawEnd : filters.to.slice(0, 10)
   return { ...filters, from: `${from}T00:00:00-03:00`, to: `${to}T00:00:00-03:00` }
 }
 function movementValue(item: TimelineMetric, series: TimelineSeries): number {

@@ -39,6 +39,82 @@ def period_params() -> dict[str, str]:
     return {"from": FROM.isoformat(), "to": TO.isoformat()}
 
 
+def test_all_history_uses_real_stored_bounds_and_preserves_dimensions(
+    api_client: TestClient, db_session: Session
+) -> None:
+    province = f"Historial completo {uuid4().hex}"
+    customer = Customer(name=province, province=province)
+    old = datetime(1960, 2, 12, 3, tzinfo=UTC)
+    future = datetime(2055, 4, 10, 3, tzinfo=UTC)
+    db_session.add_all(
+        [
+            Opportunity(
+                customer=customer,
+                source=LeadSource.WEB,
+                status=OpportunityStatus.NUEVA,
+                created_at=old,
+                updated_at=old,
+                current_status_entered_at=old,
+            ),
+            Opportunity(
+                customer=customer,
+                source=LeadSource.WEB,
+                status=OpportunityStatus.NUEVA,
+                created_at=future,
+                updated_at=future,
+                current_status_entered_at=future,
+            ),
+        ]
+    )
+    db_session.commit()
+    params = {"all_history": "true", "province": province}
+    response = api_client.get("/api/metrics/overview", params=params)
+    assert response.status_code == 200
+    assert response.json()["opportunities"]["created"] == 2
+    period = response.json()["period"]
+    assert datetime.fromisoformat(period["from"].replace("Z", "+00:00")) <= old
+    assert datetime.fromisoformat(period["to"].replace("Z", "+00:00")) > future
+    timeline = api_client.get(
+        "/api/metrics/timeline", params={**params, "granularity": "month"}
+    )
+    assert timeline.status_code == 200
+    assert sum(item["leads_created"] for item in timeline.json()["items"]) == 2
+    for path in ("products", "sources", "provinces", "opportunities"):
+        extra = {"kind": "created"} if path == "opportunities" else {}
+        assert (
+            api_client.get(
+                f"/api/metrics/{path}", params={**params, **extra}
+            ).status_code
+            == 200
+        )
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {},
+        {"all_history": "false"},
+        {"all_history": "true", **period_params()},
+        {"all_history": "true", "from": FROM.isoformat()},
+    ],
+)
+def test_all_history_rejects_mixed_or_missing_period_modes(
+    api_client: TestClient, params: dict[str, str]
+) -> None:
+    assert api_client.get("/api/metrics/overview", params=params).status_code == 422
+
+
+def test_empty_all_history_has_a_valid_current_period(api_client: TestClient) -> None:
+    response = api_client.get("/api/metrics/overview", params={"all_history": "true"})
+    assert response.status_code == 200
+    assert response.json()["opportunities"]["created"] == 0
+    timeline = api_client.get(
+        "/api/metrics/timeline", params={"all_history": "true", "granularity": "month"}
+    )
+    assert timeline.status_code == 200
+    assert len(timeline.json()["items"]) >= 1
+
+
 def seed_metrics_data(db_session: Session) -> tuple[Customer, Product, Opportunity]:
     unique = uuid4().hex
     customer = Customer(

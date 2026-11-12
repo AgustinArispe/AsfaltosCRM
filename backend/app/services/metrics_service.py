@@ -4,7 +4,17 @@ from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Date, SQLColumnExpression, and_, cast, exists, func, or_, select
+from sqlalchemy import (
+    Date,
+    SQLColumnExpression,
+    and_,
+    cast,
+    exists,
+    func,
+    or_,
+    select,
+    union_all,
+)
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Subquery
@@ -28,11 +38,11 @@ OPEN_OPPORTUNITY_STATUSES = frozenset(
     {
         OpportunityStatus.NUEVA,
         OpportunityStatus.COTIZADA,
-        OpportunityStatus.NEGOCIACION,
+        OpportunityStatus.PARA_COTIZAR,
     }
 )
 QUOTED_OPEN_STATUSES = frozenset(
-    {OpportunityStatus.COTIZADA, OpportunityStatus.NEGOCIACION}
+    {OpportunityStatus.COTIZADA, OpportunityStatus.PARA_COTIZAR}
 )
 ZERO_KG = Decimal("0.000")
 RATIO_QUANTUM = Decimal("0.0001")
@@ -197,6 +207,37 @@ class MetricsService:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def history_period(self) -> MetricsPeriod:
+        """Resolve real event bounds for Todo, without an invented history cutoff."""
+        events = union_all(
+            select(Opportunity.created_at.label("event_at")).where(
+                Opportunity.deleted_at.is_(None)
+            ),
+            select(Opportunity.current_status_entered_at.label("event_at")).where(
+                Opportunity.deleted_at.is_(None)
+            ),
+            select(OpportunityLossEvent.lost_at.label("event_at"))
+            .join(Opportunity, Opportunity.id == OpportunityLossEvent.opportunity_id)
+            .where(Opportunity.deleted_at.is_(None)),
+        ).subquery()
+        first_at: datetime | None = self._session.scalar(
+            select(func.min(events.c.event_at))
+        )
+        last_at: datetime | None = self._session.scalar(
+            select(func.max(events.c.event_at))
+        )
+        now = datetime.now(UTC)
+        start_day = (first_at or now).astimezone(BUSINESS_TIMEZONE).date()
+        end_day = max(last_at or now, now).astimezone(
+            BUSINESS_TIMEZONE
+        ).date() + timedelta(days=1)
+        return MetricsPeriod(
+            start=datetime.combine(start_day, time.min, BUSINESS_TIMEZONE).astimezone(
+                UTC
+            ),
+            end=datetime.combine(end_day, time.min, BUSINESS_TIMEZONE).astimezone(UTC),
+        )
 
     def overview(self, filters: MetricsFilters) -> OverviewMetrics:
         period = filters.period

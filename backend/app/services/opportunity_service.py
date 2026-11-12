@@ -21,6 +21,7 @@ from app.models import (
     Product,
     User,
 )
+from app.services.customer_identity_service import acquire_advisory_locks
 from app.services.errors import (
     ActiveOpportunityExistsError,
     ClosedOpportunityError,
@@ -32,6 +33,7 @@ from app.services.errors import (
     InvalidLossReasonError,
     InvalidQuoteProductsError,
     InvalidStateTransitionError,
+    InvalidTransitionNoteError,
     StaleWriteConflictError,
 )
 from app.services.legendary_service import LegendaryService
@@ -41,13 +43,14 @@ TERMINAL_STATUSES = frozenset({OpportunityStatus.GANADA, OpportunityStatus.PERDI
 ACTIVE_OPPORTUNITY_STATUSES = frozenset(
     {
         OpportunityStatus.NUEVA,
+        OpportunityStatus.PARA_COTIZAR,
         OpportunityStatus.COTIZADA,
         OpportunityStatus.NEGOCIACION,
     }
 )
 ALLOWED_STAGE_REGRESSIONS = {
-    OpportunityStatus.GANADA: OpportunityStatus.NEGOCIACION,
-    OpportunityStatus.NEGOCIACION: OpportunityStatus.COTIZADA,
+    OpportunityStatus.GANADA: OpportunityStatus.COTIZADA,
+    OpportunityStatus.COTIZADA: OpportunityStatus.PARA_COTIZAR,
 }
 
 
@@ -158,25 +161,32 @@ class OpportunityService:
         opportunity_id: int,
         products: list[QuoteProductInput],
         *,
+        note: str,
+        province: str | None = None,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
+            customer = self._lock_stage_customer(opportunity_id)
             opportunity = self._get_opportunity_for_update(opportunity_id)
             self._require_transition(
                 opportunity,
-                expected_status=OpportunityStatus.NUEVA,
+                expected_status=OpportunityStatus.PARA_COTIZAR,
                 target_status=OpportunityStatus.COTIZADA,
             )
             self._validate_history_user(changed_by_user_id)
             validated_products = self._validate_quote_products(
                 products,
-                existing_product_ids=frozenset(),
+                existing_product_ids=frozenset(
+                    self._get_quote_products(opportunity.id)
+                ),
             )
             self._replace_quote_products(opportunity.id, validated_products)
+            self._complete_missing_province(customer, province)
             self._transition(
                 opportunity,
                 to_status=OpportunityStatus.COTIZADA,
+                note=note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
             )
@@ -188,10 +198,11 @@ class OpportunityService:
 
         return opportunity
 
-    def move_to_negotiation(
+    def prepare_quote(
         self,
         opportunity_id: int,
         *,
+        note: str,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
@@ -199,14 +210,14 @@ class OpportunityService:
             opportunity = self._get_opportunity_for_update(opportunity_id)
             self._require_transition(
                 opportunity,
-                expected_status=OpportunityStatus.COTIZADA,
-                target_status=OpportunityStatus.NEGOCIACION,
+                expected_status=OpportunityStatus.NUEVA,
+                target_status=OpportunityStatus.PARA_COTIZAR,
             )
             self._validate_history_user(changed_by_user_id)
-            self._require_quoted_products(opportunity.id)
             self._transition(
                 opportunity,
-                to_status=OpportunityStatus.NEGOCIACION,
+                to_status=OpportunityStatus.PARA_COTIZAR,
+                note=note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
             )
@@ -218,21 +229,26 @@ class OpportunityService:
         self,
         opportunity_id: int,
         *,
+        note: str,
+        province: str | None = None,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
+            customer = self._lock_stage_customer(opportunity_id)
             opportunity = self._get_opportunity_for_update(opportunity_id)
             self._require_transition(
                 opportunity,
-                expected_status=OpportunityStatus.NEGOCIACION,
+                expected_status=OpportunityStatus.COTIZADA,
                 target_status=OpportunityStatus.GANADA,
             )
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
+            self._complete_missing_province(customer, province)
             self._transition(
                 opportunity,
                 to_status=OpportunityStatus.GANADA,
+                note=note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
             )
@@ -247,6 +263,7 @@ class OpportunityService:
         expected_status: OpportunityStatus,
         target_status: OpportunityStatus,
         changed_by_user_id: int,
+        note: str,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
@@ -277,6 +294,7 @@ class OpportunityService:
             self._transition(
                 opportunity,
                 to_status=target_status,
+                note=note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=transition_at,
             )
@@ -294,6 +312,7 @@ class OpportunityService:
         loss_reason: LossReason | None,
         loss_reason_detail: str | None = None,
         *,
+        note: str,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
@@ -312,6 +331,7 @@ class OpportunityService:
             history = self._transition(
                 opportunity,
                 to_status=OpportunityStatus.PERDIDA,
+                note=note,
                 changed_by_user_id=changed_by_user_id,
                 loss_reason=loss_reason,
                 loss_reason_detail=normalized_loss_reason_detail,
@@ -410,8 +430,10 @@ class OpportunityService:
         command_id: UUID,
         expected_status: OpportunityStatus,
         changed_by_user_id: int,
+        note: str,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
+        normalized_note = self._normalize_transition_note(note)
         with self._session.begin():
             replay = self._session.scalar(
                 select(OpportunityReopenEvent).where(
@@ -419,10 +441,15 @@ class OpportunityService:
                 )
             )
             if replay is not None:
+                history = self._session.get(
+                    OpportunityStatusHistory, replay.status_history_id
+                )
                 if (
                     replay.opportunity_id != opportunity_id
                     or replay.actor_user_id != changed_by_user_id
                     or expected_status is not OpportunityStatus.PERDIDA
+                    or history is None
+                    or history.note != normalized_note
                 ):
                     raise IdempotencyConflictError(
                         "Reopen command ID was already used for another opportunity"
@@ -437,7 +464,7 @@ class OpportunityService:
                 raise InvalidStateTransitionError(
                     opportunity.id,
                     opportunity.status,
-                    OpportunityStatus.NEGOCIACION,
+                    OpportunityStatus.COTIZADA,
                 )
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
@@ -460,11 +487,12 @@ class OpportunityService:
                 raise InvalidStateTransitionError(
                     opportunity.id,
                     opportunity.status,
-                    OpportunityStatus.NEGOCIACION,
+                    OpportunityStatus.COTIZADA,
                 )
             history = self._transition(
                 opportunity,
-                to_status=OpportunityStatus.NEGOCIACION,
+                to_status=OpportunityStatus.COTIZADA,
+                note=note,
                 changed_by_user_id=changed_by_user_id,
                 transition_kind=OpportunityTransitionKind.REOPENED,
                 changed_at=occurred_at,
@@ -475,7 +503,7 @@ class OpportunityService:
                     opportunity_id=opportunity.id,
                     loss_event_id=loss_event.id,
                     status_history_id=history.id,
-                    target_status=OpportunityStatus.NEGOCIACION,
+                    target_status=OpportunityStatus.COTIZADA,
                     actor_user_id=changed_by_user_id,
                     command_id=command_id,
                     reopened_at=history.changed_at,
@@ -509,6 +537,40 @@ class OpportunityService:
         if exclude_opportunity_id is not None:
             statement = statement.where(Opportunity.id != exclude_opportunity_id)
         return self._session.scalar(statement.order_by(Opportunity.id).limit(1))
+
+    def _lock_stage_customer(self, opportunity_id: int) -> Customer:
+        customer_id = self._session.scalar(
+            select(Opportunity.customer_id).where(Opportunity.id == opportunity_id)
+        )
+        if customer_id is None:
+            raise EntityNotFoundError("Opportunity", opportunity_id)
+        # Quote recomputation uses the same advisory key. Acquire it before rows
+        # even when province is omitted, so both submission paths share lock order.
+        acquire_advisory_locks(
+            self._session, (("legendary-customer", str(customer_id)),)
+        )
+        customer = self._session.scalar(
+            select(Customer)
+            .where(Customer.id == customer_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if customer is None:
+            raise EntityNotFoundError("Customer", customer_id)
+        return customer
+
+    @staticmethod
+    def _complete_missing_province(
+        customer: Customer | None, province: str | None
+    ) -> None:
+        if (
+            customer is not None
+            and province is not None
+            and province.strip()
+            and not (customer.province or "").strip()
+        ):
+            customer.province = province.strip()
+            customer.updated_at = datetime.now(UTC)
 
     def _lock_customer_for_opportunity(self, opportunity_id: int) -> Customer:
         customer_id = self._session.scalar(
@@ -683,10 +745,9 @@ class OpportunityService:
         self._require_open(opportunity)
         if opportunity.status not in {
             OpportunityStatus.COTIZADA,
-            OpportunityStatus.NEGOCIACION,
         }:
             raise InvalidQuoteProductsError(
-                "Quote products can only be edited in COTIZADA or NEGOCIACION"
+                "Quote products can only be edited in COTIZADA"
             )
 
     @staticmethod
@@ -726,11 +787,13 @@ class OpportunityService:
         *,
         to_status: OpportunityStatus,
         changed_by_user_id: int | None,
+        note: str,
         loss_reason: LossReason | None = None,
         loss_reason_detail: str | None = None,
         transition_kind: OpportunityTransitionKind = OpportunityTransitionKind.STATUS_CHANGED,
         changed_at: datetime | None = None,
     ) -> OpportunityStatusHistory:
+        normalized_note = self._normalize_transition_note(note)
         from_status = opportunity.status
         transition_at = changed_at or datetime.now(UTC)
         opportunity.status = to_status
@@ -749,6 +812,7 @@ class OpportunityService:
             changed_at=transition_at,
             changed_by_user_id=changed_by_user_id,
             transition_kind=transition_kind,
+            note=normalized_note,
         )
 
     def _add_history(
@@ -760,6 +824,7 @@ class OpportunityService:
         changed_at: datetime,
         changed_by_user_id: int | None,
         transition_kind: OpportunityTransitionKind,
+        note: str | None = None,
     ) -> OpportunityStatusHistory:
         history = OpportunityStatusHistory(
             opportunity_id=opportunity.id,
@@ -768,10 +833,20 @@ class OpportunityService:
             changed_at=changed_at,
             changed_by_user_id=changed_by_user_id,
             transition_kind=transition_kind,
+            note=note,
         )
         self._session.add(history)
         self._session.flush()
         return history
+
+    @staticmethod
+    def _normalize_transition_note(note: str) -> str:
+        normalized = note.replace("\r\n", "\n").replace("\r", "\n").strip()
+        if not normalized or len(normalized) > 4000:
+            raise InvalidTransitionNoteError(
+                "A transition note requires 1 to 4000 characters"
+            )
+        return normalized
 
     def _record_loss_event(
         self,

@@ -12,6 +12,7 @@ export function ConfirmationDialog({
   confirmLabel,
   pendingLabel,
   isPending = false,
+  confirmDisabled = false,
   error,
   variant = 'primary',
   onCancel,
@@ -24,6 +25,7 @@ export function ConfirmationDialog({
   confirmLabel: string
   pendingLabel: string
   isPending?: boolean
+  confirmDisabled?: boolean
   error?: string | null
   variant?: Extract<ButtonVariant, 'primary' | 'danger'>
   onCancel: () => void
@@ -45,7 +47,7 @@ export function ConfirmationDialog({
         <Button data-modal-initial-focus disabled={isPending} onClick={onCancel}>
           Cancelar
         </Button>
-        <Button disabled={isPending} onClick={onConfirm} variant={variant}>
+        <Button disabled={isPending || confirmDisabled} onClick={onConfirm} variant={variant}>
           {isPending ? pendingLabel : confirmLabel}
         </Button>
       </footer>

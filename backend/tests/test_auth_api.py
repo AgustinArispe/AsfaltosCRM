@@ -457,26 +457,50 @@ def test_vendor_opportunity_flow_uses_authenticated_actor(
     assert opportunity.status_code == 201
     opportunity_id = opportunity.json()["id"]
 
+    api_client.post(
+        f"/api/opportunities/{opportunity_id}/prepare-quote",
+        json={"note": "Preparar cotización de prueba CRM-057"},
+    )
     spoofed_actor = api_client.post(
         f"/api/opportunities/{opportunity_id}/quote",
         json={
-            "products": [{"product_id": product.json()["id"], "quantity_kg": 1000}],
-            "changed_by_user_id": supervisor_user.id,
+            **(
+                {
+                    "products": [
+                        {"product_id": product.json()["id"], "quantity_kg": 1000}
+                    ],
+                    "changed_by_user_id": supervisor_user.id,
+                }
+            ),
+            "note": "Seguimiento API de prueba CRM-057",
         },
     )
     assert spoofed_actor.status_code == 422
 
+    api_client.post(
+        f"/api/opportunities/{opportunity_id}/prepare-quote",
+        json={"note": "Preparar cotización de prueba CRM-057"},
+    )
     quoted = api_client.post(
         f"/api/opportunities/{opportunity_id}/quote",
-        json={"products": [{"product_id": product.json()["id"], "quantity_kg": 1000}]},
+        json={
+            **(
+                {
+                    "products": [
+                        {"product_id": product.json()["id"], "quantity_kg": 1000}
+                    ]
+                }
+            ),
+            "note": "Seguimiento API de prueba CRM-057",
+        },
     )
     assert quoted.status_code == 200
-    negotiation = api_client.post(
-        f"/api/opportunities/{opportunity_id}/move-to-negotiation",
-        json={},
-    )
+    negotiation = api_client.get(f"/api/opportunities/{opportunity_id}")
     assert negotiation.status_code == 200
-    won = api_client.post(f"/api/opportunities/{opportunity_id}/win", json={})
+    won = api_client.post(
+        f"/api/opportunities/{opportunity_id}/win",
+        json={**({}), "note": "Seguimiento API de prueba CRM-057"},
+    )
     assert won.status_code == 200
 
     second_opportunity = api_client.post(

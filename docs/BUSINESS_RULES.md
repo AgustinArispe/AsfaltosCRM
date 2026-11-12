@@ -27,6 +27,10 @@ por conveniencia técnica.
 
 - Un `Customer` puede tener múltiples `Opportunities`.
 - Sus campos principales son `name`, `company`, `email`, `phone` y `province`.
+- Al avanzar a `COTIZADA` o `GANADA`, si falta la provincia se recomienda
+  completarla desde la confirmación. Es opcional: se permite continuar cuando no
+  se conoce. El dato se guarda en el cliente junto con la transición y sólo
+  completa un campo vacío, sin sobrescribir una provincia existente (CRM-058).
 - El soft delete conserva el historial.
 - Un cliente eliminado no puede usarse para crear nuevas oportunidades, pero su
   historial comercial válido continúa disponible.
@@ -51,25 +55,31 @@ por conveniencia técnica.
 - Un `Customer` puede tener múltiples oportunidades activas simultáneas cuando sus
   orígenes comerciales son distintos. La restricción especial aplica sólo al origen
   `WHATSAPP`: puede existir como máximo una oportunidad `WHATSAPP` activa por Customer.
-  Son activas `NUEVA`, `COTIZADA` y `NEGOCIACION`; `GANADA` y `PERDIDA` son cerradas
+  Son activas `NUEVA`, `PARA_COTIZAR` y `COTIZADA`; `GANADA` y `PERDIDA` son cerradas
   para esta regla.
-- El pipeline principal es `NUEVA` → `COTIZADA` → `NEGOCIACION` → `GANADA`.
+- El pipeline principal es `NUEVA` → `PARA_COTIZAR` → `COTIZADA` → `GANADA`.
+  `PARA_COTIZAR` sólo prepara la oportunidad y no exige productos. `NEGOCIACION`
+  se conserva únicamente para interpretar historial anterior (CRM-057).
 - `PERDIDA` es un estado terminal, pero no una columna principal del Kanban.
 - `PERDIDA` es terminal salvo por su flujo explícito de reapertura. Una oportunidad
-  `GANADA` puede volver a `NEGOCIACION` con confirmación.
+  `GANADA` puede volver a `COTIZADA` con confirmación.
 - Las transiciones ordinarias respetan el orden del pipeline; los estados no pueden
   saltarse arbitrariamente. Cualquier estado abierto puede pasar a `PERDIDA` según las
   reglas de pérdidas.
-- Los retrocesos permitidos son `GANADA` → `NEGOCIACION` y `NEGOCIACION` →
-  `COTIZADA`, siempre de a una etapa y con confirmación. `COTIZADA` nunca puede volver
+- Los retrocesos permitidos son `GANADA` → `COTIZADA` y `COTIZADA` →
+  `PARA_COTIZAR`, siempre de a una etapa y con confirmación. `PARA_COTIZAR` nunca puede volver
   a `NUEVA`.
 - La creación y cada cambio de estado se registran en el historial.
+- Cada cambio manual de estado exige una nota no vacía de hasta 4000 caracteres,
+  guardada atómicamente con usuario, fecha y oportunidad. También aplica a pérdida,
+  reapertura y retroceso. Se consulta desde la oportunidad y desde su cliente.
+  Las altas iniciales automáticas y el historial previo no exigen notas retroactivas.
 - `current_status_entered_at` indica cuándo la oportunidad ingresó en su estado actual.
 
 ## Cotizaciones
 
 - El CRM no genera presupuestos comerciales. FAA los prepara por fuera del CRM.
-- Para pasar de `NUEVA` a `COTIZADA` se debe registrar al menos un producto y su
+- Para pasar de `PARA_COTIZAR` a `COTIZADA` se debe registrar al menos un producto y su
   cantidad positiva en kilogramos. Una cotización puede incluir múltiples productos.
 - El CRM conserva únicamente la cotización vigente o final; no existe historial de
   versiones.
@@ -86,7 +96,7 @@ por conveniencia técnica.
 
 ## Pérdidas
 
-- Una oportunidad puede pasar a `PERDIDA` desde `NUEVA`, `COTIZADA` o `NEGOCIACION`.
+- Una oportunidad puede pasar a `PERDIDA` desde `NUEVA`, `PARA_COTIZAR` o `COTIZADA`.
 - `NUEVA` → `PERDIDA` es válida sin productos cotizados.
 - Los motivos actuales son `PRECIO`, `SIN_RESPUESTA`, `COMPETENCIA`,
   `PROYECTO_CANCELADO` y `OTRO`.
@@ -97,15 +107,15 @@ por conveniencia técnica.
 - Las oportunidades perdidas no aparecen en el Kanban principal, pero permanecen
   disponibles para búsqueda, historial y métricas.
 - Si existía una cotización, se conserva al marcar la oportunidad como perdida.
-- Una oportunidad `PERDIDA` puede reabrirse únicamente a `NEGOCIACION` y debe conservar
+- Una oportunidad `PERDIDA` puede reabrirse únicamente a `COTIZADA` y debe conservar
   al menos un producto cotizado con cantidad positiva. No puede reabrirse directamente
-  a `NUEVA`, `COTIZADA` ni `GANADA`.
+  a `NUEVA`, `PARA_COTIZAR` ni `GANADA`.
 - La reapertura conserva íntegro cada episodio previo de pérdida, agrega una nueva
   entrada al historial de estados y marca la oportunidad como reabierta.
 
 ## Notificaciones
 
-- Una oportunidad en `NUEVA`, `COTIZADA` o `NEGOCIACION` que permanece siete días o
+- Una oportunidad en `NUEVA`, `PARA_COTIZAR` o `COTIZADA` que permanece siete días o
   más sin cambiar de estado se considera `¡Atrasada!` y genera una notificación
   interna.
 - La condición `¡Atrasada!` se muestra en el Pipeline, en Notificaciones y como total

@@ -120,9 +120,11 @@ def test_quote_modal_baseline(qa_pages: QaPageFactory) -> None:
     qa_page = qa_pages.create(role="SUPERVISOR", viewport=(1440, 900))
     qa_page.page.get_by_role(
         "button",
-        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+        name=re.compile(
+            "Abrir oportunidad de Vial Patagonia, origen Web, estado Para cotizar"
+        ),
     ).click()
-    qa_page.page.get_by_role("dialog", name="Constructora del Sur").get_by_role(
+    qa_page.page.get_by_role("dialog", name="Vial Patagonia").get_by_role(
         "button", name="Cotizar"
     ).click()
     expect(

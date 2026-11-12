@@ -4,6 +4,8 @@ import { formatQuantityKg, sumQuantitiesKg } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
 import { Modal } from '../shared/Modal'
 import { LoadingState } from '../shared/StatusStates'
+import { StageNoteField } from './StageNoteField'
+import { StageProvinceField } from './StageProvinceField'
 import type { OpportunitySummary, Product, QuoteProductInput } from './types'
 
 type QuoteLine = {
@@ -44,7 +46,7 @@ export function QuoteModal({
   productsError: string | null
   onRetryProducts: () => void
   onClose: () => void
-  onConfirm: (products: QuoteProductInput[]) => Promise<void>
+  onConfirm: (products: QuoteProductInput[], note: string, province?: string) => Promise<void>
   mode?: 'create' | 'edit'
   isOpen?: boolean
 }) {
@@ -55,6 +57,8 @@ export function QuoteModal({
   )
   const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState('')
+  const [note, setNote] = useState('')
+  const [province, setProvince] = useState('')
   const [editingKey, setEditingKey] = useState<number | null>(null)
   const [productError, setProductError] = useState<string | null>(null)
   const [quantityError, setQuantityError] = useState<string | null>(null)
@@ -67,6 +71,7 @@ export function QuoteModal({
   const quantityRef = useRef<HTMLInputElement>(null)
   const reviewRef = useRef<HTMLButtonElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the modal identity or mode changes.
   useEffect(() => {
@@ -75,6 +80,8 @@ export function QuoteModal({
     setStep(mode === 'edit' && next.length ? 'review' : 'product')
     setProductId('')
     setQuantity('')
+    setNote('')
+    setProvince('')
     setEditingKey(null)
     setProductError(null)
     setQuantityError(null)
@@ -82,7 +89,7 @@ export function QuoteModal({
     setShowDiscardPrompt(false)
     setIsSubmitting(false)
     nextKeyRef.current = next.length
-  }, [opportunity?.id, mode])
+  }, [opportunity?.id, mode, isOpen])
 
   useEffect(() => {
     if (isLoadingProducts || !products) return
@@ -93,8 +100,11 @@ export function QuoteModal({
     if (step === 'product') productRef.current?.focus()
     if (step === 'quantity') quantityRef.current?.focus()
     if (step === 'review') reviewRef.current?.focus()
-    if (step === 'confirm') confirmRef.current?.focus()
-  }, [isLoadingProducts, products, showDiscardPrompt, step])
+    if (step === 'confirm') {
+      if (mode === 'create') noteRef.current?.focus()
+      else confirmRef.current?.focus()
+    }
+  }, [isLoadingProducts, products, showDiscardPrompt, step, mode])
 
   const existingProducts = opportunity?.products.map((item) => item.product) ?? []
   const availableProducts = [
@@ -108,7 +118,8 @@ export function QuoteModal({
     lines.filter((line) => line.key !== editingKey).map((line) => line.productId),
   )
   const dirty =
-    lineSnapshot(lines) !== lineSnapshot(initial) || Boolean(productId || quantity || editingKey)
+    lineSnapshot(lines) !== lineSnapshot(initial) ||
+    Boolean(productId || quantity || editingKey || note || province)
 
   const resetEditor = () => {
     setProductId('')
@@ -206,7 +217,7 @@ export function QuoteModal({
   }
 
   const submit = async () => {
-    if (lines.length === 0 || isSubmitting) return
+    if (lines.length === 0 || isSubmitting || (mode === 'create' && !note.trim())) return
     const quoteProducts = lines.map((line) => ({
       product_id: Number(line.productId),
       quantity_kg: Number(line.quantity),
@@ -214,7 +225,7 @@ export function QuoteModal({
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      await onConfirm(quoteProducts)
+      await onConfirm(quoteProducts, note.trim(), province.trim() || undefined)
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'No pudimos guardar la cotización.')
     } finally {
@@ -493,6 +504,22 @@ export function QuoteModal({
 
             {step === 'confirm' ? (
               <section aria-labelledby='quote-confirm-step' className='quote-confirm'>
+                {mode === 'create' ? (
+                  <StageNoteField
+                    disabled={isSubmitting}
+                    inputRef={noteRef}
+                    onChange={setNote}
+                    value={note}
+                  />
+                ) : null}
+                {mode === 'create' ? (
+                  <StageProvinceField
+                    currentProvince={opportunity?.customer.province}
+                    disabled={isSubmitting}
+                    onChange={setProvince}
+                    value={province}
+                  />
+                ) : null}
                 <p className='quote-flow__eyebrow'>Paso 4 de 4</p>
                 <div className='quote-review__heading'>
                   <div>
@@ -534,7 +561,7 @@ export function QuoteModal({
                 Volver a revisar
               </Button>
               <Button
-                disabled={lines.length === 0}
+                disabled={lines.length === 0 || (mode === 'create' && !note.trim())}
                 isLoading={isSubmitting}
                 onClick={() => void submit()}
                 ref={confirmRef}

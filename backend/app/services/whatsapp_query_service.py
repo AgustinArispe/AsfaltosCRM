@@ -64,7 +64,7 @@ _MAX_BIGINT = 9_223_372_036_854_775_807
 _OPEN_OPPORTUNITY_STATUSES = (
     OpportunityStatus.NUEVA,
     OpportunityStatus.COTIZADA,
-    OpportunityStatus.NEGOCIACION,
+    OpportunityStatus.PARA_COTIZAR,
 )
 
 

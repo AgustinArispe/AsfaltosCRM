@@ -3,7 +3,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import {
   type ApiSession,
   listOpportunityStage,
-  moveOpportunityToNegotiation,
+  prepareOpportunityQuote,
   quoteOpportunity,
   regressOpportunityStage,
   winOpportunity,
@@ -40,8 +40,8 @@ function BoardSkeleton() {
   return (
     <div aria-label='Cargando pipeline' className='pipeline-board' role='status'>
       <div className='pipeline-board__grid'>
-        {['Nueva', 'Cotizada', 'Negociación', 'Ganada'].map((label) => (
-          <section className='pipeline-column' key={label}>
+        {PIPELINE_STAGES.map((stage) => (
+          <section className='pipeline-column' key={stage.status}>
             <div className='pipeline-column__header'>
               <span className='ui-skeleton h-4 w-24' />
             </div>
@@ -246,7 +246,12 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     if (!catalog.products && !catalog.isLoading) void catalog.load().catch(() => undefined)
   }
 
-  const handleMove = async (opportunityId: number, targetStatus: PipelineStatus) => {
+  const handleMove = async (
+    opportunityId: number,
+    targetStatus: PipelineStatus,
+    note: string,
+    province?: string,
+  ) => {
     const opportunity = findOpportunity(opportunityId)
     if (
       !opportunity ||
@@ -254,7 +259,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
       busyOpportunityIds.has(opportunityId)
     )
       return
-    if (opportunity.status === 'NUEVA' && targetStatus === 'COTIZADA') {
+    if (opportunity.status === 'PARA_COTIZAR' && targetStatus === 'COTIZADA') {
       openQuoteModal(opportunityId)
       setAnnouncement(`Abriste la cotización para ${opportunity.customer.name}.`)
       return
@@ -274,10 +279,10 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     dispatch({ type: 'upsert', opportunity: optimisticOpportunity })
     try {
       const updatedOpportunity = isBackwardMove(fromStatus, targetStatus)
-        ? await regressOpportunityStage(opportunityId, fromStatus, targetStatus, apiSession)
-        : targetStatus === 'NEGOCIACION'
-          ? await moveOpportunityToNegotiation(opportunityId, apiSession)
-          : await winOpportunity(opportunityId, apiSession)
+        ? await regressOpportunityStage(opportunityId, fromStatus, targetStatus, note, apiSession)
+        : targetStatus === 'PARA_COTIZAR'
+          ? await prepareOpportunityQuote(opportunityId, note, apiSession)
+          : await winOpportunity(opportunityId, note, apiSession, province)
       if (mutationGenerationRef.current[opportunityId] === generation)
         dispatch({ type: 'upsert', opportunity: updatedOpportunity })
       setAnnouncement(
@@ -290,6 +295,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
       setAnnouncement(
         `No se pudo mover ${opportunity.customer.name}; se mantuvo en ${STAGE_BY_STATUS.get(opportunity.status as PipelineStatus)?.singularLabel}.`,
       )
+      throw error
     } finally {
       setOpportunityBusy(opportunityId, false)
     }
@@ -305,6 +311,10 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
       return
     }
     setOperationError(null)
+    if (opportunity.status === 'PARA_COTIZAR' && targetStatus === 'COTIZADA') {
+      openQuoteModal(opportunityId)
+      return
+    }
     setPendingStageTransition({
       opportunityId,
       fromStatus: opportunity.status as PipelineStatus,
@@ -317,7 +327,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     setPendingStageTransition(null)
   }
 
-  const confirmStageTransition = async () => {
+  const confirmStageTransition = async (note: string, province?: string) => {
     const transition = pendingStageTransition
     if (!transition || isConfirmingStageTransitionRef.current) return
     const opportunity = findOpportunity(transition.opportunityId)
@@ -335,15 +345,21 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     isConfirmingStageTransitionRef.current = true
     setIsConfirmingStageTransition(true)
     try {
-      await handleMove(transition.opportunityId, transition.targetStatus)
+      await handleMove(transition.opportunityId, transition.targetStatus, note, province)
+      setPendingStageTransition(null)
+    } catch {
+      // Preserve the note and allow retry after the optimistic move rolls back.
     } finally {
       isConfirmingStageTransitionRef.current = false
       setIsConfirmingStageTransition(false)
-      setPendingStageTransition(null)
     }
   }
 
-  const handleQuote = async (quoteProducts: QuoteProductInput[]) => {
+  const handleQuote = async (
+    quoteProducts: QuoteProductInput[],
+    note: string,
+    province?: string,
+  ) => {
     const opportunity = quoteOpportunityId ? findOpportunity(quoteOpportunityId) : null
     if (!opportunity) throw new Error('La oportunidad ya no está disponible.')
     mutationGenerationRef.current[opportunity.id] =
@@ -351,7 +367,13 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     dispatch({ type: 'start-mutation', opportunityId: opportunity.id })
     setOpportunityBusy(opportunity.id, true)
     try {
-      const updatedOpportunity = await quoteOpportunity(opportunity.id, quoteProducts, apiSession)
+      const updatedOpportunity = await quoteOpportunity(
+        opportunity.id,
+        quoteProducts,
+        note,
+        apiSession,
+        province,
+      )
       dispatch({ type: 'upsert', opportunity: updatedOpportunity })
       setQuoteOpportunityId(null)
       setAnnouncement(`${opportunity.customer.name} pasó a Cotizada.`)
@@ -468,7 +490,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         productOptions={productOptions}
         showStageAge={showStageAge}
       />
-      {operationError ? (
+      {operationError && !pendingStageTransition ? (
         <div className='mb-3'>
           <InlineFeedback message={operationError} onDismiss={() => setOperationError(null)} />
         </div>
@@ -536,9 +558,15 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         productsError={catalog.error}
       />
       <StageTransitionConfirmationModal
+        customerProvince={
+          pendingStageTransition
+            ? findOpportunity(pendingStageTransition.opportunityId)?.customer.province
+            : undefined
+        }
         isPending={isConfirmingStageTransition}
         onCancel={cancelStageTransition}
-        onConfirm={() => void confirmStageTransition()}
+        onConfirm={(note, province) => void confirmStageTransition(note, province)}
+        error={operationError}
         transition={pendingStageTransition}
       />
       {user ? (

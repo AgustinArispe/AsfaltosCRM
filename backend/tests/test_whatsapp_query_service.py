@@ -94,7 +94,7 @@ def seeded_inbox(db_session: Session, supervisor_user: User) -> SeededInbox:
 
     active_opportunity = _opportunity(
         primary_customer.id,
-        OpportunityStatus.NEGOCIACION,
+        OpportunityStatus.COTIZADA,
         _BASE_TIME + timedelta(minutes=1),
     )
     other_open_opportunity = _opportunity(

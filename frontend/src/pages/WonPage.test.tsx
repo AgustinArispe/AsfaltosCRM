@@ -48,17 +48,35 @@ describe('WonPage', () => {
 
   it('defaults to the Buenos Aires current month and supports all history', async () => {
     render(<WonPage />)
-    expect(screen.getByLabelText('Período')).toHaveValue('month')
+    expect(screen.getByRole('button', { name: 'Este mes', pressed: true })).toBeVisible()
     await waitFor(() => expect(fetch).toHaveBeenCalled())
     const firstList = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([value]) =>
       String(value).includes('/won-opportunities?'),
     )
     expect(String(firstList?.[0])).toContain('won_from=')
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'all' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Todo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
     await waitFor(() => expect(window.location.search).toContain('period=all'))
     const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([value]) => String(value))
     expect(calls.at(-2)).not.toContain('won_from=')
+  })
+
+  it('applies the 15-day range to list and statistics with inclusive end serialization', async () => {
+    render(<WonPage />)
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    const count = (fetch as ReturnType<typeof vi.fn>).mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Últimos 15 días' }))
+    expect(fetch).toHaveBeenCalledTimes(count)
+    const from = (screen.getByLabelText('Desde') as HTMLInputElement).value
+    const to = (screen.getByLabelText('Hasta') as HTMLInputElement).value
+    expect((Date.parse(to) - Date.parse(from)) / 86400000).toBe(14)
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
+    await waitFor(() => expect(window.location.search).toContain('period=last-15-days'))
+    const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls
+      .slice(count)
+      .map(([url]) => new URL(String(url), 'http://localhost'))
+    expect(calls).toHaveLength(2)
+    for (const url of calls) expect(url.searchParams.get('won_from')).toBe(`${from}T00:00:00-03:00`)
   })
 
   it('refreshes won results after deleting the mounted opportunity detail', async () => {
@@ -182,7 +200,7 @@ describe('WonPage', () => {
     render(<WonPage />)
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar')
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'all' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Todo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar')
     fails = false
@@ -202,6 +220,6 @@ describe('WonPage', () => {
 
     expect(window.location.pathname).toBe('/won')
     expect(window.location.search).toBe('')
-    expect(screen.getByLabelText('Período')).toHaveValue('month')
+    expect(screen.getByRole('button', { name: 'Este mes', pressed: true })).toBeVisible()
   })
 })

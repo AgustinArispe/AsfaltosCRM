@@ -122,12 +122,14 @@ export async function listPipelineOpportunities(
 export function quoteOpportunity(
   opportunityId: number,
   products: QuoteProductInput[],
+  note: string,
   session: ApiSession,
+  province?: string,
 ) {
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/quote`, {
     ...session,
     method: 'POST',
-    body: { products },
+    body: { products, note, province },
   })
 }
 
@@ -157,19 +159,24 @@ export function updateOpportunityAssignee(
   })
 }
 
-export function moveOpportunityToNegotiation(opportunityId: number, session: ApiSession) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/move-to-negotiation`, {
+export function prepareOpportunityQuote(opportunityId: number, note: string, session: ApiSession) {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/prepare-quote`, {
     ...session,
     method: 'POST',
-    body: {},
+    body: { note },
   })
 }
 
-export function winOpportunity(opportunityId: number, session: ApiSession) {
+export function winOpportunity(
+  opportunityId: number,
+  note: string,
+  session: ApiSession,
+  province?: string,
+) {
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/win`, {
     ...session,
     method: 'POST',
-    body: {},
+    body: { note, province },
   })
 }
 
@@ -177,12 +184,13 @@ export function regressOpportunityStage(
   opportunityId: number,
   expectedStatus: PipelineStatus,
   targetStatus: PipelineStatus,
+  note: string,
   session: ApiSession,
 ) {
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/regress`, {
     ...session,
     method: 'POST',
-    body: { expected_status: expectedStatus, target_status: targetStatus },
+    body: { expected_status: expectedStatus, target_status: targetStatus, note },
   })
 }
 
@@ -190,20 +198,21 @@ export function loseOpportunity(
   opportunityId: number,
   lossReason: LossReason,
   lossReasonDetail: string | null,
+  note: string,
   session: ApiSession,
 ) {
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/lose`, {
     ...session,
     method: 'POST',
-    body: { loss_reason: lossReason, loss_reason_detail: lossReasonDetail },
+    body: { loss_reason: lossReason, loss_reason_detail: lossReasonDetail, note },
   })
 }
 
-export function reopenOpportunity(opportunityId: number, session: ApiSession) {
+export function reopenOpportunity(opportunityId: number, note: string, session: ApiSession) {
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/reopen`, {
     ...session,
     method: 'POST',
-    body: { command_id: crypto.randomUUID(), expected_status: 'PERDIDA' },
+    body: { command_id: crypto.randomUUID(), expected_status: 'PERDIDA', note },
   })
 }
 

@@ -78,20 +78,20 @@ function makeDetail(overrides: Partial<OpportunityDetail> = {}): OpportunityDeta
       {
         id: 2,
         from_status: 'NUEVA',
-        to_status: 'COTIZADA',
+        to_status: 'PARA_COTIZAR',
         changed_at: '2026-08-05T17:35:00Z',
         changed_by_user_id: 8,
       },
       {
         id: 3,
-        from_status: 'COTIZADA',
-        to_status: 'NEGOCIACION',
+        from_status: 'PARA_COTIZAR',
+        to_status: 'COTIZADA',
         changed_at: '2026-08-08T17:35:00Z',
         changed_by_user_id: 8,
       },
       {
         id: 4,
-        from_status: 'NEGOCIACION',
+        from_status: 'COTIZADA',
         to_status: 'GANADA',
         changed_at: '2026-08-12T17:35:00Z',
         changed_by_user_id: 8,
@@ -251,9 +251,9 @@ describe('OpportunityDetailPage', () => {
 
     expect(screen.getByText('Consulta creada')).toBeInTheDocument()
     expect(screen.getByText('Estado inicial: Nueva')).toBeInTheDocument()
-    expect(screen.getByText('Pasó de Nueva a Cotizada')).toBeInTheDocument()
-    expect(screen.getByText('Pasó de Cotizada a Negociación')).toBeInTheDocument()
-    expect(screen.getByText('Pasó de Negociación a Ganada')).toBeInTheDocument()
+    expect(screen.getByText('Pasó de Nueva a Para cotizar')).toBeInTheDocument()
+    expect(screen.getByText('Pasó de Para cotizar a Cotizada')).toBeInTheDocument()
+    expect(screen.getByText('Pasó de Cotizada a Ganada')).toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
@@ -387,7 +387,7 @@ describe('OpportunityDetailPage', () => {
     window.history.replaceState(null, '', '/won/opportunities/42')
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(jsonResponse(200, makeDetail({ status: 'NEGOCIACION' }))),
+      vi.fn().mockResolvedValue(jsonResponse(200, makeDetail({ status: 'COTIZADA' }))),
     )
     render(<OpportunityDetailPage opportunityId={42} surface='won' />)
 
@@ -452,7 +452,7 @@ describe('OpportunityDetailPage', () => {
   })
 
   it('shows Reopen only for a lost opportunity with a retained quote and routes after success', async () => {
-    const reopened = makeDetail({ status: 'NEGOCIACION' })
+    const reopened = makeDetail({ status: 'COTIZADA' })
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -464,7 +464,10 @@ describe('OpportunityDetailPage', () => {
     expect(await screen.findByRole('button', { name: 'Reabrir' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
     expect(screen.getByRole('heading', { name: 'Reabrir oportunidad' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reabrir en negociación' }))
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Reabrir en Cotizada' }))
     await waitFor(() => expect(window.location.pathname).toBe('/pipeline/opportunities/42'))
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Reabrir oportunidad' })).not.toBeInTheDocument(),
@@ -488,7 +491,7 @@ describe('OpportunityDetailPage', () => {
 
   it('exposes the applicable commercial actions and confirms a new quote without changing status first', async () => {
     const newDetail = makeDetail({
-      status: 'NUEVA',
+      status: 'PARA_COTIZAR',
       products: [],
       history: [makeDetail().history[0]],
     })
@@ -515,6 +518,9 @@ describe('OpportunityDetailPage', () => {
     fireEvent.change(screen.getByLabelText('Cantidad (kg)'), { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(screen.getByRole('button', { name: 'Revisar y confirmar' }))
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/opportunities/42/quote')
@@ -524,7 +530,7 @@ describe('OpportunityDetailPage', () => {
   })
 
   it('guides quote keyboard progression and protects a dirty review from dismissal', async () => {
-    const newDetail = makeDetail({ status: 'NUEVA', products: [] })
+    const newDetail = makeDetail({ status: 'PARA_COTIZAR', products: [] })
     vi.stubGlobal(
       'fetch',
       vi
@@ -551,7 +557,7 @@ describe('OpportunityDetailPage', () => {
     expect(reviewAction).toHaveFocus()
     fireEvent.click(reviewAction)
     expect(screen.getByRole('heading', { name: 'Confirmá la cotización' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Confirmar cotización' })).toHaveFocus()
+    expect(screen.getByLabelText('Nota del cambio de estado (obligatoria)')).toHaveFocus()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar cotizar oportunidad' }))
     expect(screen.getByRole('heading', { name: 'Revisá la cotización' })).toBeInTheDocument()
@@ -566,31 +572,70 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Revisar y confirmar' })).toHaveFocus()
   })
 
-  it('shows quote edit and forward-transition actions only in eligible active states', async () => {
+  it('shows quote edit and confirms a win with a note only from Cotizada', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'COTIZADA' })))
-      .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'NEGOCIACION' })))
+      .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'GANADA' })))
     vi.stubGlobal('fetch', fetchMock)
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
     expect(screen.getByRole('button', { name: 'Editar cotización' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Pasar a negociación' }))
-    await waitFor(() =>
-      expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/move-to-negotiation'),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar ganada' }))
+    const dialog = screen.getByRole('dialog', { name: 'Confirmar cambio de etapa' })
+    expect(within(dialog).getByRole('button', { name: 'Marcar ganada' })).toBeDisabled()
+    expect(
+      within(dialog).queryByLabelText('Provincia (opcional, recomendada)'),
+    ).not.toBeInTheDocument()
+    fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'El cliente aceptó la cotización' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
+    await waitFor(() => expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/win'))
   })
+
+  it.each(['', ' Santa Fe '])(
+    'allows winning with an optional province %j and keeps it on retry',
+    async (province) => {
+      const detail = makeDetail({ status: 'COTIZADA' })
+      detail.customer.province = null
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(200, detail))
+        .mockResolvedValueOnce(jsonResponse(503, { detail: 'Intentar nuevamente' }))
+        .mockResolvedValueOnce(jsonResponse(200, { ...detail, status: 'GANADA' }))
+      vi.stubGlobal('fetch', fetchMock)
+      render(<OpportunityDetailPage opportunityId={42} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Marcar ganada' }))
+      const dialog = screen.getByRole('dialog', { name: 'Confirmar cambio de etapa' })
+      const provinceInput = within(dialog).getByLabelText('Provincia (opcional, recomendada)')
+      expect(provinceInput).not.toBeRequired()
+      fireEvent.change(provinceInput, { target: { value: province } })
+      fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (obligatoria)'), {
+        target: { value: 'Compra confirmada' },
+      })
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
+      await screen.findByRole('alert')
+      expect(provinceInput).toHaveValue(province)
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+      expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toEqual({
+        note: 'Compra confirmada',
+        ...(province.trim() ? { province: province.trim() } : {}),
+      })
+    },
+  )
 
   it('confirms a backward transition and shows it in the dated activity history', async () => {
     const won = makeDetail({ status: 'GANADA' })
     const regressed = makeDetail({
-      status: 'NEGOCIACION',
+      status: 'COTIZADA',
       history: [
         ...won.history,
         {
           id: 5,
           from_status: 'GANADA',
-          to_status: 'NEGOCIACION',
+          to_status: 'COTIZADA',
           changed_at: '2026-09-14T15:30:00Z',
           changed_by_user_id: 8,
         },
@@ -604,22 +649,25 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Volver a Negociación' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a Cotizada' }))
     const dialog = screen.getByRole('dialog', { name: 'Confirmar retroceso de etapa' })
-    expect(within(dialog).getByText('La oportunidad pasará de Ganada a Negociación.')).toBeVisible()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Negociación' }))
+    expect(within(dialog).getByText('La oportunidad pasará de Ganada a Cotizada.')).toBeVisible()
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Cotizada' }))
 
     await waitFor(() => expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/opportunities/42/regress'))
-    expect(await screen.findByText('Pasó de Ganada a Negociación')).toBeInTheDocument()
+    expect(await screen.findByText('Pasó de Ganada a Cotizada')).toBeInTheDocument()
     expect(document.querySelector('time[datetime="2026-09-14T15:30:00Z"]')).toHaveTextContent(
       '14 sept 2026, 12:30',
     )
   })
 
   it('does not let an older background detail response overwrite a successful mutation', async () => {
-    const cached = makeDetail({ status: 'COTIZADA' })
+    const cached = makeDetail({ status: 'NUEVA' })
     const updated = makeDetail({
-      status: 'NEGOCIACION',
+      status: 'PARA_COTIZAR',
       updated_at: '2026-08-13T17:35:00Z',
     })
     let resolveDetail: ((response: Response) => void) | undefined
@@ -628,7 +676,7 @@ describe('OpportunityDetailPage', () => {
     })
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.endsWith('/move-to-negotiation')) return Promise.resolve(jsonResponse(200, updated))
+      if (url.endsWith('/prepare-quote')) return Promise.resolve(jsonResponse(200, updated))
       return detailResponse
     })
     const onOpportunityUpdated = vi.fn()
@@ -641,13 +689,22 @@ describe('OpportunityDetailPage', () => {
         opportunityId={42}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Pasar a negociación' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pasar a Para cotizar' }))
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Preparar propuesta para el cliente' },
+    })
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Confirmar cambio de etapa' })).getByRole(
+        'button',
+        { name: 'Pasar a Para cotizar' },
+      ),
+    )
     await waitFor(() => expect(onOpportunityUpdated).toHaveBeenCalledWith(updated))
 
     resolveDetail?.(jsonResponse(200, cached))
     await Promise.resolve()
 
-    expect(screen.getByText('Negociación')).toBeInTheDocument()
+    expect(screen.getByText('Para cotizar')).toBeInTheDocument()
     expect(onOpportunityUpdated).toHaveBeenCalledTimes(1)
   })
 

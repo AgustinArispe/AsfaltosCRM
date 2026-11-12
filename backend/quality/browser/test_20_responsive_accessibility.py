@@ -164,11 +164,13 @@ def test_modal_traps_and_restores_focus_and_quote_escape_preserves_draft(
     page = qa_page.page
     trigger = page.get_by_role(
         "button",
-        name=re.compile("Abrir oportunidad de Constructora del Sur, origen Web"),
+        name=re.compile(
+            "Abrir oportunidad de Vial Patagonia, origen Web, estado Para cotizar"
+        ),
     )
     trigger.focus()
     trigger.click()
-    detail = page.get_by_role("dialog", name="Constructora del Sur")
+    detail = page.get_by_role("dialog", name="Vial Patagonia")
     expect(detail).to_be_visible()
     page.keyboard.press("Tab")
     focused_inside = cast(

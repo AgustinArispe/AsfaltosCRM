@@ -28,11 +28,19 @@ describe('LossModal', () => {
     const onConfirm = vi.fn(async () => undefined)
     render(<LossModal onClose={vi.fn()} onConfirm={onConfirm} opportunity={opportunity} />)
     const dialog = screen.getByRole('dialog', { name: 'Marcar como perdida' })
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pérdida' }))
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('Seleccioná un motivo')
     fireEvent.change(within(dialog).getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar pérdida' }))
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('PRECIO', null))
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith('PRECIO', null, 'Seguimiento comercial de prueba'),
+    )
   })
 
   it('requires and submits a written detail for the OTRO reason', async () => {
@@ -42,14 +50,24 @@ describe('LossModal', () => {
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'OTRO' } })
     const detail = screen.getByLabelText('Detalle del motivo')
     expect(detail).toBeRequired()
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Escribí el motivo')
     expect(detail).toHaveFocus()
 
     fireEvent.change(detail, { target: { value: '  El proyecto cambió de alcance.  ' } })
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
     await waitFor(() =>
-      expect(onConfirm).toHaveBeenCalledWith('OTRO', 'El proyecto cambió de alcance.'),
+      expect(onConfirm).toHaveBeenCalledWith(
+        'OTRO',
+        'El proyecto cambió de alcance.',
+        'Seguimiento comercial de prueba',
+      ),
     )
   })
 
@@ -64,6 +82,9 @@ describe('LossModal', () => {
       />,
     )
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No disponible')
   })
@@ -77,6 +98,9 @@ describe('LossModal', () => {
       />,
     )
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      target: { value: 'Seguimiento comercial de prueba' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No pudimos marcar la oportunidad como perdida.',

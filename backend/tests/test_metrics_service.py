@@ -252,7 +252,7 @@ def test_overview_calculates_closed_conversion_and_independent_volume(
     make_opportunity(
         db_session,
         customer,
-        status=OpportunityStatus.NEGOCIACION,
+        status=OpportunityStatus.COTIZADA,
         created_at=created_at,
         lines=(MetricLine(product_a, Decimal("10000")),),
     )
@@ -331,14 +331,14 @@ def test_overview_preserves_reopened_repeated_loss_events_and_snapshot_kg(
         lines=(MetricLine(product, Decimal("125.500")),),
     )
     line = opportunity.opportunity_products[0]
-    opportunity.status = OpportunityStatus.NEGOCIACION
+    opportunity.status = OpportunityStatus.COTIZADA
     opportunity.loss_reason = None
     opportunity.current_status_entered_at = first_loss_at + timedelta(days=1)
     opportunity.updated_at = first_loss_at + timedelta(days=1)
     line.quantity_kg = Decimal("999.000")
     history = OpportunityStatusHistory(
         opportunity_id=opportunity.id,
-        from_status=OpportunityStatus.NEGOCIACION,
+        from_status=OpportunityStatus.COTIZADA,
         to_status=OpportunityStatus.PERDIDA,
         changed_at=first_loss_at + timedelta(days=2),
         transition_kind=OpportunityTransitionKind.STATUS_CHANGED,
@@ -349,7 +349,7 @@ def test_overview_preserves_reopened_repeated_loss_events_and_snapshot_kg(
         opportunity_id=opportunity.id,
         customer_id=customer.id,
         status_history_id=history.id,
-        from_status=OpportunityStatus.NEGOCIACION,
+        from_status=OpportunityStatus.COTIZADA,
         reason=LossReason.PRECIO,
         source=LeadSource.WEB,
         customer_display_name=customer.name,

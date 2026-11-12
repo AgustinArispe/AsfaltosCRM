@@ -50,6 +50,7 @@ from app.schemas.opportunity import (
     QuoteProductsUpdate,
     QuoteRequest,
     ReopenOpportunityRequest,
+    StageCompletionRequest,
     StatusChangeRequest,
 )
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
@@ -164,6 +165,7 @@ __all__ = [
     "QuoteRequest",
     "ReopenOpportunityRequest",
     "SourceMetricsResponse",
+    "StageCompletionRequest",
     "StatusChangeRequest",
     "TextOutboundRequest",
     "TimelineMetricsResponse",

@@ -217,7 +217,9 @@ class OpportunityLossProductSnapshot(Base):
 class OpportunityReopenEvent(Base):
     __tablename__ = "opportunity_reopen_events"
     __table_args__ = (
-        CheckConstraint("target_status = 'NEGOCIACION'", name="ck_reopen_target"),
+        CheckConstraint(
+            "target_status IN ('COTIZADA', 'NEGOCIACION')", name="ck_reopen_target"
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)

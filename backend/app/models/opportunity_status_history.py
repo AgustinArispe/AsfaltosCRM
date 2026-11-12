@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
+    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -30,6 +31,10 @@ if TYPE_CHECKING:
 class OpportunityStatusHistory(Base):
     __tablename__ = "opportunity_status_history"
     __table_args__ = (
+        CheckConstraint(
+            "note IS NULL OR (btrim(note) <> '' AND char_length(note) <= 4000)",
+            name="ck_status_history_note",
+        ),
         CheckConstraint(
             "from_status IS NOT NULL OR to_status = 'NUEVA'",
             name="ck_status_history_creation_starts_new",
@@ -76,6 +81,7 @@ class OpportunityStatusHistory(Base):
         nullable=False,
         default=OpportunityTransitionKind.STATUS_CHANGED,
     )
+    note: Mapped[str | None] = mapped_column(Text)
 
     opportunity: Mapped[Opportunity] = relationship(
         back_populates="status_history",

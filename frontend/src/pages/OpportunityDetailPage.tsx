@@ -6,7 +6,7 @@ import {
   deleteOpportunity,
   getOpportunityDetail,
   loseOpportunity,
-  moveOpportunityToNegotiation,
+  prepareOpportunityQuote,
   quoteOpportunity,
   regressOpportunityStage,
   reopenOpportunity,
@@ -24,6 +24,7 @@ import {
   OpportunityDetailModalHeader,
 } from '../pipeline/OpportunityDetailContent'
 import { QuoteModal } from '../pipeline/QuoteModal'
+import { StageNoteConfirmation } from '../pipeline/StageNoteConfirmation'
 import type {
   LossReason,
   OpportunityDetail,
@@ -94,6 +95,7 @@ export function OpportunityDetailPage({
   const [lossOpportunity, setLossOpportunity] = useState<OpportunityDetail | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState(false)
+  const [isForwardConfirmationOpen, setIsForwardConfirmationOpen] = useState(false)
   const [pendingRegression, setPendingRegression] = useState<{
     fromStatus: PipelineStatus
     targetStatus: PipelineStatus
@@ -157,13 +159,13 @@ export function OpportunityDetailPage({
       })
     })
   }
-  const handleReopen = async () => {
+  const handleReopen = async (note: string) => {
     if (!opportunity || !isEligibleForReopen(opportunity) || isReopening) return
     requestGenerationRef.current += 1
     setIsReopening(true)
     setReopenError(null)
     try {
-      const updated = await reopenOpportunity(opportunity.id, session)
+      const updated = await reopenOpportunity(opportunity.id, note, session)
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
       setIsReopenConfirmationOpen(false)
@@ -220,7 +222,7 @@ export function OpportunityDetailPage({
     }
   }
 
-  const handleQuote = async (lines: QuoteProductInput[]) => {
+  const handleQuote = async (lines: QuoteProductInput[], note: string, province?: string) => {
     if (!opportunity) return
     requestGenerationRef.current += 1
     if (quoteMode === 'edit') {
@@ -233,25 +235,26 @@ export function OpportunityDetailPage({
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
     } else {
-      const updated = await quoteOpportunity(opportunity.id, lines, session)
+      const updated = await quoteOpportunity(opportunity.id, lines, note, session, province)
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
     }
     setIsQuoteOpen(false)
   }
 
-  const move = async () => {
+  const move = async (note: string, province?: string) => {
     if (!opportunity || isMutating) return
     requestGenerationRef.current += 1
     setActionError(null)
     setIsMutating(true)
     try {
       const updated =
-        opportunity.status === 'COTIZADA'
-          ? await moveOpportunityToNegotiation(opportunity.id, session)
-          : await winOpportunity(opportunity.id, session)
+        opportunity.status === 'NUEVA'
+          ? await prepareOpportunityQuote(opportunity.id, note, session)
+          : await winOpportunity(opportunity.id, note, session, province)
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
+      setIsForwardConfirmationOpen(false)
     } catch {
       setActionError('No pudimos actualizar la oportunidad. Intentá nuevamente.')
     } finally {
@@ -259,7 +262,7 @@ export function OpportunityDetailPage({
     }
   }
 
-  const confirmRegression = async () => {
+  const confirmRegression = async (note: string) => {
     if (!opportunity || !pendingRegression || isMutating) return
     setActionError(null)
     setIsMutating(true)
@@ -268,6 +271,7 @@ export function OpportunityDetailPage({
         opportunity.id,
         pendingRegression.fromStatus,
         pendingRegression.targetStatus,
+        note,
         session,
       )
       setOpportunity(updated)
@@ -281,17 +285,15 @@ export function OpportunityDetailPage({
       }
     } catch {
       setActionError('No pudimos atrasar la oportunidad. Su etapa puede haber cambiado.')
-      setPendingRegression(null)
-      setKey((current) => current + 1)
     } finally {
       setIsMutating(false)
     }
   }
 
-  const handleLoss = async (reason: LossReason, reasonDetail: string | null) => {
+  const handleLoss = async (reason: LossReason, reasonDetail: string | null, note: string) => {
     if (!lossOpportunity) return
     requestGenerationRef.current += 1
-    const updated = await loseOpportunity(lossOpportunity.id, reason, reasonDetail, session)
+    const updated = await loseOpportunity(lossOpportunity.id, reason, reasonDetail, note, session)
     setOpportunity(updated)
     onOpportunityUpdated?.(updated)
     setLossOpportunity(null)
@@ -316,33 +318,38 @@ export function OpportunityDetailPage({
 
   const actions = opportunity ? (
     <>
-      {opportunity.status === 'NUEVA' ? (
+      {opportunity.status === 'PARA_COTIZAR' ? (
         <Button
           className='opportunity-detail__action'
           onClick={() => openQuote('create')}
           variant='primary'
         >
-          <Icon name='coins' />
+          <Icon name={STAGE_BY_STATUS.get('COTIZADA')?.icon ?? 'document'} />
           Cotizar
         </Button>
       ) : null}
-      {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
+      {opportunity.status === 'NUEVA' || opportunity.status === 'COTIZADA' ? (
         <Button
           className='opportunity-detail__action'
           disabled={isMutating}
           isLoading={isMutating}
-          onClick={() => void move()}
+          onClick={() => setIsForwardConfirmationOpen(true)}
           variant='primary'
         >
-          <Icon name={opportunity.status === 'COTIZADA' ? 'handshake' : 'trophy'} />
+          <Icon
+            name={
+              STAGE_BY_STATUS.get(opportunity.status === 'NUEVA' ? 'PARA_COTIZAR' : 'GANADA')
+                ?.icon ?? 'document'
+            }
+          />
           {isMutating
             ? 'Actualizando…'
-            : opportunity.status === 'COTIZADA'
-              ? 'Pasar a negociación'
+            : opportunity.status === 'NUEVA'
+              ? 'Pasar a Para cotizar'
               : 'Marcar ganada'}
         </Button>
       ) : null}
-      {opportunity.status === 'NEGOCIACION' || opportunity.status === 'GANADA' ? (
+      {opportunity.status === 'COTIZADA' || opportunity.status === 'GANADA' ? (
         <Button
           className='opportunity-detail__action'
           disabled={isMutating}
@@ -361,7 +368,7 @@ export function OpportunityDetailPage({
           }
         </Button>
       ) : null}
-      {opportunity.status === 'COTIZADA' || opportunity.status === 'NEGOCIACION' ? (
+      {opportunity.status === 'COTIZADA' ? (
         <Button className='opportunity-detail__action' onClick={() => openQuote('edit')}>
           <Icon name='pencil' />
           Editar cotización
@@ -388,7 +395,7 @@ export function OpportunityDetailPage({
       ) : null}
       {opportunity.status === 'NUEVA' ||
       opportunity.status === 'COTIZADA' ||
-      opportunity.status === 'NEGOCIACION' ? (
+      opportunity.status === 'PARA_COTIZAR' ? (
         <Button
           className='opportunity-detail__action opportunity-detail__action--destructive'
           onClick={() => setLossOpportunity(opportunity)}
@@ -497,7 +504,7 @@ export function OpportunityDetailPage({
               />
             </div>
           ) : null}
-          {actionError ? (
+          {actionError && !pendingRegression && !isForwardConfirmationOpen ? (
             <div className='px-5 pt-4 sm:px-6'>
               <InlineFeedback message={actionError} onDismiss={() => setActionError(null)} />
             </div>
@@ -535,7 +542,7 @@ export function OpportunityDetailPage({
           historial de estados.
         </p>
       </ConfirmationDialog>
-      <ConfirmationDialog
+      <StageNoteConfirmation
         confirmLabel={
           pendingRegression
             ? `Volver a ${OPPORTUNITY_STATUS_LABELS[pendingRegression.targetStatus]}`
@@ -551,17 +558,18 @@ export function OpportunityDetailPage({
         onCancel={() => {
           if (!isMutating) setPendingRegression(null)
         }}
-        onConfirm={() => void confirmRegression()}
+        onConfirm={(note) => void confirmRegression(note)}
+        error={actionError}
         pendingLabel='Actualizando…'
         title='Confirmar retroceso de etapa'
       >
         <p className='text-sm text-[var(--text-secondary)]'>
           El cambio quedará registrado con su fecha en el historial de la oportunidad.
         </p>
-      </ConfirmationDialog>
-      <ConfirmationDialog
-        confirmLabel='Reabrir en negociación'
-        description='La oportunidad volverá a Negociación y conservará su historial de pérdida.'
+      </StageNoteConfirmation>
+      <StageNoteConfirmation
+        confirmLabel='Reabrir en Cotizada'
+        description='La oportunidad volverá a Cotizada y conservará su historial de pérdida.'
         error={reopenError}
         isOpen={isReopenConfirmationOpen}
         isPending={isReopening}
@@ -571,14 +579,33 @@ export function OpportunityDetailPage({
             setReopenError(null)
           }
         }}
-        onConfirm={() => void handleReopen()}
+        onConfirm={(note) => void handleReopen(note)}
         pendingLabel='Reabriendo…'
         title='Reabrir oportunidad'
       >
         <p className='text-sm text-[var(--text-secondary)]'>
-          El destino lo determina FAA CRM: Negociación.
+          El destino lo determina FAA CRM: Cotizada.
         </p>
-      </ConfirmationDialog>
+      </StageNoteConfirmation>
+      <StageNoteConfirmation
+        confirmLabel={opportunity?.status === 'NUEVA' ? 'Pasar a Para cotizar' : 'Marcar ganada'}
+        error={actionError}
+        isOpen={isForwardConfirmationOpen}
+        isPending={isMutating}
+        onCancel={() => {
+          if (!isMutating) setIsForwardConfirmationOpen(false)
+        }}
+        onConfirm={(note, province) => void move(note, province)}
+        suggestProvince={
+          opportunity?.status === 'COTIZADA' && !opportunity.customer.province?.trim()
+        }
+        pendingLabel='Guardando…'
+        title='Confirmar cambio de etapa'
+      >
+        <p className='text-sm text-[var(--text-secondary)]'>
+          El cambio y la nota se guardarán juntos en el historial del cliente.
+        </p>
+      </StageNoteConfirmation>
       <LossModal
         onClose={() => setLossOpportunity(null)}
         onConfirm={handleLoss}

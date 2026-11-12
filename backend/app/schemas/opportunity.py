@@ -32,6 +32,10 @@ LossReasonDetail = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=500),
 ]
+TransitionNote = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=4000),
+]
 
 
 class OpportunityCreate(StrictRequestModel):
@@ -78,7 +82,19 @@ class QuoteProductRequest(StrictRequestModel):
     quantity_kg: PositiveQuantity
 
 
-class QuoteRequest(StrictRequestModel):
+class StageCompletionRequest(StrictRequestModel):
+    note: TransitionNote
+    province: OptionalNonBlankString = None
+
+    @field_validator("province", mode="before")
+    @classmethod
+    def normalize_unknown_province(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+
+class QuoteRequest(StageCompletionRequest):
     products: list[QuoteProductRequest] = Field(min_length=1)
 
 
@@ -88,12 +104,13 @@ class QuoteProductsUpdate(StrictRequestModel):
 
 
 class StatusChangeRequest(StrictRequestModel):
-    pass
+    note: TransitionNote
 
 
 class OpportunityStageRegressionRequest(StrictRequestModel):
     expected_status: OpportunityStatus
     target_status: OpportunityStatus
+    note: TransitionNote
 
 
 class LoseOpportunityRequest(StatusChangeRequest):
@@ -117,6 +134,7 @@ class LoseOpportunityRequest(StatusChangeRequest):
 class ReopenOpportunityRequest(StrictRequestModel):
     command_id: UUID
     expected_status: Literal[OpportunityStatus.PERDIDA]
+    note: TransitionNote
 
 
 class AssigneeUpdate(StrictRequestModel):
@@ -148,6 +166,7 @@ class OpportunityStatusHistoryResponse(BaseModel):
     changed_at: datetime
     changed_by_user_id: int | None
     transition_kind: OpportunityTransitionKind
+    note: str | None
 
 
 class OpportunityLossEventResponse(BaseModel):
@@ -158,6 +177,11 @@ class OpportunityLossEventResponse(BaseModel):
     reason: LossReason
     loss_reason_detail: str | None
     lost_at: datetime
+
+
+class CustomerStageNoteResponse(OpportunityStatusHistoryResponse):
+    opportunity_id: int
+    author_name: str | None
 
 
 class OpportunityWebIntake(BaseModel):

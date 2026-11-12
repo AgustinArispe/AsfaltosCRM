@@ -53,7 +53,7 @@ SELECT
     customer.id,
     (SELECT id FROM users ORDER BY id LIMIT 1),
     (CASE WHEN customer.position % 3 = 0 THEN 'WHATSAPP' ELSE 'WEB' END)::lead_source_enum,
-    (ARRAY['NUEVA', 'COTIZADA', 'NEGOCIACION', 'GANADA', 'PERDIDA'])[1 + customer.position % 5]::opportunity_status_enum,
+    (ARRAY['NUEVA', 'PARA_COTIZAR', 'COTIZADA', 'GANADA', 'PERDIDA'])[1 + customer.position % 5]::opportunity_status_enum,
     CASE WHEN customer.position % 5 = 4 THEN 'OTRO'::loss_reason_enum ELSE NULL END,
     timestamptz '2024-01-01 12:00:00+00' + customer.position * interval '1 minute',
     timestamptz '2024-01-01 12:00:00+00' + customer.position * interval '1 minute',

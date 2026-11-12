@@ -8,7 +8,7 @@ import {
   listOpportunityNotes,
   listPipelineOpportunities,
   loseOpportunity,
-  moveOpportunityToNegotiation,
+  prepareOpportunityQuote,
   quoteOpportunity,
   reopenOpportunity,
   updateOpportunityAssignee,
@@ -37,17 +37,23 @@ describe('Opportunity API client', () => {
     await getOpportunityDetail(9, session)
     await createWhatsAppOpportunity(8, session)
     await updateOpportunityAssignee(9, 4, '2026-09-07T12:00:00Z', session)
-    await quoteOpportunity(9, [{ product_id: 1, quantity_kg: 100 }], session)
+    await quoteOpportunity(9, [{ product_id: 1, quantity_kg: 100 }], 'Cotización enviada', session)
     await updateOpportunityQuoteProducts(
       9,
       [{ product_id: 1, quantity_kg: 200 }],
       '2026-09-07T12:00:00Z',
       session,
     )
-    await moveOpportunityToNegotiation(9, session)
-    await winOpportunity(9, session)
-    await loseOpportunity(9, 'OTRO', 'El cliente eligió otra alternativa.', session)
-    await reopenOpportunity(9, session)
+    await prepareOpportunityQuote(9, 'Preparar propuesta', session)
+    await winOpportunity(9, 'Operación confirmada', session)
+    await loseOpportunity(
+      9,
+      'OTRO',
+      'El cliente eligió otra alternativa.',
+      'Seguimiento cerrado',
+      session,
+    )
+    await reopenOpportunity(9, 'Retoma el proyecto', session)
     await listOpportunityNotes(9, session)
     await createOpportunityNote(9, 'Seguimiento', session, '00000000-0000-4000-8000-000000000001')
 

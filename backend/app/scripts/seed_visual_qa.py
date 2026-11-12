@@ -681,19 +681,27 @@ def _seed_opportunities(
             QuoteProductInput(products[name].id, Decimal(quantity))
             for name, quantity in item.quote
         ]
-        if item.status is not OpportunityStatus.NUEVA and quote:
+        if item.status is not OpportunityStatus.NUEVA and (
+            quote or item.status is OpportunityStatus.COTIZADA
+        ):
+            opportunity = service.prepare_quote(
+                opportunity.id,
+                note="Preparar la cotización solicitada por el cliente (fixture local).",
+                changed_by_user_id=actor_user_id,
+                occurred_at=next(transition_times),
+            )
+        if (
+            item.status not in {OpportunityStatus.NUEVA, OpportunityStatus.COTIZADA}
+            and quote
+        ):
             opportunity = service.quote_opportunity(
                 opportunity.id,
                 quote,
+                note="Productos y cantidades confirmados para cotizar (fixture local).",
                 changed_by_user_id=actor_user_id,
                 occurred_at=next(transition_times),
             )
         if item.reopen:
-            opportunity = service.move_to_negotiation(
-                opportunity.id,
-                changed_by_user_id=actor_user_id,
-                occurred_at=next(transition_times),
-            )
             opportunity = service.mark_as_lost(
                 opportunity.id,
                 item.loss_reason,
@@ -703,6 +711,7 @@ def _seed_opportunities(
                     else None
                 ),
                 changed_by_user_id=actor_user_id,
+                note="Se registra el resultado comercial del seguimiento (fixture local).",
                 occurred_at=next(transition_times),
             )
             opportunity = service.reopen(
@@ -710,29 +719,20 @@ def _seed_opportunities(
                 command_id=_stable_uuid(f"reopen-{index}"),
                 expected_status=OpportunityStatus.PERDIDA,
                 changed_by_user_id=actor_user_id,
+                note="El cliente retoma la cotización registrada (fixture local).",
                 occurred_at=next(transition_times),
             )
         elif item.status is OpportunityStatus.COTIZADA:
             pass
         elif item.status in {OpportunityStatus.NEGOCIACION, OpportunityStatus.GANADA}:
-            opportunity = service.move_to_negotiation(
-                opportunity.id,
-                changed_by_user_id=actor_user_id,
-                occurred_at=next(transition_times),
-            )
             if item.status is OpportunityStatus.GANADA:
                 opportunity = service.mark_as_won(
                     opportunity.id,
+                    note="El cliente confirmó la operación (fixture local).",
                     changed_by_user_id=actor_user_id,
                     occurred_at=next(transition_times),
                 )
         elif item.status is OpportunityStatus.PERDIDA:
-            if quote and index % 2 == 0:
-                opportunity = service.move_to_negotiation(
-                    opportunity.id,
-                    changed_by_user_id=actor_user_id,
-                    occurred_at=next(transition_times),
-                )
             opportunity = service.mark_as_lost(
                 opportunity.id,
                 item.loss_reason,
@@ -742,13 +742,14 @@ def _seed_opportunities(
                     else None
                 ),
                 changed_by_user_id=actor_user_id,
+                note="El cliente no continuará con la operación (fixture local).",
                 occurred_at=next(transition_times),
             )
         created[index] = opportunity
     return [created[index] for index in range(len(OPPORTUNITIES))]
 
 
-def _transition_count(index: int, item: OpportunitySeed) -> int:
+def _transition_count(_index: int, item: OpportunitySeed) -> int:
     if item.reopen:
         return 4
     if item.status is OpportunityStatus.NUEVA:
@@ -760,7 +761,7 @@ def _transition_count(index: int, item: OpportunitySeed) -> int:
     if item.status is OpportunityStatus.GANADA:
         return 3
     if item.status is OpportunityStatus.PERDIDA:
-        return 1 + int(bool(item.quote)) + int(bool(item.quote) and index % 2 == 0)
+        return 1 + 2 * int(bool(item.quote))
     raise RuntimeError(f"Unsupported seeded status: {item.status}")
 
 
