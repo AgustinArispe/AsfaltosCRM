@@ -171,7 +171,7 @@ class WonOpportunityQueryService:
             WonUserOption(*row)
             for row in self._session.execute(
                 select(User.id, User.full_name, User.is_active)
-                .join(Opportunity)
+                .join(Opportunity, Opportunity.assigned_user_id == User.id)
                 .where(*base)
                 .group_by(User.id, User.full_name, User.is_active)
                 .order_by(func.lower(User.full_name), User.id)

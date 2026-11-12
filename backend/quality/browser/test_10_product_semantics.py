@@ -195,7 +195,12 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
         page.get_by_role("img", name="Distribución de oportunidades activas por etapa")
     ).to_be_visible()
     expect(page.get_by_role("region", name="Origen de oportunidades")).to_be_visible()
-    expect(page.get_by_role("region", name="Productos")).to_be_visible()
+    expect(
+        page.get_by_role("region", name="Kilos cotizados por producto")
+    ).to_be_visible()
+    expect(
+        page.get_by_role("region", name="Kilos ganados por producto")
+    ).to_be_visible()
     expect(page.get_by_role("region", name="Provincias")).to_be_visible()
 
 

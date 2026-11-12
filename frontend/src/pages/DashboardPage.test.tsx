@@ -656,7 +656,7 @@ describe('DashboardPage', () => {
     ).toBe(true)
   })
 
-  it('places losses beside Origin and Products, with Provinces spanning the next row', async () => {
+  it('places comparable quoted and won product panels beside Origin', async () => {
     await renderLoaded()
     const origin = screen.getByRole('heading', { name: 'Origen de oportunidades' })
     const layout = origin.closest('.dashboard-lower-analytics')
@@ -664,16 +664,38 @@ describe('DashboardPage', () => {
 
     expect([...layout.querySelectorAll('h2')].map((heading) => heading.textContent)).toEqual([
       'Origen de oportunidades',
-      'Productos',
-      'Pérdidas del período',
+      'Kilos cotizados por producto',
+      'Kilos ganados por producto',
       'Provincias',
     ])
     expect(
-      screen.getByRole('heading', { name: 'Pérdidas del período' }).closest('section'),
-    ).toHaveClass('dashboard-losses')
+      screen.getByRole('heading', { name: 'Kilos ganados por producto' }).closest('section'),
+    ).toHaveClass('dashboard-product-ranking')
     expect(screen.getByRole('heading', { name: 'Provincias' }).closest('section')).toHaveClass(
       'dashboard-provinces-wide',
     )
     expect(screen.getByRole('list', { name: /Web: 6.*WhatsApp: 3/ })).toBeInTheDocument()
+  })
+
+  it('shows the corresponding kilos and drills down by product and outcome', async () => {
+    const fetchMock = await renderLoaded()
+    const quoted = screen.getByRole('region', { name: 'Kilos cotizados por producto' })
+    const won = screen.getByRole('region', { name: 'Kilos ganados por producto' })
+    expect(within(quoted).getByText('2.000 kg')).toBeInTheDocument()
+    expect(within(quoted).getByText('Producto histórico')).toBeInTheDocument()
+    expect(within(won).getByText('1.000 kg')).toBeInTheDocument()
+    expect(within(won).queryByText('Producto histórico')).not.toBeInTheDocument()
+    fireEvent.click(within(won).getByRole('button'))
+    await screen.findByRole('dialog', { name: 'Ganadas · Asfalto base' })
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const url = new URL(String(input), 'http://localhost')
+        return (
+          url.pathname === '/api/metrics/opportunities' &&
+          url.searchParams.get('kind') === 'won' &&
+          url.searchParams.get('product_id') === '1'
+        )
+      }),
+    ).toBe(true)
   })
 })

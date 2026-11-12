@@ -370,6 +370,34 @@ def test_metric_opportunities_returns_bounded_period_drilldown(
     assert detail.items[0].quantity_kg == Decimal("2500.000")
 
 
+def test_product_bars_reconcile_with_kpis_and_drilldown_uses_only_selected_product(
+    api_client: TestClient,
+    db_session: Session,
+) -> None:
+    customer, _product, won = seed_metrics_data(db_session)
+    second = Product(name=f"Otro producto {uuid4().hex}")
+    won.opportunity_products.append(
+        OpportunityProduct(product=second, quantity_kg=Decimal("750.125"))
+    )
+    db_session.commit()
+    params = {**period_params(), "province": customer.province}
+    overview = api_client.get("/api/metrics/overview", params=params).json()
+    products = api_client.get("/api/metrics/products", params=params).json()["items"]
+    assert sum(Decimal(item["kg_quoted"]) for item in products) == Decimal(
+        overview["volume_kg"]["quoted"]
+    )
+    assert sum(Decimal(item["kg_won"]) for item in products) == Decimal(
+        overview["volume_kg"]["won"]
+    )
+    for kind in ("created", "won"):
+        response = api_client.get(
+            "/api/metrics/opportunities",
+            params={**params, "kind": kind, "product_id": second.id},
+        )
+        assert response.status_code == 200
+        assert response.json()["items"][0]["quantity_kg"] == "750.125"
+
+
 @pytest.mark.parametrize(
     "params",
     [

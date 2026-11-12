@@ -4,6 +4,7 @@ import { ApiError } from '../api/client'
 import {
   type ApiSession,
   deleteOpportunity,
+  followUpOpportunity,
   getOpportunityDetail,
   loseOpportunity,
   prepareOpportunityQuote,
@@ -23,6 +24,7 @@ import {
   OpportunityDetailContent,
   OpportunityDetailModalHeader,
 } from '../pipeline/OpportunityDetailContent'
+import { isOpportunityOverdue } from '../pipeline/overdue'
 import { QuoteModal } from '../pipeline/QuoteModal'
 import { StageNoteConfirmation } from '../pipeline/StageNoteConfirmation'
 import type {
@@ -262,6 +264,27 @@ export function OpportunityDetailPage({
     }
   }
 
+  const markUpToDate = async () => {
+    if (!opportunity || isMutating) return
+    requestGenerationRef.current += 1
+    setActionError(null)
+    setIsMutating(true)
+    try {
+      const updated = await followUpOpportunity(
+        opportunity.id,
+        opportunity.follow_up_since ?? opportunity.current_status_entered_at,
+        session,
+      )
+      setOpportunity(updated)
+      onOpportunityUpdated?.(updated)
+      window.dispatchEvent(new Event('faa-notification-attention-refresh'))
+    } catch {
+      setActionError('No pudimos marcarla al día. Actualizá el detalle e intentá nuevamente.')
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
   const confirmRegression = async (note: string) => {
     if (!opportunity || !pendingRegression || isMutating) return
     setActionError(null)
@@ -318,6 +341,18 @@ export function OpportunityDetailPage({
 
   const actions = opportunity ? (
     <>
+      {isOpportunityOverdue(
+        opportunity.status,
+        opportunity.follow_up_since ?? opportunity.current_status_entered_at,
+      ) ? (
+        <Button
+          className='opportunity-detail__action'
+          disabled={isMutating}
+          onClick={() => void markUpToDate()}
+        >
+          <Icon name='check-circle' /> Marcar al día
+        </Button>
+      ) : null}
       {opportunity.status === 'PARA_COTIZAR' ? (
         <Button
           className='opportunity-detail__action'

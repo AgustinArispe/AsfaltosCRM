@@ -40,6 +40,8 @@ export type OpportunitySummary = {
   status: OpportunityStatus
   source: LeadSource
   current_status_entered_at: string
+  last_followed_up_at?: string | null
+  follow_up_since?: string
   customer: OpportunityCustomer
   assigned_user: OpportunityUser | null
   products: QuotedProduct[]

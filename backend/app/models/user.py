@@ -71,6 +71,7 @@ class User(TimestampMixin, Base):
     )
 
     assigned_opportunities: Mapped[list[Opportunity]] = relationship(
+        foreign_keys="Opportunity.assigned_user_id",
         back_populates="assigned_user",
         passive_deletes=True,
     )

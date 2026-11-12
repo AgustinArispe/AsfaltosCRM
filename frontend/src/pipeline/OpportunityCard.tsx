@@ -34,7 +34,10 @@ export function OpportunityCard({
   const canChangeStage = Boolean(stage?.nextStatus || stage?.previousStatus)
   const isDraggable = canChangeStage && !isBusy
   const identity = customerIdentity(opportunity.customer)
-  const isOverdue = isOpportunityOverdue(opportunity.status, opportunity.current_status_entered_at)
+  const isOverdue = isOpportunityOverdue(
+    opportunity.status,
+    opportunity.follow_up_since ?? opportunity.current_status_entered_at,
+  )
   const { ref, isDragging } = useDraggable<PipelineDragData>({
     id: opportunity.id,
     type: 'OPPORTUNITY',

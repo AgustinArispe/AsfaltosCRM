@@ -6,7 +6,6 @@ import { DashboardFilters } from '../metrics/DashboardFilters'
 import {
   CommercialDistribution,
   DashboardKpis,
-  DashboardLosses,
   DashboardRefresh,
   ResultsCluster,
   TimelineChart,
@@ -121,7 +120,6 @@ export function DashboardPage() {
               sources: errors.sources,
             }}
             hasActiveFilters={hasActiveFilters}
-            lossesSection={<DashboardLosses onDrilldown={setDrilldown} products={data.products} />}
             onRetry={retry}
             products={data.products}
             provinces={data.provinces}

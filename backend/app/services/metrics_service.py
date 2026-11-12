@@ -876,7 +876,13 @@ class MetricsService:
                     else item.current_status_entered_at
                 ),
                 quantity_kg=sum(
-                    (line.quantity_kg for line in item.opportunity_products), ZERO_KG
+                    (
+                        line.quantity_kg
+                        for line in item.opportunity_products
+                        if dimensions.product_id is None
+                        or line.product_id == dimensions.product_id
+                    ),
+                    ZERO_KG,
                 ),
             )
             for item in opportunities

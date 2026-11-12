@@ -862,7 +862,6 @@ export function CommercialDistribution({
   sources,
   provinces,
   errors,
-  lossesSection,
   onRetry,
   onDrilldown,
 }: {
@@ -870,7 +869,6 @@ export function CommercialDistribution({
   sources?: SourceMetric[]
   provinces?: ProvinceMetric[]
   errors: { products?: string; sources?: string; provinces?: string }
-  lossesSection: ReactNode
   onRetry: () => void
   hasActiveFilters: boolean
   onDrilldown: (selection: DrilldownSelection) => void
@@ -884,15 +882,6 @@ export function CommercialDistribution({
     detail: sourceTotal
       ? `${Math.round((item.created / sourceTotal) * 100)} % de las creadas`
       : 'Sin oportunidades creadas',
-  }))
-  const orderedProducts = products
-    ? [...products].sort((a, b) => Number(b.kg_quoted) - Number(a.kg_quoted))
-    : undefined
-  const productItems = orderedProducts?.map((item) => ({
-    label: item.product_name,
-    value: Number(item.kg_quoted),
-    displayValue: formatDecimalKg(item.kg_quoted),
-    detail: `${formatCount(item.opportunities_quoted)} oportunidades cotizadas`,
   }))
   const orderedProvinces = provinces
     ? [...provinces].sort((a, b) => b.opportunities_created - a.opportunities_created)
@@ -933,30 +922,20 @@ export function CommercialDistribution({
           ) : null}
         </DistributionState>
       </section>
-      <section aria-labelledby='dashboard-products-title' className='dashboard-secondary'>
-        <div className='dashboard-section-heading'>
-          <h2 id='dashboard-products-title'>Productos</h2>
-          <Icon name='products' />
-        </div>
-        <DistributionState error={errors.products} items={productItems} onRetry={onRetry}>
-          {productItems ? (
-            <RankedBars
-              ariaLabel={productItems
-                .map((item) => `${item.label}: ${item.displayValue}`)
-                .join(', ')}
-              items={productItems.slice(0, 5)}
-              onSelect={(index) =>
-                onDrilldown({
-                  title: `Oportunidades con ${productItems[index]?.label}`,
-                  kind: 'created',
-                  filters: { productId: orderedProducts?.[index]?.product_id },
-                })
-              }
-            />
-          ) : null}
-        </DistributionState>
-      </section>
-      {lossesSection}
+      <ProductRanking
+        metric='quoted'
+        products={products}
+        error={errors.products}
+        onRetry={onRetry}
+        onDrilldown={onDrilldown}
+      />
+      <ProductRanking
+        metric='won'
+        products={products}
+        error={errors.products}
+        onRetry={onRetry}
+        onDrilldown={onDrilldown}
+      />
       <section
         aria-labelledby='dashboard-provinces-title'
         className='dashboard-secondary dashboard-provinces-wide'
@@ -984,66 +963,68 @@ export function CommercialDistribution({
   )
 }
 
-export function DashboardLosses({
+function ProductRanking({
   products,
+  metric,
+  error,
+  onRetry,
   onDrilldown,
 }: {
   products?: ProductMetric[]
+  metric: 'quoted' | 'won'
+  error: ChartError
+  onRetry: () => void
   onDrilldown: (selection: DrilldownSelection) => void
 }) {
-  const losses =
-    products
-      ?.filter((item) => item.opportunities_lost > 0)
-      .sort((a, b) => b.opportunities_lost - a.opportunities_lost) ?? []
+  const isWon = metric === 'won'
+  const label = isWon ? 'ganados' : 'cotizados'
+  const quantity = (item: ProductMetric) => (isWon ? item.kg_won : item.kg_quoted)
+  const count = (item: ProductMetric) =>
+    isWon ? item.opportunities_won : item.opportunities_quoted
+  const ordered = products
+    ?.filter((item) => Number(quantity(item)) > 0)
+    .sort(
+      (a, b) =>
+        Number(quantity(b)) - Number(quantity(a)) ||
+        a.product_name.localeCompare(b.product_name, 'es-AR'),
+    )
+  const items = ordered?.map((item) => ({
+    label: item.product_name,
+    value: Number(quantity(item)),
+    displayValue: formatDecimalKg(quantity(item)),
+    detail: `${formatCount(count(item))} ${count(item) === 1 ? 'oportunidad' : 'oportunidades'} ${isWon ? (count(item) === 1 ? 'ganada' : 'ganadas') : count(item) === 1 ? 'cotizada' : 'cotizadas'}`,
+  }))
   return (
-    <section aria-labelledby='dashboard-losses-title' className='dashboard-losses'>
+    <section
+      aria-labelledby={`dashboard-products-${metric}-title`}
+      className='dashboard-secondary dashboard-product-ranking'
+    >
       <div className='dashboard-section-heading'>
         <div>
-          <h2 id='dashboard-losses-title'>Pérdidas del período</h2>
-          <p>Composición por producto al momento de la pérdida.</p>
+          <h2 id={`dashboard-products-${metric}-title`}>Kilos {label} por producto</h2>
+          <p>
+            {isWon
+              ? 'Ventas ganadas en el período seleccionado.'
+              : 'Cotización vigente de oportunidades creadas en el período.'}
+          </p>
         </div>
-        {losses.length ? (
-          <button
-            className='dashboard-losses__analysis'
-            onClick={() => onDrilldown({ title: 'Pérdidas del período', kind: 'lost' })}
-            type='button'
-          >
-            Ver análisis <Icon name='chevron-right' />
-          </button>
-        ) : null}
+        <Icon name={isWon ? 'trophy' : 'products'} />
       </div>
-      {losses.length ? (
-        <ul>
-          {losses.map((item) => (
-            <li key={item.product_id}>
-              <button
-                onClick={() =>
-                  onDrilldown({
-                    title: `Pérdidas · ${item.product_name}`,
-                    kind: 'lost',
-                    filters: { productId: item.product_id },
-                  })
-                }
-                type='button'
-              >
-                <span>
-                  <b>{item.product_name}</b>
-                  <small>
-                    {formatCount(item.opportunities_lost)} pérdidas ·{' '}
-                    {formatDecimalKg(item.kg_lost)}
-                  </small>
-                </span>
-                <Icon name='chevron-right' />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className='dashboard-losses__empty'>
-          <Icon name='check' />
-          No hubo pérdidas en este período.
-        </p>
-      )}
+      <DistributionState error={error} items={items} onRetry={onRetry}>
+        {items ? (
+          <RankedBars
+            ariaLabel={`Kilos ${label} por producto`}
+            items={items}
+            onSelect={(index) =>
+              onDrilldown({
+                title: `${isWon ? 'Ganadas' : 'Cotizadas'} · ${items[index]?.label}`,
+                kind: isWon ? 'won' : 'created',
+                filters: { productId: ordered?.[index]?.product_id },
+              })
+            }
+          />
+        ) : null}
+      </DistributionState>
     </section>
   )
 }

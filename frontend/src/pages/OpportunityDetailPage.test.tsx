@@ -108,6 +108,64 @@ describe('OpportunityDetailPage', () => {
     window.history.replaceState(null, '', '/opportunities/42')
   })
 
+  it('retries failed follow-up, saves it and refreshes the pipeline and notification attention', async () => {
+    const overdue = makeDetail({ status: 'NUEVA' })
+    const updated = {
+      ...overdue,
+      last_followed_up_at: new Date().toISOString(),
+      follow_up_since: new Date().toISOString(),
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, overdue))
+      .mockResolvedValueOnce(jsonResponse(503, { detail: 'unavailable' }))
+      .mockResolvedValueOnce(jsonResponse(200, updated))
+    vi.stubGlobal('fetch', fetchMock)
+    const onOpportunityUpdated = vi.fn()
+    const refresh = vi.fn()
+    window.addEventListener('faa-notification-attention-refresh', refresh)
+    try {
+      render(
+        <OpportunityDetailPage opportunityId={42} onOpportunityUpdated={onOpportunityUpdated} />,
+      )
+      fireEvent.click(await screen.findByRole('button', { name: 'Marcar al día' }))
+      expect(
+        await screen.findByText(
+          'No pudimos marcarla al día. Actualizá el detalle e intentá nuevamente.',
+        ),
+      ).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Marcar al día' }))
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Marcar al día' })).not.toBeInTheDocument(),
+      )
+      expect(onOpportunityUpdated).toHaveBeenCalledWith(updated)
+      expect(refresh).toHaveBeenCalledOnce()
+      expect(fetchMock.mock.calls[2][0]).toContain('/opportunities/42/follow-up')
+      expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({
+        expected_follow_up_since: overdue.current_status_entered_at,
+      })
+    } finally {
+      window.removeEventListener('faa-notification-attention-refresh', refresh)
+    }
+  })
+
+  it('does not offer follow-up on a recently followed-up opportunity', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(
+            200,
+            makeDetail({ status: 'COTIZADA', follow_up_since: new Date().toISOString() }),
+          ),
+        ),
+    )
+    render(<OpportunityDetailPage opportunityId={42} />)
+    await screen.findByRole('button', { name: 'Marcar ganada' })
+    expect(screen.queryByRole('button', { name: 'Marcar al día' })).not.toBeInTheDocument()
+  })
+
   it('lets a supervisor confirm soft deletion and returns without reloading', async () => {
     const fetchMock = vi
       .fn()

@@ -9,6 +9,40 @@ from quality.browser.support import QaPageFactory, wait_for_workspace
 
 
 @pytest.mark.mutating
+def test_follow_up_clears_overdue_card_and_persists_after_reload(
+    qa_pages: QaPageFactory,
+) -> None:
+    qa_page = qa_pages.create(role="VENDEDOR")
+    page = qa_page.page
+    card = page.get_by_role(
+        "button", name=re.compile("Abrir oportunidad de Pavimentos del Litoral")
+    )
+    expect(card.get_by_text("¡Atrasado!", exact=True)).to_be_visible()
+    card.click()
+    detail = page.get_by_role("dialog", name="Pavimentos del Litoral")
+    with page.expect_response(
+        lambda response: (
+            response.request.method == "POST"
+            and response.url.endswith("/follow-up")
+            and response.status == 200
+        )
+    ):
+        detail.get_by_role("button", name="Marcar al día").click()
+    expect(detail.get_by_role("button", name="Marcar al día")).to_have_count(0)
+    detail.get_by_role("button", name="Cerrar detalle de oportunidad").click()
+    expect(card.get_by_text("¡Atrasado!", exact=True)).to_have_count(0)
+    page.reload(wait_until="networkidle")
+    expect(card).to_be_visible()
+    expect(card.get_by_text("¡Atrasado!", exact=True)).to_have_count(0)
+    card.click()
+    expect(
+        page.get_by_role("dialog", name="Pavimentos del Litoral").get_by_role(
+            "button", name="Marcar al día"
+        )
+    ).to_have_count(0)
+
+
+@pytest.mark.mutating
 def test_pipeline_keyboard_drag_persists_after_reload(
     qa_pages: QaPageFactory,
 ) -> None:

@@ -53,6 +53,18 @@ export function getOpportunityDetail(opportunityId: number, session: ApiSession)
   return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}`, session)
 }
 
+export function followUpOpportunity(
+  opportunityId: number,
+  expectedFollowUpSince: string,
+  session: ApiSession,
+) {
+  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/follow-up`, {
+    ...session,
+    method: 'POST',
+    body: { expected_follow_up_since: expectedFollowUpSince },
+  })
+}
+
 export function deleteOpportunity(opportunityId: number, session: ApiSession) {
   return apiRequest<null>(`/opportunities/${opportunityId}`, {
     ...session,

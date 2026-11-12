@@ -116,8 +116,11 @@ por conveniencia técnica.
 ## Notificaciones
 
 - Una oportunidad en `NUEVA`, `PARA_COTIZAR` o `COTIZADA` que permanece siete días o
-  más sin cambiar de estado se considera `¡Atrasada!` y genera una notificación
+  más sin cambiar de estado ni registrar seguimiento se considera `¡Atrasada!` y genera una notificación
   interna.
+- Desde el detalle se puede marcar una oportunidad atrasada como al día. Registra
+  fecha y usuario del último seguimiento, resuelve el aviso global y reinicia el
+  plazo de siete días sin cambiar la etapa ni su fecha original de ingreso (CRM-060).
 - La condición `¡Atrasada!` se muestra en el Pipeline, en Notificaciones y como total
   operativo dentro de la sección existente de oportunidades activas del Dashboard.
 - No se envían notificaciones por email.

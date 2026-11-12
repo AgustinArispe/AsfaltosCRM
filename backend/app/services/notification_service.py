@@ -71,11 +71,26 @@ class NotificationService:
         ).where(
             Opportunity.deleted_at.is_(None),
             Opportunity.status.in_(STALE_OPPORTUNITY_STATUSES),
-            Opportunity.current_status_entered_at <= stale_before,
+            func.greatest(
+                Opportunity.current_status_entered_at,
+                func.coalesce(
+                    Opportunity.last_followed_up_at,
+                    Opportunity.current_status_entered_at,
+                ),
+            )
+            <= stale_before,
             ~active_notification_exists,
         )
 
         with self._session.begin():
+            # Serialize eligibility with follow-up acknowledgements. Re-evaluate
+            # the insert's predicate after row locks so an older snapshot cannot
+            # recreate a notice immediately after another user marked it al día.
+            self._session.scalars(
+                eligible_opportunities.with_only_columns(Opportunity.id)
+                .order_by(Opportunity.id)
+                .with_for_update(of=Opportunity)
+            ).all()
             created_ids = self._session.scalars(
                 insert(Notification)
                 .from_select(

@@ -107,6 +107,17 @@ class StatusChangeRequest(StrictRequestModel):
     note: TransitionNote
 
 
+class OpportunityFollowUpRequest(StrictRequestModel):
+    expected_follow_up_since: datetime
+
+    @field_validator("expected_follow_up_since")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("expected_follow_up_since must include a timezone")
+        return value
+
+
 class OpportunityStageRegressionRequest(StrictRequestModel):
     expected_status: OpportunityStatus
     target_status: OpportunityStatus
@@ -206,6 +217,8 @@ class OpportunitySummary(BaseModel):
     status: OpportunityStatus
     source: LeadSource
     current_status_entered_at: datetime
+    last_followed_up_at: datetime | None
+    follow_up_since: datetime
     customer: CustomerSummary
     assigned_user: UserSummary | None
     products: list[QuotedProductResponse] = Field(

@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_stale_opportunity_days
 from app.models import (
     Customer,
     LeadSource,
@@ -223,6 +224,52 @@ class OpportunityService:
             )
             self._session.flush()
 
+        return opportunity
+
+    def follow_up(
+        self,
+        opportunity_id: int,
+        *,
+        expected_follow_up_since: datetime,
+        actor_user_id: int,
+        occurred_at: datetime | None = None,
+    ) -> Opportunity:
+        now = occurred_at or datetime.now(UTC)
+        if now.tzinfo is None or expected_follow_up_since.tzinfo is None:
+            raise ValueError("Follow-up timestamps must be timezone-aware")
+        with self._session.begin():
+            opportunity = self._get_opportunity_for_update(opportunity_id)
+            self._session.refresh(opportunity)
+            self._require_open(opportunity)
+            self._validate_history_user(actor_user_id)
+            baseline = opportunity.follow_up_since
+            if baseline != expected_follow_up_since:
+                if (
+                    opportunity.last_followed_up_at is not None
+                    and opportunity.last_followed_up_by_user_id == actor_user_id
+                    and opportunity.current_status_entered_at
+                    <= expected_follow_up_since
+                    < opportunity.last_followed_up_at
+                ):
+                    return opportunity
+                raise StaleWriteConflictError(
+                    resource="Opportunity follow-up",
+                    current_updated_at=opportunity.updated_at,
+                )
+            if now - baseline < timedelta(days=get_stale_opportunity_days()):
+                raise StaleWriteConflictError(
+                    resource="Opportunity follow-up",
+                    current_updated_at=opportunity.updated_at,
+                )
+            opportunity.last_followed_up_at = now
+            opportunity.last_followed_up_by_user_id = actor_user_id
+            opportunity.updated_at = now
+            NotificationService(
+                self._session
+            ).resolve_stale_for_opportunity_in_transaction(
+                opportunity.id, resolved_at=now
+            )
+            self._session.flush()
         return opportunity
 
     def mark_as_won(

@@ -31,6 +31,7 @@ from app.schemas import (
     StageCompletionRequest,
     StatusChangeRequest,
 )
+from app.schemas.opportunity import OpportunityFollowUpRequest
 from app.services import (
     ExistingCustomerInput,
     ManualOpportunityService,
@@ -43,6 +44,25 @@ from app.services.opportunity_note_service import OpportunityNoteService
 from app.services.opportunity_query_service import OpportunityQueryService
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
+
+
+@router.post(
+    "/{opportunity_id}/follow-up",
+    response_model=OpportunityDetail,
+    summary="Mark an overdue opportunity up to date",
+)
+def follow_up_opportunity(
+    opportunity_id: int,
+    payload: OpportunityFollowUpRequest,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> OpportunityDetail:
+    OpportunityService(session).follow_up(
+        opportunity_id,
+        expected_follow_up_since=payload.expected_follow_up_since,
+        actor_user_id=current_user.id,
+    )
+    return _detail(session, opportunity_id)
 
 
 def _quote_inputs(

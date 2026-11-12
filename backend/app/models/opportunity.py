@@ -70,6 +70,12 @@ class Opportunity(TimestampMixin, Base):
             name="ck_opportunities_updated_after_created",
         ),
         CheckConstraint(
+            "(last_followed_up_at IS NULL AND last_followed_up_by_user_id IS NULL) OR "
+            "(last_followed_up_at IS NOT NULL AND last_followed_up_at >= created_at "
+            "AND last_followed_up_by_user_id IS NOT NULL)",
+            name="ck_opportunities_follow_up_record",
+        ),
+        CheckConstraint(
             "deleted_at IS NULL OR deleted_at >= created_at",
             name="ck_opportunities_deleted_after_created",
         ),
@@ -157,12 +163,29 @@ class Opportunity(TimestampMixin, Base):
         server_default=func.now(),
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_followed_up_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    last_followed_up_by_user_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "users.id", name="fk_opportunities_follow_up_user", ondelete="RESTRICT"
+        ),
+    )
+
+    @property
+    def follow_up_since(self) -> datetime:
+        return max(
+            self.current_status_entered_at,
+            self.last_followed_up_at or self.current_status_entered_at,
+        )
 
     customer: Mapped[Customer] = relationship(
         back_populates="opportunities",
         passive_deletes=True,
     )
     assigned_user: Mapped[User | None] = relationship(
+        foreign_keys=[assigned_user_id],
         back_populates="assigned_opportunities",
         passive_deletes=True,
     )

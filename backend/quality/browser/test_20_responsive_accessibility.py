@@ -16,6 +16,21 @@ from quality.browser.support import (
 )
 
 
+def test_wheel_over_pipeline_cards_scrolls_the_page_in_both_directions(
+    qa_pages: QaPageFactory,
+) -> None:
+    qa_page = qa_pages.create(role="SUPERVISOR", viewport=(1440, 540))
+    page = qa_page.page
+    column = page.get_by_role("region", name="Cotizada", exact=True)
+    column.get_by_role("button").first.hover()
+    page.mouse.wheel(0, 400)
+    page.wait_for_function("window.scrollY > 100")
+    before = cast(float, page.evaluate("window.scrollY"))
+    page.mouse.wheel(0, -350)
+    page.wait_for_function("(before) => window.scrollY < before", arg=before)
+    assert cast(float, page.evaluate("window.scrollY")) < before
+
+
 @pytest.mark.matrix
 @pytest.mark.parametrize(
     ("theme", "viewport"),
