@@ -49,6 +49,7 @@ export function PeriodFilter({
         <label className='period-filter__more'>
           <span className='sr-only'>Más períodos</span>
           <select
+            aria-label='Más períodos'
             className='ui-field'
             value={['three-months', 'year', 'custom'].includes(draft.preset) ? draft.preset : ''}
             onChange={(event) => choose(event.target.value as PeriodSelection['preset'])}

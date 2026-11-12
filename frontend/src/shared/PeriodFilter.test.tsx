@@ -6,6 +6,10 @@ describe('PeriodFilter', () => {
   it('exposes the 15-day quick range and rejects incomplete/inverted manual drafts', () => {
     const onChange = vi.fn()
     render(<PeriodFilter value={{ preset: 'all', from: '', to: '' }} onChange={onChange} />)
+    expect(screen.getByRole('combobox', { name: 'Más períodos' })).toHaveAttribute(
+      'aria-label',
+      'Más períodos',
+    )
     expect(screen.getByRole('button', { name: 'Todo', pressed: true })).toBeVisible()
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-11-10' } })
     expect(onChange).not.toHaveBeenCalled()
