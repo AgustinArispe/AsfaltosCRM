@@ -2,7 +2,7 @@
 
 Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-11
+Last updated: 2026-08-26
 Implementation commit: `040a7626dd19bac4f4d4dd2ac72b63c115850fab`
 
 ## Goal
@@ -41,7 +41,7 @@ normal terminal-state behavior until CRM-012 is implemented.
   Opportunities only to `NEGOCIACION`.
 - Add all-or-nothing Customer CSV import with dry-run preview, typed validation
   reports, conservative identity resolution, durable idempotency, and audit evidence.
-- Complete the operational WordPress/CF7 production integration for CRM-002 with
+- Complete the operational WordPress Avada Forms production integration for CRM-002 with
   deployment documentation, HMAC validation, replay verification, smoke tests, and
   safe monitoring.
 - Extend existing services and projections where responsibilities are already shared;
@@ -175,20 +175,23 @@ normal terminal-state behavior until CRM-012 is implemented.
 
 ### WordPress Production Integration
 
-- CRM-002 remains the sole business contract: each valid new CF7 submission creates
+- CRM-002 remains the sole business contract: each valid new Avada Forms `Contacto`
+  submission creates
   one `WEB` Opportunity, preserves the immutable intake snapshot, and never replaces
-  the existing CF7 email delivery.
+  the existing Avada Save To Database action or email notification.
 - Production delivery is server-to-server over HTTPS to `POST /api/intake/web`.
-  WordPress creates one stable external submission ID per CF7 submission and reuses it
-  with the identical normalized body for every delivery retry.
+  WordPress creates one stable external submission ID per Avada entry and reuses it with
+  the identical normalized body for every delivery retry.
 - WordPress serializes the UTF-8 JSON body once and signs the exact transmitted bytes
-  with the existing `X-Intake-Timestamp` and `X-Intake-Signature` HMAC-SHA256 contract.
+  with the existing `X-FAA-Intake-Timestamp` and `X-FAA-Intake-Signature` HMAC-SHA256
+  contract.
   The signing secret is backend/WordPress server configuration and is never stored in
   frontend code, source control, request logs, or responses.
 - The existing five-minute signature freshness, constant-time comparison, immutable
   payload replay, and changed-payload conflict rules remain unchanged. Production
   integration does not add a second authentication or intake path.
-- A production runbook documents CF7 mapping, secret installation/rotation procedure,
+- A production runbook documents Avada Forms mapping, secret installation/rotation
+  procedure,
   endpoint and TLS configuration, retries, timeout behavior, rollback/disable steps,
   smoke tests, monitoring, alert ownership, and recovery from CRM unavailability.
 - Safe monitoring distinguishes accepted new submissions, identical replays,
@@ -453,7 +456,8 @@ override OR automatic state. Recomputing one component cannot transition the oth
   concurrent commits produce one durable batch result without duplicate Customers.
 - AC-12: WordPress production documentation and contract smoke tests prove exact-body
   HMAC verification, timestamp freshness, stable-ID replay, changed replay rejection,
-  CF7 email continuity, rollback, and safe monitoring without changing CRM-002 rules.
+  Avada database-save and email continuity, rollback, and safe monitoring without
+  changing CRM-002 rules.
 - AC-13: Both active roles retain global read visibility, import/manual override remain
   supervisor-only, and append-only Note, Legendary, lifecycle, and import evidence
   reconstructs actor, time, command, and business outcome without unsafe payloads.

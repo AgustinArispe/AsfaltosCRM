@@ -2,7 +2,7 @@
 
 Status: Implemented
 Owner: FAA CRM team
-Last updated: 2026-08-10
+Last updated: 2026-08-26
 Implementation commit: `05b8adf`
 
 ## Goal
@@ -11,7 +11,10 @@ Accept trusted website submissions and turn each valid submission into an audita
 
 ## Context
 
-The endpoint is intended for server-to-server WordPress/CF7 integration. It is separate from user-authenticated CRM routes and follows the identity rules in `docs/BUSINESS_RULES.md`.
+The endpoint is intended for server-to-server delivery from the FAA website's current
+WordPress Avada Forms `Contacto` form. It is separate from user-authenticated CRM routes
+and follows the identity rules in `docs/BUSINESS_RULES.md`. Identifying Avada Forms as
+the current producer does not change this backend contract or its approved behavior.
 
 ## Dependencies
 
@@ -23,7 +26,8 @@ Input normalization, exact customer identity resolution, enrichment, idempotency
 
 ## Non-goals
 
-The implementation does not replace the existing CF7 email, implement fuzzy matching, or create a campaign/workflow editor.
+The implementation does not replace the existing Avada Forms database save or email
+notification, implement fuzzy matching, or create a campaign/workflow editor.
 
 ## Business rules
 
@@ -41,7 +45,9 @@ The implementation does not replace the existing CF7 email, implement fuzzy matc
 
 `POST /api/intake/web` accepts a strict JSON payload containing external submission ID, name, optional company/email/phone/province, and optional message. The source is not client-selectable; the route sets `WEB`. A new submission returns `201` with customer/opportunity/intake identifiers; an identical replay returns `200` with `created=false`. A changed replay is rejected as an idempotency conflict.
 
-The request uses `X-Intake-Timestamp` and `X-Intake-Signature`. The signature is HMAC-SHA256 over `{timestamp}\nPOST\n/api/intake/web\n{raw body}` and must be within 300 seconds of current UTC time.
+The request uses `X-FAA-Intake-Timestamp` and `X-FAA-Intake-Signature`. The signature is
+HMAC-SHA256 over `{timestamp}\nPOST\n/api/intake/web\n{raw body}` and must be within 300
+seconds of current UTC time.
 
 ## State transitions
 
@@ -77,7 +83,8 @@ None
 
 ## Follow-up / future specs
 
-- The later WordPress/CF7 server-to-server delivery arrangement remains integration work outside this implemented endpoint.
+- The later WordPress Avada Forms server-to-server delivery arrangement remains
+  integration work outside this implemented endpoint.
 
 ## Implementation notes
 
