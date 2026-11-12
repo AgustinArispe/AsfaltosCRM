@@ -1,9 +1,9 @@
 # CRM-060 — Opportunity scrolling, follow-up and product results
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-11-12
-Implementation commit: N/A
+Implementation commit: 1f0ffdb7d645ed97bb8c2f93cd36c17f6e1cfed1
 
 ## Authorization and scope
 
@@ -62,3 +62,15 @@ new roles, dependency upgrades or direct production database edits.
 ## Open decisions
 
 None.
+
+## Verification
+
+- 538 backend tests pass; coverage 93.29%. Migration checks exercise preservation,
+  paired actor/time constraints and protection against losing recorded follow-ups.
+- 297 frontend tests pass, including failed follow-up retry, notification refresh
+  and distinct quoted/won product values and drilldown parameters.
+- Browser acceptance verifies wheel movement in both directions, follow-up after
+  reload, responsive accessibility and existing keyboard/pointer drag journeys.
+- Light and dark dashboard references were visually reviewed in bd7fd9c.
+- Ruff, strict typing, builds, dependency audits and local healthy Compose pass.
+  Publish main only after the final GitHub Quality run succeeds for this tree.
