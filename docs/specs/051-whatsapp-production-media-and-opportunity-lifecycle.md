@@ -6,6 +6,12 @@ Last updated: 2026-09-22
 Implementation commit: `15ca886` (WhatsApp-only scope correction; original media and
 lifecycle implementation `017dd80`)
 
+## Subsequent attribution extension
+
+CRM-061 extends the WhatsApp channel lifecycle below to sources WHATSAPP and META
+under the same active-case limit. A new case uses META when its initial message
+contains an ad referral, while subsequent messages preserve the case source.
+
 ## Goal
 
 Correct the production image/audio delivery path and enforce the approved rule that a

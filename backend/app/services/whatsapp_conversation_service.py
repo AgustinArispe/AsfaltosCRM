@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -16,6 +16,7 @@ from app.models import (
     WhatsAppMessage,
     WhatsAppOpportunityLinkSource,
 )
+from app.models.enums import WHATSAPP_LEAD_SOURCES
 from app.services.customer_identity_service import comparable_phone
 from app.services.errors import (
     EntityNotFoundError,
@@ -238,11 +239,68 @@ class WhatsAppConversationService:
                 raise WhatsAppConversationResolutionError(
                     "Conversation must be resolved before creating an opportunity"
                 )
-            return OpportunityService(self._session).create_opportunity_in_transaction(
+            initial_inquiry = self.pending_initial_inquiry_in_transaction(conversation)
+            opportunity = OpportunityService(
+                self._session
+            ).create_opportunity_in_transaction(
                 customer_id=customer.id,
-                source=LeadSource.WHATSAPP,
+                source=(
+                    LeadSource.META
+                    if initial_inquiry is not None
+                    and initial_inquiry.referral_source_type == "ad"
+                    else LeadSource.WHATSAPP
+                ),
                 changed_by_user_id=changed_by_user_id,
             )
+            if initial_inquiry is not None:
+                opportunity.initial_whatsapp_message_id = initial_inquiry.id
+                self._session.flush()
+            return opportunity
+
+    def pending_initial_inquiry_in_transaction(
+        self,
+        conversation: WhatsAppConversation,
+    ) -> WhatsAppMessage | None:
+        """Recover the first unclaimed inquiry when customer review delayed intake."""
+        previous_close = (
+            select(
+                func.max(
+                    func.greatest(
+                        Opportunity.current_status_entered_at, Opportunity.deleted_at
+                    )
+                )
+            )
+            .where(
+                Opportunity.customer_id == conversation.customer_id,
+                Opportunity.source.in_(WHATSAPP_LEAD_SOURCES),
+                or_(
+                    Opportunity.status.in_(
+                        (OpportunityStatus.GANADA, OpportunityStatus.PERDIDA)
+                    ),
+                    Opportunity.deleted_at.is_not(None),
+                ),
+            )
+            .scalar_subquery()
+        )
+        claimed = exists(
+            select(Opportunity.id).where(
+                Opportunity.initial_whatsapp_message_id == WhatsAppMessage.id,
+            )
+        )
+        return self._session.scalar(
+            select(WhatsAppMessage)
+            .where(
+                WhatsAppMessage.conversation_id == conversation.id,
+                WhatsAppMessage.direction == WhatsAppDirection.INBOUND,
+                ~claimed,
+                or_(
+                    previous_close.is_(None),
+                    WhatsAppMessage.created_at >= previous_close,
+                ),
+            )
+            .order_by(WhatsAppMessage.id)
+            .limit(1)
+        )
 
     def link_opportunity(
         self,

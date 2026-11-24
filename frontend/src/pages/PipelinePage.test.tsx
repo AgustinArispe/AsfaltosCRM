@@ -724,3 +724,19 @@ describe('PipelinePage', () => {
     expect(stageCalls.filter((status) => status !== 'GANADA')).toHaveLength(3)
   })
 })
+
+it('shows and filters the Meta source on an opportunity card', async () => {
+  mockApi([opportunity('NUEVA', 1, { source: 'META' }), opportunity('NUEVA', 2)])
+  render(<PipelinePage />)
+  await ready()
+  expect(screen.getByRole('button', { name: /Abrir oportunidad de Empresa 1,/ })).toHaveTextContent(
+    'Meta',
+  )
+  fireEvent.change(screen.getByRole('combobox', { name: 'Origen' }), { target: { value: 'META' } })
+  expect(
+    screen.getByRole('button', { name: /Abrir oportunidad de Empresa 1,/ }),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: /Abrir oportunidad de Empresa 2,/ }),
+  ).not.toBeInTheDocument()
+})

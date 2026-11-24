@@ -107,3 +107,11 @@ describe('board-state', () => {
     ).toEqual([2])
   })
 })
+
+it('filters Meta opportunities independently of ordinary WhatsApp', () => {
+  const meta = item(1, { source: 'META' })
+  const whatsapp = item(2, { source: 'WHATSAPP' })
+  expect(
+    projectPipeline([meta, whatsapp], { ...DEFAULT_PIPELINE_FILTERS, source: 'META' }),
+  ).toEqual([meta])
+})

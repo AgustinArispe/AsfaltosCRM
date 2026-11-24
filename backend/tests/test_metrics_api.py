@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     Customer,
     LeadSource,
+    LossReason,
     Opportunity,
     OpportunityProduct,
     OpportunityStatus,
@@ -279,14 +280,16 @@ def test_soft_deleted_opportunities_are_excluded_from_metrics(
     )
 
 
-def test_instagram_source_is_filterable_and_aggregated(
+@pytest.mark.parametrize("source", [LeadSource.INSTAGRAM, LeadSource.META])
+def test_advertising_source_is_filterable_and_aggregated(
     api_client: TestClient,
     db_session: Session,
+    source: LeadSource,
 ) -> None:
-    customer = Customer(name=f"Cliente Instagram {uuid4().hex}")
+    customer = Customer(name=f"Cliente {source.value} {uuid4().hex}")
     opportunity = Opportunity(
         customer=customer,
-        source=LeadSource.INSTAGRAM,
+        source=source,
         status=OpportunityStatus.NUEVA,
         created_at=FROM + timedelta(days=1),
         updated_at=FROM + timedelta(days=1),
@@ -296,19 +299,19 @@ def test_instagram_source_is_filterable_and_aggregated(
 
     overview_response = api_client.get(
         "/api/metrics/overview",
-        params={**period_params(), "source": "INSTAGRAM"},
+        params={**period_params(), "source": source.value},
     )
     sources_response = api_client.get("/api/metrics/sources", params=period_params())
 
     assert overview_response.status_code == 200
     assert overview_response.json()["opportunities"]["created"] == 1
     assert sources_response.status_code == 200
-    instagram = next(
+    advertising_source = next(
         item
         for item in sources_response.json()["items"]
-        if item["source"] == "INSTAGRAM"
+        if item["source"] == source.value
     )
-    assert instagram["created"] == 1
+    assert advertising_source["created"] == 1
 
 
 def test_timeline_day_opportunities_returns_narrow_typed_projection(
@@ -425,7 +428,7 @@ def test_timeline_day_opportunities_validates_query(
         {"from": "2050-01-01T00:00:00", "to": TO.isoformat()},
         {"from": TO.isoformat(), "to": FROM.isoformat()},
         {**period_params(), "product_id": "0"},
-        {**period_params(), "source": "META"},
+        {**period_params(), "source": "UNKNOWN_SOURCE"},
         {**period_params(), "unexpected": "value"},
     ],
 )
@@ -505,3 +508,55 @@ def test_pipeline_rejects_period_and_invalid_product_filter(
 
     assert with_period.status_code == 422
     assert invalid_product.status_code == 422
+
+
+@pytest.mark.parametrize("won", [False, True])
+def test_meta_results_and_volumes_remain_filterable_after_closing(
+    api_client: TestClient,
+    db_session: Session,
+    *,
+    won: bool,
+) -> None:
+    customer = Customer(name=f"Resultado Meta {uuid4().hex}")
+    opportunity = Opportunity(
+        customer=customer,
+        source=LeadSource.META,
+        status=OpportunityStatus.COTIZADA,
+        created_at=FROM + timedelta(days=1),
+        updated_at=FROM + timedelta(days=2),
+        current_status_entered_at=FROM + timedelta(days=2),
+    )
+    opportunity.opportunity_products.append(
+        OpportunityProduct(
+            product=Product(name=f"Producto Meta {uuid4().hex}"),
+            quantity_kg=Decimal("500.000"),
+        )
+    )
+    persist(db_session, opportunity)
+    from app.services.opportunity_service import OpportunityService
+
+    service = OpportunityService(db_session)
+    if won:
+        service.mark_as_won(
+            opportunity.id,
+            note="Compra de anuncio confirmada",
+            occurred_at=FROM + timedelta(days=3),
+        )
+    else:
+        service.mark_as_lost(
+            opportunity.id,
+            LossReason.PRECIO,
+            note="Propuesta de anuncio rechazada",
+            occurred_at=FROM + timedelta(days=3),
+        )
+    params = {**period_params(), "source": "META"}
+    overview = api_client.get("/api/metrics/overview", params=params)
+    sources = api_client.get("/api/metrics/sources", params=params)
+    products = api_client.get("/api/metrics/products", params=params)
+    kind = "won" if won else "lost"
+    assert overview.status_code == sources.status_code == products.status_code == 200
+    assert overview.json()["opportunities"][kind] == 1
+    assert overview.json()["volume_kg"][kind] == "500.000"
+    assert sources.json()["items"][0]["source"] == "META"
+    assert sources.json()["items"][0][kind] == 1
+    assert products.json()["items"][0][f"kg_{kind}"] == "500.000"

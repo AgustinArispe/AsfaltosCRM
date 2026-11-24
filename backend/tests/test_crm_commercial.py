@@ -20,6 +20,7 @@ from app.models import (
     Opportunity,
     OpportunityLossEvent,
     OpportunityNoteRevision,
+    OpportunityProduct,
     OpportunityStatus,
     OpportunityStatusHistory,
     OpportunityTransitionKind,
@@ -30,6 +31,7 @@ from app.models import (
 from app.scripts import recompute_legendary_customers, smoke_wordpress_intake
 from app.services.customer_import_service import CustomerImportService
 from app.services.errors import (
+    ActiveOpportunityExistsError,
     EntityNotFoundError,
     IdempotencyConflictError,
     InvalidCustomerImportError,
@@ -823,3 +825,61 @@ def test_crm_commercial_api_contracts(
     )
     assert committed.status_code == 200
     assert committed.json()["created_count"] == 1
+
+
+@pytest.mark.parametrize(
+    "closed_status", [OpportunityStatus.GANADA, OpportunityStatus.PERDIDA]
+)
+@pytest.mark.parametrize("closed_source", [LeadSource.META, LeadSource.WHATSAPP])
+def test_reopening_or_regression_respects_shared_ad_and_organic_channel_limit(
+    db_session: Session,
+    supervisor_user: User,
+    closed_status: OpportunityStatus,
+    closed_source: LeadSource,
+) -> None:
+    customer = Customer(name="Canal de anuncio")
+    closed = Opportunity(
+        customer=customer,
+        source=closed_source,
+        status=closed_status,
+        loss_reason=LossReason.PRECIO
+        if closed_status is OpportunityStatus.PERDIDA
+        else None,
+    )
+    closed.opportunity_products.append(
+        OpportunityProduct(
+            product=Product(name="Producto de anuncio"), quantity_kg=Decimal("100.000")
+        )
+    )
+    db_session.add_all(
+        [
+            closed,
+            Opportunity(
+                customer=customer,
+                source=LeadSource.WHATSAPP
+                if closed_source is LeadSource.META
+                else LeadSource.META,
+                status=OpportunityStatus.NUEVA,
+            ),
+        ]
+    )
+    db_session.commit()
+    closed_id, actor_id = closed.id, supervisor_user.id
+    service = OpportunityService(db_session)
+    with pytest.raises(ActiveOpportunityExistsError):
+        if closed_status is OpportunityStatus.GANADA:
+            service.regress_stage(
+                closed_id,
+                expected_status=closed_status,
+                target_status=OpportunityStatus.COTIZADA,
+                changed_by_user_id=actor_id,
+                note="Se revisa el cierre",
+            )
+        else:
+            service.reopen(
+                closed_id,
+                expected_status=closed_status,
+                command_id=uuid4(),
+                changed_by_user_id=actor_id,
+                note="Se retoma la consulta",
+            )

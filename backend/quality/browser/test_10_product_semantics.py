@@ -277,3 +277,19 @@ def test_primary_workspaces_have_no_automated_wcag_violations(
         wait_for_workspace(page, path)
         assert_no_horizontal_overflow(page)
         run_axe(page)
+
+
+def test_meta_source_is_available_in_pipeline_dashboard_and_won(
+    qa_pages: QaPageFactory,
+) -> None:
+    qa_page = qa_pages.create(role="VENDEDOR")
+    page = qa_page.page
+    for workspace in ("pipeline", "dashboard", "won"):
+        wait_for_workspace(page, workspace)
+        source = page.get_by_role("combobox", name="Origen", exact=True)
+        source.select_option("META")
+        if workspace == "won":
+            page.get_by_role("button", name="Aplicar", exact=True).click()
+        expect(source).to_have_value("META")
+        if workspace != "pipeline":
+            expect(page).to_have_url(re.compile(r"[?&]source=META(?:&|$)"))

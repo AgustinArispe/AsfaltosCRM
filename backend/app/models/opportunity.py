@@ -90,7 +90,7 @@ class Opportunity(TimestampMixin, Base):
             "customer_id",
             unique=True,
             postgresql_where=text(
-                "deleted_at IS NULL AND source = 'WHATSAPP' "
+                "deleted_at IS NULL AND source IN ('WHATSAPP', 'META') "
                 "AND status IN ('NUEVA', 'PARA_COTIZAR', 'COTIZADA', 'NEGOCIACION')"
             ),
         ),

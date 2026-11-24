@@ -18,6 +18,7 @@ from app.whatsapp.webhook_contracts import (
     ProviderIgnoredEvent,
     ProviderInboundAttachment,
     ProviderInboundEvent,
+    ProviderInboundReferral,
     ProviderStatusEvent,
     ProviderWebhookEvent,
     ProviderWebhookMappingError,
@@ -74,6 +75,15 @@ class _MetaAudio(BaseModel):
     voice: bool | None = None
 
 
+class _MetaReferral(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    source_type: str | None = None
+    source_id: str | None = None
+    source_url: str | None = None
+    ctwa_clid: str | None = None
+
+
 class _MetaInboundMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -85,6 +95,7 @@ class _MetaInboundMessage(BaseModel):
     image: _MetaImage | None = None
     document: _MetaDocument | None = None
     audio: _MetaAudio | None = None
+    referral: _MetaReferral | None = None
 
 
 class _MetaStatusErrorData(BaseModel):
@@ -297,6 +308,16 @@ class MetaWebhookMapper:
             body=_optional_text(body),
             provider_message_at=timestamp,
             attachment=attachment,
+            referral=(
+                ProviderInboundReferral(
+                    source_type=_optional_text(message.referral.source_type),
+                    source_id=_optional_text(message.referral.source_id),
+                    source_url=_optional_text(message.referral.source_url),
+                    ctwa_clid=_optional_text(message.referral.ctwa_clid),
+                )
+                if message.referral is not None
+                else None
+            ),
         )
 
     def _map_status(self, status: _MetaStatus) -> ProviderWebhookEvent:

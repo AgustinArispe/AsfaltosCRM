@@ -82,6 +82,7 @@ describe('Dashboard filters', () => {
     ).toBe(3)
     expect(sourceLabel('WEB')).toBe('Web')
     expect(sourceLabel('WHATSAPP')).toBe('WhatsApp')
+    expect(sourceLabel('META')).toBe('Meta')
     expect(sourceLabel('REFERIDO')).toBe('Manual')
     expect(sourceLabel('INSTAGRAM')).toBe('Instagram')
   })
@@ -103,4 +104,12 @@ describe('Dashboard filters', () => {
 
     expect(restored.source).toBe('INSTAGRAM')
   })
+})
+
+it('restores the Meta source when following a report link', () => {
+  const filters = dashboardFiltersFromQuery(
+    '?period=all&source=META',
+    new Date('2026-11-24T12:00:00-03:00'),
+  )
+  expect(filters.source).toBe('META')
 })

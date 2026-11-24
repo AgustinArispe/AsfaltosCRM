@@ -146,6 +146,10 @@ class WhatsAppMessage(TimestampMixin, Base):
         server_default=WhatsAppMessageOrigin.HUMAN.value,
     )
     body: Mapped[str | None] = mapped_column(Text)
+    referral_source_type: Mapped[str | None] = mapped_column(Text)
+    referral_source_id: Mapped[str | None] = mapped_column(Text)
+    referral_source_url: Mapped[str | None] = mapped_column(Text)
+    referral_ctwa_clid: Mapped[str | None] = mapped_column(Text)
     sent_by_user_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(

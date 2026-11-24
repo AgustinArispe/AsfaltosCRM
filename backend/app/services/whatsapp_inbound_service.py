@@ -42,6 +42,7 @@ from app.services.whatsapp_projection_service import (
     recompute_response_projection,
 )
 from app.whatsapp import WhatsAppProvider, WindowEvaluationContext
+from app.whatsapp.webhook_contracts import ProviderInboundReferral
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +63,7 @@ class InboundMessageInput:
     body: str | None
     provider_message_at: datetime
     attachment: InboundAttachmentInput | None = None
+    referral: ProviderInboundReferral | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +87,7 @@ class _NormalizedInbound:
     body: str | None
     provider_message_at: datetime
     attachment: InboundAttachmentInput | None
+    referral: ProviderInboundReferral
 
 
 class WhatsAppInboundService:
@@ -156,6 +159,7 @@ class WhatsAppInboundService:
                 self._refresh_existing_conversation(conversation, normalized)
 
             opportunity: Opportunity | None = None
+            initial_inquiry: WhatsAppMessage | None = None
             created_opportunity = False
             if (
                 customer is not None
@@ -168,9 +172,21 @@ class WhatsAppInboundService:
                     customer.id
                 )
                 if opportunity is None:
+                    initial_inquiry = WhatsAppConversationService(
+                        self._session
+                    ).pending_initial_inquiry_in_transaction(conversation)
+                    initial_referral_type = (
+                        initial_inquiry.referral_source_type
+                        if initial_inquiry is not None
+                        else normalized.referral.source_type
+                    )
                     opportunity = opportunity_service.create_opportunity_in_transaction(
                         customer_id=customer.id,
-                        source=LeadSource.WHATSAPP,
+                        source=(
+                            LeadSource.META
+                            if initial_referral_type == "ad"
+                            else LeadSource.WHATSAPP
+                        ),
                         assigned_user_id=None,
                         changed_by_user_id=None,
                     )
@@ -192,6 +208,10 @@ class WhatsAppInboundService:
                 direction=WhatsAppDirection.INBOUND,
                 message_type=normalized.message_type,
                 body=normalized.body,
+                referral_source_type=normalized.referral.source_type,
+                referral_source_id=normalized.referral.source_id,
+                referral_source_url=normalized.referral.source_url,
+                referral_ctwa_clid=normalized.referral.ctwa_clid,
                 sent_by_user_id=None,
                 dispatch_state=None,
                 provider_state=WhatsAppProviderState.RECEIVED,
@@ -200,7 +220,9 @@ class WhatsAppInboundService:
             self._session.add(message)
             self._session.flush()
             if created_opportunity and opportunity is not None:
-                opportunity.initial_whatsapp_message_id = message.id
+                opportunity.initial_whatsapp_message_id = (
+                    initial_inquiry.id if initial_inquiry is not None else message.id
+                )
             if normalized.attachment is not None:
                 self._session.add(
                     WhatsAppAttachment(
@@ -331,6 +353,10 @@ class WhatsAppInboundService:
             and message.message_type is inbound.message_type
             and message.body == inbound.body
             and message.provider_message_at == inbound.provider_message_at
+            and message.referral_source_type == inbound.referral.source_type
+            and message.referral_source_id == inbound.referral.source_id
+            and message.referral_source_url == inbound.referral.source_url
+            and message.referral_ctwa_clid == inbound.referral.ctwa_clid
             and same_attachment
         ):
             raise WhatsAppIdempotencyConflictError(
@@ -408,6 +434,7 @@ class WhatsAppInboundService:
             body=body,
             provider_message_at=provider_message_at,
             attachment=message_input.attachment,
+            referral=message_input.referral or ProviderInboundReferral(),
         )
 
     @staticmethod

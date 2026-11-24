@@ -43,6 +43,7 @@ class WhatsAppWebhookService:
                         message_type=event.message_type,
                         body=event.body,
                         provider_message_at=event.provider_message_at,
+                        referral=event.referral,
                         attachment=(
                             InboundAttachmentInput(
                                 provider_media_id=(event.attachment.provider_media_id),

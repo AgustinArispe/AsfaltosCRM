@@ -22,6 +22,7 @@ from app.models import (
     Product,
     User,
 )
+from app.models.enums import WHATSAPP_LEAD_SOURCES
 from app.services.customer_identity_service import acquire_advisory_locks
 from app.services.errors import (
     ActiveOpportunityExistsError,
@@ -107,7 +108,7 @@ class OpportunityService:
         opportunity creation with other writes atomically.
         """
         self._get_available_customer(customer_id)
-        if source is LeadSource.WHATSAPP:
+        if source in WHATSAPP_LEAD_SOURCES:
             active = self.active_whatsapp_opportunity_for_customer_in_transaction(
                 customer_id
             )
@@ -326,7 +327,7 @@ class OpportunityService:
                     opportunity.status,
                     target_status,
                 )
-            if opportunity.source is LeadSource.WHATSAPP:
+            if opportunity.source in WHATSAPP_LEAD_SOURCES:
                 active = self.active_whatsapp_opportunity_for_customer_in_transaction(
                     opportunity.customer_id,
                     exclude_opportunity_id=opportunity.id,
@@ -515,7 +516,7 @@ class OpportunityService:
                 )
             self._validate_history_user(changed_by_user_id)
             self._require_quoted_products(opportunity.id)
-            if opportunity.source is LeadSource.WHATSAPP:
+            if opportunity.source in WHATSAPP_LEAD_SOURCES:
                 active = self.active_whatsapp_opportunity_for_customer_in_transaction(
                     opportunity.customer_id,
                     exclude_opportunity_id=opportunity.id,
@@ -577,7 +578,7 @@ class OpportunityService:
     ) -> Opportunity | None:
         statement = select(Opportunity).where(
             Opportunity.customer_id == customer_id,
-            Opportunity.source == LeadSource.WHATSAPP,
+            Opportunity.source.in_(WHATSAPP_LEAD_SOURCES),
             Opportunity.status.in_(ACTIVE_OPPORTUNITY_STATUSES),
             Opportunity.deleted_at.is_(None),
         )

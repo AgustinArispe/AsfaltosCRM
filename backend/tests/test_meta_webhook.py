@@ -17,6 +17,7 @@ from app.core.security import create_access_token
 from app.main import create_app
 from app.models import (
     Customer,
+    LeadSource,
     Opportunity,
     User,
     WhatsAppMessage,
@@ -363,9 +364,12 @@ def test_meta_route_table_excludes_fake_dev_and_fake_excludes_meta_webhook() -> 
     assert "/api/whatsapp/dev/inbound" in fake_routes
 
 
+@pytest.mark.parametrize("ad_referral", [False, True])
 def test_provider_webhook_api_processes_inbound_dedupe_and_out_of_order_status(
     db_session: Session,
     supervisor_user: User,
+    *,
+    ad_referral: bool,
 ) -> None:
     test_now = datetime.now(UTC)
     test_timestamp = int(test_now.timestamp())
@@ -392,6 +396,12 @@ def test_provider_webhook_api_processes_inbound_dedupe_and_out_of_order_status(
             str(test_timestamp),
         )
     )
+    if ad_referral:
+        inbound = inbound.replace(
+            b'"type":"text","text"',
+            b'"referral":{"source_type":"ad","source_id":"120226305854810726",'
+            b'"source_url":"https://fb.me/example"},"type":"text","text"',
+        )
     first = client.post(
         "/api/whatsapp/provider/webhook",
         content=inbound,
@@ -412,6 +422,15 @@ def test_provider_webhook_api_processes_inbound_dedupe_and_out_of_order_status(
         )
     )
     assert inbound_message is not None
+    initial_opportunity = db_session.scalar(select(Opportunity))
+    assert initial_opportunity is not None
+    assert initial_opportunity.source is (
+        LeadSource.META if ad_referral else LeadSource.WHATSAPP
+    )
+    assert initial_opportunity.initial_whatsapp_message_id == inbound_message.id
+    assert inbound_message.referral_source_id == (
+        "120226305854810726" if ad_referral else None
+    )
     db_session.commit()
 
     client.headers["Authorization"] = (
@@ -489,3 +508,34 @@ def test_signed_unknown_is_acknowledged_and_malformed_is_rejected(
         ).status_code
         == 400
     )
+
+
+@pytest.mark.parametrize(
+    "message_content",
+    [
+        '"type":"text","text":{"body":"Precio de BituBach"}',
+        '"type":"image","image":{"id":"media-ad","mime_type":"image/jpeg"}',
+        '"type":"audio","audio":{"id":"media-ad","mime_type":"audio/ogg"}',
+        '"type":"document","document":{"id":"media-ad","mime_type":"application/pdf"}',
+    ],
+)
+def test_mapper_preserves_ad_evidence_for_supported_inbound_types(
+    message_content: str,
+) -> None:
+    body = _envelope(
+        '{"messaging_product":"whatsapp",'
+        '"metadata":{"phone_number_id":"106540352242922"},'
+        '"messages":[{"from":"541155551234","id":"wamid.referral",'
+        '"timestamp":"1786374000","referral":{"source_type":"ad",'
+        '"source_id":"ad-123","source_url":"https://fb.me/ad-123",'
+        '"ctwa_clid":"click-123","headline":"Anuncio de FAA"},'
+        + message_content
+        + "}]}"
+    )
+    event = _mapper(_WebhookMetrics()).map_events(body)[0]
+    assert isinstance(event, ProviderInboundEvent)
+    assert event.referral is not None
+    assert event.referral.source_type == "ad"
+    assert event.referral.source_id == "ad-123"
+    assert event.referral.source_url == "https://fb.me/ad-123"
+    assert event.referral.ctwa_clid == "click-123"

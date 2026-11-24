@@ -53,8 +53,9 @@ por conveniencia técnica.
 
 - Una `Opportunity` pertenece a un `Customer`.
 - Un `Customer` puede tener múltiples oportunidades activas simultáneas cuando sus
-  orígenes comerciales son distintos. La restricción especial aplica sólo al origen
-  `WHATSAPP`: puede existir como máximo una oportunidad `WHATSAPP` activa por Customer.
+  orígenes comerciales son distintos. La restricción especial aplica al canal
+  WhatsApp: puede existir como máximo una oportunidad activa de origen `WHATSAPP`
+  o `META` por Customer.
   Son activas `NUEVA`, `PARA_COTIZAR` y `COTIZADA`; `GANADA` y `PERDIDA` son cerradas
   para esta regla.
 - El pipeline principal es `NUEVA` → `PARA_COTIZAR` → `COTIZADA` → `GANADA`.
@@ -143,7 +144,7 @@ por conveniencia técnica.
   más consultados y vendidos; conversión por producto; leads por origen; distribución
   por provincia; timeline; y snapshot del pipeline.
 - Los orígenes comerciales reconocidos en reportes incluyen `WEB`, `WHATSAPP`,
-  `REFERIDO` e `INSTAGRAM`.
+  `META`, `REFERIDO` e `INSTAGRAM`.
 - Las métricas se calculan en el backend. El frontend sólo las visualiza.
 
 ## Lead Intake Web
@@ -178,14 +179,17 @@ FastAPI.
 - Cuando escribe por primera vez un número desconocido, se resuelve el `Customer` de
   forma conservadora por teléfono y se crea si no existe.
 - Para un cliente resuelto de forma única, cada mensaje inbound válido reutiliza su
-  oportunidad `WHATSAPP` activa si existe. Si no existe una activa de ese origen, ese
-  mensaje crea una nueva `Opportunity` en `NUEVA` con `source=WHATSAPP` y queda
+  oportunidad activa del canal WhatsApp (`WHATSAPP` o `META`) si existe. Si no hay
+  una activa de ese canal, el mensaje crea una nueva `Opportunity` en `NUEVA`.
+  Su origen es `META` cuando el mensaje inicial trae `referral.source_type=ad`;
+  en los demás casos es `WHATSAPP`. El mensaje queda
   referenciado como su consulta inicial inmutable. Las oportunidades activas `WEB`,
   `INSTAGRAM`, `REFERIDO` u otros orígenes no intervienen en esta decisión.
 - Los mensajes posteriores no crean oportunidades mientras continúe activa la
-  oportunidad `WHATSAPP`. Después de que quede `GANADA` o `PERDIDA`, el siguiente
-  inbound válido puede crear una nueva oportunidad histórica `WHATSAPP` para el mismo
-  cliente.
+  oportunidad del canal WhatsApp. El origen del mensaje inicial se conserva en
+  esa oportunidad. Después de que quede `GANADA` o `PERDIDA`, el siguiente
+  inbound válido puede crear una nueva oportunidad para el mismo cliente, con el
+  origen de su nuevo mensaje inicial. La referencia al anuncio se conserva en el mensaje (CRM-061).
 - Matching ambiguo o coincidencias con clientes eliminados conservan la resolución
   manual y nunca disparan una oportunidad automática.
 

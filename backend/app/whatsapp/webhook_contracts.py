@@ -16,6 +16,14 @@ class ProviderInboundAttachment:
 
 
 @dataclass(frozen=True, slots=True)
+class ProviderInboundReferral:
+    source_type: str | None = None
+    source_id: str | None = None
+    source_url: str | None = None
+    ctwa_clid: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ProviderInboundEvent:
     external_message_id: str
     external_phone: str
@@ -25,6 +33,7 @@ class ProviderInboundEvent:
     body: str | None
     provider_message_at: datetime
     attachment: ProviderInboundAttachment | None = None
+    referral: ProviderInboundReferral | None = None
 
 
 @dataclass(frozen=True, slots=True)

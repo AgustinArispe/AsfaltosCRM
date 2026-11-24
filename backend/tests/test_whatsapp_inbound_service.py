@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -35,8 +36,12 @@ from app.services import (
     WhatsAppInboundService,
     WhatsAppOpportunityAssociationError,
 )
-from app.services.errors import WhatsAppConversationResolutionError
+from app.services.errors import (
+    ActiveOpportunityExistsError,
+    WhatsAppConversationResolutionError,
+)
 from app.whatsapp import FakeWhatsAppProvider
+from app.whatsapp.webhook_contracts import ProviderInboundReferral
 
 NOW = datetime(2030, 8, 10, 15, 0, tzinfo=UTC)
 
@@ -663,7 +668,12 @@ def test_concurrent_distinct_inbound_creates_at_most_one_active_opportunity() ->
     def receive_once(index: int) -> tuple[int, int]:
         with SessionLocal() as session:
             result = WhatsAppInboundService(session, fake).receive(
-                inbound(f"wamid-concurrent-active-{index}", phone=phone),
+                replace(
+                    inbound(f"wamid-concurrent-active-{index}", phone=phone),
+                    referral=ProviderInboundReferral(source_type="ad")
+                    if index
+                    else None,
+                ),
                 now=NOW + timedelta(seconds=index),
             )
             assert result.opportunity_id is not None
@@ -757,3 +767,148 @@ def test_concurrent_distinct_inbound_creates_at_most_one_active_opportunity() ->
                     delete(Opportunity).where(Opportunity.id.in_(opportunity_ids))
                 )
                 cleanup.execute(delete(Customer).where(Customer.id == customer_id))
+
+
+@pytest.mark.parametrize("ad_first", [False, True])
+def test_initial_referral_classifies_case_and_later_messages_preserve_it(
+    db_session: Session,
+    *,
+    ad_first: bool,
+) -> None:
+    service = WhatsAppInboundService(db_session, provider())
+    referral = ProviderInboundReferral(
+        source_type="ad",
+        source_id="ad-123",
+        source_url="https://fb.me/example",
+        ctwa_clid="click-123",
+    )
+    first_input = replace(
+        inbound(
+            "wamid-meta-initial", body="Hola Cuál es el precio de la bolsa de BituBach?"
+        ),
+        referral=referral if ad_first else None,
+    )
+    first = service.receive(first_input, now=NOW)
+    replay = service.receive(first_input, now=NOW)
+    assert replay.created is False
+    second = service.receive(
+        replace(inbound("wamid-meta-second"), referral=None if ad_first else referral),
+        now=NOW,
+    )
+    assert second.opportunity_id == first.opportunity_id
+    opportunity = db_session.get(Opportunity, first.opportunity_id)
+    message = db_session.get(WhatsAppMessage, first.message_id)
+    assert opportunity is not None and message is not None
+    assert opportunity.source is (LeadSource.META if ad_first else LeadSource.WHATSAPP)
+    assert opportunity.initial_whatsapp_message_id == first.message_id
+    assert message.referral_source_id == ("ad-123" if ad_first else None)
+    assert message.referral_ctwa_clid == ("click-123" if ad_first else None)
+    db_session.commit()
+    with pytest.raises(WhatsAppIdempotencyConflictError):
+        service.receive(
+            replace(
+                first_input,
+                referral=ProviderInboundReferral(
+                    source_type="ad", source_id="different-ad"
+                ),
+            ),
+            now=NOW,
+        )
+
+
+@pytest.mark.parametrize("source_type", [None, "ad", "post", ""])
+def test_referral_type_controls_attribution_without_requiring_click_id(
+    db_session: Session,
+    source_type: str | None,
+) -> None:
+    result = WhatsAppInboundService(db_session, provider()).receive(
+        replace(
+            inbound("wamid-referral-type"),
+            referral=ProviderInboundReferral(source_type=source_type),
+        ),
+        now=NOW,
+    )
+    opportunity = db_session.get(Opportunity, result.opportunity_id)
+    assert opportunity is not None
+    assert opportunity.source is (
+        LeadSource.META if source_type == "ad" else LeadSource.WHATSAPP
+    )
+
+
+def test_closed_meta_case_starts_next_case_with_new_initial_source(
+    db_session: Session,
+) -> None:
+    service = WhatsAppInboundService(db_session, provider())
+    first = service.receive(
+        replace(
+            inbound("wamid-meta-closed"),
+            referral=ProviderInboundReferral(source_type="ad"),
+        ),
+        now=NOW,
+    )
+    original = db_session.get(Opportunity, first.opportunity_id)
+    assert original is not None
+    original.status = OpportunityStatus.GANADA
+    db_session.commit()
+    second = service.receive(inbound("wamid-organic-next"), now=NOW)
+    created = db_session.get(Opportunity, second.opportunity_id)
+    assert created is not None and created.id != first.opportunity_id
+    assert created.source is LeadSource.WHATSAPP
+    db_session.refresh(original)
+    assert original.source is LeadSource.META
+
+
+@pytest.mark.parametrize(
+    "first_source, second_source",
+    [(LeadSource.META, LeadSource.WHATSAPP), (LeadSource.WHATSAPP, LeadSource.META)],
+)
+def test_ad_and_organic_cases_share_the_channel_creation_limit(
+    db_session: Session,
+    first_source: LeadSource,
+    second_source: LeadSource,
+) -> None:
+    customer = Customer(name="Canal WhatsApp compartido")
+    db_session.add(customer)
+    db_session.commit()
+    customer_id = customer.id
+    service = OpportunityService(db_session)
+    service.create_opportunity(customer_id=customer_id, source=first_source)
+
+    with pytest.raises(ActiveOpportunityExistsError):
+        service.create_opportunity(customer_id=customer_id, source=second_source)
+
+
+@pytest.mark.parametrize("manual_creation", [False, True])
+def test_identity_review_preserves_the_pending_first_ad_inquiry(
+    db_session: Session,
+    supervisor_user_id: int,
+    *,
+    manual_creation: bool,
+) -> None:
+    phone = "+541177770061"
+    customer = Customer(name="Cliente a revisar", phone=phone)
+    db_session.add_all([customer, Customer(name="Coincidencia duplicada", phone=phone)])
+    db_session.commit()
+    customer_id = customer.id
+    intake = WhatsAppInboundService(db_session, provider())
+    first = intake.receive(
+        replace(
+            inbound("wamid-review-ad", phone=phone),
+            referral=ProviderInboundReferral(source_type="ad"),
+        ),
+        now=NOW,
+    )
+    assert first.customer_id is None and first.opportunity_id is None
+    conversations = WhatsAppConversationService(db_session)
+    conversations.resolve_customer(first.conversation_id, customer_id, now=NOW)
+    opportunity: Opportunity | None
+    if manual_creation:
+        opportunity = conversations.create_opportunity(
+            first.conversation_id, changed_by_user_id=supervisor_user_id
+        )
+    else:
+        second = intake.receive(inbound("wamid-review-followup", phone=phone), now=NOW)
+        opportunity = db_session.get(Opportunity, second.opportunity_id)
+    assert opportunity is not None
+    assert opportunity.source is LeadSource.META
+    assert opportunity.initial_whatsapp_message_id == first.message_id
