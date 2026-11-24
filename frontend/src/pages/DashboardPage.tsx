@@ -39,7 +39,7 @@ function DashboardSkeleton() {
 }
 
 export function DashboardPage() {
-  const { token, logout } = useAuth()
+  const { token, logout, user } = useAuth()
   const [filters, setFilters] = useState(() => dashboardFiltersFromQuery(window.location.search))
   const [drilldown, setDrilldown] = useState<DrilldownSelection | null>(null)
   const session = useMemo<ApiSession>(
@@ -58,6 +58,7 @@ export function DashboardPage() {
     filters,
     session,
     notificationAttention?.count ?? null,
+    user?.role === 'SUPERVISOR',
   )
   const provinces = useMemo(
     () =>

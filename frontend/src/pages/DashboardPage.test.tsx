@@ -3,10 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DashboardPage } from './DashboardPage'
 
-const authState = vi.hoisted(() => ({ logout: vi.fn() }))
+const authState = vi.hoisted(() => ({
+  logout: vi.fn(),
+  user: { role: 'SUPERVISOR' as 'SUPERVISOR' | 'VENDEDOR' },
+}))
 
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ token: 'dashboard-token', logout: authState.logout }),
+  useAuth: () => ({ token: 'dashboard-token', logout: authState.logout, user: authState.user }),
 }))
 
 type MockOptions = {
@@ -268,6 +271,7 @@ describe('DashboardPage', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(new Date('2026-08-14T15:00:00Z'))
     authState.logout.mockReset()
+    authState.user.role = 'SUPERVISOR'
   })
 
   afterEach(() => {
@@ -655,6 +659,22 @@ describe('DashboardPage', () => {
       }),
     ).toBe(true)
   })
+
+  it.each(['VENDEDOR', 'SUPERVISOR'] as const)(
+    'loads the product catalog with the permissions of %s',
+    async (role) => {
+      authState.user.role = role
+      const fetchMock = await renderLoaded()
+      const expectedPath =
+        role === 'SUPERVISOR' ? '/api/products?include_inactive=true' : '/api/products'
+      expect(fetchMock.mock.calls.some(([input]) => String(input) === expectedPath)).toBe(true)
+      expect(
+        fetchMock.mock.calls.filter(
+          ([input]) => new URL(String(input), 'http://localhost').pathname === '/api/products',
+        ),
+      ).toHaveLength(1)
+    },
+  )
 
   it('places comparable quoted and won product panels beside Origin', async () => {
     await renderLoaded()

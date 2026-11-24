@@ -49,6 +49,7 @@ export function useDashboardMetrics(
   filters: DashboardFilters,
   session: ApiSession,
   _unreadTotal: number | null,
+  includeInactiveProducts = false,
 ) {
   const [data, setData] = useState<Partial<DashboardData>>({})
   const [attention, setAttention] = useState<DashboardAttention>({
@@ -81,7 +82,7 @@ export function useDashboardMetrics(
 
   useEffect(() => {
     const controller = new AbortController()
-    listProducts(true, { ...session, signal: controller.signal })
+    listProducts(includeInactiveProducts, { ...session, signal: controller.signal })
       .then((items) => {
         if (!controller.signal.aborted) setProducts(items)
       })
@@ -90,7 +91,7 @@ export function useDashboardMetrics(
           setErrors((current) => ({ ...current, products: 'unavailable' }))
       })
     return () => controller.abort()
-  }, [session])
+  }, [includeInactiveProducts, session])
 
   useEffect(() => {
     void refreshKey

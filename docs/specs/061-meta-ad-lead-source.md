@@ -32,6 +32,8 @@ metadata, independent of the customer's greeting or product question.
   retain that initial inquiry's attribution once identity is resolved.
 - Meta is visible in every existing source label, filter and report. Web, Manual
   and Instagram remain readable and filterable.
+- Dashboard catalog requests respect the user's existing role permissions so
+  vendors can use source filters without requesting the supervisor-only catalog.
 
 ## Storage and rollout
 
