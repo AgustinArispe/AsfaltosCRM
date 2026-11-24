@@ -1,9 +1,9 @@
 # CRM-061 — Meta ad attribution for WhatsApp leads
 
-Status: Approved
+Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-11-24
-Implementation commit: N/A
+Implementation commit: 4e49261
 
 ## Request and scope
 
@@ -65,3 +65,17 @@ https://developers.facebook.com/documentation/business-messaging/whatsapp/webhoo
 ## Open decisions
 
 None.
+
+## Verification
+
+- Local backend gates pass with 563 tests and 93.38 percent coverage, strict typing,
+  Ruff, lock reproducibility, dependency audit and Alembic model/head checks.
+- Local frontend gates pass with 300 tests, production build and zero audit findings.
+- Signed Meta webhook tests exercise ad and ordinary delivery through the normal
+  HTTP endpoint. Referral mapping covers text, image, audio and document messages.
+- Tests cover optional click IDs, unchanged initial attribution, deduplication,
+  mixed concurrent delivery, identity review, closing, reopening and volume reports.
+- Migration tests preserve earlier rows and enforce shared channel uniqueness.
+  Canonical local Compose is healthy and vendor Meta filters return HTTP 200.
+- Browser acceptance adds source selection in Pipeline, Dashboard and Ganadas.
+  Publish main only after the complete GitHub Quality run passes for this tree.
