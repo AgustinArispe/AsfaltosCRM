@@ -3,7 +3,7 @@
 Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-11-24
-Implementation commit: 4e49261
+Implementation commits: 4e49261 (initial attribution) and 1c1e795 (legacy retries)
 
 ## Request and scope
 
@@ -71,7 +71,7 @@ None.
 
 ## Verification
 
-- Local backend gates pass with 563 tests and 93.38 percent coverage, strict typing,
+- Local backend gates pass with 564 tests and 93.39 percent coverage, strict typing,
   Ruff, lock reproducibility, dependency audit and Alembic model/head checks.
 - Local frontend gates pass with 300 tests, production build and zero audit findings.
 - Signed Meta webhook tests exercise ad and ordinary delivery through the normal
