@@ -4,7 +4,7 @@ import { StageNoteField } from './StageNoteField'
 import { StageProvinceField } from './StageProvinceField'
 
 type Props = Omit<ComponentProps<typeof ConfirmationDialog>, 'onConfirm'> & {
-  onConfirm: (note: string, province?: string) => void
+  onConfirm: (note: string, province?: string, customerNote?: string) => void
   suggestProvince?: boolean
 }
 
@@ -15,10 +15,12 @@ export function StageNoteConfirmation({
   ...props
 }: Props) {
   const [note, setNote] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
   const [province, setProvince] = useState('')
   useEffect(() => {
     if (!props.isOpen) {
       setNote('')
+      setCustomerNote('')
       setProvince('')
     }
   }, [props.isOpen])
@@ -26,13 +28,22 @@ export function StageNoteConfirmation({
   return (
     <ConfirmationDialog
       {...props}
-      confirmDisabled={!note.trim()}
       onConfirm={() =>
-        onConfirm(note.trim(), suggestProvince ? province.trim() || undefined : undefined)
+        onConfirm(
+          note.trim(),
+          suggestProvince ? province.trim() || undefined : undefined,
+          customerNote.trim() || undefined,
+        )
       }
     >
       {children}
-      <StageNoteField disabled={props.isPending} onChange={setNote} value={note} />
+      <StageNoteField
+        customerNote={customerNote}
+        onCustomerNoteChange={setCustomerNote}
+        disabled={props.isPending}
+        onChange={setNote}
+        value={note}
+      />
       {suggestProvince ? (
         <StageProvinceField disabled={props.isPending} onChange={setProvince} value={province} />
       ) : null}

@@ -14,7 +14,7 @@ class DomainError(Exception):
 
 
 class InvalidTransitionNoteError(DomainError):
-    """A manual stage mutation must carry a bounded nonblank note."""
+    """A supplied note violates a stage mutation constraint."""
 
 
 class AuthenticationError(DomainError):

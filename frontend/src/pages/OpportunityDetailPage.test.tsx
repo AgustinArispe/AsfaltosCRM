@@ -522,7 +522,7 @@ describe('OpportunityDetailPage', () => {
     expect(await screen.findByRole('button', { name: 'Reabrir' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
     expect(screen.getByRole('heading', { name: 'Reabrir oportunidad' })).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir en Cotizada' }))
@@ -576,7 +576,7 @@ describe('OpportunityDetailPage', () => {
     fireEvent.change(screen.getByLabelText('Cantidad (kg)'), { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(screen.getByRole('button', { name: 'Revisar y confirmar' }))
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
@@ -615,7 +615,7 @@ describe('OpportunityDetailPage', () => {
     expect(reviewAction).toHaveFocus()
     fireEvent.click(reviewAction)
     expect(screen.getByRole('heading', { name: 'Confirmá la cotización' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Nota del cambio de estado (obligatoria)')).toHaveFocus()
+    expect(screen.getByLabelText('Nota del cambio de estado (recomendada)')).toHaveFocus()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar cotizar oportunidad' }))
     expect(screen.getByRole('heading', { name: 'Revisá la cotización' })).toBeInTheDocument()
@@ -630,7 +630,7 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Revisar y confirmar' })).toHaveFocus()
   })
 
-  it('shows quote edit and confirms a win with a note only from Cotizada', async () => {
+  it('shows quote edit and confirms a win with an optional note from Cotizada', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, makeDetail({ status: 'COTIZADA' })))
@@ -641,11 +641,11 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Editar cotización' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Marcar ganada' }))
     const dialog = screen.getByRole('dialog', { name: 'Confirmar cambio de etapa' })
-    expect(within(dialog).getByRole('button', { name: 'Marcar ganada' })).toBeDisabled()
+    expect(within(dialog).getByRole('button', { name: 'Marcar ganada' })).toBeEnabled()
     expect(
       within(dialog).queryByLabelText('Provincia (opcional, recomendada)'),
     ).not.toBeInTheDocument()
-    fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'El cliente aceptó la cotización' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
@@ -669,7 +669,7 @@ describe('OpportunityDetailPage', () => {
       const provinceInput = within(dialog).getByLabelText('Provincia (opcional, recomendada)')
       expect(provinceInput).not.toBeRequired()
       fireEvent.change(provinceInput, { target: { value: province } })
-      fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (obligatoria)'), {
+      fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (recomendada)'), {
         target: { value: 'Compra confirmada' },
       })
       fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
@@ -710,7 +710,7 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Volver a Cotizada' }))
     const dialog = screen.getByRole('dialog', { name: 'Confirmar retroceso de etapa' })
     expect(within(dialog).getByText('La oportunidad pasará de Ganada a Cotizada.')).toBeVisible()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Cotizada' }))
@@ -748,7 +748,7 @@ describe('OpportunityDetailPage', () => {
       />,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Pasar a Para cotizar' }))
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'Preparar propuesta para el cliente' },
     })
     fireEvent.click(

@@ -5,6 +5,10 @@ Owner: FAA CRM team
 Last updated: 2026-11-12
 Implementation commit: `eb410cb0deb15eceed63e777eb4f04b1bde39f1a`
 
+
+CRM-062 supersedes the mandatory note requirement: stage notes are now optional
+and recommended. Original verification below reflects CRM-057.
+
 ## Goal and authorization
 
 The user's explicit request on 2026-11-11 authorizes Nueva → Para cotizar →

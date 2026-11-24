@@ -311,6 +311,9 @@ function mockInboxApi({
       if (url.pathname === '/api/whatsapp/conversations/1/read') {
         return jsonResponse(200, { ...currentDetail, unread_count: 0 })
       }
+      if (url.pathname === '/api/customers/11/notes') {
+        return jsonResponse(200, { items: [], page: 1, page_size: 10, total: 0 })
+      }
       if (url.pathname === '/api/customers/11') {
         return jsonResponse(200, customerDetail)
       }

@@ -735,6 +735,7 @@ export function useWhatsAppInbox(
   }, [apiSession, refreshSelectedConversation, selectedDetail])
 
   return {
+    apiSession,
     conversations: visibleConversations,
     conversationStatus,
     conversationError,

@@ -71,10 +71,12 @@ por conveniencia técnica.
   `PARA_COTIZAR`, siempre de a una etapa y con confirmación. `PARA_COTIZAR` nunca puede volver
   a `NUEVA`.
 - La creación y cada cambio de estado se registran en el historial.
-- Cada cambio manual de estado exige una nota no vacía de hasta 4000 caracteres,
-  guardada atómicamente con usuario, fecha y oportunidad. También aplica a pérdida,
-  reapertura y retroceso. Se consulta desde la oportunidad y desde su cliente.
-  Las altas iniciales automáticas y el historial previo no exigen notas retroactivas.
+- En cada cambio manual se recomienda una nota opcional de hasta 4000 caracteres.
+  El cambio registra usuario, fecha y oportunidad incluso sin nota. Si hay una
+  nota, se consulta en la oportunidad y en el historial del cliente.
+- Para recordar guarda notas internas opcionales del cliente, independientes de
+  cada venta. Se puede agregar una al cambiar de etapa o desde la ficha y el
+  contexto de WhatsApp. Hasta tres notas activas se pueden fijar por cliente.
 - `current_status_entered_at` indica cuándo la oportunidad ingresó en su estado actual.
 
 ## Cotizaciones

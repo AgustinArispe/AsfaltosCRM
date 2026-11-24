@@ -38,12 +38,12 @@ describe('StageTransitionConfirmationModal', () => {
     expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus()
     fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }))
     expect(onCancel).toHaveBeenCalledTimes(1)
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar como Ganada' }))
     expect(onConfirm).toHaveBeenCalledTimes(1)
-    expect(onConfirm).toHaveBeenCalledWith('Seguimiento comercial de prueba', undefined)
+    expect(onConfirm).toHaveBeenCalledWith('Seguimiento comercial de prueba', undefined, undefined)
   })
 
   it('suggests province for a missing customer location on the pipeline win confirmation', () => {
@@ -63,12 +63,12 @@ describe('StageTransitionConfirmationModal', () => {
     )
     const province = screen.getByLabelText('Provincia (opcional, recomendada)')
     expect(province).not.toBeRequired()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (obligatoria)'), {
+    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
       target: { value: 'Compra aprobada' },
     })
     fireEvent.change(province, { target: { value: ' Córdoba ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Marcar como Ganada' }))
-    expect(onConfirm).toHaveBeenCalledWith('Compra aprobada', 'Córdoba')
+    expect(onConfirm).toHaveBeenCalledWith('Compra aprobada', 'Córdoba', undefined)
     rerender(<StageTransitionConfirmationModal {...props} customerProvince='Mendoza' />)
     expect(screen.queryByLabelText('Provincia (opcional, recomendada)')).not.toBeInTheDocument()
   })

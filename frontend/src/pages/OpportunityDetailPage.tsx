@@ -161,13 +161,13 @@ export function OpportunityDetailPage({
       })
     })
   }
-  const handleReopen = async (note: string) => {
+  const handleReopen = async (note: string, customerNote?: string) => {
     if (!opportunity || !isEligibleForReopen(opportunity) || isReopening) return
     requestGenerationRef.current += 1
     setIsReopening(true)
     setReopenError(null)
     try {
-      const updated = await reopenOpportunity(opportunity.id, note, session)
+      const updated = await reopenOpportunity(opportunity.id, note, session, customerNote)
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
       setIsReopenConfirmationOpen(false)
@@ -224,7 +224,12 @@ export function OpportunityDetailPage({
     }
   }
 
-  const handleQuote = async (lines: QuoteProductInput[], note: string, province?: string) => {
+  const handleQuote = async (
+    lines: QuoteProductInput[],
+    note: string,
+    province?: string,
+    customerNote?: string,
+  ) => {
     if (!opportunity) return
     requestGenerationRef.current += 1
     if (quoteMode === 'edit') {
@@ -237,14 +242,21 @@ export function OpportunityDetailPage({
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
     } else {
-      const updated = await quoteOpportunity(opportunity.id, lines, note, session, province)
+      const updated = await quoteOpportunity(
+        opportunity.id,
+        lines,
+        note,
+        session,
+        province,
+        customerNote,
+      )
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
     }
     setIsQuoteOpen(false)
   }
 
-  const move = async (note: string, province?: string) => {
+  const move = async (note: string, province?: string, customerNote?: string) => {
     if (!opportunity || isMutating) return
     requestGenerationRef.current += 1
     setActionError(null)
@@ -252,8 +264,8 @@ export function OpportunityDetailPage({
     try {
       const updated =
         opportunity.status === 'NUEVA'
-          ? await prepareOpportunityQuote(opportunity.id, note, session)
-          : await winOpportunity(opportunity.id, note, session, province)
+          ? await prepareOpportunityQuote(opportunity.id, note, session, customerNote)
+          : await winOpportunity(opportunity.id, note, session, province, customerNote)
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
       setIsForwardConfirmationOpen(false)
@@ -285,7 +297,7 @@ export function OpportunityDetailPage({
     }
   }
 
-  const confirmRegression = async (note: string) => {
+  const confirmRegression = async (note: string, customerNote?: string) => {
     if (!opportunity || !pendingRegression || isMutating) return
     setActionError(null)
     setIsMutating(true)
@@ -296,6 +308,7 @@ export function OpportunityDetailPage({
         pendingRegression.targetStatus,
         note,
         session,
+        customerNote,
       )
       setOpportunity(updated)
       onOpportunityUpdated?.(updated)
@@ -313,10 +326,22 @@ export function OpportunityDetailPage({
     }
   }
 
-  const handleLoss = async (reason: LossReason, reasonDetail: string | null, note: string) => {
+  const handleLoss = async (
+    reason: LossReason,
+    reasonDetail: string | null,
+    note: string,
+    customerNote?: string,
+  ) => {
     if (!lossOpportunity) return
     requestGenerationRef.current += 1
-    const updated = await loseOpportunity(lossOpportunity.id, reason, reasonDetail, note, session)
+    const updated = await loseOpportunity(
+      lossOpportunity.id,
+      reason,
+      reasonDetail,
+      note,
+      session,
+      customerNote,
+    )
     setOpportunity(updated)
     onOpportunityUpdated?.(updated)
     setLossOpportunity(null)
@@ -593,7 +618,7 @@ export function OpportunityDetailPage({
         onCancel={() => {
           if (!isMutating) setPendingRegression(null)
         }}
-        onConfirm={(note) => void confirmRegression(note)}
+        onConfirm={(note, _province, customerNote) => void confirmRegression(note, customerNote)}
         error={actionError}
         pendingLabel='Actualizando…'
         title='Confirmar retroceso de etapa'
@@ -614,7 +639,7 @@ export function OpportunityDetailPage({
             setReopenError(null)
           }
         }}
-        onConfirm={(note) => void handleReopen(note)}
+        onConfirm={(note, _province, customerNote) => void handleReopen(note, customerNote)}
         pendingLabel='Reabriendo…'
         title='Reabrir oportunidad'
       >
@@ -630,7 +655,7 @@ export function OpportunityDetailPage({
         onCancel={() => {
           if (!isMutating) setIsForwardConfirmationOpen(false)
         }}
-        onConfirm={(note, province) => void move(note, province)}
+        onConfirm={(note, province, customerNote) => void move(note, province, customerNote)}
         suggestProvince={
           opportunity?.status === 'COTIZADA' && !opportunity.customer.province?.trim()
         }
@@ -638,7 +663,7 @@ export function OpportunityDetailPage({
         title='Confirmar cambio de etapa'
       >
         <p className='text-sm text-[var(--text-secondary)]'>
-          El cambio y la nota se guardarán juntos en el historial del cliente.
+          El cambio quedará en el historial de la oportunidad.
         </p>
       </StageNoteConfirmation>
       <LossModal

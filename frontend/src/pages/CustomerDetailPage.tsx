@@ -4,6 +4,7 @@ import { deleteCustomer, getCustomer, updateCustomer } from '../api/customers'
 import { type ApiSession, listCustomerOpportunities } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
 import { CustomerFormModal } from '../customers/CustomerFormModal'
+import { CustomerNotes } from '../customers/CustomerNotes'
 import { CustomerStageNotes } from '../customers/CustomerStageNotes'
 import { DeleteCustomerModal } from '../customers/DeleteCustomerModal'
 import { customerErrorMessage } from '../customers/errors'
@@ -331,6 +332,11 @@ export function CustomerDetailPage({
             </dl>
           </section>
 
+          <CustomerNotes
+            customerId={customer.id}
+            key={`notes-${customer.id}`}
+            session={apiSession}
+          />
           <section
             aria-labelledby='customer-opportunities-title'
             className='ui-panel mt-4 px-5 py-5 sm:px-6'

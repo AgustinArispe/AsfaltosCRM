@@ -1,3 +1,4 @@
+import { notifyCustomerNotesChanged } from '../customers/customer-notes-events'
 import { PIPELINE_STAGES } from '../pipeline/config'
 import type {
   LossReason,
@@ -131,18 +132,29 @@ export async function listPipelineOpportunities(
   return opportunitiesByStage.flat()
 }
 
+async function postStageChange(
+  path: string,
+  body: { note: string; customer_note?: string; [key: string]: unknown },
+  session: ApiSession,
+) {
+  const updated = await apiRequest<OpportunityDetail>(path, { ...session, method: 'POST', body })
+  if (body.customer_note) notifyCustomerNotesChanged(updated.customer.id)
+  return updated
+}
+
 export function quoteOpportunity(
   opportunityId: number,
   products: QuoteProductInput[],
   note: string,
   session: ApiSession,
   province?: string,
+  customerNote?: string,
 ) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/quote`, {
-    ...session,
-    method: 'POST',
-    body: { products, note, province },
-  })
+  return postStageChange(
+    `/opportunities/${opportunityId}/quote`,
+    { products, note, province, customer_note: customerNote },
+    session,
+  )
 }
 
 export function updateOpportunityQuoteProducts(
@@ -171,12 +183,17 @@ export function updateOpportunityAssignee(
   })
 }
 
-export function prepareOpportunityQuote(opportunityId: number, note: string, session: ApiSession) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/prepare-quote`, {
-    ...session,
-    method: 'POST',
-    body: { note },
-  })
+export function prepareOpportunityQuote(
+  opportunityId: number,
+  note: string,
+  session: ApiSession,
+  customerNote?: string,
+) {
+  return postStageChange(
+    `/opportunities/${opportunityId}/prepare-quote`,
+    { note, customer_note: customerNote },
+    session,
+  )
 }
 
 export function winOpportunity(
@@ -184,12 +201,13 @@ export function winOpportunity(
   note: string,
   session: ApiSession,
   province?: string,
+  customerNote?: string,
 ) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/win`, {
-    ...session,
-    method: 'POST',
-    body: { note, province },
-  })
+  return postStageChange(
+    `/opportunities/${opportunityId}/win`,
+    { note, province, customer_note: customerNote },
+    session,
+  )
 }
 
 export function regressOpportunityStage(
@@ -198,12 +216,18 @@ export function regressOpportunityStage(
   targetStatus: PipelineStatus,
   note: string,
   session: ApiSession,
+  customerNote?: string,
 ) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/regress`, {
-    ...session,
-    method: 'POST',
-    body: { expected_status: expectedStatus, target_status: targetStatus, note },
-  })
+  return postStageChange(
+    `/opportunities/${opportunityId}/regress`,
+    {
+      expected_status: expectedStatus,
+      target_status: targetStatus,
+      note,
+      customer_note: customerNote,
+    },
+    session,
+  )
 }
 
 export function loseOpportunity(
@@ -212,20 +236,36 @@ export function loseOpportunity(
   lossReasonDetail: string | null,
   note: string,
   session: ApiSession,
+  customerNote?: string,
 ) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/lose`, {
-    ...session,
-    method: 'POST',
-    body: { loss_reason: lossReason, loss_reason_detail: lossReasonDetail, note },
-  })
+  return postStageChange(
+    `/opportunities/${opportunityId}/lose`,
+    {
+      loss_reason: lossReason,
+      loss_reason_detail: lossReasonDetail,
+      note,
+      customer_note: customerNote,
+    },
+    session,
+  )
 }
 
-export function reopenOpportunity(opportunityId: number, note: string, session: ApiSession) {
-  return apiRequest<OpportunityDetail>(`/opportunities/${opportunityId}/reopen`, {
-    ...session,
-    method: 'POST',
-    body: { command_id: crypto.randomUUID(), expected_status: 'PERDIDA', note },
-  })
+export function reopenOpportunity(
+  opportunityId: number,
+  note: string,
+  session: ApiSession,
+  customerNote?: string,
+) {
+  return postStageChange(
+    `/opportunities/${opportunityId}/reopen`,
+    {
+      command_id: crypto.randomUUID(),
+      expected_status: 'PERDIDA',
+      note,
+      customer_note: customerNote,
+    },
+    session,
+  )
 }
 
 export function listOpportunityNotes(opportunityId: number, session: ApiSession) {

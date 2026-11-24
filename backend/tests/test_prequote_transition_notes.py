@@ -26,14 +26,11 @@ def setup_opportunity(session: Session) -> tuple[Opportunity, Product]:
     return opportunity, product
 
 
-@pytest.mark.parametrize(
-    "payload", [{}, {"note": ""}, {"note": "   \n "}, {"note": "x" * 4001}]
-)
-def test_prepare_rejects_missing_or_blank_note_without_changing_anything(
+def test_overlong_stage_note_rejects_the_whole_change(
     api_client: TestClient,
     db_session: Session,
-    payload: dict[str, str],
 ) -> None:
+    payload = {"note": "x" * 4001, "customer_note": "No debe guardarse"}
     opportunity, _ = setup_opportunity(db_session)
     before = api_client.get(f"/api/opportunities/{opportunity.id}").json()
     response = api_client.post(
@@ -74,7 +71,6 @@ def test_complete_flow_records_notes_atomically_and_lists_only_customer_notes(
     quoted = api_client.post(f"{base}/quote", json=quoted_payload)
     assert quoted.status_code == 200
     assert quoted.json()["status"] == "COTIZADA"
-    assert api_client.post(f"{base}/win", json={}).status_code == 422
     won = api_client.post(f"{base}/win", json={"note": "El cliente confirmó la compra"})
     assert won.status_code == 200
     assert [entry["to_status"] for entry in won.json()["history"]] == [
@@ -109,11 +105,12 @@ def test_complete_flow_records_notes_atomically_and_lists_only_customer_notes(
     )
 
 
-def test_regression_loss_and_reopen_keep_quotes_and_require_their_own_note(
+def test_regression_loss_and_reopen_keep_quotes_and_record_supplied_notes(
     api_client: TestClient,
     db_session: Session,
 ) -> None:
     opportunity, product = setup_opportunity(db_session)
+    customer_id = opportunity.customer_id
     base = f"/api/opportunities/{opportunity.id}"
     api_client.post(f"{base}/prepare-quote", json={"note": "Preparar propuesta"})
     api_client.post(
@@ -122,13 +119,6 @@ def test_regression_loss_and_reopen_keep_quotes_and_require_their_own_note(
             "note": "Propuesta enviada",
             "products": [{"product_id": product.id, "quantity_kg": 100}],
         },
-    )
-    assert (
-        api_client.post(
-            f"{base}/regress",
-            json={"expected_status": "COTIZADA", "target_status": "PARA_COTIZAR"},
-        ).status_code
-        == 422
     )
     regressed = api_client.post(
         f"{base}/regress",
@@ -141,10 +131,6 @@ def test_regression_loss_and_reopen_keep_quotes_and_require_their_own_note(
     assert regressed.status_code == 200
     assert regressed.json()["products"]
     assert (
-        api_client.post(f"{base}/lose", json={"loss_reason": "PRECIO"}).status_code
-        == 422
-    )
-    assert (
         api_client.post(
             f"{base}/lose",
             json={"loss_reason": "PRECIO", "note": "El precio no fue aceptado"},
@@ -155,6 +141,7 @@ def test_regression_loss_and_reopen_keep_quotes_and_require_their_own_note(
         "command_id": str(uuid4()),
         "expected_status": "PERDIDA",
         "note": "El cliente retoma la propuesta",
+        "customer_note": "Prefiere mensajes cortos",
     }
     reopened = api_client.post(f"{base}/reopen", json=command)
     assert reopened.status_code == 200
@@ -167,6 +154,16 @@ def test_regression_loss_and_reopen_keep_quotes_and_require_their_own_note(
         api_client.post(
             f"{base}/reopen",
             json={**command, "note": "Otra nota para el mismo comando"},
+        ).status_code
+        == 409
+    )
+    notes_path = f"/api/customers/{customer_id}/notes"
+    assert [note["body"] for note in api_client.get(notes_path).json()["items"]] == [
+        "Prefiere mensajes cortos"
+    ]
+    assert (
+        api_client.post(
+            f"{base}/reopen", json={**command, "customer_note": "Un dato distinto"}
         ).status_code
         == 409
     )
@@ -206,3 +203,52 @@ def test_prequote_without_products_can_be_lost_but_cannot_reopen_as_quoted(
         ).status_code
         == 422
     )
+
+
+@pytest.mark.parametrize("empty", [{}, {"note": None}, {"note": "\n  "}])
+def test_all_transitions_work_without_stage_notes_and_save_customer_note_separately(
+    api_client: TestClient,
+    db_session: Session,
+    supervisor_user: User,
+    empty: dict[str, str | None],
+) -> None:
+    opportunity, product = setup_opportunity(db_session)
+    product_id = product.id
+    author_id = supervisor_user.id
+    base = f"/api/opportunities/{opportunity.id}"
+    customer_path = f"/api/customers/{opportunity.customer_id}"
+    assert (
+        api_client.post(
+            f"{base}/quote",
+            json={
+                "products": [{"product_id": product_id, "quantity_kg": 100}],
+                "customer_note": "No se debe guardar por cambio inválido",
+            },
+        ).status_code
+        == 409
+    )
+    assert api_client.get(f"{customer_path}/notes").json()["total"] == 0
+    for action, fields in (
+        ("prepare-quote", {}),
+        (
+            "quote",
+            {
+                "products": [{"product_id": product_id, "quantity_kg": 100}],
+                "customer_note": "Prefiere coordinar la entrega por WhatsApp",
+            },
+        ),
+        ("win", {}),
+        ("regress", {"expected_status": "GANADA", "target_status": "COTIZADA"}),
+        ("lose", {"loss_reason": "PRECIO"}),
+        ("reopen", {"command_id": str(uuid4()), "expected_status": "PERDIDA"}),
+    ):
+        response = api_client.post(f"{base}/{action}", json={**empty, **fields})
+        assert response.status_code == 200, response.text
+        latest = response.json()["history"][-1]
+        assert latest["note"] is None
+        assert latest["changed_by_user_id"] == author_id
+    assert api_client.get(f"{customer_path}/stage-notes").json()["total"] == 0
+    saved = api_client.get(f"{customer_path}/notes").json()["items"]
+    assert [note["body"] for note in saved] == [
+        "Prefiere coordinar la entrega por WhatsApp"
+    ]

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from hashlib import sha256
 from uuid import UUID
 
 from sqlalchemy import select
@@ -24,6 +25,7 @@ from app.models import (
 )
 from app.models.enums import WHATSAPP_LEAD_SOURCES
 from app.services.customer_identity_service import acquire_advisory_locks
+from app.services.customer_note_service import CustomerNoteService
 from app.services.errors import (
     ActiveOpportunityExistsError,
     ClosedOpportunityError,
@@ -163,7 +165,8 @@ class OpportunityService:
         opportunity_id: int,
         products: list[QuoteProductInput],
         *,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         province: str | None = None,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
@@ -189,6 +192,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.COTIZADA,
                 note=note,
+                customer_note=customer_note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
             )
@@ -204,11 +208,14 @@ class OpportunityService:
         self,
         opportunity_id: int,
         *,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
+            if customer_note and customer_note.strip():
+                self._lock_customer_for_opportunity(opportunity_id)
             opportunity = self._get_opportunity_for_update(opportunity_id)
             self._require_transition(
                 opportunity,
@@ -220,6 +227,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.PARA_COTIZAR,
                 note=note,
+                customer_note=customer_note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
             )
@@ -277,7 +285,8 @@ class OpportunityService:
         self,
         opportunity_id: int,
         *,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         province: str | None = None,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
@@ -297,6 +306,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.GANADA,
                 note=note,
+                customer_note=customer_note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=occurred_at,
             )
@@ -311,7 +321,8 @@ class OpportunityService:
         expected_status: OpportunityStatus,
         target_status: OpportunityStatus,
         changed_by_user_id: int,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
@@ -343,6 +354,7 @@ class OpportunityService:
                 opportunity,
                 to_status=target_status,
                 note=note,
+                customer_note=customer_note,
                 changed_by_user_id=changed_by_user_id,
                 changed_at=transition_at,
             )
@@ -360,11 +372,14 @@ class OpportunityService:
         loss_reason: LossReason | None,
         loss_reason_detail: str | None = None,
         *,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         changed_by_user_id: int | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         with self._session.begin():
+            if customer_note and customer_note.strip():
+                self._lock_customer_for_opportunity(opportunity_id)
             opportunity = self._get_opportunity_for_update(opportunity_id)
             self._require_open(opportunity)
             if not isinstance(loss_reason, LossReason):
@@ -380,6 +395,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.PERDIDA,
                 note=note,
+                customer_note=customer_note,
                 changed_by_user_id=changed_by_user_id,
                 loss_reason=loss_reason,
                 loss_reason_detail=normalized_loss_reason_detail,
@@ -478,11 +494,20 @@ class OpportunityService:
         command_id: UUID,
         expected_status: OpportunityStatus,
         changed_by_user_id: int,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         occurred_at: datetime | None = None,
     ) -> Opportunity:
         normalized_note = self._normalize_transition_note(note)
+        customer_note_digest = (
+            sha256(customer_note.strip().encode()).hexdigest()
+            if customer_note and customer_note.strip()
+            else None
+        )
         with self._session.begin():
+            acquire_advisory_locks(
+                self._session, (("reopen-command", str(command_id)),)
+            )
             replay = self._session.scalar(
                 select(OpportunityReopenEvent).where(
                     OpportunityReopenEvent.command_id == command_id
@@ -498,6 +523,7 @@ class OpportunityService:
                     or expected_status is not OpportunityStatus.PERDIDA
                     or history is None
                     or history.note != normalized_note
+                    or replay.customer_note_digest != customer_note_digest
                 ):
                     raise IdempotencyConflictError(
                         "Reopen command ID was already used for another opportunity"
@@ -541,6 +567,7 @@ class OpportunityService:
                 opportunity,
                 to_status=OpportunityStatus.COTIZADA,
                 note=note,
+                customer_note=customer_note,
                 changed_by_user_id=changed_by_user_id,
                 transition_kind=OpportunityTransitionKind.REOPENED,
                 changed_at=occurred_at,
@@ -554,6 +581,7 @@ class OpportunityService:
                     target_status=OpportunityStatus.COTIZADA,
                     actor_user_id=changed_by_user_id,
                     command_id=command_id,
+                    customer_note_digest=customer_note_digest,
                     reopened_at=history.changed_at,
                 )
             )
@@ -835,13 +863,25 @@ class OpportunityService:
         *,
         to_status: OpportunityStatus,
         changed_by_user_id: int | None,
-        note: str,
+        note: str | None = None,
+        customer_note: str | None = None,
         loss_reason: LossReason | None = None,
         loss_reason_detail: str | None = None,
         transition_kind: OpportunityTransitionKind = OpportunityTransitionKind.STATUS_CHANGED,
         changed_at: datetime | None = None,
     ) -> OpportunityStatusHistory:
         normalized_note = self._normalize_transition_note(note)
+        if customer_note and customer_note.strip():
+            customer = self._session.get(Customer, opportunity.customer_id)
+            if customer is None:
+                raise EntityNotFoundError("Customer", opportunity.customer_id)
+            if customer.deleted_at is not None:
+                raise DeletedCustomerError(customer.id)
+            if changed_by_user_id is None:
+                raise InvalidTransitionNoteError("A customer note requires an author")
+            CustomerNoteService(self._session).create_in_transaction(
+                customer.id, body=customer_note, actor_id=changed_by_user_id
+            )
         from_status = opportunity.status
         transition_at = changed_at or datetime.now(UTC)
         opportunity.status = to_status
@@ -888,13 +928,13 @@ class OpportunityService:
         return history
 
     @staticmethod
-    def _normalize_transition_note(note: str) -> str:
-        normalized = note.replace("\r\n", "\n").replace("\r", "\n").strip()
-        if not normalized or len(normalized) > 4000:
+    def _normalize_transition_note(note: str | None) -> str | None:
+        normalized = (note or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+        if len(normalized) > 4000:
             raise InvalidTransitionNoteError(
-                "A transition note requires 1 to 4000 characters"
+                "A transition note allows up to 4000 characters"
             )
-        return normalized
+        return normalized or None
 
     def _record_loss_event(
         self,

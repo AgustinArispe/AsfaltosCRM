@@ -11,6 +11,7 @@ from app.models.crm_commercial import (
     OpportunityReopenEvent,
 )
 from app.models.customer import Customer
+from app.models.customer_note import CustomerNote
 from app.models.enums import (
     CustomerImportAction,
     CustomerImportIssueCode,
@@ -72,6 +73,7 @@ __all__ = [
     "CustomerImportRow",
     "CustomerImportStatus",
     "CustomerLegendaryEvent",
+    "CustomerNote",
     "LeadIntake",
     "LeadSource",
     "LegendaryEventType",

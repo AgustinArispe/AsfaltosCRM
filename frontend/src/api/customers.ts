@@ -2,6 +2,7 @@ import type {
   CustomerDetail,
   CustomerImportCommitResult,
   CustomerImportReport,
+  CustomerNote,
   CustomerSummary,
   CustomerUpdatePayload,
   CustomerWritePayload,
@@ -84,5 +85,51 @@ export function commitCustomerImport(
       expected_version: report.version,
       file_sha256: report.file_sha256,
     },
+  })
+}
+
+export function listCustomerNotes(
+  customerId: number,
+  page: number,
+  pageSize: number,
+  session: ApiSession,
+) {
+  return apiRequest<PaginatedResponse<CustomerNote>>(
+    `/customers/${customerId}/notes?page=${page}&page_size=${pageSize}`,
+    session,
+  )
+}
+
+export function createCustomerNote(
+  customerId: number,
+  body: string,
+  commandId: string,
+  session: ApiSession,
+) {
+  return apiRequest<CustomerNote>(`/customers/${customerId}/notes`, {
+    ...session,
+    method: 'POST',
+    body: { body, command_id: commandId },
+  })
+}
+
+export function updateCustomerNote(
+  customerId: number,
+  note: CustomerNote,
+  body: string,
+  pinned: boolean,
+  session: ApiSession,
+) {
+  return apiRequest<CustomerNote>(`/customers/${customerId}/notes/${note.id}`, {
+    ...session,
+    method: 'PUT',
+    body: { body, pinned, expected_updated_at: note.updated_at },
+  })
+}
+
+export function archiveCustomerNote(customerId: number, noteId: number, session: ApiSession) {
+  return apiRequest<null>(`/customers/${customerId}/notes/${noteId}`, {
+    ...session,
+    method: 'DELETE',
   })
 }

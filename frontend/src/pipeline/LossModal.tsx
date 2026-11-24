@@ -16,11 +16,13 @@ export function LossModal({
     lossReason: LossReason,
     lossReasonDetail: string | null,
     note: string,
+    customerNote?: string,
   ) => Promise<void>
 }) {
   const [lossReason, setLossReason] = useState<LossReason | ''>('')
   const [lossReasonDetail, setLossReasonDetail] = useState('')
   const [note, setNote] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [errorField, setErrorField] = useState<'reason' | 'detail' | 'form' | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -31,6 +33,7 @@ export function LossModal({
     setLossReason('')
     setLossReasonDetail('')
     setNote('')
+    setCustomerNote('')
     setError(null)
     setErrorField(null)
     setIsSubmitting(false)
@@ -52,16 +55,16 @@ export function LossModal({
       return
     }
 
-    if (!note.trim()) {
-      setError('Escribí una nota para registrar el cambio de estado.')
-      setErrorField('form')
-      return
-    }
     setIsSubmitting(true)
     setError(null)
     setErrorField(null)
     try {
-      await onConfirm(lossReason, lossReason === 'OTRO' ? normalizedDetail : null, note.trim())
+      await onConfirm(
+        lossReason,
+        lossReason === 'OTRO' ? normalizedDetail : null,
+        note.trim(),
+        customerNote.trim() || undefined,
+      )
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -167,7 +170,13 @@ export function LossModal({
               ) : null}
             </div>
           ) : null}
-          <StageNoteField disabled={isSubmitting} onChange={setNote} value={note} />
+          <StageNoteField
+            customerNote={customerNote}
+            onCustomerNoteChange={setCustomerNote}
+            disabled={isSubmitting}
+            onChange={setNote}
+            value={note}
+          />
           {error && errorField === 'form' ? (
             <p className='text-sm font-medium text-[var(--destructive-text)]' role='alert'>
               {error}
@@ -179,7 +188,7 @@ export function LossModal({
           <Button disabled={isSubmitting} onClick={onClose}>
             Cancelar
           </Button>
-          <Button disabled={isSubmitting || !note.trim()} type='submit' variant='danger'>
+          <Button disabled={isSubmitting} type='submit' variant='danger'>
             {isSubmitting ? 'Guardando…' : 'Confirmar pérdida'}
           </Button>
         </footer>

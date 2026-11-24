@@ -57,6 +57,9 @@ function mockDetailApi({
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
+      if (url.pathname === '/api/customers/7/notes') {
+        return jsonResponse(200, { items: [], page: 1, page_size: 10, total: 0 })
+      }
       if (url.pathname === '/api/customers/7') {
         return customerStatus === 200
           ? jsonResponse(200, customerResponse)

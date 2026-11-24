@@ -20,7 +20,12 @@ from app.models import (
     WhatsAppMessageType,
 )
 from app.schemas.common import EmailInput, StrictRequestModel
-from app.schemas.customer import CustomerSummary, NonBlankString, OptionalNonBlankString
+from app.schemas.customer import (
+    CustomerNoteBody,
+    CustomerSummary,
+    NonBlankString,
+    OptionalNonBlankString,
+)
 from app.schemas.product import ProductResponse
 
 PositiveId = Annotated[int, Field(gt=0)]
@@ -82,8 +87,17 @@ class QuoteProductRequest(StrictRequestModel):
     quantity_kg: PositiveQuantity
 
 
-class StageCompletionRequest(StrictRequestModel):
-    note: TransitionNote
+class StatusChangeRequest(StrictRequestModel):
+    note: TransitionNote | None = None
+    customer_note: CustomerNoteBody | None = None
+
+    @field_validator("note", "customer_note", mode="before")
+    @classmethod
+    def normalize_blank_note(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+
+class StageCompletionRequest(StatusChangeRequest):
     province: OptionalNonBlankString = None
 
     @field_validator("province", mode="before")
@@ -103,10 +117,6 @@ class QuoteProductsUpdate(StrictRequestModel):
     products: list[QuoteProductRequest] = Field(min_length=1)
 
 
-class StatusChangeRequest(StrictRequestModel):
-    note: TransitionNote
-
-
 class OpportunityFollowUpRequest(StrictRequestModel):
     expected_follow_up_since: datetime
 
@@ -118,10 +128,9 @@ class OpportunityFollowUpRequest(StrictRequestModel):
         return value
 
 
-class OpportunityStageRegressionRequest(StrictRequestModel):
+class OpportunityStageRegressionRequest(StatusChangeRequest):
     expected_status: OpportunityStatus
     target_status: OpportunityStatus
-    note: TransitionNote
 
 
 class LoseOpportunityRequest(StatusChangeRequest):
@@ -142,10 +151,9 @@ class LoseOpportunityRequest(StatusChangeRequest):
         return self
 
 
-class ReopenOpportunityRequest(StrictRequestModel):
+class ReopenOpportunityRequest(StatusChangeRequest):
     command_id: UUID
     expected_status: Literal[OpportunityStatus.PERDIDA]
-    note: TransitionNote
 
 
 class AssigneeUpdate(StrictRequestModel):

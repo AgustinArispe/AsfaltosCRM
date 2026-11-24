@@ -16,12 +16,84 @@ from app.schemas import (
     CustomerUpdate,
     PaginatedResponse,
 )
+from app.schemas.customer import (
+    CustomerNoteCreate,
+    CustomerNoteResponse,
+    CustomerNoteUpdate,
+)
 from app.schemas.opportunity import CustomerStageNoteResponse
+from app.services.customer_note_service import CustomerNoteService
 from app.services.customer_service import CustomerService
 from app.services.customer_stage_note_service import CustomerStageNoteService
 from app.services.errors import PermissionDeniedError
 
 router = APIRouter(prefix="/customers", tags=["customers"])
+
+
+@router.get(
+    "/{customer_id}/notes", response_model=PaginatedResponse[CustomerNoteResponse]
+)
+def list_customer_notes(
+    customer_id: int,
+    session: DatabaseSession,
+    pagination: Pagination,
+    _current_user: CurrentUser,
+) -> PaginatedResponse[CustomerNoteResponse]:
+    notes, total = CustomerNoteService(session).list_notes(
+        customer_id, page=pagination.page, page_size=pagination.page_size
+    )
+    return PaginatedResponse(
+        items=[CustomerNoteResponse.model_validate(note) for note in notes],
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total=total,
+    )
+
+
+@router.post(
+    "/{customer_id}/notes",
+    response_model=CustomerNoteResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_customer_note(
+    customer_id: int,
+    payload: CustomerNoteCreate,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> CustomerNoteResponse:
+    note = CustomerNoteService(session).create(
+        customer_id,
+        body=payload.body,
+        actor_id=current_user.id,
+        command_id=payload.command_id,
+    )
+    return CustomerNoteResponse.model_validate(note)
+
+
+@router.put("/{customer_id}/notes/{note_id}", response_model=CustomerNoteResponse)
+def update_customer_note(
+    customer_id: int,
+    note_id: int,
+    payload: CustomerNoteUpdate,
+    session: DatabaseSession,
+    _current_user: CurrentUser,
+) -> CustomerNoteResponse:
+    note = CustomerNoteService(session).update(
+        customer_id,
+        note_id,
+        body=payload.body,
+        pinned=payload.pinned,
+        expected_updated_at=payload.expected_updated_at,
+    )
+    return CustomerNoteResponse.model_validate(note)
+
+
+@router.delete("/{customer_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def archive_customer_note(
+    customer_id: int, note_id: int, session: DatabaseSession, _current_user: CurrentUser
+) -> Response:
+    CustomerNoteService(session).archive(customer_id, note_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(

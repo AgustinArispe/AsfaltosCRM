@@ -46,7 +46,12 @@ export function QuoteModal({
   productsError: string | null
   onRetryProducts: () => void
   onClose: () => void
-  onConfirm: (products: QuoteProductInput[], note: string, province?: string) => Promise<void>
+  onConfirm: (
+    products: QuoteProductInput[],
+    note: string,
+    province?: string,
+    customerNote?: string,
+  ) => Promise<void>
   mode?: 'create' | 'edit'
   isOpen?: boolean
 }) {
@@ -58,6 +63,7 @@ export function QuoteModal({
   const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState('')
   const [note, setNote] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
   const [province, setProvince] = useState('')
   const [editingKey, setEditingKey] = useState<number | null>(null)
   const [productError, setProductError] = useState<string | null>(null)
@@ -81,6 +87,7 @@ export function QuoteModal({
     setProductId('')
     setQuantity('')
     setNote('')
+    setCustomerNote('')
     setProvince('')
     setEditingKey(null)
     setProductError(null)
@@ -119,7 +126,7 @@ export function QuoteModal({
   )
   const dirty =
     lineSnapshot(lines) !== lineSnapshot(initial) ||
-    Boolean(productId || quantity || editingKey || note || province)
+    Boolean(productId || quantity || editingKey || note || province || customerNote)
 
   const resetEditor = () => {
     setProductId('')
@@ -217,7 +224,7 @@ export function QuoteModal({
   }
 
   const submit = async () => {
-    if (lines.length === 0 || isSubmitting || (mode === 'create' && !note.trim())) return
+    if (lines.length === 0 || isSubmitting) return
     const quoteProducts = lines.map((line) => ({
       product_id: Number(line.productId),
       quantity_kg: Number(line.quantity),
@@ -225,7 +232,12 @@ export function QuoteModal({
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      await onConfirm(quoteProducts, note.trim(), province.trim() || undefined)
+      await onConfirm(
+        quoteProducts,
+        note.trim(),
+        province.trim() || undefined,
+        customerNote.trim() || undefined,
+      )
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'No pudimos guardar la cotización.')
     } finally {
@@ -506,6 +518,8 @@ export function QuoteModal({
               <section aria-labelledby='quote-confirm-step' className='quote-confirm'>
                 {mode === 'create' ? (
                   <StageNoteField
+                    customerNote={customerNote}
+                    onCustomerNoteChange={setCustomerNote}
                     disabled={isSubmitting}
                     inputRef={noteRef}
                     onChange={setNote}
@@ -561,7 +575,7 @@ export function QuoteModal({
                 Volver a revisar
               </Button>
               <Button
-                disabled={lines.length === 0 || (mode === 'create' && !note.trim())}
+                disabled={lines.length === 0}
                 isLoading={isSubmitting}
                 onClick={() => void submit()}
                 ref={confirmRef}

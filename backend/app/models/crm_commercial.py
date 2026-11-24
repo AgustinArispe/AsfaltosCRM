@@ -244,6 +244,7 @@ class OpportunityReopenEvent(Base):
         BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
     command_id: Mapped[UUID] = mapped_column(Uuid, nullable=False, unique=True)
+    customer_note_digest: Mapped[str | None] = mapped_column(Text)
     reopened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

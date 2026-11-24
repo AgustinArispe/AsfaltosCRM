@@ -224,6 +224,7 @@ def quote_opportunity(
         opportunity_id,
         _quote_inputs(payload),
         note=payload.note,
+        customer_note=payload.customer_note,
         province=payload.province,
         changed_by_user_id=current_user.id,
     )
@@ -244,6 +245,7 @@ def prepare_quote(
     OpportunityService(session).prepare_quote(
         opportunity_id,
         note=payload.note,
+        customer_note=payload.customer_note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -263,6 +265,7 @@ def mark_as_won(
     OpportunityService(session).mark_as_won(
         opportunity_id,
         note=payload.note,
+        customer_note=payload.customer_note,
         province=payload.province,
         changed_by_user_id=current_user.id,
     )
@@ -285,6 +288,7 @@ def regress_opportunity(
         expected_status=payload.expected_status,
         target_status=payload.target_status,
         note=payload.note,
+        customer_note=payload.customer_note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -306,6 +310,7 @@ def mark_as_lost(
         payload.loss_reason,
         payload.loss_reason_detail,
         note=payload.note,
+        customer_note=payload.customer_note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)
@@ -365,6 +370,7 @@ def reopen_opportunity(
         command_id=payload.command_id,
         expected_status=payload.expected_status,
         note=payload.note,
+        customer_note=payload.customer_note,
         changed_by_user_id=current_user.id,
     )
     return _detail(session, opportunity_id)

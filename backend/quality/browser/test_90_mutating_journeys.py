@@ -5,7 +5,7 @@ import re
 import pytest
 from playwright.sync_api import expect
 
-from quality.browser.support import QaPageFactory, wait_for_workspace
+from quality.browser.support import FRONTEND_URL, QaPageFactory, wait_for_workspace
 
 
 @pytest.mark.mutating
@@ -60,7 +60,7 @@ def test_pipeline_keyboard_drag_persists_after_reload(
     page.keyboard.press("Space")
     confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
     expect(confirmation).to_be_visible()
-    confirmation.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+    confirmation.get_by_label("Nota del cambio de estado (recomendada)").fill(
         "Prueba QA: preparar la cotización"
     )
     confirmation.get_by_role("button", name="Avanzar a Para cotizar").click()
@@ -101,7 +101,7 @@ def test_pipeline_drag_persists_after_reload(qa_pages: QaPageFactory) -> None:
     page.mouse.up()
     confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
     expect(confirmation).to_be_visible()
-    confirmation.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+    confirmation.get_by_label("Nota del cambio de estado (recomendada)").fill(
         "Prueba QA: propuesta en preparación"
     )
     confirmation.get_by_role("button", name="Avanzar a Para cotizar").click()
@@ -127,7 +127,7 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
     detail = page.get_by_role("dialog", name="Constructora del Sur")
     detail.get_by_role("button", name="Pasar a Para cotizar").click()
     preparation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
-    preparation.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+    preparation.get_by_label("Nota del cambio de estado (recomendada)").fill(
         "Prueba QA: preparar propuesta"
     )
     preparation.get_by_role("button", name="Pasar a Para cotizar").click()
@@ -160,11 +160,16 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
     expect(quote.get_by_role("heading", name="Confirmá la cotización")).to_be_visible()
     expect(quote.get_by_text("1.500 kg", exact=True).first).to_be_visible()
     expect(quote.get_by_role("button", name="Confirmar cotización")).to_have_count(1)
-    expect(quote.get_by_role("button", name="Confirmar cotización")).to_be_disabled()
-    quote.get_by_label("Nota del cambio de estado (obligatoria)").fill(
-        "Prueba QA: cotización enviada"
-    )
-    quote.get_by_role("button", name="Confirmar cotización").click()
+    confirm = quote.get_by_role("button", name="Confirmar cotización")
+    expect(confirm).to_be_enabled()
+    quote.get_by_text("Agregar un dato para recordar (opcional)", exact=True).click()
+    memory = "Prefiere coordinar las entregas por WhatsApp."
+    quote.get_by_label("Nota del cliente", exact=True).fill(memory)
+    with page.expect_response(
+        lambda response: response.url.endswith("/quote") and response.status == 200
+    ) as saved:
+        confirm.click()
+    customer_id = saved.value.json()["customer"]["id"]
     expect(detail.get_by_text("Cotizada", exact=True)).to_be_visible()
     expect(detail.get_by_text("CA-30", exact=True)).to_be_visible()
     page.reload(wait_until="networkidle")
@@ -176,6 +181,10 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
         page.get_by_role("dialog", name="Constructora del Sur")
         .get_by_text("1.500 kg")
         .first
+    ).to_be_visible()
+    page.goto(f"{FRONTEND_URL}/customers/{customer_id}")
+    expect(
+        page.get_by_role("region", name="Para recordar").get_by_text(memory)
     ).to_be_visible()
 
 
@@ -191,7 +200,7 @@ def test_loss_action_redirects_from_hidden_workspace_to_dashboard(
     detail = page.get_by_role("dialog", name="Ramiro Sosa")
     detail.get_by_role("button", name="Marcar pérdida").click()
     loss = page.get_by_role("dialog", name="Marcar como perdida")
-    loss.get_by_label("Nota del cambio de estado (obligatoria)").fill(
+    loss.get_by_label("Nota del cambio de estado (recomendada)").fill(
         "Prueba QA: precio no aceptado"
     )
     loss.get_by_role("button", name="Confirmar pérdida").click()

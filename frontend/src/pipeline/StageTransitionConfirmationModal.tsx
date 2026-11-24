@@ -51,15 +51,17 @@ export function StageTransitionConfirmationModal({
   transition: PendingStageTransition | null
   isPending: boolean
   onCancel: () => void
-  onConfirm: (note: string, province?: string) => void
+  onConfirm: (note: string, province?: string, customerNote?: string) => void
   error?: string | null
   customerProvince?: string | null
 }) {
   const [note, setNote] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
   const [province, setProvince] = useState('')
   useEffect(() => {
     if (!transition) {
       setNote('')
+      setCustomerNote('')
       setProvince('')
     }
   }, [transition])
@@ -102,7 +104,13 @@ export function StageTransitionConfirmationModal({
             </p>
           </div>
         </div>
-        <StageNoteField disabled={isPending} onChange={setNote} value={note} />
+        <StageNoteField
+          customerNote={customerNote}
+          onCustomerNoteChange={setCustomerNote}
+          disabled={isPending}
+          onChange={setNote}
+          value={note}
+        />
         {targetStatus === 'GANADA' ? (
           <StageProvinceField
             currentProvince={customerProvince}
@@ -122,9 +130,10 @@ export function StageTransitionConfirmationModal({
           Cancelar
         </Button>
         <Button
-          disabled={!note.trim()}
           isLoading={isPending}
-          onClick={() => onConfirm(note.trim(), province.trim() || undefined)}
+          onClick={() =>
+            onConfirm(note.trim(), province.trim() || undefined, customerNote.trim() || undefined)
+          }
           variant='primary'
         >
           {copy?.actionLabel ?? 'Confirmar cambio'}

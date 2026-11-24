@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import type { ApiSession } from '../api/opportunities'
+import { CustomerNotes } from '../customers/CustomerNotes'
 import type { CustomerDetail } from '../customers/types'
 import {
   OPPORTUNITY_STATUS_LABELS,
@@ -91,6 +93,7 @@ function OpportunityCard({
 }
 
 export function CrmContextPanel({
+  session,
   conversation,
   customerDetail,
   opportunityDetail,
@@ -105,6 +108,7 @@ export function CrmContextPanel({
   onOpenCustomer,
   onOpenOpportunity,
 }: {
+  session: ApiSession
   conversation: WhatsAppConversationDetail
   customerDetail: CustomerDetail | null
   opportunityDetail: OpportunityDetail | null
@@ -194,6 +198,9 @@ export function CrmContextPanel({
           ) : null}
         </section>
 
+        {conversation.resolution_status === 'RESOLVED' && customer?.is_available ? (
+          <CustomerNotes compact customerId={customer.id} key={customer.id} session={session} />
+        ) : null}
         <section aria-labelledby='context-opportunity-title' className='mt-5'>
           <h3
             className='text-sm font-semibold text-[var(--text-primary)]'

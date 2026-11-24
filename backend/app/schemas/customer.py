@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated, Self
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 
@@ -57,3 +58,30 @@ class CustomerSummary(BaseModel):
 
 class CustomerDetail(CustomerSummary):
     created_at: datetime
+
+
+CustomerNoteBody = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=600)
+]
+
+
+class CustomerNoteCreate(StrictRequestModel):
+    body: CustomerNoteBody
+    command_id: UUID
+
+
+class CustomerNoteUpdate(StrictRequestModel):
+    body: CustomerNoteBody
+    pinned: bool
+    expected_updated_at: datetime
+
+
+class CustomerNoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    body: str
+    pinned: bool
+    author_name: str
+    created_at: datetime
+    updated_at: datetime

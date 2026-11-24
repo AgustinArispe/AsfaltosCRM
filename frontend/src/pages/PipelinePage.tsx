@@ -251,6 +251,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     targetStatus: PipelineStatus,
     note: string,
     province?: string,
+    customerNote?: string,
   ) => {
     const opportunity = findOpportunity(opportunityId)
     if (
@@ -279,10 +280,17 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     dispatch({ type: 'upsert', opportunity: optimisticOpportunity })
     try {
       const updatedOpportunity = isBackwardMove(fromStatus, targetStatus)
-        ? await regressOpportunityStage(opportunityId, fromStatus, targetStatus, note, apiSession)
+        ? await regressOpportunityStage(
+            opportunityId,
+            fromStatus,
+            targetStatus,
+            note,
+            apiSession,
+            customerNote,
+          )
         : targetStatus === 'PARA_COTIZAR'
-          ? await prepareOpportunityQuote(opportunityId, note, apiSession)
-          : await winOpportunity(opportunityId, note, apiSession, province)
+          ? await prepareOpportunityQuote(opportunityId, note, apiSession, customerNote)
+          : await winOpportunity(opportunityId, note, apiSession, province, customerNote)
       if (mutationGenerationRef.current[opportunityId] === generation)
         dispatch({ type: 'upsert', opportunity: updatedOpportunity })
       setAnnouncement(
@@ -327,7 +335,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     setPendingStageTransition(null)
   }
 
-  const confirmStageTransition = async (note: string, province?: string) => {
+  const confirmStageTransition = async (note: string, province?: string, customerNote?: string) => {
     const transition = pendingStageTransition
     if (!transition || isConfirmingStageTransitionRef.current) return
     const opportunity = findOpportunity(transition.opportunityId)
@@ -345,7 +353,13 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     isConfirmingStageTransitionRef.current = true
     setIsConfirmingStageTransition(true)
     try {
-      await handleMove(transition.opportunityId, transition.targetStatus, note, province)
+      await handleMove(
+        transition.opportunityId,
+        transition.targetStatus,
+        note,
+        province,
+        customerNote,
+      )
       setPendingStageTransition(null)
     } catch {
       // Preserve the note and allow retry after the optimistic move rolls back.
@@ -359,6 +373,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
     quoteProducts: QuoteProductInput[],
     note: string,
     province?: string,
+    customerNote?: string,
   ) => {
     const opportunity = quoteOpportunityId ? findOpportunity(quoteOpportunityId) : null
     if (!opportunity) throw new Error('La oportunidad ya no está disponible.')
@@ -373,6 +388,7 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         note,
         apiSession,
         province,
+        customerNote,
       )
       dispatch({ type: 'upsert', opportunity: updatedOpportunity })
       setQuoteOpportunityId(null)
@@ -565,7 +581,9 @@ export function PipelinePage({ selectedOpportunityId }: { selectedOpportunityId?
         }
         isPending={isConfirmingStageTransition}
         onCancel={cancelStageTransition}
-        onConfirm={(note, province) => void confirmStageTransition(note, province)}
+        onConfirm={(note, province, customerNote) =>
+          void confirmStageTransition(note, province, customerNote)
+        }
         error={operationError}
         transition={pendingStageTransition}
       />

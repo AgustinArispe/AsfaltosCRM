@@ -194,6 +194,7 @@ export function WhatsAppInboxPage({ initialConversationId }: { initialConversati
               onUpdateLink={inbox.updateOpportunityLink}
               opportunityDetail={inbox.opportunityDetail}
               status={inbox.contextStatus}
+              session={inbox.apiSession}
             />
           ) : null}
         </div>

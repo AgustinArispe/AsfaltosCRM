@@ -81,3 +81,12 @@ export type CustomerWritePayload = {
 export type CustomerUpdatePayload = Partial<CustomerWritePayload> & {
   expected_updated_at: string
 }
+
+export type CustomerNote = {
+  id: number
+  body: string
+  pinned: boolean
+  author_name: string
+  created_at: string
+  updated_at: string
+}

@@ -125,7 +125,7 @@ def test_failed_history_note_rolls_back_province_and_quote_in_the_same_transacti
         OpportunityService(db_session).quote_opportunity(
             opportunity.id,
             [QuoteProductInput(product_id=product.id, quantity_kg=Decimal("100"))],
-            note="   ",
+            note="x" * 4001,
             province="Salta",
         )
     detail = api_client.get(f"/api/opportunities/{opportunity_id}").json()
