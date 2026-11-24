@@ -212,6 +212,7 @@ class WhatsAppInboundService:
                 referral_source_id=normalized.referral.source_id,
                 referral_source_url=normalized.referral.source_url,
                 referral_ctwa_clid=normalized.referral.ctwa_clid,
+                referral_captured=True,
                 sent_by_user_id=None,
                 dispatch_state=None,
                 provider_state=WhatsAppProviderState.RECEIVED,
@@ -348,20 +349,33 @@ class WhatsAppInboundService:
             and attachment.filename == inbound.attachment.filename
             and attachment.size_bytes == inbound.attachment.size_bytes
         )
-        if not (
-            conversation.phone_match_key == inbound.phone_match_key
-            and message.message_type is inbound.message_type
-            and message.body == inbound.body
-            and message.provider_message_at == inbound.provider_message_at
-            and message.referral_source_type == inbound.referral.source_type
+        same_referral = not message.referral_captured or (
+            message.referral_source_type == inbound.referral.source_type
             and message.referral_source_id == inbound.referral.source_id
             and message.referral_source_url == inbound.referral.source_url
             and message.referral_ctwa_clid == inbound.referral.ctwa_clid
+        )
+        if not (
+            conversation.phone_match_key == inbound.phone_match_key
+            and message.direction is WhatsAppDirection.INBOUND
+            and message.message_type is inbound.message_type
+            and message.body == inbound.body
+            and message.provider_message_at == inbound.provider_message_at
+            and same_referral
             and same_attachment
         ):
             raise WhatsAppIdempotencyConflictError(
                 "External WhatsApp message ID was reused with different data"
             )
+        if not message.referral_captured:
+            # Older releases ignored referral data. A genuine provider retry can
+            # complete that evidence without rewriting an existing case's source.
+            message.referral_source_type = inbound.referral.source_type
+            message.referral_source_id = inbound.referral.source_id
+            message.referral_source_url = inbound.referral.source_url
+            message.referral_ctwa_clid = inbound.referral.ctwa_clid
+            message.referral_captured = True
+            self._session.flush()
         linked_opportunity_id = self._session.scalar(
             select(WhatsAppConversationOpportunity.opportunity_id).where(
                 WhatsAppConversationOpportunity.conversation_id == conversation.id,

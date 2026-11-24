@@ -36,6 +36,9 @@ metadata, independent of the customer's greeting or product question.
 ## Storage and rollout
 
 Add META to lead_source_enum and nullable referral columns to whatsapp_messages.
+Track whether a message was received by the referral-aware implementation so a
+genuine retry of a legacy message can complete its missing evidence, retaining its
+existing opportunity source. Conflicting evidence on captured messages is rejected.
 Expand the WhatsApp channel unique index to include META. Existing records retain
 their stored source because previous code discarded referral data. Downgrade must
 protect stored attribution and commercial history.

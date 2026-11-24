@@ -6,6 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -150,6 +151,9 @@ class WhatsAppMessage(TimestampMixin, Base):
     referral_source_id: Mapped[str | None] = mapped_column(Text)
     referral_source_url: Mapped[str | None] = mapped_column(Text)
     referral_ctwa_clid: Mapped[str | None] = mapped_column(Text)
+    referral_captured: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     sent_by_user_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(

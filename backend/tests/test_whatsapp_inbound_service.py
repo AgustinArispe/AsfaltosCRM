@@ -912,3 +912,31 @@ def test_identity_review_preserves_the_pending_first_ad_inquiry(
     assert opportunity is not None
     assert opportunity.source is LeadSource.META
     assert opportunity.initial_whatsapp_message_id == first.message_id
+
+
+def test_legacy_message_retry_can_complete_referral_evidence_without_reclassifying_case(
+    db_session: Session,
+) -> None:
+    intake = WhatsAppInboundService(db_session, provider())
+    original_input = inbound("wamid-legacy-referral")
+    original = intake.receive(original_input, now=NOW)
+    message = db_session.get(WhatsAppMessage, original.message_id)
+    assert message is not None
+    message.referral_captured = False
+    db_session.commit()
+    retry = intake.receive(
+        replace(
+            original_input,
+            referral=ProviderInboundReferral(source_type="ad", source_id="old-ad"),
+        ),
+        now=NOW,
+    )
+    assert retry.created is False
+    assert retry.message_id == original.message_id
+    assert retry.opportunity_id == original.opportunity_id
+    db_session.refresh(message)
+    assert message.referral_captured is True
+    assert message.referral_source_id == "old-ad"
+    opportunity = db_session.get(Opportunity, original.opportunity_id)
+    assert opportunity is not None
+    assert opportunity.source is LeadSource.WHATSAPP

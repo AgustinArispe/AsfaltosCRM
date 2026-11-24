@@ -24,6 +24,15 @@ def upgrade() -> None:
         op.execute("ALTER TYPE lead_source_enum ADD VALUE IF NOT EXISTS 'META'")
     for name in REFERRAL_COLUMNS:
         op.add_column("whatsapp_messages", sa.Column(name, sa.Text(), nullable=True))
+    op.add_column(
+        "whatsapp_messages",
+        sa.Column(
+            "referral_captured",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
+    )
     op.drop_index(
         "uq_opportunities_one_active_whatsapp_per_customer", table_name="opportunities"
     )
@@ -69,5 +78,6 @@ def downgrade() -> None:
     )
     for name in reversed(REFERRAL_COLUMNS):
         op.drop_column("whatsapp_messages", name)
+    op.drop_column("whatsapp_messages", "referral_captured")
     # Keep the additive enum label. Removing it would require rewriting shared
     # commercial history columns even though no data uses the new value.
