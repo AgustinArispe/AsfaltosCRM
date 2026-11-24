@@ -1,6 +1,7 @@
 # CRM-062 — Customer notes and optional stage notes
 
-Status: Approved
+Status: Implemented
+Implementation commit: 7d3a4e6
 Last updated: 2026-11-24
 
 ## Request and scope
@@ -34,3 +35,12 @@ Automatic profiling, historical inference, external messages and reminders.
 ## Open decisions
 
 None.
+
+## Verification
+
+- Backend: 565 tests, 93.41% coverage, strict typing, formatting and migration checks.
+- Frontend: 303 tests, production build and dependency audit.
+- The local preview database was backed up before migration. API, database and
+  frontend containers passed their health checks at the new schema head.
+- Browser acceptance covers confirming a quote with only a customer note and
+  reading that note from the customer sheet.
