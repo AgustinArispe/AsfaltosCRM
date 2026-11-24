@@ -1920,6 +1920,13 @@
 html {
   min-width: 320px;
   background: var(--canvas);
+  scrollbar-gutter: stable;
+}
+
+/* Keep the page in place until the last modal closes. */
+html:has(dialog:modal) {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -4552,6 +4559,7 @@ a {
   background: transparent;
   padding: 0;
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 .drawer-dialog::backdrop {
   background: rgb(13 18 15 / 54%);
@@ -7592,6 +7600,7 @@ button.dashboard-comparison-bar:focus-visible {
   opacity: 1;
 }
 .crm-modal__surface {
+  overscroll-behavior: contain;
   border-color: color-mix(in srgb, var(--brand-deep) 18%, var(--border-default));
   background: var(--surface-primary);
   box-shadow: 0 24px 64px rgb(10 24 42 / 22%);

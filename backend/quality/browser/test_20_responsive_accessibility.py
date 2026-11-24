@@ -31,6 +31,50 @@ def test_wheel_over_pipeline_cards_scrolls_the_page_in_both_directions(
     assert cast(float, page.evaluate("window.scrollY")) < before
 
 
+def test_opportunity_modal_keeps_the_pipeline_in_place_while_scrolling(
+    qa_pages: QaPageFactory,
+) -> None:
+    page = qa_pages.create(role="SUPERVISOR", viewport=(1440, 480)).page
+    trigger = page.get_by_role(
+        "button",
+        name=re.compile("Abrir oportunidad de Vial Patagonia, origen Web"),
+    )
+    expect(trigger).to_be_visible()
+    page.evaluate("window.scrollTo(0, 100)")
+    trigger.scroll_into_view_if_needed()
+    before = cast(float, page.evaluate("window.scrollY"))
+    assert before > 0
+    trigger.click()
+
+    detail = page.get_by_role("dialog", name="Vial Patagonia")
+    expect(detail.get_by_role("button", name="Cotizar")).to_be_visible()
+    surface = detail.locator(".crm-modal__surface")
+    surface.hover(position={"x": 24, "y": 200})
+    page.mouse.wheel(0, 400)
+    page.wait_for_function(
+        "surface => surface.scrollTop > 0", arg=surface.element_handle()
+    )
+    assert page.evaluate("window.scrollY") == before
+
+    # Extra wheel input at the dialog's scroll boundary stays inside the modal.
+    surface.evaluate("surface => { surface.scrollTop = surface.scrollHeight }")
+    page.mouse.wheel(0, 400)
+    page.mouse.move(20, 240)
+    page.mouse.wheel(0, -400)
+    page.evaluate(
+        "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
+    )
+    assert page.evaluate("window.scrollY") == before
+
+    detail.get_by_role("button", name="Cerrar detalle de oportunidad").click()
+    expect(detail).not_to_be_visible()
+    expect(trigger).to_be_focused()
+    assert page.evaluate("window.scrollY") == before
+    page.mouse.move(220, 300)
+    page.mouse.wheel(0, -400)
+    page.wait_for_function("before => window.scrollY < before", arg=before)
+
+
 @pytest.mark.matrix
 @pytest.mark.parametrize(
     ("theme", "viewport"),
