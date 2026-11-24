@@ -873,7 +873,7 @@ describe('WhatsAppInboxPage', () => {
     await waitFor(() =>
       expect(screen.getByText('retomar_contacto · es_AR · UTILITY')).toBeInTheDocument(),
     )
-    fireEvent.change(screen.getByRole('textbox', { name: 'nombre' }), {
+    fireEvent.change(await screen.findByRole('textbox', { name: 'nombre' }), {
       target: { value: 'Cliente Uno' },
     })
     const sendTemplate = screen.getByRole('button', { name: 'Enviar plantilla' })

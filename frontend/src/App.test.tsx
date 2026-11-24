@@ -96,7 +96,11 @@ function mockRestoredSession(user: AuthUser, token = 'stored-token') {
   const fetchMock = vi
     .fn()
     .mockResolvedValueOnce(jsonResponse(200, user))
-    .mockResolvedValue(jsonResponse(200, emptyOpportunityPage))
+    .mockImplementation(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = new URL(String(input), 'http://localhost')
+      if (url.pathname === '/api/products') return jsonResponse(200, [])
+      return jsonResponse(200, emptyOpportunityPage)
+    })
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
