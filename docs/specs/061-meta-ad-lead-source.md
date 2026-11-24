@@ -3,7 +3,8 @@
 Status: Implemented
 Owner: FAA CRM team
 Last updated: 2026-11-24
-Implementation commits: 4e49261 (initial attribution) and 1c1e795 (legacy retries)
+Implementation commits: 4e49261 (initial attribution), 1c1e795 (legacy retries),
+and bc3fec8 (vendor Dashboard permissions)
 
 ## Request and scope
 
@@ -75,7 +76,7 @@ None.
 
 - Local backend gates pass with 564 tests and 93.39 percent coverage, strict typing,
   Ruff, lock reproducibility, dependency audit and Alembic model/head checks.
-- Local frontend gates pass with 300 tests, production build and zero audit findings.
+- Local frontend gates pass with 302 tests, production build and zero audit findings.
 - Signed Meta webhook tests exercise ad and ordinary delivery through the normal
   HTTP endpoint. Referral mapping covers text, image, audio and document messages.
 - Tests cover optional click IDs, unchanged initial attribution, deduplication,
