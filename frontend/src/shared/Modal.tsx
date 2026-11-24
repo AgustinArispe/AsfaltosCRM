@@ -8,6 +8,8 @@ import {
   useRef,
 } from 'react'
 
+import { showModalWithScrollLock } from './showModalWithScrollLock'
+
 export function Modal({
   isOpen,
   title,
@@ -54,7 +56,7 @@ export function Modal({
 
     if (isOpen && !dialog.open) {
       previousFocusRef.current = returnFocusTo ?? (document.activeElement as HTMLElement | null)
-      dialog.showModal()
+      showModalWithScrollLock(dialog)
       dialog.querySelector<HTMLElement>('[data-modal-initial-focus]')?.focus()
     }
 

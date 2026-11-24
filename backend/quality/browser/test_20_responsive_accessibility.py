@@ -48,7 +48,7 @@ def test_opportunity_modal_keeps_the_pipeline_in_place_while_scrolling(
 
     detail = page.get_by_role("dialog", name="Vial Patagonia")
     expect(detail.get_by_role("button", name="Cotizar")).to_be_visible()
-    surface = detail.locator(".crm-modal__surface")
+    surface = detail.locator(":scope > .crm-modal__surface")
     surface.hover(position={"x": 24, "y": 200})
     page.mouse.wheel(0, 400)
     page.wait_for_function(

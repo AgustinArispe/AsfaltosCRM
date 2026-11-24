@@ -9,6 +9,8 @@ import {
   useState,
 } from 'react'
 
+import { showModalWithScrollLock } from './showModalWithScrollLock'
+
 const CLOSE_DURATION_MS = 160
 
 export function Drawer({
@@ -53,7 +55,7 @@ export function Drawer({
       setIsClosing(false)
       if (!dialog.open) {
         previousFocusRef.current = document.activeElement as HTMLElement | null
-        dialog.showModal()
+        showModalWithScrollLock(dialog)
         dialog.querySelector<HTMLElement>('[data-drawer-initial-focus]')?.focus()
       }
       return

@@ -1920,13 +1920,16 @@
 html {
   min-width: 320px;
   background: var(--canvas);
-  scrollbar-gutter: stable;
 }
 
 /* Keep the page in place until the last modal closes. */
 html:has(dialog:modal) {
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+html[data-modal-scrollbar-gutter]:has(dialog:modal) {
+  scrollbar-gutter: stable;
 }
 
 body {
