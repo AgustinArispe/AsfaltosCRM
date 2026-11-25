@@ -118,6 +118,62 @@ def test_matches_existing_customer_by_comparable_phone(db_session: Session) -> N
     assert result.customer_id == customer.id
 
 
+@pytest.mark.parametrize(
+    "phone",
+    (
+        "+542494567818",
+        "2494567818",
+        "+54 2494567818",
+        "154567818",
+        "+54 154567818",
+        "+54154567818",
+        "0249 15 456-7818",
+        "0054 9 249 456-7818",
+    ),
+)
+def test_argentine_mobile_formats_reuse_customer_and_keep_phone_as_entered(
+    db_session: Session, phone: str
+) -> None:
+    saved_phone = "+54 9 249 456-7818"
+    customer = Customer(name="Cliente Tandil", phone=saved_phone)
+    persist(db_session, customer)
+
+    result = LeadIntakeService(db_session).intake(make_intake(email=None, phone=phone))
+
+    assert result.customer_id == customer.id
+    assert customer.phone == saved_phone
+    intake = db_session.get(LeadIntake, result.intake_id)
+    assert intake is not None and intake.submitted_phone == phone
+
+
+def test_local_mobile_can_be_ambiguous_between_distinct_area_codes(
+    db_session: Session,
+) -> None:
+    tandil = Customer(name="Cliente Tandil", phone="+54 9 249 456-7818")
+    la_plata = Customer(name="Cliente La Plata", phone="+54 9 221 456-7818")
+    persist(db_session, tandil, la_plata)
+    service = LeadIntakeService(db_session)
+
+    with pytest.raises(CustomerIdentityConflictError):
+        service.intake(make_intake(email=None, phone="15 456-7818"))
+
+    assert (
+        service.intake(make_intake(email=None, phone="2494567818")).customer_id
+        == tandil.id
+    )
+
+
+def test_local_mobile_needs_entire_subscriber_number(db_session: Session) -> None:
+    customer = Customer(name="Cliente Buenos Aires", phone="+54 9 11 4456-7818")
+    persist(db_session, customer)
+
+    result = LeadIntakeService(db_session).intake(
+        make_intake(email=None, phone="15 456-7818")
+    )
+
+    assert result.customer_id != customer.id
+
+
 def test_email_match_has_priority_when_phone_has_no_match(db_session: Session) -> None:
     customer = Customer(name="Cliente Email", email="prioridad@ejemplo.com")
     persist(db_session, customer)
@@ -142,7 +198,7 @@ def test_conflicting_email_and_phone_customers_fail_completely(
         LeadIntakeService(db_session).intake(
             make_intake(
                 email="conflicto@ejemplo.com",
-                phone="+54 (11) 4444-5555",
+                phone="1144445555",
             )
         )
 
@@ -463,6 +519,27 @@ def test_concurrent_distinct_submissions_with_same_email_share_customer() -> Non
         results = list(executor.map(submit, inputs))
     try:
         assert all(result.created for result in results)
+        assert len({result.customer_id for result in results}) == 1
+        assert len({result.opportunity_id for result in results}) == 2
+    finally:
+        _cleanup_concurrent_results(results)
+
+
+def test_concurrent_phones_with_and_without_area_code_share_customer() -> None:
+    inputs = (
+        make_intake(email=None, phone="+54 9 249 456-7818"),
+        make_intake(email=None, phone="+54 15 456-7818"),
+    )
+    barrier = Barrier(2)
+
+    def submit(intake: LeadIntakeInput) -> LeadIntakeResult:
+        barrier.wait()
+        with SessionLocal() as session:
+            return LeadIntakeService(session).intake(intake)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(submit, inputs))
+    try:
         assert len({result.customer_id for result in results}) == 1
         assert len({result.opportunity_id for result in results}) == 2
     finally:

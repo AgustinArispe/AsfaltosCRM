@@ -219,7 +219,7 @@ def test_existing_customer_with_active_non_whatsapp_gets_new_whatsapp_opportunit
 def test_existing_customer_with_active_whatsapp_reuses_it(
     db_session: Session,
 ) -> None:
-    customer = Customer(name="Existente WhatsApp", phone="11 4555-9999")
+    customer = Customer(name="Existente WhatsApp", phone="+54 15 456-7818")
     db_session.add(customer)
     db_session.flush()
     opportunity = OpportunityService(db_session).create_opportunity_in_transaction(
@@ -231,10 +231,12 @@ def test_existing_customer_with_active_whatsapp_reuses_it(
     db_session.commit()
 
     result = WhatsAppInboundService(db_session, provider()).receive(
-        inbound("wamid-existing-whatsapp", phone="(11) 4555-9999"),
+        inbound("wamid-existing-whatsapp", phone="5492494567818"),
         now=NOW,
     )
 
+    assert result.customer_id == customer.id
+    assert customer.phone == "+54 15 456-7818"
     assert result.opportunity_id == opportunity.id
     assert (
         db_session.scalar(

@@ -59,7 +59,7 @@ This route does not require a CRM JWT. It requires the configured backend signin
 
 ## Edge cases
 
-- Email is trimmed/lowercased; optional text is trimmed; message line endings normalize to LF; phone matching removes whitespace, hyphens, and parentheses while preserving `+`.
+- Email is trimmed/lowercased; optional text is trimmed; message line endings normalize to LF. Phone identity uses the Argentine dialing rules in [CRM-063](063-argentine-customer-phone-matching.md); other numbers retain exact matching after removing whitespace, hyphens, and parentheses.
 - Phones with fewer than seven ASCII digits are not matchable.
 - Concurrent requests use PostgreSQL advisory locks for external ID and identity keys.
 - A replay with the same normalized snapshot is safe; a changed snapshot conflicts.
@@ -71,7 +71,7 @@ This route does not require a CRM JWT. It requires the configured backend signin
 - AC-02: Replaying the same source/external ID and normalized payload returns the original result without new rows.
 - AC-03: Reusing the ID with a different normalized payload returns an idempotency conflict.
 - AC-04: Exact normalized email/phone matching reuses an active customer and enriches only empty fields.
-- AC-05: Phone normalization preserves `+`, removes separators, and does not infer a country code or use fuzzy matching.
+- AC-05: Phone matching follows [CRM-063](063-argentine-customer-phone-matching.md), keeps the submitted value in the snapshot, and avoids fuzzy matching.
 - AC-06: Missing, malformed, expired, or mismatched HMAC headers are rejected without creating data.
 - AC-07: Extra fields, client-provided source, and payloads over documented limits are rejected.
 - AC-08: Concurrent identical submissions produce one intake/opportunity; distinct identities remain independent.

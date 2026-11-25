@@ -25,6 +25,7 @@ from app.services.customer_identity_service import (
     acquire_advisory_locks,
     comparable_phone,
     customer_identity_locks,
+    customer_phones_match,
     normalize_email,
     normalize_optional_text,
 )
@@ -312,18 +313,23 @@ class CustomerImportService:
         return parsed
 
     def _resolve_preview_rows(self, rows: list[_ParsedRow]) -> None:
-        identity_counts: dict[tuple[str, str], int] = {}
+        rows_by_identity: dict[tuple[str, str], list[_ParsedRow]] = {}
         for row in rows:
             for identity in customer_identity_locks(
                 row.profile.email, row.phone_match_key
             ):
-                identity_counts[identity] = identity_counts.get(identity, 0) + 1
+                rows_by_identity.setdefault(identity, []).append(row)
         resolver = CustomerIdentityResolver(self._session)
         for row in rows:
             if row.issue_code is not None:
                 continue
             identities = customer_identity_locks(row.profile.email, row.phone_match_key)
-            if any(identity_counts[identity] > 1 for identity in identities):
+            if any(
+                _matches_import_row(row, other, identity[0])
+                for identity in identities
+                for other in rows_by_identity[identity]
+                if row is not other
+            ):
                 _set_issue(
                     row,
                     CustomerImportIssueCode.DUPLICATE_IDENTITY,
@@ -415,6 +421,16 @@ class CustomerImportService:
             customer_ids=tuple(sorted(result.customer_id for result in batch.results)),
             committed_at=batch.committed_at,
         )
+
+
+def _matches_import_row(row: _ParsedRow, other: _ParsedRow, namespace: str) -> bool:
+    if namespace == "email":
+        return True
+    return (
+        row.phone_match_key is not None
+        and other.phone_match_key is not None
+        and customer_phones_match(row.phone_match_key, other.phone_match_key)
+    )
 
 
 def _file_error(message: str, *, header: bool = False) -> _ParsedRow:
