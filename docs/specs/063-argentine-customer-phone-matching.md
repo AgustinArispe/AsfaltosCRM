@@ -1,6 +1,8 @@
 # CRM-063 — Argentine customer phone matching
 
-Status: Approved
+Status: Implemented
+Implementation commit: 023b8a2
+Last updated: 2026-11-25
 
 ## Scope
 

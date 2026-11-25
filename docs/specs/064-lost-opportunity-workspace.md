@@ -1,6 +1,8 @@
 # CRM-064 — Lost opportunities workspace
 
-Status: Approved
+Status: Implemented
+Implementation commit: c81de26
+Last updated: 2026-11-25
 
 ## Scope
 
