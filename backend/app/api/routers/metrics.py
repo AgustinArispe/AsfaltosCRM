@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query
 
 from app.api.dependencies import CurrentUser, DatabaseSession
 from app.schemas.metrics import (
+    LossReasonMetricResponse,
     MetricOpportunitiesQuery,
     MetricOpportunitiesResponse,
     MetricOpportunityItemResponse,
@@ -93,6 +94,10 @@ def get_metrics_overview(
             metrics.volume_kg,
             from_attributes=True,
         ),
+        loss_reasons=[
+            LossReasonMetricResponse.model_validate(item)
+            for item in metrics.loss_reasons
+        ],
     )
 
 

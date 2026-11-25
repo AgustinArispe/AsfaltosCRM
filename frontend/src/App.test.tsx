@@ -98,6 +98,17 @@ function mockRestoredSession(user: AuthUser, token = 'stored-token') {
     .mockResolvedValueOnce(jsonResponse(200, user))
     .mockImplementation(async (input: RequestInfo | URL): Promise<Response> => {
       const url = new URL(String(input), 'http://localhost')
+      if (url.pathname === '/api/lost-opportunities/filter-options')
+        return jsonResponse(200, { products: [], provinces: [], responsible_users: [] })
+      if (url.pathname === '/api/lost-opportunities/statistics')
+        return jsonResponse(200, {
+          current_count: 0,
+          current_quantity_kg: '0',
+          without_quote_count: 0,
+          current_by_reason: [],
+          current_by_product: [],
+          historical_loss_count: 0,
+        })
       if (url.pathname === '/api/products') return jsonResponse(200, [])
       return jsonResponse(200, emptyOpportunityPage)
     })
@@ -234,7 +245,7 @@ describe('authenticated frontend', () => {
     expect(window.location.pathname).toBe('/login')
   })
 
-  it('shows Users navigation to supervisors', async () => {
+  it('groups Products and Users after the commercial results for supervisors', async () => {
     mockRestoredSession(supervisor)
     renderApp('/pipeline')
 
@@ -243,7 +254,22 @@ describe('authenticated frontend', () => {
     expect(screen.getByRole('link', { name: 'Productos' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Envíos masivos' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Perdidas' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Perdidas' })).toBeInTheDocument()
+    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(
+      Array.from(navigation.querySelectorAll('[data-group-start]'), (group) =>
+        group.querySelector('a')?.getAttribute('href'),
+      ),
+    ).toEqual(['/whatsapp', '/lost', '/products'])
+    const finalLinks = within(navigation).getAllByRole('link').slice(-4)
+    expect(finalLinks.map((item) => item.getAttribute('href'))).toEqual([
+      '/lost',
+      '/won',
+      '/products',
+      '/users',
+    ])
+    expect(finalLinks[2].closest('li')).toHaveAttribute('data-group-start', 'administration')
+    expect(finalLinks[3].closest('li')).not.toHaveAttribute('data-group-start')
     fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }))
     expect(screen.getByRole('button', { name: 'Expandir navegación' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Oportunidades' })).toHaveAttribute(
@@ -256,6 +282,22 @@ describe('authenticated frontend', () => {
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByLabelText('Tema')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cuenta de Supervisor FAA' })).toHaveFocus()
+  })
+
+  it('switches and persists the theme from the sidebar, including when collapsed', async () => {
+    window.localStorage.setItem('faa-crm.theme', 'light')
+    mockRestoredSession(supervisor)
+    renderApp('/pipeline')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar a modo oscuro' }))
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(window.localStorage.getItem('faa-crm.theme')).toBe('dark')
+    fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }))
+    const toggle = screen.getByRole('button', { name: 'Cambiar a modo claro' })
+    expect(toggle).toHaveAttribute('title', 'Cambiar a modo claro')
+    fireEvent.click(toggle)
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(window.localStorage.getItem('faa-crm.theme')).toBe('light')
   })
 
   it('uses the WhatsApp workspace without a standalone page heading', async () => {
@@ -442,14 +484,12 @@ describe('authenticated frontend', () => {
     expect(window.location.pathname).toBe('/pipeline')
   })
 
-  it('keeps Perdidas hidden for sellers while preserving the supervisor route', async () => {
+  it('shows Perdidas to sellers and keeps its detail route', async () => {
     mockRestoredSession(seller)
     renderApp('/lost/opportunities/77')
-
-    expect(
-      await screen.findByRole('heading', { name: 'Resumen comercial', level: 1 }),
-    ).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/dashboard')
+    expect(await screen.findByRole('heading', { name: 'Perdidas', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Perdidas' })).toHaveAttribute('aria-current', 'page')
+    expect(window.location.pathname).toBe('/lost/opportunities/77')
   })
 
   it('loads the authorized Users workspace through its route chunk', async () => {

@@ -87,22 +87,17 @@ export function StageTransitionConfirmationModal({
           </p>
         ) : null}
         <div
-          className={`flex items-center gap-3 rounded-[var(--radius-control)] border border-[var(--opportunity-stage-border)] bg-[var(--opportunity-stage-surface)] px-3.5 py-3 ${opportunityStatusColorClass(targetStatus)}`}
+          className={`flex items-center gap-2.5 rounded-[var(--radius-control)] border border-[var(--opportunity-stage-border)] bg-[var(--opportunity-stage-surface)] px-3 py-2 ${opportunityStatusColorClass(targetStatus)}`}
         >
           <span
             aria-hidden='true'
-            className='grid size-9 shrink-0 place-items-center rounded-full bg-[var(--opportunity-stage-solid)] text-[var(--opportunity-stage-on-solid)]'
+            className='grid size-7 shrink-0 place-items-center rounded-full bg-[var(--opportunity-stage-solid)] text-[var(--opportunity-stage-on-solid)]'
           >
-            <Icon className='size-[1.05rem]' name={stage?.icon ?? 'document'} />
+            <Icon className='size-4' name={stage?.icon ?? 'document'} />
           </span>
-          <div>
-            <p className='text-sm font-semibold text-[var(--opportunity-stage-text)]'>
-              {stage?.label ?? targetStatus}
-            </p>
-            <p className='mt-0.5 text-xs text-[var(--text-secondary)]'>
-              El cambio se aplicará al confirmar.
-            </p>
-          </div>
+          <p className='text-sm font-semibold text-[var(--opportunity-stage-text)]'>
+            {stage?.label ?? targetStatus}
+          </p>
         </div>
         <StageNoteField
           customerNote={customerNote}

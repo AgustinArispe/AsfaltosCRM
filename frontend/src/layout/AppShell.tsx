@@ -24,7 +24,7 @@ const NAVIGATION_ICONS: Record<string, IconName> = {
   '/customers': 'users',
   '/products': 'products',
   '/won': 'trophy',
-  '/lost': 'pipeline',
+  '/lost': 'x-circle',
   '/whatsapp-sends': 'send',
   '/users': 'users',
 }
@@ -120,6 +120,26 @@ function AccountDisclosure({
   )
 }
 
+function SidebarThemeButton({ collapsed = false }: { collapsed?: boolean }) {
+  const { resolvedTheme, setPreference } = useTheme()
+  const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark'
+  const label = nextTheme === 'light' ? 'modo claro' : 'modo oscuro'
+  const action = `Cambiar a ${label}`
+
+  return (
+    <button
+      aria-label={action}
+      className={`ui-sidebar-link ui-pressable w-full cursor-pointer ${collapsed ? 'justify-center' : 'px-3'}`}
+      onClick={() => setPreference(nextTheme)}
+      title={collapsed ? action : undefined}
+      type='button'
+    >
+      <Icon className='size-5 shrink-0' name={nextTheme === 'light' ? 'sun' : 'moon'} />
+      {collapsed ? null : <span className='truncate first-letter:uppercase'>{label}</span>}
+    </button>
+  )
+}
+
 function SidebarNavigation({
   activeNavigationPath,
   isCollapsed,
@@ -137,7 +157,7 @@ function SidebarNavigation({
   const effectiveNotificationCount = notificationCount ?? attention?.count ?? 0
   return (
     <nav aria-label='Navegación principal' className='min-h-0 flex-1 overflow-y-auto px-2 py-3'>
-      <ul className='space-y-1'>
+      <ul className='grid gap-1'>
         {navigation.map((item, index) => {
           const isActive = (activeNavigationPath ?? pathname) === item.path
           const startsGroup = index > 0 && navigation[index - 1]?.group !== item.group
@@ -147,7 +167,11 @@ function SidebarNavigation({
               ? `${item.label}, ${effectiveNotificationCount} notificaciones activas sin leer`
               : item.label
           return (
-            <li className={startsGroup ? 'ui-sidebar-group-start' : undefined} key={item.path}>
+            <li
+              className={startsGroup ? 'ui-sidebar-group-start' : undefined}
+              data-group-start={startsGroup ? item.group : undefined}
+              key={item.path}
+            >
               <AppLink
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={isCollapsed ? notificationLabel : undefined}
@@ -263,6 +287,7 @@ export function AppShell({
             pathname={pathname}
           />
           <div className='ui-sidebar__footer p-2'>
+            <SidebarThemeButton collapsed={isCollapsed} />
             <AccountDisclosure
               collapsed={isCollapsed}
               email={user.email}
@@ -304,6 +329,7 @@ export function AppShell({
                 pathname={pathname}
               />
               <div className='ui-sidebar__footer p-3'>
+                <SidebarThemeButton />
                 <AccountDisclosure
                   email={user.email}
                   fullName={user.full_name}

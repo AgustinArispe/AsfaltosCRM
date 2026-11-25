@@ -38,7 +38,7 @@ describe('StageTransitionConfirmationModal', () => {
     expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus()
     fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }))
     expect(onCancel).toHaveBeenCalledTimes(1)
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar como Ganada' }))
@@ -63,7 +63,7 @@ describe('StageTransitionConfirmationModal', () => {
     )
     const province = screen.getByLabelText('Provincia (opcional, recomendada)')
     expect(province).not.toBeRequired()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Compra aprobada' },
     })
     fireEvent.change(province, { target: { value: ' Córdoba ' } })

@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import Select, exists, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -17,9 +17,16 @@ from app.models import (
     OpportunityLossProductSnapshot,
     OpportunityReopenEvent,
     OpportunityStatus,
+    Product,
+    User,
 )
 from app.services.errors import RevisionConflictError
 from app.services.opportunity_query_service import OpportunityQueryService
+from app.services.won_opportunity_service import (
+    WonFilterOptions,
+    WonProductOption,
+    WonUserOption,
+)
 
 BUENOS_AIRES = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -34,6 +41,8 @@ class LostFilters:
     source: LeadSource | None = None
     lost_from: datetime | None = None
     lost_to: datetime | None = None
+    assigned_user_id: int | None = None
+    unassigned: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +51,8 @@ class LostProjection:
     loss_event_id: int
     loss_reason: LossReason
     loss_reason_detail: str | None
+    from_status: OpportunityStatus
+    customer_province: str | None
     lost_at: datetime
     quoted_total_kg: Decimal
     loss_products: tuple[OpportunityLossProductSnapshot, ...]
@@ -80,6 +91,9 @@ class LostStatistics:
     by_source: tuple[StatisticBucket, ...]
     by_province: tuple[StatisticBucket, ...]
     timeline: tuple[StatisticBucket, ...]
+    without_quote_count: int
+    current_by_reason: tuple[StatisticBucket, ...]
+    current_by_product: tuple[ProductStatisticBucket, ...]
 
 
 class LostOpportunityService:
@@ -93,22 +107,9 @@ class LostOpportunityService:
         limit: int,
         cursor: str | None,
     ) -> LostPage:
-        latest = (
-            select(
-                OpportunityLossEvent.opportunity_id,
-                func.max(OpportunityLossEvent.id).label("event_id"),
-            )
-            .group_by(OpportunityLossEvent.opportunity_id)
-            .subquery()
-        )
         statement = (
             select(OpportunityLossEvent)
-            .join(latest, latest.c.event_id == OpportunityLossEvent.id)
-            .join(Opportunity, Opportunity.id == OpportunityLossEvent.opportunity_id)
-            .where(
-                Opportunity.status == OpportunityStatus.PERDIDA,
-                Opportunity.deleted_at.is_(None),
-            )
+            .where(OpportunityLossEvent.id.in_(_current_event_ids()))
             .options(selectinload(OpportunityLossEvent.product_snapshots))
             .order_by(
                 OpportunityLossEvent.lost_at.desc(), OpportunityLossEvent.id.desc()
@@ -136,6 +137,8 @@ class LostOpportunityService:
                 loss_event_id=event.id,
                 loss_reason=event.reason,
                 loss_reason_detail=event.loss_reason_detail,
+                from_status=event.from_status,
+                customer_province=event.customer_province,
                 lost_at=event.lost_at,
                 quoted_total_kg=event.quoted_total_kg,
                 loss_products=tuple(event.product_snapshots),
@@ -157,17 +160,7 @@ class LostOpportunityService:
                 .order_by(OpportunityLossEvent.id)
             ).unique()
         )
-        current_event_ids = set(
-            self._session.scalars(
-                select(func.max(OpportunityLossEvent.id))
-                .join(Opportunity)
-                .where(
-                    Opportunity.status == OpportunityStatus.PERDIDA,
-                    Opportunity.deleted_at.is_(None),
-                )
-                .group_by(OpportunityLossEvent.opportunity_id)
-            )
-        )
+        current_event_ids = set(self._session.scalars(_current_event_ids()))
         filtered_ids = {event.id for event in events}
         current = [event for event in events if event.id in current_event_ids]
         reopened_ids = (
@@ -201,7 +194,47 @@ class LostOpportunityService:
                 events,
                 lambda event: event.lost_at.astimezone(BUENOS_AIRES).date().isoformat(),
             ),
+            without_quote_count=sum(not event.product_snapshots for event in current),
+            current_by_reason=_event_buckets(current, lambda event: event.reason.value),
+            current_by_product=_product_buckets(current),
         )
+
+    def filter_options(self) -> WonFilterOptions:
+        current_ids = _current_event_ids()
+        products = tuple(
+            WonProductOption(*row)
+            for row in self._session.execute(
+                select(Product.id, Product.name, Product.is_active)
+                .join(OpportunityLossProductSnapshot)
+                .where(OpportunityLossProductSnapshot.loss_event_id.in_(current_ids))
+                .group_by(Product.id, Product.name, Product.is_active)
+                .order_by(func.lower(Product.name), Product.id)
+            )
+        )
+        province = func.btrim(OpportunityLossEvent.customer_province)
+        provinces = tuple(
+            self._session.scalars(
+                select(province)
+                .where(OpportunityLossEvent.id.in_(current_ids), province != "")
+                .group_by(province)
+                .order_by(func.lower(province), province)
+            )
+        )
+        users = tuple(
+            WonUserOption(*row)
+            for row in self._session.execute(
+                select(User.id, User.full_name, User.is_active)
+                .join(Opportunity, Opportunity.assigned_user_id == User.id)
+                .join(
+                    OpportunityLossEvent,
+                    OpportunityLossEvent.opportunity_id == Opportunity.id,
+                )
+                .where(OpportunityLossEvent.id.in_(current_ids))
+                .group_by(User.id, User.full_name, User.is_active)
+                .order_by(func.lower(User.full_name), User.id)
+            )
+        )
+        return WonFilterOptions(products, provinces, users)
 
     @staticmethod
     def _conditions(filters: LostFilters) -> tuple[ColumnElement[bool], ...]:
@@ -243,6 +276,18 @@ class LostOpportunityService:
             )
         if filters.source is not None:
             conditions.append(OpportunityLossEvent.source == filters.source)
+        if filters.assigned_user_id is not None:
+            conditions.append(
+                OpportunityLossEvent.opportunity.has(
+                    Opportunity.assigned_user_id == filters.assigned_user_id
+                )
+            )
+        if filters.unassigned:
+            conditions.append(
+                OpportunityLossEvent.opportunity.has(
+                    Opportunity.assigned_user_id.is_(None)
+                )
+            )
         if filters.lost_from is not None:
             _require_aware(filters.lost_from)
             conditions.append(OpportunityLossEvent.lost_at >= filters.lost_from)
@@ -250,6 +295,18 @@ class LostOpportunityService:
             _require_aware(filters.lost_to)
             conditions.append(OpportunityLossEvent.lost_at < filters.lost_to)
         return tuple(conditions)
+
+
+def _current_event_ids() -> Select[tuple[int]]:
+    return (
+        select(func.max(OpportunityLossEvent.id))
+        .join(Opportunity)
+        .where(
+            Opportunity.status == OpportunityStatus.PERDIDA,
+            Opportunity.deleted_at.is_(None),
+        )
+        .group_by(OpportunityLossEvent.opportunity_id)
+    )
 
 
 def _event_buckets(

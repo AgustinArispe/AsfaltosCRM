@@ -77,7 +77,7 @@ export function QuoteModal({
   const quantityRef = useRef<HTMLInputElement>(null)
   const reviewRef = useRef<HTMLButtonElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
-  const noteRef = useRef<HTMLTextAreaElement>(null)
+  const confirmHeadingRef = useRef<HTMLHeadingElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the modal identity or mode changes.
   useEffect(() => {
@@ -108,7 +108,7 @@ export function QuoteModal({
     if (step === 'quantity') quantityRef.current?.focus()
     if (step === 'review') reviewRef.current?.focus()
     if (step === 'confirm') {
-      if (mode === 'create') noteRef.current?.focus()
+      if (mode === 'create') confirmHeadingRef.current?.focus()
       else confirmRef.current?.focus()
     }
   }, [isLoadingProducts, products, showDiscardPrompt, step, mode])
@@ -313,7 +313,13 @@ export function QuoteModal({
             ))}
           </ol>
 
-          <div className='quote-flow__body'>
+          <div
+            className={
+              step === 'confirm' && mode === 'create'
+                ? 'quote-flow__body quote-flow__body--confirm'
+                : 'quote-flow__body'
+            }
+          >
             {step === 'product' ? (
               <section aria-labelledby='quote-product-step'>
                 <p className='quote-flow__eyebrow'>Paso 1 de 4</p>
@@ -516,50 +522,60 @@ export function QuoteModal({
 
             {step === 'confirm' ? (
               <section aria-labelledby='quote-confirm-step' className='quote-confirm'>
-                {mode === 'create' ? (
-                  <StageNoteField
-                    customerNote={customerNote}
-                    onCustomerNoteChange={setCustomerNote}
-                    disabled={isSubmitting}
-                    inputRef={noteRef}
-                    onChange={setNote}
-                    value={note}
-                  />
-                ) : null}
-                {mode === 'create' ? (
-                  <StageProvinceField
-                    currentProvince={opportunity?.customer.province}
-                    disabled={isSubmitting}
-                    onChange={setProvince}
-                    value={province}
-                  />
-                ) : null}
-                <p className='quote-flow__eyebrow'>Paso 4 de 4</p>
-                <div className='quote-review__heading'>
-                  <div>
-                    <h3 id='quote-confirm-step'>Confirmá la cotización</h3>
-                    <p className='quote-flow__description'>
-                      Esta será la cotización vigente de la oportunidad.
-                    </p>
+                <div
+                  className={
+                    mode === 'create'
+                      ? 'quote-confirm__layout quote-confirm__layout--with-notes'
+                      : 'quote-confirm__layout'
+                  }
+                >
+                  <div className='quote-confirm__summary'>
+                    <div className='quote-review__heading'>
+                      <h3 id='quote-confirm-step' ref={confirmHeadingRef} tabIndex={-1}>
+                        Confirmá la cotización
+                      </h3>
+                      <div className='quote-confirm__total'>
+                        <span>Total cotizado</span>
+                        <strong>{formatQuantityKg(totalQuantity)}</strong>
+                      </div>
+                    </div>
+                    <ul className='quote-review__lines quote-confirm__lines'>
+                      {lines.map((line) => {
+                        const product = availableProducts.find(
+                          (item) => String(item.id) === line.productId,
+                        )
+                        return (
+                          <li key={line.key}>
+                            <span>
+                              <b>{product?.name ?? 'Producto no disponible'}</b>
+                              {product && !product.is_active ? (
+                                <small>Inactivo histórico</small>
+                              ) : null}
+                            </span>
+                            <strong>{formatQuantityKg(line.quantity)}</strong>
+                          </li>
+                        )
+                      })}
+                    </ul>
                   </div>
-                  <strong>{formatQuantityKg(totalQuantity)}</strong>
+                  {mode === 'create' ? (
+                    <div className='quote-confirm__notes'>
+                      <StageNoteField
+                        customerNote={customerNote}
+                        onCustomerNoteChange={setCustomerNote}
+                        disabled={isSubmitting}
+                        onChange={setNote}
+                        value={note}
+                      />
+                      <StageProvinceField
+                        currentProvince={opportunity?.customer.province}
+                        disabled={isSubmitting}
+                        onChange={setProvince}
+                        value={province}
+                      />
+                    </div>
+                  ) : null}
                 </div>
-                <ul className='quote-review__lines quote-confirm__lines'>
-                  {lines.map((line) => {
-                    const product = availableProducts.find(
-                      (item) => String(item.id) === line.productId,
-                    )
-                    return (
-                      <li key={line.key}>
-                        <span>
-                          <b>{product?.name ?? 'Producto no disponible'}</b>
-                          {product && !product.is_active ? <small>Inactivo histórico</small> : null}
-                        </span>
-                        <strong>{formatQuantityKg(line.quantity)}</strong>
-                      </li>
-                    )
-                  })}
-                </ul>
                 {submitError ? (
                   <p className='quote-flow__error' role='alert'>
                     {submitError}

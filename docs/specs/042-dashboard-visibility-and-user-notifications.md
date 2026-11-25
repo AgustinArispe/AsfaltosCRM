@@ -26,6 +26,8 @@ requires a minimal recipient-state table and migration.
 
 ## Scope
 
+CRM-064 supersedes the Lost workspace visibility restrictions below.
+
 - Strengthen the existing result and active-opportunity hierarchy without redesigning
   the rest of Dashboard.
 - Format the selected period in commercial Spanish and remove snapshot timestamp UI.

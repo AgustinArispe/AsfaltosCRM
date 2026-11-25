@@ -280,24 +280,20 @@ describe('OpportunityDetailPage', () => {
     expect(screen.getByText('+54 11 4444-5555')).toBeInTheDocument()
     expect(screen.getByText('Buenos Aires')).toBeInTheDocument()
     expect(screen.getByText('Legendario')).toBeInTheDocument()
-    expect(screen.getByText('Ganada')).toBeInTheDocument()
+    expect(within(dialog).getByRole('listitem', { current: 'step' })).toHaveTextContent('Ganada')
     expect(screen.getByText('Web')).toBeInTheDocument()
     expect(screen.getByText('Martín Vendedor')).toBeInTheDocument()
-    expect(screen.getAllByText('3 ago 2026, 14:35')).toHaveLength(2)
-    expect(screen.getByText('2 semanas')).toBeInTheDocument()
+    const progress = within(dialog).getByRole('region', { name: 'Avance de la oportunidad' })
+    expect(within(progress).getByText('3 ago 2026, 14:35')).toHaveAttribute(
+      'datetime',
+      '2026-08-03T17:35:00Z',
+    )
+    expect(progress).toHaveTextContent('En Ganada desde hace 2 semanas')
 
     const summary = dialog.querySelector('.opportunity-detail__summary--page')
     expect(
       Array.from(summary?.querySelectorAll('dt') ?? []).map((term) => term.textContent),
-    ).toEqual([
-      'Origen',
-      'Responsable',
-      'Creada',
-      'Tiempo en etapa',
-      'Email',
-      'Teléfono',
-      'Provincia',
-    ])
+    ).toEqual(['Origen', 'Responsable', 'Email', 'Teléfono', 'Provincia'])
 
     const quote = screen.getByRole('heading', { name: 'Cotización' }).closest('section')
     expect(quote).not.toBeNull()
@@ -307,12 +303,16 @@ describe('OpportunityDetailPage', () => {
     expect(within(quote as HTMLElement).getByText('1.000 kg')).toBeInTheDocument()
     expect(within(quote as HTMLElement).getByText('3.500 kg')).toBeInTheDocument()
 
-    expect(screen.getByText('Consulta creada')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Actividad y notas' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Actividad y notas' }))
+    expect(screen.queryByRole('region', { name: 'Cotización' })).not.toBeInTheDocument()
+    expect(screen.getByText('Consulta creada')).toBeVisible()
     expect(screen.getByText('Estado inicial: Nueva')).toBeInTheDocument()
     expect(screen.getByText('Pasó de Nueva a Para cotizar')).toBeInTheDocument()
     expect(screen.getByText('Pasó de Para cotizar a Cotizada')).toBeInTheDocument()
     expect(screen.getByText('Pasó de Cotizada a Ganada')).toBeInTheDocument()
-    expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    const activity = screen.getByRole('region', { name: 'Actividad y notas' })
+    expect(within(activity).getAllByRole('listitem')).toHaveLength(4)
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/opportunities/42')
@@ -341,7 +341,8 @@ describe('OpportunityDetailPage', () => {
 
     render(<OpportunityDetailPage opportunityId={42} />)
 
-    expect(await screen.findByText('Aún no se registró una cotización.')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Cotización' }))
+    expect(screen.getByText('Aún no se registró una cotización.')).toBeVisible()
     expect(screen.getByText('Sin responsable')).toBeInTheDocument()
     expect(screen.queryByText('Legendario')).not.toBeInTheDocument()
   })
@@ -360,7 +361,57 @@ describe('OpportunityDetailPage', () => {
 
     expect(await screen.findByText('Motivo de pérdida')).toBeInTheDocument()
     expect(screen.getAllByText('Precio')[0]).toBeInTheDocument()
-    expect(screen.getByText('Pérdida')).toBeInTheDocument()
+    const progress = screen.getByRole('region', { name: 'Avance de la oportunidad' })
+    expect(within(progress).getByRole('listitem', { current: 'step' })).toHaveTextContent('Pérdida')
+    expect(within(progress).queryByText('Ganada')).not.toBeInTheDocument()
+  })
+
+  it('shows the dated path up to the current stage after returning from Ganada', async () => {
+    const previous = makeDetail()
+    const returnedAt = '2026-08-13T01:30:00Z'
+    const detail = makeDetail({
+      status: 'COTIZADA',
+      current_status_entered_at: returnedAt,
+      history: [
+        ...previous.history,
+        {
+          id: 5,
+          from_status: 'GANADA',
+          to_status: 'COTIZADA',
+          changed_at: returnedAt,
+          changed_by_user_id: 8,
+        },
+      ],
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, detail)))
+    render(<OpportunityDetailPage opportunityId={42} />)
+
+    const progress = await screen.findByRole('region', { name: 'Avance de la oportunidad' })
+    const items = within(progress).getAllByRole('listitem')
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Nueva, completada3 ago 2026, 14:35',
+      'Para cotizar, completada5 ago 2026',
+      'Cotizada12 ago 2026',
+      'GanadaPendiente',
+    ])
+    expect(items[2]).toHaveAttribute('aria-current', 'step')
+    expect(items[2].querySelector('time')).toHaveAttribute('datetime', returnedAt)
+    expect(screen.getByText('Pasó de Cotizada a Ganada')).toBeInTheDocument()
+  })
+
+  it('does not invent a preparation date for an older quoted opportunity', async () => {
+    const detail = makeDetail()
+    detail.status = 'COTIZADA'
+    detail.history = detail.history.filter(
+      (entry) => entry.to_status === 'NUEVA' || entry.to_status === 'COTIZADA',
+    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, detail)))
+    render(<OpportunityDetailPage opportunityId={42} />)
+
+    const progress = await screen.findByRole('region', { name: 'Avance de la oportunidad' })
+    const preparation = within(progress).getAllByRole('listitem')[1]
+    expect(preparation).toHaveTextContent('Para cotizar, completadaSin fecha')
+    expect(preparation.querySelector('time')).toBeNull()
   })
 
   it('renders a specific 404 state with a path back to the pipeline', async () => {
@@ -479,11 +530,17 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Actividad y notas' }))
     fireEvent.click(screen.getByRole('button', { name: 'Notas' }))
     expect(await screen.findByText('Seguimiento interno')).toBeInTheDocument()
     const composer = screen.getByLabelText('Agregar nota')
     fireEvent.change(composer, { target: { value: 'Primera línea\nSegunda línea' } })
     fireEvent.keyDown(composer, { key: 'Enter' })
+    expect(composer).toHaveValue('Primera línea\nSegunda línea')
+    fireEvent.click(screen.getByRole('button', { name: 'Cotización' }))
+    expect(screen.queryByRole('textbox', { name: 'Agregar nota' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Actividad y notas' }))
+    expect(composer).toBeVisible()
     expect(composer).toHaveValue('Primera línea\nSegunda línea')
     fireEvent.keyDown(composer, { key: 'Enter', ctrlKey: true })
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
@@ -500,6 +557,7 @@ describe('OpportunityDetailPage', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<OpportunityDetailPage opportunityId={42} />)
     await screen.findByRole('heading', { name: 'Del Sur SA' })
+    fireEvent.click(screen.getByRole('button', { name: 'Actividad y notas' }))
     fireEvent.click(screen.getByRole('button', { name: 'Notas' }))
     await screen.findByText('Aún no hay notas.')
     const composer = screen.getByLabelText('Agregar nota')
@@ -522,7 +580,7 @@ describe('OpportunityDetailPage', () => {
     expect(await screen.findByRole('button', { name: 'Reabrir' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
     expect(screen.getByRole('heading', { name: 'Reabrir oportunidad' })).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Reabrir en Cotizada' }))
@@ -576,7 +634,7 @@ describe('OpportunityDetailPage', () => {
     fireEvent.change(screen.getByLabelText('Cantidad (kg)'), { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(screen.getByRole('button', { name: 'Revisar y confirmar' }))
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar cotización' }))
@@ -601,7 +659,7 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={42} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Cotizar' }))
     const product = await screen.findByRole('radio', { name: 'SuperPhalt' })
-    expect(product).toHaveFocus()
+    await waitFor(() => expect(product).toHaveFocus())
     fireEvent.click(product)
     fireEvent.keyDown(product, { key: 'Enter' })
     const quantity = screen.getByLabelText('Cantidad (kg)')
@@ -615,7 +673,7 @@ describe('OpportunityDetailPage', () => {
     expect(reviewAction).toHaveFocus()
     fireEvent.click(reviewAction)
     expect(screen.getByRole('heading', { name: 'Confirmá la cotización' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Nota del cambio de estado (recomendada)')).toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Confirmá la cotización' })).toHaveFocus()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar cotizar oportunidad' }))
     expect(screen.getByRole('heading', { name: 'Revisá la cotización' })).toBeInTheDocument()
@@ -645,7 +703,7 @@ describe('OpportunityDetailPage', () => {
     expect(
       within(dialog).queryByLabelText('Provincia (opcional, recomendada)'),
     ).not.toBeInTheDocument()
-    fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(within(dialog).getByLabelText('Nota de la oportunidad'), {
       target: { value: 'El cliente aceptó la cotización' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
@@ -669,7 +727,7 @@ describe('OpportunityDetailPage', () => {
       const provinceInput = within(dialog).getByLabelText('Provincia (opcional, recomendada)')
       expect(provinceInput).not.toBeRequired()
       fireEvent.change(provinceInput, { target: { value: province } })
-      fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (recomendada)'), {
+      fireEvent.change(within(dialog).getByLabelText('Nota de la oportunidad'), {
         target: { value: 'Compra confirmada' },
       })
       fireEvent.click(within(dialog).getByRole('button', { name: 'Marcar ganada' }))
@@ -710,7 +768,7 @@ describe('OpportunityDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Volver a Cotizada' }))
     const dialog = screen.getByRole('dialog', { name: 'Confirmar retroceso de etapa' })
     expect(within(dialog).getByText('La oportunidad pasará de Ganada a Cotizada.')).toBeVisible()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Cotizada' }))
@@ -748,7 +806,7 @@ describe('OpportunityDetailPage', () => {
       />,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Pasar a Para cotizar' }))
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Preparar propuesta para el cliente' },
     })
     fireEvent.click(
@@ -762,7 +820,10 @@ describe('OpportunityDetailPage', () => {
     resolveDetail?.(jsonResponse(200, cached))
     await Promise.resolve()
 
-    expect(screen.getByText('Para cotizar')).toBeInTheDocument()
+    const progress = screen.getByRole('region', { name: 'Avance de la oportunidad' })
+    expect(within(progress).getByRole('listitem', { current: 'step' })).toHaveTextContent(
+      'Para cotizar',
+    )
     expect(onOpportunityUpdated).toHaveBeenCalledTimes(1)
   })
 

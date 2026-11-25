@@ -10,6 +10,7 @@ from app.models import (
     CustomerImportIssueCode,
     CustomerImportStatus,
     LossReason,
+    OpportunityStatus,
 )
 from app.schemas.common import StrictRequestModel
 from app.schemas.opportunity import OpportunitySummary
@@ -77,6 +78,8 @@ class LostOpportunityResponse(BaseModel):
     loss_event_id: int
     loss_reason: LossReason
     loss_reason_detail: str | None
+    from_status: OpportunityStatus
+    customer_province: str | None
     lost_at: datetime
     quoted_total_kg: Decimal
     loss_products: list[LossProductSnapshotResponse]
@@ -111,6 +114,9 @@ class LostStatisticsResponse(BaseModel):
     by_source: list[StatisticBucket]
     by_province: list[StatisticBucket]
     timeline: list[StatisticBucket]
+    without_quote_count: int
+    current_by_reason: list[StatisticBucket]
+    current_by_product: list[ProductStatisticBucket]
 
 
 class WonOpportunityResponse(BaseModel):

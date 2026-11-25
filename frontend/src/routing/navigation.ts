@@ -5,7 +5,7 @@ export type NavigationItem = {
   label: string
   description: string
   supervisorOnly?: boolean
-  group: 'work' | 'communication' | 'management' | 'administration'
+  group: 'work' | 'customers' | 'outcomes' | 'administration'
 }
 
 export const NAV_ITEMS: readonly NavigationItem[] = [
@@ -29,27 +29,33 @@ export const NAV_ITEMS: readonly NavigationItem[] = [
   },
   {
     path: '/whatsapp',
-    group: 'communication',
+    group: 'customers',
     label: 'WhatsApp',
     description: 'Conversaciones de WhatsApp y contexto comercial.',
   },
   {
     path: '/customers',
-    group: 'management',
+    group: 'customers',
     label: 'Clientes',
     description: 'Gestión de clientes y su historial comercial.',
   },
   {
-    path: '/products',
-    group: 'management',
-    label: 'Productos',
-    description: 'Catálogo de productos disponibles para cotizaciones.',
+    path: '/lost',
+    group: 'outcomes',
+    label: 'Perdidas',
+    description: 'Historial y motivos de las oportunidades perdidas.',
   },
   {
     path: '/won',
-    group: 'management',
+    group: 'outcomes',
     label: 'Ganadas',
     description: 'Historial de oportunidades comerciales ganadas.',
+  },
+  {
+    path: '/products',
+    group: 'administration',
+    label: 'Productos',
+    description: 'Catálogo de productos disponibles para cotizaciones.',
   },
   {
     path: '/users',

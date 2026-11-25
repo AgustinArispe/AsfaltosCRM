@@ -409,6 +409,8 @@ def test_loss_workspace_reopen_reloss_and_snapshots(db_session: Session) -> None
     assert stats.current_count == 1
     assert stats.historical_loss_count == 1
     assert stats.by_product[0].product_name == product.name
+    assert stats.current_by_product[0].quantity_kg == Decimal("1250.500")
+    assert stats.current_by_reason[0].key == "PRECIO"
 
     db_session.commit()
     command_id = uuid4()
@@ -435,7 +437,10 @@ def test_loss_workspace_reopen_reloss_and_snapshots(db_session: Session) -> None
     assert (
         detail.status_history[-1].transition_kind is OpportunityTransitionKind.REOPENED
     )
-    assert lost_service.statistics(filters).reopened_count == 1
+    reopened_stats = lost_service.statistics(filters)
+    assert reopened_stats.reopened_count == 1
+    assert reopened_stats.current_by_reason == ()
+    assert reopened_stats.by_reason[0].key == "PRECIO"
 
     db_session.commit()
     service.mark_as_lost(
@@ -461,6 +466,52 @@ def test_loss_workspace_reopen_reloss_and_snapshots(db_session: Session) -> None
         ).historical_loss_count
         == 2
     )
+
+
+def test_lost_workspace_owner_options_and_current_counts(
+    api_client: TestClient, db_session: Session, supervisor_user: User
+) -> None:
+    suffix = uuid4().hex
+    customer = _customer(db_session, suffix)
+    quoted, product = _quoted_negotiation(db_session, customer, supervisor_user, suffix)
+    quoted.assigned_user_id = supervisor_user.id
+    db_session.commit()
+    service = OpportunityService(db_session)
+    service.mark_as_lost(quoted.id, LossReason.PRECIO)
+    unquoted = service.create_opportunity(
+        customer_id=customer.id, source=LeadSource.WEB
+    )
+    service.mark_as_lost(unquoted.id, LossReason.SIN_RESPUESTA)
+
+    base = "/api/lost-opportunities"
+    options = api_client.get(f"{base}/filter-options").json()
+    assert "Buenos Aires" in options["provinces"]
+    assert any(option["id"] == product.id for option in options["products"])
+    assert any(
+        option["id"] == supervisor_user.id for option in options["responsible_users"]
+    )
+
+    assigned = {
+        "assigned_user_id": str(supervisor_user.id),
+        "reason": "PRECIO",
+        "customer_id": str(customer.id),
+    }
+    assigned_rows = api_client.get(base, params=assigned).json()["items"]
+    assert [row["opportunity"]["id"] for row in assigned_rows] == [quoted.id]
+    assert assigned_rows[0]["from_status"] == "COTIZADA"
+    assert assigned_rows[0]["customer_province"] == "Buenos Aires"
+    stats = api_client.get(f"{base}/statistics", params=assigned).json()
+    assert stats["current_count"] == 1
+    assert stats["without_quote_count"] == 0
+    assert stats["current_by_reason"][0]["key"] == "PRECIO"
+
+    unassigned = {"unassigned": "true", "customer_id": str(customer.id)}
+    rows = api_client.get(base, params=unassigned).json()["items"]
+    assert [row["opportunity"]["id"] for row in rows] == [unquoted.id]
+    stats = api_client.get(f"{base}/statistics", params=unassigned).json()
+    assert stats["without_quote_count"] == 1
+    assert stats["current_by_product"] == []
+    assert api_client.get(base, params={**unassigned, **assigned}).status_code == 422
 
 
 def test_reopen_requires_lost_status_and_retained_quote(db_session: Session) -> None:
@@ -577,6 +628,10 @@ def test_customer_import_preview_commit_replay_and_stale_rollback(
             b"name,company,email,phone,province\nA,,same@test.com,,\nB,,same@test.com,,\n",
             CustomerImportStatus.INVALID,
         ),
+        (
+            b"name,company,email,phone,province\nA,,,+54 9 249 456-7818,\nB,,,+54 15 456-7818,\n",
+            CustomerImportStatus.INVALID,
+        ),
         (b"\xff\xfe", CustomerImportStatus.INVALID),
         (
             b'name,company,email,phone,province\n"unclosed,,,,',
@@ -626,6 +681,23 @@ def test_customer_import_reports_invalid_files(
             content=b"different",
             actor_user_id=actor_id,
         )
+
+
+def test_customer_import_keeps_complete_numbers_from_different_area_codes_distinct(
+    db_session: Session,
+) -> None:
+    actor = _actor(db_session, uuid4().hex)
+    batch = CustomerImportService(db_session).dry_run(
+        client_import_id=uuid4(),
+        filename="input.csv",
+        content=(
+            b"name,company,email,phone,province\n"
+            b"A,,,+54 9 249 456-7818,\nB,,,+54 9 221 456-7818,\n"
+        ),
+        actor_user_id=actor.id,
+    )
+    assert batch.status is CustomerImportStatus.VALID
+    assert [row.action for row in batch.rows] == [CustomerImportAction.CREATE] * 2
 
 
 def test_wordpress_smoke_requires_explicit_safe_production_configuration(

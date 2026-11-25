@@ -43,7 +43,7 @@ def test_role_navigation_and_authorized_workspace_behavior(
 
     expect(supervisor.page.get_by_role("link", name="Usuarios")).to_be_visible()
     expect(supervisor.page.get_by_role("link", name="Envíos masivos")).to_have_count(0)
-    expect(supervisor.page.get_by_role("link", name="Perdidas")).to_have_count(0)
+    expect(supervisor.page.get_by_role("link", name="Perdidas")).to_be_visible()
     wait_for_workspace(supervisor.page, "users")
     expect(
         supervisor.page.get_by_role("region", name="Administración de usuarios")
@@ -51,10 +51,10 @@ def test_role_navigation_and_authorized_workspace_behavior(
 
     expect(seller.page.get_by_role("link", name="Usuarios")).to_have_count(0)
     expect(seller.page.get_by_role("link", name="Envíos masivos")).to_have_count(0)
-    expect(seller.page.get_by_role("link", name="Perdidas")).to_have_count(0)
+    expect(seller.page.get_by_role("link", name="Perdidas")).to_be_visible()
+    seller.page.get_by_role("link", name="Perdidas").click()
+    expect(seller.page.get_by_role("heading", name="Perdidas", level=1)).to_be_visible()
     for hidden_path in (
-        "lost",
-        "lost/opportunities/1",
         "whatsapp-sends",
         "whatsapp-sends/1",
     ):
@@ -145,8 +145,16 @@ def test_pipeline_controls_search_detail_and_opportunity_evidence(
     expect(dialog.get_by_role("heading", name="Constructora del Sur")).to_be_visible()
     expect(dialog.get_by_text("maria.lopez@visual-qa.invalid")).to_be_visible()
     expect(dialog.get_by_text("+54 9 11 5550-1001")).to_be_visible()
-    expect(dialog.get_by_role("button", name="Actividad")).to_be_visible()
-    expect(dialog.get_by_role("button", name="Notas")).to_be_visible()
+    sections = dialog.get_by_role("group", name="Secciones de la oportunidad")
+    activity = sections.get_by_role("button", name="Actividad y notas", exact=True)
+    quote = sections.get_by_role("button", name="Cotización", exact=True)
+    expect(activity).to_have_attribute("aria-pressed", "true")
+    quote.click()
+    expect(dialog.get_by_role("region", name="Cotización", exact=True)).to_be_visible()
+    expect(dialog.get_by_role("region", name="Actividad y notas")).to_have_count(0)
+    activity.click()
+    expect(dialog.get_by_role("button", name="Actividad", exact=True)).to_be_visible()
+    expect(dialog.get_by_role("button", name="Notas", exact=True)).to_be_visible()
     expect(dialog.get_by_role("button", name="Iniciar WhatsApp")).to_be_visible()
     expect(dialog.get_by_role("button", name="Pasar a Para cotizar")).to_be_visible()
     expect(dialog.get_by_role("button", name="Marcar pérdida")).to_be_visible()
@@ -165,6 +173,7 @@ def test_dashboard_business_semantics_and_keyboard_day_detail(
     expect(result).to_be_visible()
     expect(result.get_by_role("button", name=re.compile("Ganadas"))).to_be_visible()
     expect(result.get_by_role("button", name=re.compile("Pérdidas"))).to_be_visible()
+    expect(page.get_by_role("complementary", name="Qué mejorar")).to_be_visible()
     expect(page.get_by_role("region", name="Oportunidades activas")).to_be_visible()
     overdue_link = page.get_by_role("link", name=re.compile("¡Atrasado!"))
     expect(overdue_link).to_be_visible()

@@ -117,10 +117,18 @@ class VolumeMetricsResponse(BaseModel):
     conversion_rate: Decimal | None
 
 
+class LossReasonMetricResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    key: LossReason
+    count: int
+
+
 class MetricsOverviewResponse(BaseModel):
     period: MetricsPeriodResponse
     opportunities: OpportunityMetricsResponse
     volume_kg: VolumeMetricsResponse
+    loss_reasons: list[LossReasonMetricResponse]
 
 
 class ProductMetricResponse(BaseModel):

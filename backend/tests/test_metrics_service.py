@@ -376,6 +376,8 @@ def test_overview_preserves_reopened_repeated_loss_events_and_snapshot_kg(
 
     assert overview.opportunities.lost == 2
     assert overview.volume_kg.lost == Decimal("375.750")
+    expected_reasons = {LossReason.OTRO: 1, LossReason.PRECIO: 1}
+    assert {item.key: item.count for item in overview.loss_reasons} == expected_reasons
     assert overview.opportunities.conversion_rate == Decimal("0.0000")
     assert overview.volume_kg.conversion_rate == Decimal("0.0000")
     product_overview = MetricsService(db_session).overview(
@@ -383,6 +385,9 @@ def test_overview_preserves_reopened_repeated_loss_events_and_snapshot_kg(
     )
     assert product_overview.opportunities.lost == 2
     assert product_overview.volume_kg.lost == Decimal("375.750")
+    assert {
+        item.key: item.count for item in product_overview.loss_reasons
+    } == expected_reasons
     product_metrics = MetricsService(db_session).products(filters())
     assert product_metrics[0].opportunities_lost == 2
     assert product_metrics[0].kg_lost == Decimal("375.750")

@@ -119,9 +119,16 @@ class VolumeOverview:
 
 
 @dataclass(frozen=True, slots=True)
+class LossReasonMetric:
+    key: LossReason
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
 class OverviewMetrics:
     opportunities: OpportunityOverview
     volume_kg: VolumeOverview
+    loss_reasons: tuple[LossReasonMetric, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,6 +273,7 @@ class MetricsService:
 
         loss_statement = (
             select(
+                OpportunityLossEvent.reason,
                 func.count(OpportunityLossEvent.id),
                 func.sum(self._loss_kg_column(filters.dimensions)),
             )
@@ -282,14 +290,15 @@ class MetricsService:
                     == filters.dimensions.product_id,
                 ),
             )
-        lost, lost_kg = self._session.execute(
+        loss_rows = self._session.execute(
             loss_statement.where(
                 *self._loss_event_filters(
                     self._loss_dimensions_without_joined_product(filters.dimensions)
                 ),
                 self._in_period(OpportunityLossEvent.lost_at, period),
-            )
-        ).one()
+            ).group_by(OpportunityLossEvent.reason)
+        ).all()
+        lost = sum(count for _, count, _ in loss_rows)
 
         volume_filters = self._line_filters(filters.dimensions)
         volume_statement = (
@@ -314,7 +323,7 @@ class MetricsService:
         ).one()
 
         won_value = self._kg(won_kg)
-        lost_value = self._kg(lost_kg)
+        lost_value = sum((self._kg(kg) for _, _, kg in loss_rows), ZERO_KG)
         return OverviewMetrics(
             opportunities=OpportunityOverview(
                 created=created,
@@ -332,6 +341,9 @@ class MetricsService:
                     won_value,
                     won_value + lost_value,
                 ),
+            ),
+            loss_reasons=tuple(
+                LossReasonMetric(reason, count) for reason, count, _ in loss_rows
             ),
         )
 

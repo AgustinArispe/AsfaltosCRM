@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 
 import { LegendaryBadge } from '../customers/LegendaryBadge'
 import { Badge } from '../shared/Badge'
@@ -9,12 +9,14 @@ import {
   sumQuantitiesKg,
 } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
+import { SegmentedControl } from '../shared/SegmentedControl'
 import {
   LOSS_REASON_LABELS,
   OPPORTUNITY_STATUS_LABELS,
   OPPORTUNITY_STATUS_TONES,
   SOURCE_LABELS,
 } from './config'
+import { OpportunityProgress } from './OpportunityProgress'
 import type { OpportunityDetail, OpportunityStatusHistory } from './types'
 
 function historyDescription(entry: OpportunityStatusHistory): string {
@@ -75,7 +77,7 @@ function ContactDetails({ opportunity }: { opportunity: OpportunityDetail }) {
 function OpportunitySummary({ opportunity }: { opportunity: OpportunityDetail }) {
   return (
     <dl className='opportunity-detail__summary opportunity-detail__summary--page'>
-      <div className='opportunity-detail__summary-group'>
+      <div className='opportunity-detail__summary-group opportunity-detail__summary-group--relation'>
         <p className='opportunity-detail__summary-heading'>
           <Icon name='users' />
           Relación
@@ -87,20 +89,6 @@ function OpportunitySummary({ opportunity }: { opportunity: OpportunityDetail })
         <div>
           <dt>Responsable</dt>
           <dd>{opportunity.assigned_user?.full_name ?? 'Sin responsable'}</dd>
-        </div>
-      </div>
-      <div className='opportunity-detail__summary-group'>
-        <p className='opportunity-detail__summary-heading'>
-          <Icon name='clock' />
-          Tiempo
-        </p>
-        <div>
-          <dt>Creada</dt>
-          <dd>{formatDateTime(opportunity.created_at)}</dd>
-        </div>
-        <div>
-          <dt>Tiempo en etapa</dt>
-          <dd>{formatStageDuration(opportunity.current_status_entered_at)}</dd>
         </div>
       </div>
       <div className='opportunity-detail__summary-group opportunity-detail__summary-group--contact'>
@@ -452,6 +440,70 @@ function History({ opportunity }: { opportunity: OpportunityDetail }) {
   )
 }
 
+const DETAIL_SECTIONS = {
+  consultation: { value: 'consultation', label: 'Consulta del cliente' },
+  quote: { value: 'quote', label: 'Cotización' },
+  activity: { value: 'activity', label: 'Actividad y notas' },
+} as const
+
+type DetailSection = keyof typeof DETAIL_SECTIONS
+
+function OpportunityDetailSections({
+  opportunity,
+  activity,
+}: {
+  opportunity: OpportunityDetail
+  activity: ReactNode
+}) {
+  const [selection, setSelection] = useState<{
+    id: number
+    status: OpportunityDetail['status']
+    section: DetailSection
+  } | null>(null)
+  const inquiry = opportunity.initial_whatsapp_inquiry
+  const hasConsultation = Boolean(
+    (opportunity.source === 'WEB' && opportunity.web_intake?.message?.trim()) ||
+      inquiry?.body?.trim() ||
+      (inquiry && inquiry.message_type !== 'TEXT'),
+  )
+  const isPreparing = opportunity.status === 'NUEVA' || opportunity.status === 'PARA_COTIZAR'
+  const showsQuoteFirst =
+    !isPreparing && opportunity.status !== 'PERDIDA' && opportunity.products.length > 0
+
+  const order: DetailSection[] = showsQuoteFirst ? ['quote', 'activity'] : ['activity', 'quote']
+  if (hasConsultation) {
+    if (isPreparing) order.unshift('consultation')
+    else order.push('consultation')
+  }
+  const selected =
+    selection?.id === opportunity.id &&
+    selection.status === opportunity.status &&
+    order.includes(selection.section)
+      ? selection.section
+      : order[0]
+
+  return (
+    <div className='opportunity-detail__body--page'>
+      <div className='opportunity-detail__selected-panel'>
+        <div className='opportunity-detail__section-switcher'>
+          <SegmentedControl
+            label='Secciones de la oportunidad'
+            onChange={(value) => {
+              const section = order.find((item) => item === value)
+              if (section) setSelection({ id: opportunity.id, status: opportunity.status, section })
+            }}
+            segments={order.map((section) => DETAIL_SECTIONS[section])}
+            value={selected}
+          />
+        </div>
+        {selected === 'consultation' ? <Consultation opportunity={opportunity} /> : null}
+        {selected === 'quote' ? <Quote opportunity={opportunity} /> : null}
+        <div hidden={selected !== 'activity'}>{activity}</div>
+      </div>
+    </div>
+  )
+}
+
 export function OpportunityDetailContent({
   opportunity,
   actions,
@@ -483,40 +535,30 @@ export function OpportunityDetailContent({
           {secondaryActions ? (
             <section
               aria-label='Acciones administrativas de oportunidad'
-              className='mt-5 border-t border-[var(--divider)] pt-4'
+              className='mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--divider)] pt-3'
             >
-              <p className='mb-2 text-xs font-semibold text-[var(--text-tertiary)]'>
+              <p className='text-xs font-semibold text-[var(--text-tertiary)]'>
                 Acciones administrativas
               </p>
               <div className='flex flex-wrap gap-2'>{secondaryActions}</div>
             </section>
           ) : null}
+          <OpportunityProgress opportunity={opportunity} />
         </div>
       )}
 
-      <div
-        className={
-          isDrawer
-            ? 'opportunity-detail__body opportunity-detail__body--drawer p-3 sm:p-4'
-            : 'opportunity-detail__body opportunity-detail__body--page'
-        }
-      >
-        <div
-          className={`opportunity-detail__primary ${isDrawer ? '' : 'opportunity-detail__primary--page'}`}
-        >
-          {isDrawer ? <CustomerInformation opportunity={opportunity} /> : null}
-          <Consultation opportunity={opportunity} />
-          <Quote opportunity={opportunity} />
+      {isDrawer ? (
+        <div className='opportunity-detail__body opportunity-detail__body--drawer p-3 sm:p-4'>
+          <div className='opportunity-detail__primary'>
+            <CustomerInformation opportunity={opportunity} />
+            <Consultation opportunity={opportunity} />
+            <Quote opportunity={opportunity} />
+          </div>
+          {contextContent}
         </div>
-
-        {isDrawer ? (
-          contextContent
-        ) : (
-          <aside aria-label='Actividad y notas' className='opportunity-detail__context'>
-            {contextContent}
-          </aside>
-        )}
-      </div>
+      ) : (
+        <OpportunityDetailSections activity={contextContent} opportunity={opportunity} />
+      )}
     </article>
   )
 }

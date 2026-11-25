@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MetricsOverview } from '../metrics/types'
 
 import { DashboardPage } from './DashboardPage'
 
@@ -13,6 +14,7 @@ vi.mock('../auth/AuthContext', () => ({
 }))
 
 type MockOptions = {
+  lossReasons?: (source: string | null) => MetricsOverview['loss_reasons']
   delay?: boolean
   manyProvinces?: boolean
   nullConversion?: boolean
@@ -64,12 +66,16 @@ function mockDashboardApi(options: MockOptions = {}) {
       ])
     }
     if (url.pathname === '/api/metrics/overview') {
+      const lossReasons = options.lossReasons?.(url.searchParams.get('source'))
       return response({
         period,
+        loss_reasons: lossReasons,
         opportunities: {
           created: 9,
           won: options.nullConversion ? 0 : 4,
-          lost: options.nullConversion ? 0 : 2,
+          lost: options.nullConversion
+            ? 0
+            : (lossReasons?.reduce((sum, { count }) => sum + count, 0) ?? 2),
           open: 3,
           conversion_rate: options.nullConversion ? null : '0.6667',
         },
@@ -276,6 +282,29 @@ describe('DashboardPage', () => {
 
   afterEach(() => {
     window.history.replaceState(null, '', '/dashboard')
+  })
+
+  it('shows the recommendation for the leading loss reason and refreshes it with applied filters', async () => {
+    const priceLoss = { key: 'PRECIO', count: 1 } as const
+    await renderLoaded({
+      lossReasons: (source) => {
+        if (source === 'WEB') return [priceLoss]
+        if (source === 'META') return []
+        return [priceLoss, { key: 'SIN_RESPUESTA', count: 2 }]
+      },
+    })
+
+    const recommendation = () => screen.getByRole('complementary', { name: 'Qué mejorar' })
+    expect(recommendation()).toHaveTextContent('Sin respuesta · No dejes la venta sin seguimiento')
+    const source = screen.getByLabelText('Origen', { selector: 'select' })
+    fireEvent.change(source, { target: { value: 'WEB' } })
+    await waitFor(() =>
+      expect(recommendation()).toHaveTextContent('Precio · Confirmá el presupuesto'),
+    )
+    fireEvent.change(source, { target: { value: 'META' } })
+    await waitFor(() =>
+      expect(screen.queryByRole('complementary', { name: 'Qué mejorar' })).not.toBeInTheDocument(),
+    )
   })
 
   it('renders the approved result, active, evolution and distribution hierarchy without attention', async () => {

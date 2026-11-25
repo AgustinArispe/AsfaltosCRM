@@ -60,7 +60,7 @@ def test_pipeline_keyboard_drag_persists_after_reload(
     page.keyboard.press("Space")
     confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
     expect(confirmation).to_be_visible()
-    confirmation.get_by_label("Nota del cambio de estado (recomendada)").fill(
+    confirmation.get_by_label("Nota de la oportunidad").fill(
         "Prueba QA: preparar la cotización"
     )
     confirmation.get_by_role("button", name="Avanzar a Para cotizar").click()
@@ -101,7 +101,7 @@ def test_pipeline_drag_persists_after_reload(qa_pages: QaPageFactory) -> None:
     page.mouse.up()
     confirmation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
     expect(confirmation).to_be_visible()
-    confirmation.get_by_label("Nota del cambio de estado (recomendada)").fill(
+    confirmation.get_by_label("Nota de la oportunidad").fill(
         "Prueba QA: propuesta en preparación"
     )
     confirmation.get_by_role("button", name="Avanzar a Para cotizar").click()
@@ -127,7 +127,7 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
     detail = page.get_by_role("dialog", name="Constructora del Sur")
     detail.get_by_role("button", name="Pasar a Para cotizar").click()
     preparation = page.get_by_role("dialog", name="Confirmar cambio de etapa")
-    preparation.get_by_label("Nota del cambio de estado (recomendada)").fill(
+    preparation.get_by_label("Nota de la oportunidad").fill(
         "Prueba QA: preparar propuesta"
     )
     preparation.get_by_role("button", name="Pasar a Para cotizar").click()
@@ -162,15 +162,17 @@ def test_quote_keyboard_validation_edit_remove_and_persistence(
     expect(quote.get_by_role("button", name="Confirmar cotización")).to_have_count(1)
     confirm = quote.get_by_role("button", name="Confirmar cotización")
     expect(confirm).to_be_enabled()
-    quote.get_by_text("Agregar un dato para recordar (opcional)", exact=True).click()
     memory = "Prefiere coordinar las entregas por WhatsApp."
-    quote.get_by_label("Nota del cliente", exact=True).fill(memory)
+    customer_note = quote.get_by_role("textbox", name="Para recordar del cliente")
+    expect(customer_note).to_be_visible()
+    customer_note.fill(memory)
     with page.expect_response(
         lambda response: response.url.endswith("/quote") and response.status == 200
     ) as saved:
         confirm.click()
     customer_id = saved.value.json()["customer"]["id"]
-    expect(detail.get_by_text("Cotizada", exact=True)).to_be_visible()
+    progress = detail.get_by_role("region", name="Avance de la oportunidad")
+    expect(progress.locator('[aria-current="step"]')).to_contain_text("Cotizada")
     expect(detail.get_by_text("CA-30", exact=True)).to_be_visible()
     page.reload(wait_until="networkidle")
     page.get_by_role(
@@ -200,9 +202,7 @@ def test_loss_action_redirects_from_hidden_workspace_to_dashboard(
     detail = page.get_by_role("dialog", name="Ramiro Sosa")
     detail.get_by_role("button", name="Marcar pérdida").click()
     loss = page.get_by_role("dialog", name="Marcar como perdida")
-    loss.get_by_label("Nota del cambio de estado (recomendada)").fill(
-        "Prueba QA: precio no aceptado"
-    )
+    loss.get_by_label("Nota de la oportunidad").fill("Prueba QA: precio no aceptado")
     loss.get_by_role("button", name="Confirmar pérdida").click()
     expect(loss.get_by_role("alert")).to_have_text("Seleccioná un motivo de pérdida.")
     loss.get_by_label("Motivo").select_option("PRECIO")
@@ -211,7 +211,7 @@ def test_loss_action_redirects_from_hidden_workspace_to_dashboard(
     expect(
         page.get_by_role("heading", name="Resumen comercial", level=1)
     ).to_be_visible()
-    expect(page.get_by_role("link", name="Perdidas")).to_have_count(0)
+    expect(page.get_by_role("link", name="Perdidas")).to_be_visible()
 
 
 @pytest.mark.mutating

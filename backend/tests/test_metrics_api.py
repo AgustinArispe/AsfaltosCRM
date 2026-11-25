@@ -557,6 +557,9 @@ def test_meta_results_and_volumes_remain_filterable_after_closing(
     assert overview.status_code == sources.status_code == products.status_code == 200
     assert overview.json()["opportunities"][kind] == 1
     assert overview.json()["volume_kg"][kind] == "500.000"
+    assert overview.json()["loss_reasons"] == (
+        [] if won else [{"key": "PRECIO", "count": 1}]
+    )
     assert sources.json()["items"][0]["source"] == "META"
     assert sources.json()["items"][0][kind] == 1
     assert products.json()["items"][0][f"kg_{kind}"] == "500.000"

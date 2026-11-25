@@ -5,10 +5,9 @@ import { useAuth } from '../auth/AuthContext'
 import { SOURCE_LABELS } from '../pipeline/config'
 import { isLeadSource } from '../pipeline/types'
 import { Button } from '../shared/Button'
-import { Input, Select } from '../shared/FormControls'
+import { ClosedOpportunityFilters } from '../shared/ClosedOpportunityFilters'
 import { formatDateTime, formatDecimalKg } from '../shared/formatters'
 import { Icon } from '../shared/Icon'
-import { PeriodFilter } from '../shared/PeriodFilter'
 import { isPeriodPreset, periodSelection } from '../shared/periods'
 import { EmptyState, InlineFeedback, WorkspaceSkeleton } from '../shared/StatusStates'
 import type { WonFilterOptions, WonFilters, WonOpportunity, WonStatistics } from '../won/types'
@@ -131,114 +130,15 @@ export function WonPage({ selectedOpportunityId }: { selectedOpportunityId?: num
   }
   return (
     <section aria-label='Ganadas' className='won-workspace mx-auto w-full min-w-0 max-w-[90rem]'>
-      <form
-        aria-label='Filtrar Ganadas'
-        className='won-filters'
-        onSubmit={(event) => {
-          event.preventDefault()
-          apply()
-        }}
-      >
-        <PeriodFilter
-          value={{ preset: draft.period, from: draft.from, to: draft.to }}
-          onChange={(selection) =>
-            setDraft((current) => ({
-              ...current,
-              period: selection.preset,
-              from: selection.from,
-              to: selection.to,
-            }))
-          }
-        />
-        <div className='won-filter won-filter--search'>
-          <Icon className='won-filter__search-icon' name='search' />
-          <Input
-            className='won-filter__search-input'
-            id='won-search'
-            label='Buscar cliente, empresa o ID'
-            value={draft.search}
-            onChange={(event) => setDraft({ ...draft, search: event.target.value })}
-          />
-        </div>
-        <div className='won-filter'>
-          <Select
-            id='won-product'
-            label='Producto'
-            value={draft.product}
-            onChange={(event) => setDraft({ ...draft, product: event.target.value })}
-          >
-            <option value=''>Todos</option>
-            {options?.products.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-                {option.is_active ? '' : ' (inactivo)'}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className='won-filter'>
-          <Select
-            id='won-source'
-            label='Origen'
-            value={draft.source}
-            onChange={(event) =>
-              setDraft({ ...draft, source: event.target.value as WonFilters['source'] })
-            }
-          >
-            <option value=''>Todos</option>
-            {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className='won-filter'>
-          <Select
-            id='won-province'
-            label='Provincia'
-            value={draft.province}
-            onChange={(event) => setDraft({ ...draft, province: event.target.value })}
-          >
-            <option value=''>Todas</option>
-            {options?.provinces.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </Select>
-        </div>
-        <div className='won-filter'>
-          <Select
-            id='won-responsible'
-            label='Responsable'
-            value={draft.unassigned ? 'unassigned' : draft.responsible}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                responsible: event.target.value === 'unassigned' ? '' : event.target.value,
-                unassigned: event.target.value === 'unassigned',
-              })
-            }
-          >
-            <option value=''>Todos</option>
-            <option value='unassigned'>Sin responsable</option>
-            {options?.responsible_users.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.full_name}
-                {option.is_active ? '' : ' (inactivo)'}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className='won-filter-actions'>
-          <Button size='compact' type='submit'>
-            <Icon name='filter' />
-            Aplicar
-          </Button>
-          <Button size='compact' type='button' variant='ghost' onClick={resetFilters}>
-            Restablecer
-          </Button>
-        </div>
-      </form>
+      <ClosedOpportunityFilters
+        apply={apply}
+        draft={draft}
+        label='Filtrar Ganadas'
+        options={options}
+        resetFilters={resetFilters}
+        setDraft={setDraft}
+        surface='won'
+      />
       {statistics ? (
         <section aria-label='Resumen de Ganadas' className='won-summary'>
           <div className='won-summary-card'>

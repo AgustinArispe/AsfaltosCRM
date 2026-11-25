@@ -28,14 +28,15 @@ describe('Lost API client', () => {
     )
     vi.stubGlobal('fetch', fetchMock)
     const filters: LostFilters = {
+      ...EMPTY_LOST_FILTERS,
       search: 'sur',
       reasons: ['PRECIO', 'OTRO'],
       customerId: 9,
       province: 'Buenos Aires',
-      productId: 3,
+      product: '3',
       source: 'WEB',
-      lostFrom: '2026-08-01',
-      lostTo: '2026-08-15',
+      from: '2026-08-01',
+      to: '2026-08-15',
     }
     await listLostOpportunities(filters, 'opaque-cursor', session)
     await getLostStatistics(filters, session)

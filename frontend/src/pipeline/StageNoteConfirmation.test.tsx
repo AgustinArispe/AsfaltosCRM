@@ -18,7 +18,7 @@ describe('StageNoteConfirmation', () => {
     const dialog = screen.getByRole('dialog', { name: 'Cambiar etapa' })
     const confirm = within(dialog).getByRole('button', { name: 'Confirmar' })
     expect(confirm).toBeEnabled()
-    const input = within(dialog).getByLabelText('Nota del cambio de estado (recomendada)')
+    const input = within(dialog).getByLabelText('Nota de la oportunidad')
     expect(input).not.toBeRequired()
     expect(input).toHaveAttribute('maxLength', '4000')
     fireEvent.change(input, { target: { value: '   ' } })
@@ -34,7 +34,7 @@ describe('StageNoteConfirmation', () => {
     rerender(<StageNoteConfirmation {...props} isOpen={false} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     rerender(<StageNoteConfirmation {...props} />)
-    expect(screen.getByLabelText('Nota del cambio de estado (recomendada)')).toHaveValue('')
+    expect(screen.getByLabelText('Nota de la oportunidad')).toHaveValue('')
   })
 
   it('recommends province without requiring it and preserves the draft after an error', () => {
@@ -52,7 +52,7 @@ describe('StageNoteConfirmation', () => {
     const { rerender } = render(<StageNoteConfirmation {...props} />)
     const province = screen.getByLabelText('Provincia (opcional, recomendada)')
     expect(province).not.toBeRequired()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Cliente confirmó' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))

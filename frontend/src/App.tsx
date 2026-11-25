@@ -54,13 +54,9 @@ function RoutedApp() {
 
   const route = parseRoute(pathname)
   if (!route) return <Redirect to='/pipeline' />
-  const isLostRoute =
-    (route.kind === 'workspace' && route.workspace === 'lost') ||
-    (route.kind === 'opportunity' && route.surface === 'lost')
   if (
     (route.kind === 'workspace' && route.workspace === 'whatsapp-sends') ||
-    route.kind === 'broadcast' ||
-    (isLostRoute && user?.role !== 'SUPERVISOR')
+    route.kind === 'broadcast'
   ) {
     return <Redirect to='/dashboard' />
   }
@@ -79,7 +75,7 @@ function RoutedApp() {
   if (route.kind === 'opportunity') {
     if (route.surface === 'lost') {
       return (
-        <AppShell activeNavigationPath='/pipeline' pageTitle='Perdidas'>
+        <AppShell activeNavigationPath='/lost' pageTitle='Perdidas'>
           <LazyWorkspace>
             <LostPage selectedOpportunityId={route.opportunityId} />
           </LazyWorkspace>
@@ -99,7 +95,7 @@ function RoutedApp() {
   }
   if (route.kind === 'workspace' && route.workspace === 'lost') {
     return (
-      <AppShell activeNavigationPath='/pipeline' pageTitle='Perdidas'>
+      <AppShell activeNavigationPath='/lost' pageTitle='Perdidas'>
         <LazyWorkspace>
           <LostPage />
         </LazyWorkspace>

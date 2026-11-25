@@ -364,107 +364,116 @@ export function OpportunityDetailPage({
     }
   }
 
+  const canMarkLoss =
+    opportunity?.status === 'NUEVA' ||
+    opportunity?.status === 'COTIZADA' ||
+    opportunity?.status === 'PARA_COTIZAR'
+  const canReopen = opportunity ? isEligibleForReopen(opportunity) : false
   const actions = opportunity ? (
     <>
-      {isOpportunityOverdue(
-        opportunity.status,
-        opportunity.follow_up_since ?? opportunity.current_status_entered_at,
-      ) ? (
-        <Button
-          className='opportunity-detail__action'
-          disabled={isMutating}
-          onClick={() => void markUpToDate()}
-        >
-          <Icon name='check-circle' /> Marcar al día
-        </Button>
+      {canMarkLoss || canReopen ? (
+        <fieldset aria-label='Cambiar etapa' className='opportunity-detail__action-group'>
+          {opportunity.status === 'PARA_COTIZAR' ? (
+            <Button
+              className='opportunity-detail__action'
+              onClick={() => openQuote('create')}
+              variant='primary'
+            >
+              <Icon name={STAGE_BY_STATUS.get('COTIZADA')?.icon ?? 'document'} />
+              Cotizar
+            </Button>
+          ) : null}
+          {opportunity.status === 'NUEVA' || opportunity.status === 'COTIZADA' ? (
+            <Button
+              className='opportunity-detail__action'
+              disabled={isMutating}
+              isLoading={isMutating}
+              onClick={() => setIsForwardConfirmationOpen(true)}
+              variant='primary'
+            >
+              <Icon
+                name={
+                  STAGE_BY_STATUS.get(opportunity.status === 'NUEVA' ? 'PARA_COTIZAR' : 'GANADA')
+                    ?.icon ?? 'document'
+                }
+              />
+              {isMutating
+                ? 'Actualizando…'
+                : opportunity.status === 'NUEVA'
+                  ? 'Pasar a Para cotizar'
+                  : 'Marcar ganada'}
+            </Button>
+          ) : null}
+          {canReopen ? (
+            <Button
+              className='opportunity-detail__action'
+              onClick={() => setIsReopenConfirmationOpen(true)}
+              variant='primary'
+            >
+              <Icon name='refresh' />
+              Reabrir
+            </Button>
+          ) : null}
+          {canMarkLoss ? (
+            <Button
+              className='opportunity-detail__action opportunity-detail__action--destructive'
+              onClick={() => setLossOpportunity(opportunity)}
+              variant='secondary'
+            >
+              <Icon name='x-circle' />
+              Marcar pérdida
+            </Button>
+          ) : null}
+        </fieldset>
       ) : null}
-      {opportunity.status === 'PARA_COTIZAR' ? (
+      <fieldset aria-label='Gestionar oportunidad' className='opportunity-detail__action-group'>
+        {isOpportunityOverdue(
+          opportunity.status,
+          opportunity.follow_up_since ?? opportunity.current_status_entered_at,
+        ) ? (
+          <Button
+            className='opportunity-detail__action'
+            disabled={isMutating}
+            onClick={() => void markUpToDate()}
+          >
+            <Icon name='check-circle' /> Marcar al día
+          </Button>
+        ) : null}
         <Button
-          className='opportunity-detail__action'
-          onClick={() => openQuote('create')}
-          variant='primary'
+          className='opportunity-detail__action opportunity-whatsapp-action'
+          disabled={isLookingUpConversation || !hasComparablePhone(opportunity.customer.phone)}
+          isLoading={isLookingUpConversation}
+          onClick={() => void handleWhatsApp()}
         >
-          <Icon name={STAGE_BY_STATUS.get('COTIZADA')?.icon ?? 'document'} />
-          Cotizar
+          <Icon name='whatsapp' />
+          {isLookingUpConversation ? 'Abriendo WhatsApp…' : 'Iniciar WhatsApp'}
         </Button>
-      ) : null}
-      {opportunity.status === 'NUEVA' || opportunity.status === 'COTIZADA' ? (
-        <Button
-          className='opportunity-detail__action'
-          disabled={isMutating}
-          isLoading={isMutating}
-          onClick={() => setIsForwardConfirmationOpen(true)}
-          variant='primary'
-        >
-          <Icon
-            name={
-              STAGE_BY_STATUS.get(opportunity.status === 'NUEVA' ? 'PARA_COTIZAR' : 'GANADA')
-                ?.icon ?? 'document'
+        {opportunity.status === 'COTIZADA' ? (
+          <Button className='opportunity-detail__action' onClick={() => openQuote('edit')}>
+            <Icon name='pencil' />
+            Editar cotización
+          </Button>
+        ) : null}
+        {opportunity.status === 'COTIZADA' || opportunity.status === 'GANADA' ? (
+          <Button
+            className='opportunity-detail__action'
+            disabled={isMutating}
+            onClick={() => {
+              const fromStatus = opportunity.status as PipelineStatus
+              const targetStatus = STAGE_BY_STATUS.get(fromStatus)?.previousStatus
+              if (targetStatus) setPendingRegression({ fromStatus, targetStatus })
+            }}
+          >
+            <Icon name='chevron-left' />
+            Volver a{' '}
+            {
+              OPPORTUNITY_STATUS_LABELS[
+                STAGE_BY_STATUS.get(opportunity.status as PipelineStatus)?.previousStatus ?? 'NUEVA'
+              ]
             }
-          />
-          {isMutating
-            ? 'Actualizando…'
-            : opportunity.status === 'NUEVA'
-              ? 'Pasar a Para cotizar'
-              : 'Marcar ganada'}
-        </Button>
-      ) : null}
-      {opportunity.status === 'COTIZADA' || opportunity.status === 'GANADA' ? (
-        <Button
-          className='opportunity-detail__action'
-          disabled={isMutating}
-          onClick={() => {
-            const fromStatus = opportunity.status as PipelineStatus
-            const targetStatus = STAGE_BY_STATUS.get(fromStatus)?.previousStatus
-            if (targetStatus) setPendingRegression({ fromStatus, targetStatus })
-          }}
-        >
-          <Icon name='chevron-left' />
-          Volver a{' '}
-          {
-            OPPORTUNITY_STATUS_LABELS[
-              STAGE_BY_STATUS.get(opportunity.status as PipelineStatus)?.previousStatus ?? 'NUEVA'
-            ]
-          }
-        </Button>
-      ) : null}
-      {opportunity.status === 'COTIZADA' ? (
-        <Button className='opportunity-detail__action' onClick={() => openQuote('edit')}>
-          <Icon name='pencil' />
-          Editar cotización
-        </Button>
-      ) : null}
-      <Button
-        className='opportunity-detail__action opportunity-whatsapp-action'
-        disabled={isLookingUpConversation || !hasComparablePhone(opportunity.customer.phone)}
-        isLoading={isLookingUpConversation}
-        onClick={() => void handleWhatsApp()}
-      >
-        <Icon name='whatsapp' />
-        {isLookingUpConversation ? 'Abriendo WhatsApp…' : 'Iniciar WhatsApp'}
-      </Button>
-      {isEligibleForReopen(opportunity) ? (
-        <Button
-          className='opportunity-detail__action'
-          onClick={() => setIsReopenConfirmationOpen(true)}
-          variant='primary'
-        >
-          <Icon name='refresh' />
-          Reabrir
-        </Button>
-      ) : null}
-      {opportunity.status === 'NUEVA' ||
-      opportunity.status === 'COTIZADA' ||
-      opportunity.status === 'PARA_COTIZAR' ? (
-        <Button
-          className='opportunity-detail__action opportunity-detail__action--destructive'
-          onClick={() => setLossOpportunity(opportunity)}
-          variant='danger'
-        >
-          <Icon name='x-circle' />
-          Marcar pérdida
-        </Button>
-      ) : null}
+          </Button>
+        ) : null}
+      </fieldset>
     </>
   ) : undefined
   const secondaryActions = opportunity ? (
@@ -523,7 +532,7 @@ export function OpportunityDetailPage({
               to={{ kind: 'workspace', workspace: surface }}
             >
               <Icon className='size-3.5' name='chevron-left' />
-              Volver a oportunidades
+              {surface === 'lost' ? 'Volver a Perdidas' : 'Volver a oportunidades'}
             </AppLink>
           }
           titleId={titleId}

@@ -284,8 +284,8 @@ primitiva se verificará una responsabilidad compartida real.
   remain a semantic wrapper but must use the same foundation;
 - consolidate repeated workspace header/action/filter arrangements through the existing
   toolbar composition, without embedding business filters in a universal component;
-- consolidate theme, user metadata and logout under one compact account disclosure in
-  AppShell;
+- consolidate theme preferences, user metadata and logout under one compact account
+  disclosure in AppShell, with a direct light/dark shortcut above the account;
 - consolidate repeated panel/card styling into semantic surfaces and remove `ui-panel`
   usage where a divider or whitespace is sufficient.
 
@@ -296,7 +296,7 @@ primitiva se verificará una responsabilidad compartida real.
 - explanatory subtitles under self-evident metrics and actions;
 - nested cards whose only purpose is to frame another card;
 - decorative gradients and broad tinted backgrounds;
-- standalone theme and logout controls in the sidebar footer;
+- a standalone logout control in the sidebar footer;
 - raw backend enum labels in Broadcasts;
 - feature-local visual variants that duplicate shared loading, error, empty or status
   primitives.
@@ -499,11 +499,15 @@ The primary flow is: **select conversation → understand context → respond**.
   surface and a compact green marker; it is recognizable without color alone and does
   not rely only on a pale green rectangle;
 - remove decorative gradients;
-- reduce group separators and labels where spacing provides enough hierarchy;
+- use one inset divider and consistent spacing between navigation groups. Keep
+  WhatsApp and Clientes together, and let the dividers mark groups without labels;
+- Place Perdidas and Ganadas, in that order, at the end of the commercial navigation.
+  Group Productos and Usuarios below them in a separate administration section while
+  preserving each role's route access;
 - unread count remains visible and semantically announced in expanded and collapsed
   modes;
-- replace the expanded user/theme/logout stack with one compact account disclosure that
-  contains identity, theme choice and logout;
+- Keep one compact account disclosure for identity, theme preferences and logout. Add
+  a light/dark shortcut immediately above it in expanded, collapsed and mobile navigation;
 - preserve the sidebar toggle, keyboard order, responsive reachability and active-route
   ownership for detail pages;
 - navy must be clearly visible but the sidebar should not become a large saturated navy
@@ -584,8 +588,9 @@ The primary flow is: **select conversation → understand context → respond**.
   consolidated or explicitly justified during implementation review.
 - **AC-09:** AppShell selection is recognizable through more than a pale green fill;
   navigation, unread count, collapse and responsive keyboard behavior regressions pass.
-- **AC-10:** account identity, theme and logout are reachable through one compact,
-  accessible disclosure and preserve their current behavior.
+- **AC-10:** account identity, theme preferences and logout are reachable through one
+  accessible disclosure. The sidebar shortcut switches between light and dark using the
+  same stored preference.
 - **AC-11:** Pipeline renders the four configured active stages through the generic
   column/card system, with no stage-specific component duplication.
 - **AC-12:** Pipeline cards remain compact, add no fields and show the specified

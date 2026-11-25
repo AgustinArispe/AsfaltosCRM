@@ -12,8 +12,93 @@ from quality.browser.support import (
     Theme,
     assert_no_horizontal_overflow,
     run_axe,
+    stable_screenshot,
     wait_for_workspace,
 )
+
+
+@pytest.mark.parametrize("viewport", [(1440, 900), (768, 920), (390, 844)])
+def test_lost_workspace_reason_filter_and_detail(
+    qa_pages: QaPageFactory, viewport: tuple[int, int]
+) -> None:
+    qa_page = qa_pages.create(role="VENDEDOR", viewport=viewport)
+    page = qa_page.page
+    wait_for_workspace(page, "lost?period=all")
+    reasons = page.get_by_role("region", name="Motivos de pérdida")
+    reason_list = reasons.get_by_role("list")
+    first_reason = reason_list.get_by_role("button").first
+    expect(first_reason).to_be_visible()
+    recommendation = page.get_by_role("complementary", name="Qué mejorar")
+    history = page.get_by_role("region", name="Historial de pérdidas")
+    expect(recommendation).to_be_visible()
+    assert recommendation.evaluate(
+        "node => node.previousElementSibling?.classList.contains('closed-summary')"
+        " && node.nextElementSibling?.classList.contains('closed-history')"
+    )
+    recommendation_box = recommendation.bounding_box()
+    history_box = history.bounding_box()
+    assert recommendation_box is not None and history_box is not None
+    assert recommendation_box["width"] == history_box["width"]
+    if viewport[0] == 1440:
+        assert recommendation.evaluate("""node => {
+            const heading = node.querySelector('h2');
+            const message = node.querySelector('p');
+            return Math.abs(heading.getBoundingClientRect().top - message.getBoundingClientRect().top) < 1;
+        }""")
+    assert_no_horizontal_overflow(page)
+    rows = page.get_by_role("table", name="Oportunidades actualmente perdidas").locator(
+        "tbody tr"
+    )
+    assert rows.count() > 1
+    assert rows.evaluate_all(
+        "rows => rows.every(row => Array.from(row.cells).every(cell => "
+        "cell.getBoundingClientRect().bottom <= row.getBoundingClientRect().bottom))"
+    )
+    run_axe(page)
+    stable_screenshot(page, f"lost-workspace-{viewport[0]}")
+    page.get_by_role("button", name="Fichas", exact=True).click()
+    cards = page.get_by_role("list", name="Fichas de oportunidades perdidas")
+    expect(cards.get_by_role("link").first).to_be_visible()
+    assert_no_horizontal_overflow(page)
+    run_axe(page)
+    stable_screenshot(page, f"lost-cards-{viewport[0]}")
+    page.get_by_role("button", name="Tabla", exact=True).click()
+    reasons.get_by_role("button", name="Por kilos").click()
+    expect(first_reason).to_contain_text("kg")
+    stable_screenshot(page, f"lost-workspace-kg-{viewport[0]}")
+    filters = page.get_by_role("button", name="Filtros adicionales")
+    expect(filters).to_have_attribute("aria-expanded", "false")
+    filters.click()
+    expect(page.get_by_label("Responsable")).to_be_visible()
+    page.get_by_label("Más períodos").select_option("custom")
+    expect(page.get_by_label("Desde")).to_be_visible()
+    assert_no_horizontal_overflow(page)
+    run_axe(page)
+    stable_screenshot(page, f"lost-filters-{viewport[0]}")
+    filters.click()
+
+    first_reason.click()
+    selected_reason = reason_list.get_by_role("button", pressed=True)
+    expect(selected_reason).to_have_count(1)
+    expect(recommendation).to_contain_text(
+        selected_reason.locator("strong").inner_text()
+    )
+    expect(
+        reasons.get_by_role("button", name="Por kilos", pressed=True)
+    ).to_be_visible()
+    expect(page).to_have_url(re.compile(r"/lost\?.*reason="))
+    page.get_by_role("button", name="Fichas", exact=True).click()
+    expect(cards.get_by_role("link").first).to_be_visible()
+    assert_no_horizontal_overflow(page)
+    cards.get_by_role("link").first.press("Enter")
+    dialog = page.get_by_role("dialog")
+    expect(dialog).to_be_visible()
+    dialog.get_by_role("link", name="Volver a Perdidas").click()
+    expect(dialog).to_have_count(0)
+    expect(reason_list.get_by_role("button", pressed=True)).to_have_count(1)
+    expect(page.get_by_role("button", name="Fichas", pressed=True)).to_be_visible()
+    page.get_by_role("button", name="Tabla", exact=True).click()
+    expect(rows.first).to_be_visible()
 
 
 def test_wheel_over_pipeline_cards_scrolls_the_page_in_both_directions(
@@ -48,6 +133,14 @@ def test_opportunity_modal_keeps_the_pipeline_in_place_while_scrolling(
 
     detail = page.get_by_role("dialog", name="Vial Patagonia")
     expect(detail.get_by_role("button", name="Cotizar")).to_be_visible()
+    progress = detail.get_by_role("region", name="Avance de la oportunidad")
+    expect(progress.locator('[aria-current="step"]')).to_contain_text("Para cotizar")
+    progress_box = progress.bounding_box()
+    delete_box = detail.get_by_role(
+        "button", name="Eliminar oportunidad"
+    ).bounding_box()
+    assert progress_box is not None and delete_box is not None
+    assert progress_box["y"] >= delete_box["y"] + delete_box["height"]
     surface = detail.locator(":scope > .crm-modal__surface")
     surface.hover(position={"x": 24, "y": 200})
     page.mouse.wheel(0, 400)
@@ -197,6 +290,11 @@ def test_sidebar_collapsed_and_mobile_drawer_keyboard_contract(
     expect(desktop.page.get_by_role("link", name="Oportunidades")).to_have_attribute(
         "title", "Oportunidades"
     )
+    desktop.page.get_by_role("button", name="Cambiar a modo oscuro").press("Enter")
+    expect(desktop.page.locator("html")).to_have_attribute("data-theme", "dark")
+    expect(
+        desktop.page.get_by_role("button", name="Cambiar a modo claro")
+    ).to_have_attribute("title", "Cambiar a modo claro")
     desktop.page.get_by_role("button", name="Expandir navegación").click()
     expect(
         desktop.page.get_by_role("button", name="Contraer navegación")
@@ -211,6 +309,17 @@ def test_sidebar_collapsed_and_mobile_drawer_keyboard_contract(
     drawer = mobile.page.get_by_role("complementary", name="Navegación móvil")
     expect(drawer).to_be_visible()
     expect(drawer.get_by_role("link", name="Resumen comercial")).to_be_visible()
+    final_links = drawer.get_by_role("navigation").get_by_role("link")
+    assert final_links.all_text_contents()[-4:] == [
+        "Perdidas",
+        "Ganadas",
+        "Productos",
+        "Usuarios",
+    ]
+    drawer.get_by_role("button", name="Cambiar a modo oscuro").click()
+    expect(mobile.page.locator("html")).to_have_attribute("data-theme", "dark")
+    expect(drawer.get_by_role("button", name="Cambiar a modo claro")).to_be_visible()
+    stable_screenshot(mobile.page, "sidebar-mobile-dark")
     mobile.page.keyboard.press("Escape")
     expect(drawer).not_to_be_visible()
     expect(trigger).to_be_focused()

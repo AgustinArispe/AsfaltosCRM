@@ -381,7 +381,7 @@ describe('PipelinePage', () => {
     expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/prepare-quote'))).toBe(
       false,
     )
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Avanzar a Para cotizar' }))
@@ -413,11 +413,11 @@ describe('PipelinePage', () => {
     )
 
     const confirm = within(dialog).getByRole('button', { name: 'Avanzar a Para cotizar' })
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(confirm)
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(confirm)
@@ -444,7 +444,7 @@ describe('PipelinePage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Confirmar cambio de etapa' })
     expect(within(dialog).getByText('¿Querés volver esta oportunidad a Cotizada?')).toBeVisible()
     expect(within(stage(container, 'GANADA')).getByText('Cliente 4')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Volver a Cotizada' }))
@@ -503,7 +503,7 @@ describe('PipelinePage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Revisar y confirmar' }))
     expect(within(dialog).getByRole('button', { name: 'Confirmar cotización' })).toBeEnabled()
-    fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(within(dialog).getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Propuesta enviada' },
     })
     fireEvent.change(within(dialog).getByLabelText('Provincia (opcional, recomendada)'), {
@@ -512,9 +512,7 @@ describe('PipelinePage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar cotización' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('ya no está activo')
     expect(within(stage(container, 'PARA_COTIZAR')).getByText('Empresa 1')).toBeInTheDocument()
-    expect(screen.getByLabelText('Nota del cambio de estado (recomendada)')).toHaveValue(
-      'Propuesta enviada',
-    )
+    expect(screen.getByLabelText('Nota de la oportunidad')).toHaveValue('Propuesta enviada')
     expect(screen.getByLabelText('Provincia (opcional, recomendada)')).toHaveValue('Santa Fe')
     expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/prepare-quote'))).toBe(
       false,
@@ -542,7 +540,7 @@ describe('PipelinePage', () => {
     fireEvent.change(within(dialog).getByLabelText('Cantidad (kg)'), { target: { value: '10' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Agregar producto' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Revisar y confirmar' }))
-    fireEvent.change(within(dialog).getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(within(dialog).getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Cotización enviada' },
     })
     fireEvent.change(within(dialog).getByLabelText('Provincia (opcional, recomendada)'), {

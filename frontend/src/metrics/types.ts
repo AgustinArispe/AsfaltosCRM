@@ -1,4 +1,4 @@
-import type { LeadSource, OpportunityStatus } from '../pipeline/types'
+import type { LeadSource, LossReason, OpportunityStatus } from '../pipeline/types'
 
 export type MetricPeriod = {
   from: string
@@ -15,6 +15,7 @@ export type MetricsFilters = {
 
 export type MetricsOverview = {
   period: MetricPeriod
+  loss_reasons?: ReadonlyArray<{ key: LossReason; count: number }>
   opportunities: {
     created: number
     won: number

@@ -42,7 +42,7 @@ describe('LossModal', () => {
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'OTRO' } })
     const detail = screen.getByLabelText('Detalle del motivo')
     expect(detail).toBeRequired()
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
@@ -50,7 +50,7 @@ describe('LossModal', () => {
     expect(detail).toHaveFocus()
 
     fireEvent.change(detail, { target: { value: '  El proyecto cambió de alcance.  ' } })
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
@@ -75,7 +75,7 @@ describe('LossModal', () => {
       />,
     )
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))
@@ -91,7 +91,7 @@ describe('LossModal', () => {
       />,
     )
     fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'PRECIO' } })
-    fireEvent.change(screen.getByLabelText('Nota del cambio de estado (recomendada)'), {
+    fireEvent.change(screen.getByLabelText('Nota de la oportunidad'), {
       target: { value: 'Seguimiento comercial de prueba' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar pérdida' }))

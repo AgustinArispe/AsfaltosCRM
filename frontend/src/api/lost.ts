@@ -1,23 +1,13 @@
 import type { LostFilters, LostOpportunityPage, LostStatistics } from '../lost/types'
+import type { WonFilterOptions } from '../won/types'
 import { apiRequest } from './client'
+import { closedOpportunityParams } from './closed-opportunity-filters'
 import type { ApiSession } from './opportunities'
 
 function lostQuery(filters: LostFilters, cursor?: string | null, includeLimit = true): string {
-  const query = new URLSearchParams()
-  if (filters.search) query.set('search', filters.search)
-  filters.reasons.forEach((reason) => {
-    query.append('reason', reason)
-  })
+  const query = closedOpportunityParams(filters, 'lost')
+  for (const reason of filters.reasons) query.append('reason', reason)
   if (filters.customerId) query.set('customer_id', String(filters.customerId))
-  if (filters.province) query.set('province', filters.province)
-  if (filters.productId) query.set('product_id', String(filters.productId))
-  if (filters.source) query.set('source', filters.source)
-  if (filters.lostFrom) query.set('lost_from', `${filters.lostFrom}T00:00:00-03:00`)
-  if (filters.lostTo) {
-    const next = new Date(`${filters.lostTo}T00:00:00Z`)
-    next.setUTCDate(next.getUTCDate() + 1)
-    query.set('lost_to', `${next.toISOString().slice(0, 10)}T00:00:00-03:00`)
-  }
   if (includeLimit) query.set('limit', '20')
   if (cursor) query.set('cursor', cursor)
   return query.toString()
@@ -39,4 +29,8 @@ export function getLostStatistics(filters: LostFilters, session: ApiSession) {
     `/lost-opportunities/statistics?${lostQuery(filters, null, false)}`,
     session,
   )
+}
+
+export function getLostFilterOptions(session: ApiSession) {
+  return apiRequest<WonFilterOptions>('/lost-opportunities/filter-options', session)
 }

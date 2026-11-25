@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import type { ApiSession } from '../api/opportunities'
 import { useAuth } from '../auth/AuthContext'
+import { LossRecommendation } from '../lost/LossRecommendation'
 import { DashboardFilters } from '../metrics/DashboardFilters'
 import {
   CommercialDistribution,
@@ -98,6 +99,11 @@ export function DashboardPage() {
               title='Indicadores no disponibles'
             />
           )}
+          {!isRefreshing && !errors.overview && data.overview?.loss_reasons ? (
+            <LossRecommendation
+              reasons={data.overview.loss_reasons.map(({ key, count }) => ({ key, value: count }))}
+            />
+          ) : null}
           <ResultsCluster
             error={errors.pipeline}
             hasDimensionFilters={hasDimensionFilters}

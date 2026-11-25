@@ -18,38 +18,39 @@ export function StageNoteField({
 }) {
   const id = useId()
   return (
-    <div className='space-y-2'>
-      <label className='ui-label' htmlFor={id}>
-        Nota del cambio de estado (recomendada)
-      </label>
-      <textarea
-        aria-describedby={`${id}-help`}
-        className='ui-field min-h-20 resize-y py-2.5 text-base'
-        disabled={disabled}
-        id={id}
-        maxLength={4000}
-        onChange={(event) => onChange(event.target.value)}
-        ref={inputRef}
-        value={value}
-      />
-      <p className='text-xs leading-5 text-[var(--text-secondary)]' id={`${id}-help`}>
-        Si hubo un acuerdo o un próximo paso, dejalo en el historial.
-        <span className='ml-2 tabular-nums'>{value.length}/4000</span>
+    <fieldset aria-describedby={`${id}-optional`} className='min-w-0 space-y-3'>
+      <legend className='text-sm font-semibold text-[var(--text-primary)]'>
+        Notas recomendadas
+      </legend>
+      <p className='text-xs leading-5 text-[var(--text-secondary)]' id={`${id}-optional`}>
+        Podés continuar sin completarlas.
       </p>
-      <details className='rounded-[var(--radius-control)] border border-[var(--divider)] px-3 py-2'>
-        <summary className='ui-label cursor-pointer'>
-          {customerNote.trim()
-            ? 'Nota del cliente lista para guardar'
-            : 'Agregar un dato para recordar (opcional)'}
-        </summary>
-        <div className='mt-2'>
-          <CustomerNoteField
-            disabled={disabled}
-            onChange={onCustomerNoteChange}
-            value={customerNote}
-          />
-        </div>
-      </details>
-    </div>
+      <div>
+        <label className='ui-label' htmlFor={id}>
+          Nota de la oportunidad
+        </label>
+        <p className='text-xs leading-5 text-[var(--text-secondary)]' id={`${id}-help`}>
+          Qué se acordó o cuál es el próximo paso.
+        </p>
+        <textarea
+          aria-describedby={`${id}-help`}
+          className='ui-field mt-1 min-h-14 resize-y py-2 text-base'
+          disabled={disabled}
+          id={id}
+          maxLength={4000}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder='Ej. El viernes confirma la cantidad.'
+          ref={inputRef}
+          rows={2}
+          value={value}
+        />
+      </div>
+      <CustomerNoteField
+        disabled={disabled}
+        inStageChange
+        onChange={onCustomerNoteChange}
+        value={customerNote}
+      />
+    </fieldset>
   )
 }

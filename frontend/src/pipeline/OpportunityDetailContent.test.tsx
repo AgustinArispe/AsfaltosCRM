@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { OpportunityContextPanel } from './OpportunityContextPanel'
 import { OpportunityDetailContent, OpportunityDetailModalHeader } from './OpportunityDetailContent'
@@ -111,6 +111,12 @@ describe('OpportunityDetailContent', () => {
       'href',
       'tel:+54 11 5555 0101',
     )
+    expect(screen.getByRole('button', { name: 'Actividad y notas' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByText('Pasó de Negociación (histórico) a Pérdida')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Cotización' }))
     expect(screen.getByText('Producto histórico')).toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
     expect(screen.getByText('Total cotizado')).toBeInTheDocument()
@@ -121,20 +127,12 @@ describe('OpportunityDetailContent', () => {
     expect(summary).not.toBeNull()
     expect(
       Array.from(summary?.querySelectorAll('dt') ?? []).map((term) => term.textContent),
-    ).toEqual([
-      'Origen',
-      'Responsable',
-      'Creada',
-      'Tiempo en etapa',
-      'Email',
-      'Teléfono',
-      'Provincia',
-    ])
+    ).toEqual(['Origen', 'Responsable', 'Email', 'Teléfono', 'Provincia'])
     expect(
       screen.queryByRole('heading', { name: 'Información del cliente' }),
     ).not.toBeInTheDocument()
     expect(document.querySelector('.opportunity-detail__body--page')).not.toBeNull()
-    expect(document.querySelector('.opportunity-detail__context')).not.toBeNull()
+    expect(screen.queryByRole('region', { name: 'Historial' })).not.toBeInTheDocument()
   })
 
   it('renders missing customer information and the no-quote state in compact layout', () => {
@@ -165,36 +163,52 @@ describe('OpportunityDetailContent', () => {
     expect(screen.getByRole('heading', { name: 'Información del cliente' })).toBeInTheDocument()
   })
 
-  it('renders a multiline web consultation between customer information and quote', () => {
+  it('opens the customer inquiry first before quoting and prioritizes the quote after the stage changes', () => {
+    const detail: OpportunityDetail = {
+      ...opportunity,
+      status: 'PARA_COTIZAR',
+      source: 'WEB',
+      web_intake: { message: 'Primera línea\nSegunda línea' },
+    }
+    const { rerender } = render(<OpportunityDetailContent opportunity={detail} />)
+    const sections = screen.getByRole('group', { name: 'Secciones de la oportunidad' })
+    const consultation = within(sections).getByRole('button', { name: 'Consulta del cliente' })
+    expect(consultation).toHaveAttribute('aria-pressed', 'true')
+    const message = screen.getByText(/Primera línea/)
+    expect(message).toBeVisible()
+    expect(message).toHaveTextContent('Primera línea Segunda línea')
+    expect(message).toHaveClass('whitespace-pre-wrap', 'break-words', '[overflow-wrap:anywhere]')
+    expect(screen.queryByRole('region', { name: 'Cotización' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Historial' })).not.toBeInTheDocument()
+
+    rerender(<OpportunityDetailContent opportunity={{ ...detail, status: 'COTIZADA' }} />)
+    expect(within(sections).getAllByRole('button')[0]).toHaveAccessibleName('Cotización')
+    expect(screen.getByRole('region', { name: 'Cotización' })).toBeVisible()
+    fireEvent.click(consultation)
+    expect(screen.getByText(/Primera línea/)).toBeVisible()
+    expect(screen.queryByRole('region', { name: 'Cotización' })).not.toBeInTheDocument()
+  })
+
+  it('opens activity first when a new web lead has no inquiry to show', () => {
     render(
       <OpportunityDetailContent
         opportunity={{
           ...opportunity,
+          status: 'NUEVA',
           source: 'WEB',
-          web_intake: { message: 'Primera línea\nSegunda línea' },
+          web_intake: { message: null },
         }}
       />,
     )
 
-    const headings = screen
-      .getAllByRole('heading', { level: 3 })
-      .map((heading) => heading.textContent)
-    const message = screen.getByText(/Primera línea/)
-
-    expect(headings).toEqual(['Consulta del cliente', 'Cotización', 'Historial'])
-    expect(message).toHaveTextContent('Primera línea Segunda línea')
-    expect(message).toHaveClass('whitespace-pre-wrap', 'break-words', '[overflow-wrap:anywhere]')
-  })
-
-  it('renders the truthful empty state for a web opportunity without a message', () => {
-    render(
-      <OpportunityDetailContent
-        opportunity={{ ...opportunity, source: 'WEB', web_intake: { message: null } }}
-      />,
+    const sections = screen.getByRole('group', { name: 'Secciones de la oportunidad' })
+    expect(within(sections).getAllByRole('button')).toHaveLength(2)
+    expect(within(sections).getByRole('button', { name: 'Actividad y notas' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     )
-
-    expect(screen.getByRole('heading', { name: 'Consulta del cliente' })).toBeInTheDocument()
-    expect(screen.getByText('No hay una consulta web disponible.')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Historial' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Consulta del cliente' })).not.toBeInTheDocument()
   })
 
   it('does not render the web consultation for a WhatsApp opportunity', () => {
